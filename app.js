@@ -593,6 +593,9 @@ async function initApp() {
  try { if(typeof loadPromotions === 'function') await loadPromotions(); } catch(e) { console.warn('loadPromotions:', e); }
 
  // RENDER FRONTEND INSTANTLY BEFORE ADMIN BACKEND FETCHES
+ // p1_47: re-render activity tiles + category pills now that masterProducts is populated
+ try { if(typeof window.lpRenderActivityTiles === 'function') window.lpRenderActivityTiles(); } catch(e){}
+ try { if(typeof window.lpRenderCategoryPills === 'function') window.lpRenderCategoryPills(); } catch(e){}
  renderPublicStorefront();
  renderPOS();
 
@@ -2879,6 +2882,21 @@ setTimeout(() => {
 window.lpSearchTerm = '';
 window.lpActiveCategory = '';
 
+// p1_47: Activity Grid — group raw categories into 10 activity buckets for primary navigation
+window.LP_ACTIVITY_GROUPS = {
+    shelter:   { label: 'Khemah & Shelter',  icon: 'tent',             cats: ['Tent','Dome','Canopy','Tent Pole','Pegs','Ground Sheet','Flysheet','Hammock'] },
+    furniture: { label: 'Furniture Outdoor', icon: 'armchair',         cats: ['Tables','Chairs','Stool','Mini Table','Rack','Shelf','Tablecloth'] },
+    cooking:   { label: 'Memasak & Makan',   icon: 'utensils-crossed', cats: ['Pots','Stove','Kettle','Grills','Cups','Plate','Utensils','Charcoal','Seasoning Bottles','Pot Hanging Tripod'] },
+    sleeping:  { label: 'Tidur & Rehat',     icon: 'bed',              cats: ['Sleeping','Sleeping Bags','SLEEPING GEAR','Air Mattress','Mat','Pillow','Blankets','Camping Cots','Inflatable Sofa'] },
+    lighting:  { label: 'Lighting',          icon: 'lamp',             cats: ['Hanging Lamp','Universal Lamp','Ground Lamp','String Light','Lanterns','LIGHTING','Light Standing Pole','Warning Light','Lights with Mosquito Repellent'] },
+    storage:   { label: 'Storage',           icon: 'package',          cats: ['Boxes','Bags','Bucket','Storage','STORAGE','Basket'] },
+    cooling:   { label: 'Cooling & Fan',     icon: 'fan',              cats: ['Portable Fan','Fan','FAN','Fan Accessories'] },
+    tools:     { label: 'Tools & Aksesori',  icon: 'wrench',           cats: ['Hammer','Hooks','Rope','Velco Strap','Survival Tools','Universal Tactical Screws','Carabiner','Pole Cap','Wind Shield','Portable Hanger','Accessories'] },
+    apparel:   { label: 'Apparel',           icon: 'shirt',            cats: ['Apparel','Towel'] },
+    lifestyle: { label: 'Outdoor Lifestyle', icon: 'mountain',         cats: ['Wagons','Flags','Rubbish Frame','Bundle'] }
+};
+window.lpActiveActivity = '';
+
 window.lpHandleSearch = function(val) {
     window.lpSearchTerm = (val || '').toLowerCase().trim();
     publicCurrentPage = 1;
@@ -2895,28 +2913,70 @@ window.lpFilterCategory = function(cat) {
     const shop = document.getElementById('shop');
     if(shop) shop.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+window.lpFilterByActivity = function(activityKey) {
+    const next = activityKey || '';
+    // Toggle off if user clicks the same tile
+    window.lpActiveActivity = (window.lpActiveActivity === next) ? '' : next;
+    // Reset narrower filters so user starts fresh inside the activity
+    window.lpActiveCategory = '';
+    publicCurrentPage = 1;
+    renderPublicStorefront();
+    window.lpUpdateShopHeading();
+    window.lpRenderActivityTiles();
+    window.lpRenderCategoryPills();
+    const shop = document.getElementById('shop');
+    if(shop) shop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+window.lpRenderActivityTiles = function() {
+    const wrap = document.getElementById('lpActivityGrid');
+    if(!wrap || typeof masterProducts === 'undefined') return;
+    const products = masterProducts.filter(p => isPublished && isPublished(p));
+    let html = '';
+    Object.entries(window.LP_ACTIVITY_GROUPS).forEach(([key, g]) => {
+        const count = products.filter(p => g.cats.includes(p.category)).length;
+        const active = window.lpActiveActivity === key ? ' is-active' : '';
+        html += `<button type="button" class="lp-activity-tile${active}" onclick="window.lpFilterByActivity('${key}')">
+            <span class="lp-activity-tile__icon"><i data-lucide="${g.icon}"></i></span>
+            <span class="lp-activity-tile__label">${g.label}</span>
+            <span class="lp-activity-tile__count">${count} produk</span>
+        </button>`;
+    });
+    wrap.innerHTML = html;
+    if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
 window.lpUpdateShopHeading = function() {
     const h = document.getElementById('lpShopHeading');
     if(!h) return;
+    const act = window.lpActiveActivity && window.LP_ACTIVITY_GROUPS && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity];
     if(window.lpActiveCategory && window.lpActiveCategory !== 'SALE') h.textContent = window.lpActiveCategory;
     else if(window.lpActiveCategory === 'SALE') h.textContent = 'Festival Sale';
     else if(window.lpSearchTerm) h.textContent = 'Search: "' + window.lpSearchTerm + '"';
+    else if(act) h.textContent = act.label;
     else h.textContent = 'All Products';
 };
 window.lpRenderCategoryPills = function() {
     const wrap = document.getElementById('lpCategoryPills');
     if(!wrap || typeof masterProducts === 'undefined') return;
+    // p1_47: when an activity is selected, restrict pills to its categories
+    const activity = window.lpActiveActivity && window.LP_ACTIVITY_GROUPS && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity];
+    const allowedCats = activity ? new Set(activity.cats) : null;
     const cats = {};
     masterProducts.filter(p => isPublished && isPublished(p)).forEach(p => {
         const c = p.category || 'Uncat';
+        if(allowedCats && !allowedCats.has(c)) return;
         cats[c] = (cats[c] || 0) + 1;
     });
     const sorted = Object.entries(cats).sort((a,b) => b[1] - a[1]).slice(0, 10);
-    let html = `<button class="lp-pill ${window.lpActiveCategory === '' ? 'lp-pill--active' : ''}" onclick="window.lpFilterCategory('')">All</button>`;
+    const allLabel = activity ? ('All ' + activity.label) : 'All';
+    let html = `<button class="lp-pill ${window.lpActiveCategory === '' ? 'lp-pill--active' : ''}" onclick="window.lpFilterCategory('')">${allLabel}</button>`;
     sorted.forEach(([c, n]) => {
         const active = window.lpActiveCategory === c ? 'lp-pill--active' : '';
         html += `<button class="lp-pill ${active}" onclick="window.lpFilterCategory('${c.replace(/'/g, "\\'")}')">${c} (${n})</button>`;
     });
+    // p1_47: if activity is active, offer a "Clear activity" chip back to all
+    if(activity) {
+        html += `<button class="lp-pill" style="border-color:var(--primary-500); color:var(--primary-700);" onclick="window.lpFilterByActivity('')">× Clear ${activity.label}</button>`;
+    }
     wrap.innerHTML = html;
 };
 
@@ -3071,6 +3131,11 @@ function renderPublicStorefront() {
         const q = window.lpSearchTerm;
         filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
     }
+    // p1_47: activity filter (broader bucket) applies first so category pill stays scoped
+    if(window.lpActiveActivity && window.LP_ACTIVITY_GROUPS && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity]) {
+        const allowed = new Set(window.LP_ACTIVITY_GROUPS[window.lpActiveActivity].cats);
+        filtered = filtered.filter(p => allowed.has(p.category));
+    }
     if(window.lpActiveCategory && window.lpActiveCategory !== 'SALE') {
         filtered = filtered.filter(p => (p.category || 'Uncat') === window.lpActiveCategory);
     }
@@ -3162,10 +3227,15 @@ function renderPublicStorefront() {
     if(window.lucide && lucide.createIcons) lucide.createIcons();
 }
 
-// Boot: render skeletons + category pills + promo banner ASAP
+// Boot: render skeletons + category pills + activity tiles + promo banner ASAP
 document.addEventListener('DOMContentLoaded', function() {
     window.lpRenderSkeletons();
-    setTimeout(() => { window.lpRenderCategoryPills(); window.lpRefreshPromoBanner(); window.lpUpdateCartBadge(); }, 500);
+    setTimeout(() => {
+        window.lpRenderActivityTiles();
+        window.lpRenderCategoryPills();
+        window.lpRefreshPromoBanner();
+        window.lpUpdateCartBadge();
+    }, 500);
 });
 
 let publicCart = [];

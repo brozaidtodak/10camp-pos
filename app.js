@@ -106,6 +106,7 @@ window.showToast = function(msg, type) {
  info: { bg:'#3b82f6', icon:'i' },
  success: { bg:'#10b981', icon:'' },
  warning: { bg:'#f59e0b', icon:'' },
+ warn: { bg:'#f59e0b', icon:'' },
  error: { bg:'#dc2626', icon:'' }
  };
  const c = colors[type] || colors.info;
@@ -115,7 +116,146 @@ window.showToast = function(msg, type) {
  document.body.appendChild(el);
  requestAnimationFrame(() => { el.style.opacity='1'; el.style.transform='translateX(0)'; });
  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(), 280); }, type==='error' ? 4500 : 2800);
+ // p1_34: persist warnings/errors into notification center (success/info skipped — too noisy).
+ if (window.notify && (type === 'warning' || type === 'warn' || type === 'error')) {
+ try { window.notify.add({ title: type === 'error' ? 'Error' : 'Warning', body: String(msg), type: type === 'warn' ? 'warning' : type, silent: true }); } catch(e){}
+ }
 };
+
+// p1_34: Global notification center. Persistent inbox for warnings/errors/system events.
+// Storage key: notifications_v1 (cap 50, FIFO). Read state per-entry via .read flag.
+(function(){
+ const KEY = 'notifications_v1';
+ const CAP = 50;
+ let cache = null;
+ let openState = false;
+ let outsideHandler = null;
+
+ function load() {
+ if (cache) return cache;
+ try { cache = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { cache = []; }
+ return cache;
+ }
+ function save() { try { localStorage.setItem(KEY, JSON.stringify(cache || [])); } catch(e){} }
+ function fmtTime(ts) {
+ const diff = Date.now() - ts;
+ if (diff < 60000) return 'just now';
+ if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+ if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+ const d = new Date(ts);
+ return d.getDate()+'/'+(d.getMonth()+1)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+ }
+ function escape(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+ function iconFor(type) {
+ return ({ warning:'alert-triangle', error:'alert-octagon', success:'check-circle', info:'info' })[type] || 'info';
+ }
+ function dedupeRecent(item) {
+ // Skip if same title+body added in last 30s — prevents spam from rapid repeated calls.
+ const now = Date.now();
+ return load().some(n => n.title === item.title && n.body === item.body && (now - n.ts) < 30000);
+ }
+
+ const api = {
+ add(item) {
+ if (!item || !item.body) return;
+ const entry = {
+ id: 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+ title: item.title || 'Notification',
+ body: String(item.body),
+ type: item.type || 'info',
+ ts: Date.now(),
+ read: false,
+ action: item.action || null
+ };
+ if (dedupeRecent(entry)) return;
+ const list = load();
+ list.unshift(entry);
+ if (list.length > CAP) list.length = CAP;
+ cache = list;
+ save();
+ api.renderBadge();
+ if (openState) api.renderList();
+ return entry.id;
+ },
+ list() { return load().slice(); },
+ unreadCount() { return load().filter(n => !n.read).length; },
+ markRead(id) {
+ const list = load();
+ const n = list.find(x => x.id === id);
+ if (n && !n.read) { n.read = true; save(); api.renderBadge(); api.renderList(); }
+ },
+ markAllRead() {
+ const list = load();
+ let dirty = false;
+ list.forEach(n => { if (!n.read) { n.read = true; dirty = true; } });
+ if (dirty) { save(); api.renderBadge(); api.renderList(); }
+ },
+ clear() {
+ cache = []; save(); api.renderBadge(); api.renderList();
+ },
+ renderBadge() {
+ const badge = document.getElementById('ncBadge');
+ if (!badge) return;
+ const n = api.unreadCount();
+ if (n <= 0) { badge.hidden = true; badge.textContent = '0'; }
+ else { badge.hidden = false; badge.textContent = n > 99 ? '99+' : String(n); }
+ },
+ renderList() {
+ const wrap = document.getElementById('ncList');
+ if (!wrap) return;
+ const list = load();
+ if (list.length === 0) {
+ wrap.innerHTML = '<div class="nc-empty"><i data-lucide="inbox" class="nc-empty__icon" style="width:32px; height:32px;"></i>Tiada notifikasi</div>';
+ } else {
+ wrap.innerHTML = list.map(n => (
+ '<div class="nc-item ' + (n.read ? '' : 'is-unread') + '" role="listitem" data-id="' + n.id + '" onclick="window.notify.markRead(\'' + n.id + '\')">' +
+ '<div class="nc-item__icon nc-item__icon--' + escape(n.type) + '"><i data-lucide="' + iconFor(n.type) + '" style="width:14px; height:14px;"></i></div>' +
+ '<div class="nc-item__body">' +
+ '<p class="nc-item__title">' + escape(n.title) + '</p>' +
+ '<p class="nc-item__msg">' + escape(n.body) + '</p>' +
+ '<div class="nc-item__time">' + escape(fmtTime(n.ts)) + '</div>' +
+ '</div>' +
+ '</div>'
+ )).join('');
+ }
+ if (window.lucide && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch(e){} }
+ },
+ toggle() { openState ? api.close() : api.open(); },
+ open() {
+ const panel = document.getElementById('ncPanel');
+ const bell = document.getElementById('ncBell');
+ if (!panel || !bell) return;
+ panel.hidden = false;
+ bell.classList.add('is-open');
+ bell.setAttribute('aria-expanded', 'true');
+ openState = true;
+ api.renderList();
+ // Outside click → close
+ setTimeout(() => {
+ outsideHandler = (e) => {
+ if (!panel.contains(e.target) && !bell.contains(e.target)) api.close();
+ };
+ document.addEventListener('click', outsideHandler);
+ }, 0);
+ },
+ close() {
+ const panel = document.getElementById('ncPanel');
+ const bell = document.getElementById('ncBell');
+ if (panel) panel.hidden = true;
+ if (bell) { bell.classList.remove('is-open'); bell.setAttribute('aria-expanded', 'false'); }
+ openState = false;
+ if (outsideHandler) { document.removeEventListener('click', outsideHandler); outsideHandler = null; }
+ }
+ };
+
+ window.notify = api;
+ // ESC closes panel
+ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openState) api.close(); });
+ // Initial badge once DOM ready
+ if (document.readyState === 'loading') {
+ document.addEventListener('DOMContentLoaded', () => api.renderBadge());
+ } else { api.renderBadge(); }
+})();
 
 // Global ESC handler: close any visible modal/overlay.
 document.addEventListener('keydown', function(e){
@@ -10239,18 +10379,29 @@ function drawRevenueChart(canvas, sales, cutoff) {
 
 // ============= p4_4 LOW STOCK PUSH NOTIFICATIONS =============
 window.checkLowStockNotify = async function() {
- if(!('Notification' in window)) return;
- const enabled = localStorage.getItem('lowStockNotifyEnabled_v1') === 'true';
- if(!enabled || Notification.permission !== 'granted') return;
- const lastNotify = parseInt(localStorage.getItem('lowStockLastNotify_v1') || '0');
- if(Date.now() - lastNotify < 4 * 60 * 60 * 1000) return; // throttle 4hr
-
- const low = masterProducts.filter(p => {
- const stock = inventoryBatches.filter(b => b.sku === p.sku).reduce((s, b) => s + (b.qty_remaining||0), 0);
+ // Compute low-stock list regardless of browser permission — notification center always logs it.
+ const low = (masterProducts || []).filter(p => {
+ const stock = (inventoryBatches || []).filter(b => b.sku === p.sku).reduce((s, b) => s + (b.qty_remaining||0), 0);
  const rp = p.reorder_point || 10;
  return isPublished(p) && stock < rp;
  });
  if(low.length === 0) return;
+
+ // Always push into notification center (deduped 30s by title+body).
+ if (window.notify) {
+ window.notify.add({
+ title: 'Low stock alert',
+ body: `${low.length} produk bawah reorder point. Top 3: ${low.slice(0,3).map(p => p.sku).join(', ')}`,
+ type: 'warning'
+ });
+ }
+
+ // Browser push notification (separate gating: permission + 4hr throttle).
+ if(!('Notification' in window)) return;
+ const enabled = localStorage.getItem('lowStockNotifyEnabled_v1') === 'true';
+ if(!enabled || Notification.permission !== 'granted') return;
+ const lastNotify = parseInt(localStorage.getItem('lowStockLastNotify_v1') || '0');
+ if(Date.now() - lastNotify < 4 * 60 * 60 * 1000) return;
 
  new Notification(' 10 CAMP — Low Stock Alert', {
  body: `${low.length} produk bawah reorder point. Top 3: ${low.slice(0,3).map(p => p.sku).join(', ')}`,

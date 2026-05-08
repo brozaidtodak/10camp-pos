@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=34">
- <link rel="stylesheet" href="design-tokens.css?v=24">
+ <link rel="stylesheet" href="design-tokens.css?v=25">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1363,6 +1363,22 @@
  <span style="font-size:11px;">Search</span>
  <kbd style="background:rgba(0,0,0,0.4); padding:1px 6px; border-radius:3px; font-size:10px; font-family:monospace;">⌘K</kbd>
  </button>
+ <div class="nc-wrap">
+ <button id="ncBell" class="nc-bell" type="button" onclick="window.notify && window.notify.toggle()" title="Notifications" aria-label="Open notifications" aria-haspopup="true" aria-expanded="false">
+ <i data-lucide="bell" style="width:16px; height:16px;" aria-hidden="true"></i>
+ <span id="ncBadge" class="nc-badge" hidden>0</span>
+ </button>
+ <div id="ncPanel" class="nc-panel" role="dialog" aria-label="Notifications" hidden>
+ <div class="nc-panel__head">
+ <span class="nc-panel__title">Notifications</span>
+ <div class="nc-panel__actions">
+ <button type="button" class="nc-link" onclick="window.notify && window.notify.markAllRead()">Mark all read</button>
+ <button type="button" class="nc-link nc-link--danger" onclick="window.notify && window.notify.clear()">Clear</button>
+ </div>
+ </div>
+ <div id="ncList" class="nc-list" role="list"></div>
+ </div>
+ </div>
  <button id="langToggle" class="theme-toggle" onclick="window.toggleLang()" title="Toggle language (BM/EN)" aria-label="Toggle language" style="font-size:12px; font-weight:700; min-width:44px;">
  <span id="langLabel">BM</span>
  </button>
@@ -8903,7 +8919,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=118"></script>
+ <script src="app.js?v=119"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

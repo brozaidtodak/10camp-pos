@@ -6781,9 +6781,16 @@
  };
 
  // ===== HYDRATE: merge localStorage extras into authUsers =====
+ // Inline script parses before app.js loads, so authUsers won't exist yet.
+ // Retry quietly until app.js defines it (typical: 1-2 ticks). Cap at 60 retries (~3s).
+ let __hydrateAttempts = 0;
  function hydrateAuthUsers(){
  if (typeof authUsers === 'undefined' || !Array.isArray(authUsers)) {
- console.warn('[StaffMgmt] authUsers not ready, retrying...');
+ __hydrateAttempts++;
+ if (__hydrateAttempts > 60) {
+ console.warn('[StaffMgmt] authUsers never loaded — staff list will be empty');
+ return;
+ }
  setTimeout(hydrateAuthUsers, 50);
  return;
  }
@@ -6794,7 +6801,7 @@
  authUsers.push(e);
  }
  });
- console.log('[StaffMgmt] Hydrated', extras.length, 'custom staff');
+ if (extras.length) console.log('[StaffMgmt] Hydrated', extras.length, 'custom staff');
  } catch(e) { console.warn('[StaffMgmt] Hydrate failed:', e); }
  }
  hydrateAuthUsers();
@@ -6898,15 +6905,7 @@
  const list = document.getElementById('smPermList');
  if (!list) return;
 
- // Group by section header (look up the most recent group-toggle preceding the item)
- const groups = {
- 'Sales Department (Kaunter mode)':[],
- 'Inventory Department (Operasi mode)':[],
- 'Admin Department (Pengurus mode)':[],
- 'HR Department (Pengurusan mode)':[],
- 'Finance Department (Pengurusan mode)':[],
- 'Other':[]
- };
+ // groupMap: data-group attribute → human-readable section header
  const groupMap = {
  sales:'Sales Department (Kaunter mode)',
  inv:'Inventory Department (Operasi mode)',
@@ -6916,6 +6915,10 @@
  finance:'Finance Department (HQ mode)',
  hq_setup:'Setup (HQ mode)'
  };
+ // p1_37 fix: derive groups from groupMap so any new data-group never crashes.
+ const groups = {};
+ Object.values(groupMap).forEach(name => { groups[name] = []; });
+ groups['Other'] = [];
 
  allItems.forEach(item => {
  const tab = item.getAttribute('data-tab');
@@ -6924,6 +6927,7 @@
  label = label.replace(/\s*P\d+\s*$/,'').trim();
  const group = item.getAttribute('data-group') || 'other';
  const groupName = groupMap[group] || 'Other';
+ if (!groups[groupName]) groups[groupName] = []; // defensive — covers any future data-group
  let isVisible = false;
  if (meta.visible === 'all') isVisible = true;
  else {
@@ -9007,7 +9011,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=127"></script>
+ <script src="app.js?v=128"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

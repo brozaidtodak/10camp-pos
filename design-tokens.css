@@ -767,10 +767,20 @@
 .lp-product-card:hover .lp-product-card__media img { transform: scale(1.04); }
 .lp-product-card__badge { position: absolute; top: 8px; left: 8px; background: #EF4444; color: #FFF; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
 .lp-product-card__badge--soldout { background: #6B7280; }
+.lp-product-card__badge--variant { background: var(--primary-700); }
 .lp-product-card__body { padding: 14px; }
+/* p1_46: meta row holds brand pill + category tag inline */
+.lp-product-card__meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; min-height: 18px; }
+.lp-product-card__brand { font-size: 10px; font-weight: 800; color: #FFF; background: #111827; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 7px; border-radius: 4px; }
 .lp-product-card__cat { font-size: 10px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; letter-spacing: 1px; }
-.lp-product-card__name { font-size: 14px; font-weight: 700; color: #111827; margin: 4px 0 8px; line-height: 1.3; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lp-product-card__name { font-size: 14px; font-weight: 700; color: #111827; margin: 2px 0 4px; line-height: 1.3; min-height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lp-product-card__variant { font-size: 11px; color: #6B7280; margin: 0 0 6px; font-weight: 600; }
 .lp-product-card__price { font-size: 18px; font-weight: 900; color: #111827; margin: 0 0 10px; letter-spacing: -0.5px; }
+/* p1_46: variant chips for grouped products */
+.lp-variant-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 10px; }
+.lp-variant-chip { padding: 4px 10px; font-size: 11px; font-weight: 600; border: 1px solid #D1D5DB; background: #FFF; color: #374151; border-radius: 999px; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.lp-variant-chip:hover { border-color: var(--primary-600); color: var(--primary-700); }
+.lp-variant-chip.is-active { background: #111827; color: #FFF; border-color: #111827; }
 .lp-product-card__btn { width: 100%; padding: 10px; background: #111827; color: #FFF; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.15s; }
 .lp-product-card__btn:hover { background: var(--primary-600); }
 .lp-product-card__btn:disabled { background: #D1D5DB; cursor: not-allowed; color: #6B7280; }

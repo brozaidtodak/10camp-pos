@@ -2985,6 +2985,79 @@ window.lpRefreshPromoBanner = function() {
     }
 };
 
+// p1_46: Display name parser — strips SKU/brand/model noise from messy product names.
+// "LF025-026 | LFO COOKWARE UTENSIL SET | LF025 | LF026 — LF025 KETTLE SET"
+//   → { title: "LFO COOKWARE UTENSIL SET", variantName: "KETTLE SET" }
+window.lpParseProductName = function(p) {
+    let raw = String((p && p.name) || '').trim();
+    let variantName = String((p && (p.variant_color || p.variant_size)) || '').trim();
+    const dashIdx = raw.lastIndexOf(' — ');
+    if (dashIdx > 0) {
+        if (!variantName) variantName = raw.slice(dashIdx + 3).trim();
+        raw = raw.slice(0, dashIdx);
+    }
+    const skuLike = /^[A-Z]{1,4}\d+([-\d]+)?$/;
+    const parts = raw.split('|').map(s => s.trim()).filter(Boolean);
+    const meaningful = parts.filter(s => !skuLike.test(s) && s.length > 4);
+    let title = meaningful.length ? meaningful[0] : (parts[0] || raw);
+    if (p && p.brand) {
+        const brandRe = new RegExp('^' + p.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+', 'i');
+        title = title.replace(brandRe, '').trim();
+    }
+    title = title.replace(/^[A-Z0-9-]{4,}\s*_\s*/, '').trim();
+    if (variantName) {
+        variantName = variantName.replace(/^[A-Z]{1,4}\d+([-\d]+)?\s+/, '').trim();
+    }
+    return { title: title || raw, variantName };
+};
+
+// p1_46: Group products by parent_sku so variants of same product collapse into 1 card.
+window.lpGroupVariants = function(products) {
+    const groups = new Map();
+    products.forEach(p => {
+        const key = p.parent_sku || ('__solo:' + p.sku);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(p);
+    });
+    return Array.from(groups.values());
+};
+
+// p1_46: Variant chip click — swaps active variant inside a single card without re-render.
+window.lpSelectVariant = function(cardId, sku, btn) {
+    if (!cardId || !sku) return;
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const product = (typeof masterProducts !== 'undefined') ? masterProducts.find(p => p.sku === sku) : null;
+    if (!product) return;
+    card.querySelectorAll('.lp-variant-chip').forEach(c => c.classList.remove('is-active'));
+    if (btn) btn.classList.add('is-active');
+    const img = card.querySelector('.lp-product-card__img');
+    const thumb = product.images && product.images[0] ? product.images[0] : 'https://placehold.co/300x300?text=No+Img';
+    if (img) img.src = thumb;
+    const fmt = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+    const price = parseFloat(product.price || 0);
+    const compareAt = parseFloat(product.compare_at_price || 0);
+    const onSale = compareAt > price && price > 0;
+    const priceEl = card.querySelector('[data-role="price"]');
+    if (priceEl) {
+        priceEl.innerHTML = fmt(price) + (onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">' + fmt(compareAt) + '</small>' : '');
+    }
+    const parsed = window.lpParseProductName(product);
+    const labelEl = card.querySelector('[data-role="variant-label"]');
+    if (labelEl) {
+        if (parsed.variantName) { labelEl.textContent = parsed.variantName; labelEl.style.display = ''; }
+        else { labelEl.style.display = 'none'; }
+    }
+    const addBtn = card.querySelector('[data-role="add-btn"]');
+    if (addBtn) {
+        addBtn.dataset.sku = sku;
+        const myBatches = (typeof inventoryBatches !== 'undefined') ? inventoryBatches.filter(b => b.sku === sku && b.qty_remaining > 0) : [];
+        const totalStock = myBatches.reduce((s, b) => s + b.qty_remaining, 0);
+        if (totalStock <= 0) { addBtn.disabled = true; addBtn.textContent = 'Sold Out'; }
+        else { addBtn.disabled = false; addBtn.textContent = 'Add to Cart'; }
+    }
+};
+
 function renderPublicStorefront() {
     const list = document.getElementById("publicProductsList");
     if(!list) return;
@@ -3006,24 +3079,31 @@ function renderPublicStorefront() {
         filtered = filtered.filter(p => p.is_sale || p.compare_at_price > p.price || p.discount);
     }
 
+    // p1_46: collapse variants — 1 card per parent_sku
+    const groups = window.lpGroupVariants(filtered);
+
     const itemsPerPg = (typeof itemsPerPage === 'number' ? itemsPerPage : 20);
-    const totalPages = Math.ceil(filtered.length / itemsPerPg) || 1;
+    const totalPages = Math.ceil(groups.length / itemsPerPg) || 1;
     if(publicCurrentPage > totalPages) publicCurrentPage = totalPages;
     if(publicCurrentPage < 1) publicCurrentPage = 1;
-    const sliced = filtered.slice((publicCurrentPage - 1) * itemsPerPg, publicCurrentPage * itemsPerPg);
+    const sliced = groups.slice((publicCurrentPage - 1) * itemsPerPg, publicCurrentPage * itemsPerPg);
 
     if(!sliced.length) {
         list.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#9CA3AF;"><p style="font-size:16px;">No products match your search.</p><button class="lp-btn lp-btn--primary lp-btn--sm" style="margin-top:14px;" onclick="window.lpHandleSearch(\'\'); window.lpFilterCategory(\'\')">Clear filters</button></div>';
         return;
     }
 
+    const fmt = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
     let html = '';
-    sliced.forEach(p => {
-        const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining > 0);
+    sliced.forEach((variants, gIdx) => {
+        const lead = variants[0];
+        const cardKey = (lead.parent_sku || lead.sku || ('idx' + gIdx)).replace(/[^a-zA-Z0-9]/g, '_');
+        const cardId = 'lpCard_' + gIdx + '_' + cardKey;
+        const myBatches = inventoryBatches.filter(b => b.sku === lead.sku && b.qty_remaining > 0);
         const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
-        const thumb = p.images && p.images[0] ? p.images[0] : "https://placehold.co/300x300?text=No+Img";
-        const compareAt = parseFloat(p.compare_at_price || 0);
-        const price = parseFloat(p.price || 0);
+        const thumb = lead.images && lead.images[0] ? lead.images[0] : "https://placehold.co/300x300?text=No+Img";
+        const compareAt = parseFloat(lead.compare_at_price || 0);
+        const price = parseFloat(lead.price || 0);
         const onSale = compareAt > price && price > 0;
         let badge = '';
         if(totalStock <= 0) badge = '<span class="lp-product-card__badge lp-product-card__badge--soldout">Sold Out</span>';
@@ -3031,18 +3111,40 @@ function renderPublicStorefront() {
             const off = Math.round(((compareAt - price) / compareAt) * 100);
             badge = '<span class="lp-product-card__badge">-' + off + '%</span>';
         }
-        const skuEsc = String(p.sku).replace(/'/g, "\\'");
+        if(variants.length > 1) {
+            badge = (badge ? badge + ' ' : '') + '<span class="lp-product-card__badge lp-product-card__badge--variant">' + variants.length + ' options</span>';
+        }
+        const parsed = window.lpParseProductName(lead);
+        const skuEsc = String(lead.sku).replace(/'/g, "\\'");
+        // Suppress category badge if it duplicates the brand (e.g., brand "Black Dog" + category "BLACKDOG")
+        const sameBC = lead.brand && lead.category && lead.brand.toLowerCase().replace(/\s/g,'') === lead.category.toLowerCase().replace(/\s/g,'');
+        const brandPill = lead.brand ? `<span class="lp-product-card__brand">${lead.brand}</span>` : '';
+        const catPill = (!sameBC && lead.category) ? `<span class="lp-product-card__cat">${lead.category}</span>` : '';
+        let chipsHtml = '';
+        if (variants.length > 1) {
+            chipsHtml = '<div class="lp-variant-chips">';
+            variants.forEach((v, i) => {
+                const vp = window.lpParseProductName(v);
+                const label = (vp.variantName || v.variant_color || v.variant_size || ('Pilihan ' + (i + 1))).slice(0, 24);
+                const isActive = i === 0 ? ' is-active' : '';
+                const vSkuEsc = String(v.sku).replace(/'/g, "\\'");
+                chipsHtml += `<button type="button" class="lp-variant-chip${isActive}" onclick="window.lpSelectVariant('${cardId}', '${vSkuEsc}', this)">${label}</button>`;
+            });
+            chipsHtml += '</div>';
+        }
         html += `
-            <div class="lp-product-card">
+            <div class="lp-product-card" id="${cardId}">
                 <div class="lp-product-card__media">
                     ${badge}
-                    <img src="${thumb}" alt="${(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
+                    <img class="lp-product-card__img" src="${thumb}" alt="${parsed.title.replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
                 </div>
                 <div class="lp-product-card__body">
-                    <span class="lp-product-card__cat">${p.category||'Uncat'}</span>
-                    <h3 class="lp-product-card__name">${p.name||'Untitled'}</h3>
-                    <p class="lp-product-card__price">RM ${price.toFixed(2)}${onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">RM ' + compareAt.toFixed(2) + '</small>' : ''}</p>
-                    <button class="lp-product-card__btn" onclick="addToPublicCart('${skuEsc}')" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? 'Sold Out' : 'Add to Cart'}</button>
+                    <div class="lp-product-card__meta">${brandPill}${catPill}</div>
+                    <h3 class="lp-product-card__name">${parsed.title}</h3>
+                    <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
+                    <p class="lp-product-card__price" data-role="price">${fmt(price)}${onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">' + fmt(compareAt) + '</small>' : ''}</p>
+                    ${chipsHtml}
+                    <button class="lp-product-card__btn" data-role="add-btn" data-sku="${skuEsc}" onclick="addToPublicCart(this.dataset.sku)" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? 'Sold Out' : 'Add to Cart'}</button>
                 </div>
             </div>
         `;

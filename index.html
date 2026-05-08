@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=34">
- <link rel="stylesheet" href="design-tokens.css?v=31">
+ <link rel="stylesheet" href="design-tokens.css?v=32">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1411,32 +1411,43 @@
  </div>
  </header>
 
- <!-- UX-2.1 MODE BAR -->
+ <!-- UX-2.1 MODE BAR (p1_41 — visual grouping POS | EXECUTIVE) -->
  <div id="modeBar" class="mode-bar" role="tablist" aria-label="Mode selector">
- <button class="mode-tab is-active" data-mode-set="cashier" onclick="window.setMode('cashier')" role="tab" aria-selected="true">
+ <div class="mode-bar__group" data-mode-group="pos">
+ <span class="mode-bar__group-label">POS</span>
+ <div class="mode-bar__group-tabs">
+ <button class="mode-tab is-active" data-mode-set="cashier" onclick="window.setMode('cashier')" role="tab" aria-selected="true" title="Kaunter — POS / cashier workflow">
  <i data-lucide="shopping-cart" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_cashier">Kaunter</span>
  </button>
- <button class="mode-tab" data-mode-set="operations" onclick="window.setMode('operations')" role="tab" aria-selected="false">
+ <button class="mode-tab" data-mode-set="operations" onclick="window.setMode('operations')" role="tab" aria-selected="false" title="Operasi — Inventory + Stock Take + Barcode">
  <i data-lucide="package" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_operations">Operasi</span>
  </button>
- <button class="mode-tab" data-mode-set="manager" onclick="window.setMode('manager')" role="tab" aria-selected="false">
+ <button class="mode-tab" data-mode-set="manager" onclick="window.setMode('manager')" role="tab" aria-selected="false" title="Pengurus — Sales + Inventory + Customers + Admin (manager wide view)">
  <i data-lucide="layout-dashboard" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_manager">Pengurus</span>
  </button>
+ </div>
+ </div>
+ <div class="mode-bar__divider" aria-hidden="true"></div>
+ <div class="mode-bar__group" data-mode-group="executive">
+ <span class="mode-bar__group-label">EXECUTIVE</span>
+ <div class="mode-bar__group-tabs">
  <button class="mode-tab mode-tab--owner" id="modeTabManagement" data-mode-set="management" onclick="window.setMode('management')" role="tab" aria-selected="false" style="display:none;">
  <i data-lucide="crown" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_management">Pengurusan</span>
  </button>
- <button class="mode-tab mode-tab--hq" id="modeTabHq" data-mode-set="hq" onclick="window.setMode('hq')" role="tab" aria-selected="false" style="display:none;">
+ <button class="mode-tab mode-tab--hq" id="modeTabHq" data-mode-set="hq" onclick="window.setMode('hq')" role="tab" aria-selected="false" style="display:none;" title="HQ — Control centre: HR + Finance + Setup">
  <i data-lucide="building-2" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_hq">HQ</span>
  </button>
- <button class="mode-tab mode-tab--investor" id="modeTabInvestor" data-mode-set="investor" onclick="window.setMode('investor')" role="tab" aria-selected="false" style="display:none;">
+ <button class="mode-tab mode-tab--investor" id="modeTabInvestor" data-mode-set="investor" onclick="window.setMode('investor')" role="tab" aria-selected="false" style="display:none;" title="Investor — Board-level dashboard (locked-down read-only view)">
  <i data-lucide="trending-up" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_investor">Investor</span>
  </button>
+ </div>
+ </div>
  <div style="margin-left:auto; display:flex; align-items:center; padding:4px 12px; font-size:11px; color:var(--neutral-500);" id="modeHint">
  Ctrl/⌘+K untuk quick search
  </div>
@@ -9011,7 +9022,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=130"></script>
+ <script src="app.js?v=131"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

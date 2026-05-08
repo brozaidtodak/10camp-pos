@@ -11498,8 +11498,12 @@ window.setMode = function(mode) {
  }
 };
 
-// Apply persisted mode at boot — without auto-jumping (so user's last section restores)
+// Apply persisted mode at boot — without auto-jumping (so user's last section restores).
+// Pre-login (no currentUser): skip entirely — there's no session to restore and
+// access checks would fire spurious "Tiada akses" warnings into the notification center.
 window.__initMode = function() {
+ const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+ if (!u) return;
  let saved = localStorage.getItem('uxMode_v1');
  // p1_32: any saved 'management' → migrate to 'manager'
  if(saved === 'management') { saved = 'manager'; localStorage.setItem('uxMode_v1', saved); }

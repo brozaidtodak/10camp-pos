@@ -11432,7 +11432,7 @@ window.refreshManagementTabVisibility = window.refreshAllModeTabsVisibility;
 
 // ============= UX-2.1 MODE BAR =============
 window.setMode = function(mode) {
- if(!['cashier','operations','manager','management','investor'].includes(mode)) return;
+ if(!['cashier','operations','manager','management','hq','investor'].includes(mode)) return;
  // p1_32: Pengurusan merged into Pengurus — redirect any 'management' calls
  if(mode === 'management') mode = 'manager';
  // Guard: every mode now checked against per-staff access overlay (p1_20)
@@ -11452,7 +11452,7 @@ window.setMode = function(mode) {
  });
 
  // Filter sidebar items via mode-hidden class (additive — respects existing role classes)
- const items = document.querySelectorAll('#appSidebar.menu-item');
+ const items = document.querySelectorAll('#appSidebar .menu-item');
  items.forEach(it => {
  const isSales = it.classList.contains('sales-only');
  const isInv = it.classList.contains('inv-only');
@@ -11504,7 +11504,7 @@ window.setMode = function(mode) {
  // Auto-jump to logical home for that mode.
  // p1_18 fix: also jump if currently-active section's sidebar item is now mode-hidden
  // (else user sees stale section content while sidebar shows other items).
- const activeMenu = document.querySelector('#appSidebar.menu-item.active');
+ const activeMenu = document.querySelector('#appSidebar .menu-item.active');
  const activeHidden = activeMenu && activeMenu.classList.contains('mode-hidden');
  const shouldJump = (window.__modeJumping === false || window.__modeJumping === undefined) || activeHidden;
  if(shouldJump) {
@@ -11577,7 +11577,7 @@ const CMDK_INDEX = []; // built lazily
 
 function buildCmdkIndex() {
  if(CMDK_INDEX.length> 0) return;
- document.querySelectorAll('#appSidebar.menu-item[data-tab]').forEach(item => {
+ document.querySelectorAll('#appSidebar .menu-item[data-tab]').forEach(item => {
  const label = item.textContent.trim().replace(/\s+/g, ' ').slice(0, 80);
  const onclickStr = item.getAttribute('onclick');
  const groupCls = (item.classList.contains('sales-only') ? 'Sales' :

@@ -12332,8 +12332,9 @@ window.renderProductDatabase = function() {
  </div>
  <div class="pd-card__footer">
  <span>${p.category || '—'}</span>
- <span style="display:inline-flex; gap:6px;">
- <button onclick="event.stopPropagation(); window.shareProduct('${p.sku.replace(/'/g, "\\'")}')" aria-label="Share public-safe description" title="Share (no harga)" style="background:none; border:none; cursor:pointer; padding:2px 4px; color:var(--neutral-700);"><i data-lucide="share-2" style="width:13px; height:13px;"></i></button>
+ <span style="display:inline-flex; gap:6px; align-items:center;">
+ <button onclick="event.stopPropagation(); window.shareProductWA('${p.sku.replace(/'/g, "\\'")}')" aria-label="Share to WhatsApp" title="Share ke WhatsApp" style="background:none; border:none; cursor:pointer; padding:2px 4px; color:#25D366;"><i data-lucide="message-circle" style="width:14px; height:14px;"></i></button>
+ <button onclick="event.stopPropagation(); window.shareProduct('${p.sku.replace(/'/g, "\\'")}')" aria-label="Share public-safe description" title="Share (copy / native)" style="background:none; border:none; cursor:pointer; padding:2px 4px; color:var(--neutral-700);"><i data-lucide="share-2" style="width:13px; height:13px;"></i></button>
  <button onclick="event.stopPropagation(); window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')" aria-label="Edit details">Edit ›</button>
  </span>
  </div>
@@ -12359,7 +12360,8 @@ window.renderProductDatabase = function() {
  <td style="text-align:center;">${pub ? '<span class="badge badge--success">Live</span>' : '<span class="badge badge--warning">Draft</span>'}</td>
  <td>
  <button class="btn btn--ghost btn--sm" onclick="event.stopPropagation(); window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')">Edit</button>
- <button class="btn btn--ghost btn--sm" style="padding:4px 8px; margin-left:4px;" onclick="event.stopPropagation(); window.shareProduct('${p.sku.replace(/'/g, "\\'")}')" title="Share public-safe description"><i data-lucide="share-2" style="width:13px; height:13px;"></i></button>
+ <button class="btn btn--ghost btn--sm" style="padding:4px 8px; margin-left:4px; color:#25D366;" onclick="event.stopPropagation(); window.shareProductWA('${p.sku.replace(/'/g, "\\'")}')" title="Share ke WhatsApp"><i data-lucide="message-circle" style="width:13px; height:13px;"></i></button>
+ <button class="btn btn--ghost btn--sm" style="padding:4px 8px; margin-left:4px;" onclick="event.stopPropagation(); window.shareProduct('${p.sku.replace(/'/g, "\\'")}')" title="Share (copy / native)"><i data-lucide="share-2" style="width:13px; height:13px;"></i></button>
  </td>
  </tr>
  `;
@@ -14324,3 +14326,69 @@ function __copyFallback(text) {
  if (typeof showToast === 'function') showToast('Copy gagal: ' + e.message, 'error');
  }
 }
+
+// p1_39 — WhatsApp shortcut: opens wa.me with same public-safe text pre-filled.
+// Works on desktop (WhatsApp Web) + mobile (native WA app).
+window.shareProductWA = function(sku) {
+ if (!sku) return;
+ const list = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const p = list.find(x => x.sku === sku);
+ if (!p) {
+ if (typeof showToast === 'function') showToast('Produk ' + sku + ' tak dijumpai', 'error');
+ return;
+ }
+ // Reuse the same text builder as shareProduct by extracting it; for simplicity, mirror logic inline.
+ let cleanName = (p.name || 'Produk').toString();
+ cleanName = cleanName.replace(/^[A-Z0-9-]+\s*[|_]\s*/i, '').trim();
+ cleanName = cleanName.replace(/\s*[_]\s*/g, ' — ').replace(/\s{2,}/g, ' ').trim();
+ const letters = cleanName.replace(/[^A-Za-z]/g, '');
+ const upperRatio = letters.length ? (letters.match(/[A-Z]/g)||[]).length / letters.length : 0;
+ if (upperRatio > 0.7 && letters.length > 6) cleanName = cleanName.toLowerCase().replace(/\b([a-z])/g, (m, c) => c.toUpperCase());
+
+ let desc = (p.description || '').toString();
+ desc = desc.replace(/\[EASYSTORE-ID:[^\]]+\]\s*/g, '');
+ desc = desc.replace(/\[STOK BELUM DISAHKAN[^\]]*\]\s*/g, '');
+ desc = desc.replace(/^Product name:\s*[^\n]*\n/i, '');
+ desc = desc.replace(/\n{3,}/g, '\n\n').trim();
+
+ const totalStock = (typeof inventoryBatches !== 'undefined' && Array.isArray(inventoryBatches))
+ ? inventoryBatches.filter(b => b.sku === sku).reduce((s, b) => s + (b.qty_remaining||0), 0) : 0;
+ const stockText = totalStock > 0 ? 'Stok ada' : 'Habis stok — sila tanya untuk restock';
+
+ const specs = [];
+ if (p.brand) specs.push('Jenama: ' + p.brand);
+ if (p.category) specs.push('Kategori: ' + p.category);
+ if (p.weight) specs.push('Berat: ' + p.weight);
+ if (p.dimensions) specs.push('Saiz: ' + p.dimensions);
+ if (p.material) specs.push('Bahan: ' + p.material);
+ if (p.color) specs.push('Warna: ' + p.color);
+
+ let url = 'https://10camp.com';
+ try {
+ const meta = p.metadata || {};
+ if (meta.easystore_product_id) url = 'https://10camp.com/products/' + meta.easystore_product_id;
+ else if (p.public_url) url = p.public_url;
+ } catch(e){}
+
+ // WhatsApp uses *bold* for asterisks. Wrap title in *...* for prominence.
+ const lines = [];
+ lines.push('*' + cleanName + '*');
+ lines.push('SKU: ' + sku);
+ if (specs.length) { lines.push(''); lines.push(specs.join('\n')); }
+ if (desc) { lines.push(''); lines.push(desc); }
+ lines.push('');
+ lines.push(stockText);
+ lines.push('');
+ lines.push('— 10 CAMP');
+ lines.push(url);
+ const text = lines.join('\n');
+
+ // wa.me universal link — opens WhatsApp Web/app with text pre-filled, no recipient yet.
+ const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+ const win = window.open(waUrl, '_blank', 'noopener,noreferrer');
+ if (!win) {
+ if (typeof showToast === 'function') showToast('Pop-up blocked. Allow pop-ups untuk buka WhatsApp.', 'warn');
+ } else {
+ if (typeof showToast === 'function') showToast('WhatsApp dibuka — pilih contact untuk hantar', 'success');
+ }
+};

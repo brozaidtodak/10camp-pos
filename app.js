@@ -948,30 +948,201 @@ function renderHistory() {
 // ===================================
 // INVENTORY WMS (BACKOFFICE)
 // ===================================
+// p1_49: Inventory Browse — KPIs + filter bar + card grid (default) / table (toggle)
+window.invFilters = window.invFilters || { search: '', brand: '', cat: '', status: '' };
+window.invView = window.invView || 'grid';
+
+window.invHandleSearch = function(val) {
+ window.invFilters.search = (val || '').toLowerCase().trim();
+ renderWMS();
+};
+window.invSetFilter = function(key, val) {
+ if(window.invFilters[key] === undefined) return;
+ window.invFilters[key] = val || '';
+ // sync the UI control if the call came from elsewhere (e.g. KPI tile click)
+ const map = { brand: 'invBrandFilter', cat: 'invCatFilter', status: 'invStatusFilter' };
+ const el = document.getElementById(map[key]);
+ if(el && el.value !== window.invFilters[key]) el.value = window.invFilters[key];
+ renderWMS();
+};
+window.invClearFilters = function() {
+ window.invFilters = { search: '', brand: '', cat: '', status: '' };
+ ['invSearchInput','invBrandFilter','invCatFilter','invStatusFilter'].forEach(id => {
+ const el = document.getElementById(id); if(el) el.value = '';
+ });
+ renderWMS();
+};
+window.invSetView = function(view) {
+ window.invView = view === 'table' ? 'table' : 'grid';
+ document.querySelectorAll('.inv-view-btn').forEach(b => b.classList.toggle('is-active', b.dataset.view === window.invView));
+ const grid = document.getElementById('invGridContainer');
+ const tbl = document.getElementById('invTableContainer');
+ if(grid) grid.style.display = window.invView === 'grid' ? '' : 'none';
+ if(tbl) tbl.style.display = window.invView === 'table' ? '' : 'none';
+ renderWMS();
+};
+window.invPopulateFilterOptions = function() {
+ if(typeof masterProducts === 'undefined') return;
+ const brands = new Set(), cats = new Set();
+ masterProducts.forEach(p => { if(p.brand) brands.add(p.brand); if(p.category) cats.add(p.category); });
+ const fillSel = (id, all, items) => {
+ const sel = document.getElementById(id);
+ if(!sel) return;
+ const cur = sel.value;
+ sel.innerHTML = '<option value="">' + all + '</option>' + Array.from(items).sort().map(v => `<option value="${String(v).replace(/"/g,'&quot;')}">${v}</option>`).join('');
+ sel.value = cur;
+ };
+ fillSel('invBrandFilter', 'Semua Brand', brands);
+ fillSel('invCatFilter', 'Semua Kategori', cats);
+};
+
 function renderWMS() {
+ // 1) Inbound select stays (used elsewhere for batch inbound)
  const select = document.getElementById("inboundSkuSelect");
  if(select){
  select.innerHTML = '<option value="">-- Choose SKU --</option>';
  masterProducts.forEach(p => { select.innerHTML += `<option value="${p.sku}">[${p.sku}] ${p.name}</option>`; });
  }
 
+ // 2) Bail if the new browse section isn't on the page (other callers expect renderWMS without the UI)
+ const gridContainer = document.getElementById('invGridContainer');
+ const tbody = document.getElementById('inventoryTableBody');
+ if(!gridContainer && !tbody) return;
+
+ // 3) Populate filter dropdowns (refresh in case product list grew)
+ window.invPopulateFilterOptions();
+
+ // 4) Compute KPIs over the FULL master list (not filtered)
+ const totalProducts = masterProducts.length;
+ const brands = new Set(masterProducts.map(p => p.brand).filter(Boolean));
+ const cats = new Set(masterProducts.map(p => p.category).filter(Boolean));
+ let lowCount = 0, oosCount = 0;
+ masterProducts.forEach(p => {
+ const stock = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining > 0).reduce((s, b) => s + b.qty_remaining, 0);
+ const reorderPt = parseFloat(p.reorder_point) || 5;
+ if(stock <= 0) oosCount++;
+ else if(stock <= reorderPt) lowCount++;
+ });
+ const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+ setText('invKpiTotal', totalProducts);
+ setText('invKpiBrands', brands.size);
+ setText('invKpiCats', cats.size);
+ setText('invKpiLow', lowCount);
+ setText('invKpiOOS', oosCount);
+
+ // 5) Apply filters
+ const f = window.invFilters;
+ const filtered = masterProducts.filter(p => {
+ if(f.search) {
+ const q = f.search;
+ if(!(p.name||'').toLowerCase().includes(q) && !(p.sku||'').toLowerCase().includes(q) && !(p.brand||'').toLowerCase().includes(q)) return false;
+ }
+ if(f.brand && p.brand !== f.brand) return false;
+ if(f.cat && p.category !== f.cat) return false;
+ if(f.status) {
+ const stock = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining > 0).reduce((s, b) => s + b.qty_remaining, 0);
+ const reorderPt = parseFloat(p.reorder_point) || 5;
+ if(f.status === 'active' && !isPublished(p)) return false;
+ if(f.status === 'draft' && isPublished(p)) return false;
+ if(f.status === 'oos' && stock > 0) return false;
+ if(f.status === 'low' && (stock <= 0 || stock > reorderPt)) return false;
+ }
+ return true;
+ });
+
+ // 6) Active filter chips
+ const banner = document.getElementById('invActiveFilters');
+ if(banner) {
+ const chips = [];
+ const esc = (s) => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+ if(f.search) chips.push(`<span class="inv-chip">Cari: "${f.search}" <button onclick="document.getElementById('invSearchInput').value=''; window.invHandleSearch('')">×</button></span>`);
+ if(f.brand) chips.push(`<span class="inv-chip">Brand: ${esc(f.brand)} <button onclick="window.invSetFilter('brand','')">×</button></span>`);
+ if(f.cat) chips.push(`<span class="inv-chip">Kategori: ${esc(f.cat)} <button onclick="window.invSetFilter('cat','')">×</button></span>`);
+ if(f.status) {
+ const labels = { active:'Active', draft:'Draft', low:'Low Stock', oos:'Sold Out' };
+ chips.push(`<span class="inv-chip">Status: ${labels[f.status]||f.status} <button onclick="window.invSetFilter('status','')">×</button></span>`);
+ }
+ if(chips.length) {
+ banner.innerHTML = `<span class="inv-active-filters__count">Showing <strong>${filtered.length}</strong> dari ${masterProducts.length} produk</span>` + chips.join('') + ` <button class="inv-clear-all" onclick="window.invClearFilters()">Clear all</button>`;
+ banner.style.display = '';
+ } else {
+ banner.innerHTML = '';
+ banner.style.display = 'none';
+ }
+ }
+
+ // 7) Render grid or table based on view
+ if(window.invView === 'table') {
+ renderInventoryTable(filtered);
+ } else {
+ renderInventoryGrid(filtered);
+ }
+}
+
+function renderInventoryGrid(products) {
+ const container = document.getElementById('invGridContainer');
+ if(!container) return;
+ if(!products.length) {
+ container.innerHTML = '<div class="inv-empty"><p>Tiada produk padan tapisan.</p><button class="btn-primary" onclick="window.invClearFilters()">Clear filters</button></div>';
+ return;
+ }
+ const fmt = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+ let html = '';
+ products.forEach(p => {
+ const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining > 0);
+ const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
+ const reorderPt = parseFloat(p.reorder_point) || 5;
+ const stockState = totalStock <= 0 ? 'oos' : (totalStock <= reorderPt ? 'low' : 'ok');
+ const stockLabel = stockState === 'oos' ? 'Sold Out' : (stockState === 'low' ? `${totalStock} ${p.unit||'Pcs'} · Low` : `${totalStock} ${p.unit||'Pcs'}`);
+ const thumb = (p.images && p.images[0]) ? p.images[0] : 'https://placehold.co/300x300?text=No+Img';
+ const skuEsc = String(p.sku).replace(/'/g, "\\'");
+ const draftBadge = !isPublished(p) ? '<span class="inv-card__badge inv-card__badge--draft">Draft</span>' : '';
+ const cost = parseFloat(p.cost_price || 0);
+ const price = parseFloat(p.price || 0);
+ html += `
+ <button type="button" class="inv-card" data-sku="${p.sku}" onclick="window.openPdpModal('${skuEsc}')">
+ <div class="inv-card__media">
+ <img src="${thumb}" alt="${(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
+ ${draftBadge}
+ <span class="inv-card__stock inv-card__stock--${stockState}">${stockLabel}</span>
+ </div>
+ <div class="inv-card__body">
+ <div class="inv-card__meta">
+ ${p.brand ? `<span class="inv-card__brand">${p.brand}</span>` : ''}
+ ${p.category ? `<span class="inv-card__cat">${p.category}</span>` : ''}
+ </div>
+ <div class="inv-card__sku">${p.sku}</div>
+ <h3 class="inv-card__name">${p.name || 'Untitled'}</h3>
+ <div class="inv-card__footer">
+ <div class="inv-card__price-wrap">
+ <small>Cost ${fmt(cost)}</small>
+ <strong>${fmt(price)}</strong>
+ </div>
+ <div class="inv-card__loc" title="Lokasi gudang">
+ <i data-lucide="map-pin"></i>
+ <span>${p.location_bin || '—'}</span>
+ </div>
+ </div>
+ </div>
+ </button>
+ `;
+ });
+ container.innerHTML = html;
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+}
+
+function renderInventoryTable(products) {
  const tbody = document.getElementById("inventoryTableBody");
  if(!tbody) return;
- tbody.innerHTML = "";
-
  let htmlBuf3 = "";
-
- masterProducts.forEach(p => {
+ products.forEach(p => {
  const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining> 0);
  const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
- 
  let thumb = "https://placehold.co/100x100?text=Img";
  let imgs = p.images || []; if(imgs.length> 0) thumb = imgs[0];
-
  let sBadge = isPublished(p) ? `<span style="color:green;font-size:10px;">Active</span>` : `<span style="color:red;font-size:10px;">Draft</span>`;
-
  htmlBuf3 += `
- <tr>
+ <tr onclick="window.openPdpModal('${String(p.sku).replace(/'/g, "\\'")}')" style="cursor:pointer;">
  <td>
  <img src="${thumb}" style="width:45px; height:45px; object-fit:cover; border-radius:6px; background:#eee;"><br>
  ${sBadge}

@@ -1471,6 +1471,25 @@
 [data-theme="dark"].mode-tab--owner { color: #FCD34D; }
 [data-theme="dark"].mode-tab--owner:hover { background: #422006; color: #FEF3C7; border-color: #92400E; }
 
+/* p1_37 — HQ tier (control centre): emerald + slate accent for executive tools */
+.mode-tab--hq {
+ color: #047857;
+ border: 1px solid transparent;
+}
+.mode-tab--hq:hover {
+ background: #D1FAE5;
+ color: #064E3B;
+ border-color: #6EE7B7;
+}
+.mode-tab--hq.is-active {
+ background: linear-gradient(135deg, #10B981, #047857);
+ color: #FFF;
+ border-color: #065F46;
+ box-shadow: 0 2px 8px rgba(4, 120, 87, 0.35);
+}
+[data-theme="dark"].mode-tab--hq { color: #6EE7B7; }
+[data-theme="dark"].mode-tab--hq:hover { background: #064E3B; color: #D1FAE5; border-color: #047857; }
+
 /* ---------- BREADCRUMBS (UX-2.3) ---------- */
 .breadcrumb {
  display: inline-flex; align-items: center;

@@ -2599,7 +2599,7 @@ function maybeShowOnboarding(user) {
 // IMPORTANT: defaultMode must match the home section's mode group,
 // otherwise the home tab will be hidden by mode-bar's class filter.
 const ROLE_CAPS = {
- superior: { modes: ['cashier', 'operations', 'manager', 'management', 'investor'], defaultMode: 'manager', home: 'admin_dashboard', label: 'Superior', emoji: '' },
+ superior: { modes: ['cashier', 'operations', 'manager', 'management', 'hq', 'investor'], defaultMode: 'hq', home: 'finance_main', label: 'Superior', emoji: '' },
  mgmt: { modes: ['cashier', 'operations', 'manager'], defaultMode: 'manager', home: 'admin_dashboard', label: 'Manager', emoji: '' },
  inventory: { modes: ['cashier', 'operations'], defaultMode: 'operations', home: 'inv_database', label: 'Inventory', emoji: '' },
  sales: { modes: ['cashier', 'operations'], defaultMode: 'cashier', home: 'sales_cashier', label: 'Sales', emoji: '' },
@@ -2643,7 +2643,7 @@ function loginAs(user) {
  const tagline = lineSet[Math.floor(Math.random() * lineSet.length)];
 
  // Mode destination (uses pickDefaultMode if available)
- const modeLabels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', investor:'Investor' };
+ const modeLabels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ', investor:'Investor' };
  let destMode = (typeof window.pickDefaultMode === 'function') ? window.pickDefaultMode(user) : (cap.defaultMode || 'cashier');
  const modeText = 'Heading to ' + (modeLabels[destMode] || 'workspace') + ' mode';
 
@@ -11319,7 +11319,9 @@ window.updateBreadcrumb = function(sectionTitle) {
 // ============= PER-MODE ACCESS — granular per-staff overlay (p1_20) =============
 // Replaces single management-only checkbox (p1_18) with 4 separate per-mode checkboxes.
 // Superior auto-true (locked); others toggled via Staff Mgmt UI → staffModeAccess_v1
-window.MODE_LIST = ['cashier','operations','manager','management','investor'];
+// p1_37: 'hq' added — control centre mode (HR + Finance + Setup + Investor entry).
+// 'management' kept as legacy alias gate for hq access (back-compat).
+window.MODE_LIST = ['cashier','operations','manager','management','hq','investor'];
 
 // One-time migration: convert staffMgmtAccess_v1 (p1_18) → staffModeAccess_v1 (p1_20)
 (function __migrateModeAccess(){
@@ -11343,9 +11345,9 @@ window.MODE_LIST = ['cashier','operations','manager','management','investor'];
 // Superior → all true. Others: read overlay; missing key → fallback to ROLE_CAPS.modes
 window.getModesAccess = function(user) {
  user = user || window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
- const out = { cashier:false, operations:false, manager:false, management:false };
+ const out = { cashier:false, operations:false, manager:false, management:false, hq:false, investor:false };
  if(!user) return out;
- if(user.role === 'superior') return { cashier:true, operations:true, manager:true, management:true };
+ if(user.role === 'superior') return { cashier:true, operations:true, manager:true, management:true, hq:true, investor:true };
  let overlay = {};
  try { overlay = (JSON.parse(localStorage.getItem('staffModeAccess_v1')||'{}')[user.staff_id]) || {}; } catch(e){}
  // Role-based defaults (back-compat for staff with no overlay entry)
@@ -11354,6 +11356,9 @@ window.getModesAccess = function(user) {
  if(overlay[m] !== undefined) out[m] = !!overlay[m];
  else out[m] = cap.modes.includes(m); // fallback
  });
+ // p1_37: 'hq' is the new control-centre mode. Back-compat: any user with the
+ // legacy 'management' flag (from p1_18/p1_20 era) inherits hq access automatically.
+ if (overlay.hq === undefined && out.management) out.hq = true;
  return out;
 };
 
@@ -11364,12 +11369,14 @@ window.getModesAccess = function(user) {
 window.pickDefaultMode = function(user) {
  user = user || window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
  const access = window.getModesAccess(user);
- const onlyInvestor = access.investor && !access.cashier && !access.operations && !access.manager && !access.management;
+ const onlyInvestor = access.investor && !access.cashier && !access.operations && !access.manager && !access.hq;
  if(onlyInvestor) return 'investor';
- if(user && user.role === 'superior') return 'manager'; // Bos lands on Manager (which now includes HR/Finance)
+ // p1_37: Bos (and any user with hq access) lands on HQ → Finance Dashboard.
+ if(user && user.role === 'superior') return 'hq';
  if(access.cashier) return 'cashier';
  // Fallbacks for users without cashier access
- if(access.manager || access.management) return 'manager';
+ if(access.hq) return 'hq';
+ if(access.manager) return 'manager';
  if(access.operations) return 'operations';
  if(access.investor) return 'investor';
  return 'cashier';
@@ -11404,7 +11411,7 @@ window.setMode = function(mode) {
  // Guard: every mode now checked against per-staff access overlay (p1_20)
  const access = (typeof window.getModesAccess === 'function') ? window.getModesAccess() : null;
  if(access && !access[mode]) {
- const labels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', investor:'Investor' };
+ const labels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ', investor:'Investor' };
  if(typeof showToast === 'function') showToast('Tiada akses ke ' + (labels[mode]||mode) + ' mode', 'warn');
  return;
  }
@@ -11423,7 +11430,7 @@ window.setMode = function(mode) {
  const isSales = it.classList.contains('sales-only');
  const isInv = it.classList.contains('inv-only');
  const isMgmtOnly = it.classList.contains('mgmt-only');
- const isOwner = it.classList.contains('owner-only');
+ const isHq = it.classList.contains('hq-only'); // p1_37: HR + Finance + Setup live in HQ mode
  const isInvestor = it.classList.contains('investor-only');
  const dataGroup = it.getAttribute('data-group');
  const groupToggle = it.getAttribute('data-group-toggle');
@@ -11431,9 +11438,6 @@ window.setMode = function(mode) {
  // Roadmap button + Memo Board — keep visible in all modes (p1_19)
  if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board') { it.classList.remove('mode-hidden'); return; }
 
- // p1_32: Pengurusan merged into Pengurus — show owner-only items in manager mode for users with management access
- const userHasMgmtAccess = (typeof window.getModesAccess === 'function')
-   ? !!window.getModesAccess().management : false;
  let show = false;
  if(mode === 'cashier') {
  show = isSales || (groupToggle === 'sales');
@@ -11441,10 +11445,12 @@ window.setMode = function(mode) {
  show = isInv || (groupToggle === 'inv');
  } else if(mode === 'investor') {
  show = isInvestor; // Investor dashboard only — locked-down view
- } else { // manager (or legacy 'management' redirected): show admin items + owner items if user has access
- if(isInvestor) show = false;
+ } else if(mode === 'hq') {
+ // p1_37: control centre — only HQ items (HR + Finance + Setup groups)
+ show = isHq;
+ } else { // manager — POS-side admin (Customers, Marketing, Ops, Reports). HQ items hidden.
+ if(isHq || isInvestor) show = false;
  else if(isSales || isInv) show = false;
- else if(isOwner) show = userHasMgmtAccess; // HR + Finance gated by per-staff access
  else show = true;
  }
  it.classList.toggle('mode-hidden', !show);
@@ -11455,14 +11461,16 @@ window.setMode = function(mode) {
  cashier: 'sales',
  operations: 'inv',
  manager: 'admin',
- management: 'admin' // p1_32: management merged into manager
+ management: 'admin', // p1_32: management merged into manager
+ hq: 'hr' // p1_37: HQ opens HR; finance + hq_setup auto-expanded below
  };
  // Auto-expand the group for current mode (legacy applySidebarGroupState takes name+collapsed)
  if(groups[mode] && typeof window.applySidebarGroupState === 'function') {
  try { window.applySidebarGroupState(groups[mode], false); } catch(e){}
- // Management opens both HR + Finance groups
- if(mode === 'management') {
+ // HQ mode opens all three executive groups
+ if(mode === 'hq') {
  try { window.applySidebarGroupState('finance', false); } catch(e){}
+ try { window.applySidebarGroupState('hq_setup', false); } catch(e){}
  }
  }
 
@@ -11479,7 +11487,8 @@ window.setMode = function(mode) {
  } else if(mode === 'operations') {
  const inv = document.querySelector('[data-tab="inv_database"]');
  if(inv) inv.click();
- } else if(mode === 'management') {
+ } else if(mode === 'hq' || mode === 'management') {
+ // p1_37: HQ lands on Finance Dashboard (preserves Bos's prior Pengurusan landing)
  const fin = document.querySelector('[data-tab="finance_main"]');
  if(fin) fin.click();
  } else if(mode === 'investor') {
@@ -11512,6 +11521,16 @@ window.__initMode = function() {
  if(!localStorage.getItem(MIGRATION_KEY)) {
  if(typeof window.pickDefaultMode === 'function') saved = window.pickDefaultMode();
  localStorage.setItem(MIGRATION_KEY, '1');
+ }
+ // p1_37 migration: HQ mode is new. Users who had hq access (via legacy management flag)
+ // and were sitting on 'manager' should land on 'hq' once so they discover where HR+Finance went.
+ const MIGRATION_KEY_37 = 'uxMode_p1_37_migrated';
+ if (!localStorage.getItem(MIGRATION_KEY_37)) {
+ try {
+ const access37 = (typeof window.getModesAccess === 'function') ? window.getModesAccess() : null;
+ if (access37 && access37.hq && (saved === 'manager' || !saved)) saved = 'hq';
+ } catch(e) {}
+ localStorage.setItem(MIGRATION_KEY_37, '1');
  }
  // First-time login → highest accessible mode
  if(!saved && typeof window.pickDefaultMode === 'function') saved = window.pickDefaultMode();

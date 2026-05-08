@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=34">
- <link rel="stylesheet" href="design-tokens.css?v=27">
+ <link rel="stylesheet" href="design-tokens.css?v=28">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1259,17 +1259,17 @@
 
  
  <!-- HR DEPARTMENT (people-related) — Management mode -->
- <div class="menu-item owner-only" data-group-toggle="hr" onclick="toggleSidebarGroup('hr')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
+ <div class="menu-item hq-only" data-group-toggle="hr" onclick="toggleSidebarGroup('hr')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
  <span data-i18n="dept_hr">HR Department</span>
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
- <div class="menu-item owner-only" data-group="hr" data-tab="hr_staff" onclick="switchHub(['staffMgmtSection'], 'Staff Management', this); if(typeof renderStaffMgmt==='function') renderStaffMgmt();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="hr" data-tab="hr_staff" onclick="switchHub(['staffMgmtSection'], 'Staff Management', this); if(typeof renderStaffMgmt==='function') renderStaffMgmt();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="users-round" style="width:16px; height:16px;"></i> Staff Management
  </div>
- <div class="menu-item owner-only" data-group="hr" data-tab="hr_roster" onclick="switchHub(['rosterSection'], 'Jadual Operasi 10 CAMP', this)" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="hr" data-tab="hr_roster" onclick="switchHub(['rosterSection'], 'Jadual Operasi 10 CAMP', this)" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="calendar-clock" style="width:16px; height:16px;"></i> Jadual Operasi
  </div>
- <div class="menu-item owner-only" data-group="hr" data-tab="hr_roster_recon" onclick="switchHub(['rosterReconSection'], 'Roster ↔ Attendance', this); if(typeof renderRosterRecon==='function') renderRosterRecon();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="hr" data-tab="hr_roster_recon" onclick="switchHub(['rosterReconSection'], 'Roster ↔ Attendance', this); if(typeof renderRosterRecon==='function') renderRosterRecon();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="calendar-check" style="width:16px; height:16px;"></i> Roster ↔ Attendance
  </div>
 
@@ -1312,39 +1312,44 @@
  <div class="menu-item" data-group="admin" data-tab="admin_bulk_ops" onclick="switchHub(['bulkOpsSection'], 'Bulk Product Edit', this); if(typeof renderBulkOps === 'function') renderBulkOps();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="check-square" style="width:16px; height:16px;"></i> Bulk Product Edit
  </div>
- <!-- — Setup — -->
- <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;">— Setup —</div>
- <div class="menu-item" data-group="admin" data-tab="admin_settings" onclick="window.openComplianceFiltered('settings', 'shop', 'Shop Settings'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="settings" style="width:16px; height:16px;"></i> Shop Settings
- </div>
- <div class="menu-item" data-group="admin" data-tab="admin_payments" onclick="window.openComplianceFiltered('payments', 'duitnow', 'Payments'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="credit-card" style="width:16px; height:16px;"></i> Payments
- </div>
- <div class="menu-item" data-group="admin" data-tab="admin_sync" onclick="switchHub(['syncSection'], 'Sync', this); if(typeof renderSyncSection==='function') renderSyncSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="git-merge" style="width:16px; height:16px;"></i> Sync (Advanced)
- </div>
- <!-- p1_30: System Test Guide (relocated to Setup p1_36) -->
- <div class="menu-item superior-only" data-group="admin" data-tab="admin_test_guide" onclick="switchHub(['testGuideSection'], 'System Test Guide', this); if(typeof renderTestGuide==='function') renderTestGuide();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> System Test Guide
- </div>
+ <!-- p1_37: Setup items moved out of Admin → HQ Setup group below (HQ mode only) -->
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->
- <div class="menu-item owner-only" data-group-toggle="finance" onclick="toggleSidebarGroup('finance')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
+ <div class="menu-item hq-only" data-group-toggle="finance" onclick="toggleSidebarGroup('finance')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
  <span data-i18n="dept_finance">Finance Department</span>
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
- <div class="menu-item owner-only" data-group="finance" data-tab="finance_main" onclick="switchHub(['financeSection'], 'Finance Dashboard', this); if(typeof renderFinance==='function') renderFinance();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="finance" data-tab="finance_main" onclick="switchHub(['financeSection'], 'Finance Dashboard', this); if(typeof renderFinance==='function') renderFinance();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="wallet" style="width:16px; height:16px;"></i> Finance Dashboard
  </div>
- <div class="menu-item owner-only" data-group="finance" data-tab="finance_ledger" onclick="switchHub(['salesLedgerSection'], 'Sales Ledger', this); if(typeof renderSalesLedger==='function') renderSalesLedger();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="finance" data-tab="finance_ledger" onclick="switchHub(['salesLedgerSection'], 'Sales Ledger', this); if(typeof renderSalesLedger==='function') renderSalesLedger();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="scroll-text" style="width:16px; height:16px;"></i> Sales Ledger
  </div>
- <div class="menu-item owner-only" data-group="finance" data-tab="finance_compliance" onclick="window.openComplianceFiltered('compliance', 'sst', 'Compliance &amp; Tax'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="finance" data-tab="finance_compliance" onclick="window.openComplianceFiltered('compliance', 'sst', 'Compliance &amp; Tax'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="shield-check" style="width:16px; height:16px;"></i> Compliance &amp; Tax
  </div>
- <div class="menu-item owner-only" data-group="finance" data-tab="finance_backup" onclick="switchHub(['dataBackupSection'], 'Data &amp; Backup', this); if(typeof renderDataBackup==='function') renderDataBackup();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <div class="menu-item hq-only" data-group="finance" data-tab="finance_backup" onclick="switchHub(['dataBackupSection'], 'Data &amp; Backup', this); if(typeof renderDataBackup==='function') renderDataBackup();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="hard-drive" style="width:16px; height:16px;"></i> Data &amp; Backup
  </div>
+
+ <!-- HQ SETUP — config + system diagnostics (HQ mode only) p1_37 -->
+ <div class="menu-item hq-only" data-group-toggle="hq_setup" onclick="toggleSidebarGroup('hq_setup')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
+ <span data-i18n="dept_setup">Setup</span>
+ <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
+ </div>
+ <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_settings" onclick="window.openComplianceFiltered('settings', 'shop', 'Shop Settings'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="settings" style="width:16px; height:16px;"></i> Shop Settings
+ </div>
+ <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_payments" onclick="window.openComplianceFiltered('payments', 'duitnow', 'Payments'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="credit-card" style="width:16px; height:16px;"></i> Payments
+ </div>
+ <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_sync" onclick="switchHub(['syncSection'], 'Sync', this); if(typeof renderSyncSection==='function') renderSyncSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="git-merge" style="width:16px; height:16px;"></i> Sync (Advanced)
+ </div>
+ <div class="menu-item hq-only superior-only" data-group="hq_setup" data-tab="admin_test_guide" onclick="switchHub(['testGuideSection'], 'System Test Guide', this); if(typeof renderTestGuide==='function') renderTestGuide();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> System Test Guide
+ </div>
+
  <div style="border-top:1px dashed var(--border-color); margin: 15px 0 5px 0;"></div>
  <div class="menu-item" id="sidebarRoadmapBtn" data-tab="roadmap" onclick="switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="background:linear-gradient(135deg, var(--primary), #A05F22); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:11px 14px; border-radius:10px; box-shadow:0 4px 12px rgba(205,124,50,0.28); margin:6px 0 4px 0;">
  <span style="display:flex; align-items:center; gap:8px; font-size:13px;">
@@ -1419,6 +1424,10 @@
  <button class="mode-tab mode-tab--owner" id="modeTabManagement" data-mode-set="management" onclick="window.setMode('management')" role="tab" aria-selected="false" style="display:none;">
  <i data-lucide="crown" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_management">Pengurusan</span>
+ </button>
+ <button class="mode-tab mode-tab--hq" id="modeTabHq" data-mode-set="hq" onclick="window.setMode('hq')" role="tab" aria-selected="false" style="display:none;">
+ <i data-lucide="building-2" class="mode-tab__icon" style="width:16px; height:16px;"></i>
+ <span data-i18n="mode_hq">HQ</span>
  </button>
  <button class="mode-tab mode-tab--investor" id="modeTabInvestor" data-mode-set="investor" onclick="window.setMode('investor')" role="tab" aria-selected="false" style="display:none;">
  <i data-lucide="trending-up" class="mode-tab__icon" style="width:16px; height:16px;"></i>
@@ -6675,11 +6684,11 @@
  <div style="font-size:11px; color:#6B7280; margin-top:2px;">Dashboard, CRM, promo, AI, settings</div>
  </span>
  </label>
- <label class="sm-mode-row" data-mode="management" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; cursor:pointer;">
+ <label class="sm-mode-row" data-mode="management" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#D1FAE5; border:1px solid #6EE7B7; border-radius:6px; cursor:pointer;">
  <input type="checkbox" id="smfMode_management" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
  <span>
- <strong style="color:#B45309;"> HR + Finance access</strong>
- <div style="font-size:11px; color:#78350F; margin-top:2px;"><strong>Sensitive:</strong> bila ada akses ni, HR (gaji, roster) + Finance (untung-rugi, backup, compliance) muncul dalam Pengurus mode</div>
+ <strong style="color:#047857;"> HQ access (control centre)</strong>
+ <div style="font-size:11px; color:#064E3B; margin-top:2px;"><strong>Sensitive:</strong> unlock HQ mode — HR (gaji, roster, attendance) + Finance (untung-rugi, ledger, backup, compliance) + Setup (shop config, payments, sync, test guide). Pengurus mode kekal POS-only.</div>
  </span>
  </label>
  <label class="sm-mode-row" data-mode="investor" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#DBEAFE; border:1px solid #1E40AF; border-radius:6px; cursor:pointer; grid-column:1/-1;">
@@ -6690,7 +6699,7 @@
  </span>
  </label>
  </div>
- <div class="hint" id="smfModeAccessHint" style="color:#78350f; margin-top:8px; font-size:11px;"> Hanya Superior boleh ubah. Default landing = mode tertinggi yang accessible (Pengurusan> Pengurus> Operasi> Kaunter).</div>
+ <div class="hint" id="smfModeAccessHint" style="color:#78350f; margin-top:8px; font-size:11px;"> Hanya Superior boleh ubah. Default landing = mode tertinggi yang accessible (HQ &gt; Pengurus &gt; Operasi &gt; Kaunter).</div>
  </div>
  <div class="sm-modal-actions">
  <button class="sm-btn sm-btn-secondary" onclick="window.__closeStaffForm()">Cancel</button>
@@ -6707,10 +6716,10 @@
  function saveInactive(arr){ try { localStorage.setItem(INACTIVE_KEY, JSON.stringify(arr)); } catch(e){} }
  function isInactive(staffId){ return loadInactive().includes(staffId); }
  const ROLE_META = {
- superior: { label:'Superior', desc:' — Full access semua mode (Kaunter/Operasi/Pengurus/Pengurusan). Auto-ada akses Management mode (HR + Finance), tak boleh dibuang.', visible:'all' },
- mgmt: { label:'Management', desc:' — Akses Kaunter/Operasi/Pengurus. Akses Pengurusan mode (HR + Finance) BERGANTUNG pada checkbox dalam staff edit modal.', visible:['sales-only','inv-only','mgmt-only'] },
- inventory: { label:'Inventory', desc:' — Operasi mode sahaja. Tak nampak Sales/Admin features. Boleh diberi akses Pengurusan mode via checkbox kalau perlu.', visible:['inv-only'] },
- sales: { label:'Sales', desc:' — Kaunter mode sahaja. Tak nampak Inventory/Admin features. Boleh diberi akses Pengurusan mode via checkbox kalau perlu.', visible:['sales-only'] }
+ superior: { label:'Superior', desc:' — Full access semua mode (Kaunter/Operasi/Pengurus/HQ/Investor). Auto-ada akses HQ mode (HR + Finance + Setup), tak boleh dibuang.', visible:'all' },
+ mgmt: { label:'Management', desc:' — Akses Kaunter/Operasi/Pengurus. Akses HQ mode (HR + Finance + Setup) BERGANTUNG pada checkbox HQ access dalam staff edit modal.', visible:['sales-only','inv-only','mgmt-only'] },
+ inventory: { label:'Inventory', desc:' — Operasi mode sahaja. Tak nampak Sales/Admin features. Boleh diberi akses HQ via checkbox kalau perlu.', visible:['inv-only'] },
+ sales: { label:'Sales', desc:' — Kaunter mode sahaja. Tak nampak Inventory/Admin features. Boleh diberi akses HQ via checkbox kalau perlu.', visible:['sales-only'] }
  };
 
  // ===== HYDRATE: merge localStorage extras into authUsers =====
@@ -6844,8 +6853,10 @@
  sales:'Sales Department (Kaunter mode)',
  inv:'Inventory Department (Operasi mode)',
  admin:'Admin Department (Pengurus mode)',
- hr:'HR Department (Pengurusan mode)',
- finance:'Finance Department (Pengurusan mode)'
+ customers:'Customers (Pengurus mode)',
+ hr:'HR Department (HQ mode)',
+ finance:'Finance Department (HQ mode)',
+ hq_setup:'Setup (HQ mode)'
  };
 
  allItems.forEach(item => {
@@ -6860,7 +6871,7 @@
  else {
  const cls = item.className;
  if (cls.includes('superior-only')) isVisible = (role === 'superior');
- else if (cls.includes('owner-only')) isVisible = false; // gated by per-staff Management mode overlay, not role
+ else if (cls.includes('hq-only') || cls.includes('owner-only')) isVisible = false; // gated by per-staff HQ access overlay, not role
  else if (cls.includes('mgmt-only')) isVisible = meta.visible.includes('mgmt-only');
  else if (cls.includes('sales-only')) isVisible = meta.visible.includes('sales-only');
  else if (cls.includes('inv-only')) isVisible = meta.visible.includes('inv-only');
@@ -8938,7 +8949,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=121"></script>
+ <script src="app.js?v=122"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

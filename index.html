@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=34">
- <link rel="stylesheet" href="design-tokens.css?v=28">
+ <link rel="stylesheet" href="design-tokens.css?v=29">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1336,6 +1336,10 @@
  <div class="menu-item hq-only" data-group-toggle="hq_setup" onclick="toggleSidebarGroup('hq_setup')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
  <span data-i18n="dept_setup">Setup</span>
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
+ </div>
+ <!-- p1_38: Permissions Centre — Bos sets per-staff mode access in matrix view -->
+ <div class="menu-item hq-only superior-only" data-group="hq_setup" data-tab="hq_permissions" onclick="switchHub(['permissionsSection'], 'Permissions', this); if(typeof renderPermissions==='function') renderPermissions();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="shield-check" style="width:16px; height:16px;"></i> Permissions
  </div>
  <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_settings" onclick="window.openComplianceFiltered('settings', 'shop', 'Shop Settings'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="settings" style="width:16px; height:16px;"></i> Shop Settings
@@ -6379,6 +6383,52 @@
  })();
  </script>
 
+ <!-- PERMISSIONS CENTRE (p1_38) — Bos sets per-staff mode access in matrix view + audit trail -->
+ <div id="permissionsSection" class="tab-section" style="display:none;">
+ <div class="perm-wrap">
+ <div class="perm-hero">
+ <div>
+ <h2 style="margin:0; font-size:20px; display:flex; align-items:center; gap:8px;">
+ <i data-lucide="shield-check" style="width:22px; height:22px; color:#047857;"></i>
+ Permissions Centre
+ </h2>
+ <p style="font-size:13px; color:var(--neutral-500); margin:6px 0 0;">Bos kawal apa setiap staff boleh akses. Tick / untick checkbox terus, semua change auto-save + audit-log.</p>
+ </div>
+ <div id="permGuard" class="perm-guard" hidden>Hanya Superior boleh ubah permissions. Click sebagai read-only sahaja.</div>
+ </div>
+
+ <div class="perm-tabs" role="tablist">
+ <button class="perm-tab is-active" role="tab" aria-selected="true" data-perm-tab="matrix" onclick="window.permTab && window.permTab('matrix')">
+ <i data-lucide="grid-3x3" style="width:14px; height:14px;"></i> Mode Access
+ </button>
+ <button class="perm-tab" role="tab" aria-selected="false" data-perm-tab="audit" onclick="window.permTab && window.permTab('audit')">
+ <i data-lucide="history" style="width:14px; height:14px;"></i> Audit Trail
+ </button>
+ </div>
+
+ <div id="permPaneMatrix" class="perm-pane">
+ <div class="perm-table-wrap">
+ <table class="perm-table" id="permMatrixTable">
+ <thead><tr><th class="perm-staff-col">Staff</th><th>Kaunter</th><th>Operasi</th><th>Pengurus</th><th class="perm-hq">HQ</th><th>Investor</th></tr></thead>
+ <tbody id="permMatrixBody"><tr><td colspan="6" style="text-align:center; padding:30px; color:var(--neutral-500);">Loading…</td></tr></tbody>
+ </table>
+ </div>
+ <div class="perm-foot">
+ <span><strong>Auto-save:</strong> setiap toggle terus simpan ke <code>staffModeAccess_v1</code> + audit_logs.</span>
+ <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsMatrix && window.renderPermissionsMatrix()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> Refresh</button>
+ </div>
+ </div>
+
+ <div id="permPaneAudit" class="perm-pane" hidden>
+ <div class="perm-audit-toolbar">
+ <span style="font-size:12px; color:var(--neutral-500);">Riwayat 50 perubahan permission terkini.</span>
+ <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsAudit && window.renderPermissionsAudit()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> Reload</button>
+ </div>
+ <div id="permAuditList" class="perm-audit-list"><p style="text-align:center; padding:24px; color:var(--neutral-500);">Loading…</p></div>
+ </div>
+ </div>
+ </div>
+
  <!-- STAFF MANAGEMENT (PHASE 1 — p1_3 + p1_5) -->
  <div id="staffMgmtSection" class="tab-section" style="display:none;">
  <style>
@@ -8949,7 +8999,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=122"></script>
+ <script src="app.js?v=123"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

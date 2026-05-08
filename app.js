@@ -14047,3 +14047,172 @@ window.renderAskSection = async function() {
  }
  }
 };
+
+// ============= p1_38 PERMISSIONS CENTRE =============
+// Bos-only matrix view + audit trail for per-staff mode access.
+// Source of truth: staffModeAccess_v1 localStorage. Audit: audit_logs Supabase
+// (action_type='update_mode_access'). Reuses existing overlay format from p1_20.
+(function(){
+ const PERM_MODES = ['cashier','operations','manager','hq','investor'];
+ const PERM_LABELS = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ', investor:'Investor' };
+
+ function escAttr(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+ function actor() { return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null); }
+ function isSuperior() { const a = actor(); return !!(a && a.role === 'superior'); }
+ function readOverlay() { try { return JSON.parse(localStorage.getItem('staffModeAccess_v1') || '{}'); } catch(e) { return {}; } }
+ function writeOverlay(map) { try { localStorage.setItem('staffModeAccess_v1', JSON.stringify(map)); } catch(e){} }
+ function inactiveSet() {
+ try { return new Set(JSON.parse(localStorage.getItem('staffInactive_v1') || '[]')); } catch(e) { return new Set(); }
+ }
+
+ window.renderPermissions = function() {
+ // Default: matrix tab
+ window.permTab('matrix');
+ };
+
+ window.permTab = function(name) {
+ const matrix = document.getElementById('permPaneMatrix');
+ const audit = document.getElementById('permPaneAudit');
+ if (!matrix || !audit) return;
+ document.querySelectorAll('.perm-tab').forEach(t => {
+ const isActive = t.dataset.permTab === name;
+ t.classList.toggle('is-active', isActive);
+ t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+ });
+ if (name === 'audit') { matrix.hidden = true; audit.hidden = false; window.renderPermissionsAudit(); }
+ else { audit.hidden = true; matrix.hidden = false; window.renderPermissionsMatrix(); }
+ // Guard banner if not superior
+ const guard = document.getElementById('permGuard');
+ if (guard) guard.hidden = isSuperior();
+ };
+
+ window.renderPermissionsMatrix = function() {
+ const tbody = document.getElementById('permMatrixBody');
+ if (!tbody) return;
+ const list = (typeof authUsers !== 'undefined' && Array.isArray(authUsers)) ? authUsers.slice() : [];
+ if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--neutral-500);">Tiada staff dijumpai.</td></tr>'; return; }
+ const overlay = readOverlay();
+ const inactive = inactiveSet();
+ const canEdit = isSuperior();
+ // Sort: superior first, then by role, then by name
+ const roleOrder = { superior:0, mgmt:1, inventory:2, sales:3, investor:4 };
+ list.sort((a,b) => (roleOrder[a.role]||9) - (roleOrder[b.role]||9) || (a.name||'').localeCompare(b.name||''));
+ tbody.innerHTML = list.map(u => {
+ const access = (typeof window.getModesAccess === 'function') ? window.getModesAccess(u) : {};
+ const lockedAll = u.role === 'superior'; // Bos all locked-true, can't be untoggled
+ const isInact = inactive.has(u.staff_id);
+ const rowCls = isInact ? 'perm-row perm-row--inactive' : 'perm-row';
+ const cells = PERM_MODES.map(m => {
+ const checked = !!access[m];
+ const disabled = !canEdit || lockedAll;
+ const cellCls = m === 'hq' ? 'perm-cell perm-cell--hq' : 'perm-cell';
+ return '<td class="' + cellCls + '"><label class="perm-cb"><input type="checkbox"' + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') + ' onchange="window.togglePermission(\'' + escAttr(u.staff_id) + '\', \'' + m + '\', this.checked, this)"><span></span></label></td>';
+ }).join('');
+ const meta = '<div class="perm-staff-meta"><strong>' + escAttr(u.name) + '</strong><span>' + escAttr(u.staff_id) + ' · ' + escAttr(u.role) + (isInact ? ' · INACTIVE' : '') + (lockedAll ? ' · auto-true' : '') + '</span></div>';
+ return '<tr class="' + rowCls + '" data-staff-id="' + escAttr(u.staff_id) + '"><td class="perm-staff-col">' + meta + '</td>' + cells + '</tr>';
+ }).join('');
+ if (window.lucide && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch(e){} }
+ };
+
+ window.togglePermission = function(staffId, mode, value, checkboxEl) {
+ if (!isSuperior()) {
+ if (typeof showToast === 'function') showToast('Hanya Superior boleh ubah permissions', 'warn');
+ if (checkboxEl) checkboxEl.checked = !value;
+ return;
+ }
+ if (!staffId || !mode) return;
+ const list = (typeof authUsers !== 'undefined' && Array.isArray(authUsers)) ? authUsers : [];
+ const target = list.find(u => u.staff_id === staffId);
+ if (!target) return;
+ if (target.role === 'superior') {
+ if (typeof showToast === 'function') showToast('Superior auto-true, tak boleh ubah', 'warn');
+ if (checkboxEl) checkboxEl.checked = true;
+ return;
+ }
+ // Self-lockout warning
+ const a = actor();
+ if (a && a.staff_id === staffId && !value) {
+ const overlayProbe = readOverlay();
+ const hypotheticalNext = Object.assign({}, overlayProbe[staffId] || {}, { [mode]: false });
+ const stillHasAny = ['cashier','operations','manager','hq'].some(m => {
+ if (hypotheticalNext[m] !== undefined) return hypotheticalNext[m];
+ const cap = (typeof ROLE_CAPS !== 'undefined' && ROLE_CAPS[target.role]) ? ROLE_CAPS[target.role] : { modes:[] };
+ return cap.modes.includes(m);
+ });
+ if (!stillHasAny) {
+ if (!confirm('AMARAN: Awak akan kunci diri sendiri keluar SEMUA mode operational!\nLepas reload, awak takleh masuk app lagi.\n\nPasti?')) {
+ if (checkboxEl) checkboxEl.checked = true;
+ return;
+ }
+ }
+ }
+ // Persist
+ const overlay = readOverlay();
+ if (!overlay[staffId]) overlay[staffId] = {};
+ const before = overlay[staffId][mode];
+ overlay[staffId][mode] = !!value;
+ // p1_37 alias: if writing 'hq', mirror to 'management' so legacy modal stays in sync
+ if (mode === 'hq') overlay[staffId].management = !!value;
+ writeOverlay(overlay);
+ // Audit log
+ try {
+ if (typeof db !== 'undefined' && db && db.from) {
+ db.from('audit_logs').insert([{
+ action_type: 'update_mode_access',
+ actor_name: a ? a.name : 'Unknown',
+ target_staff: target.name + ' (' + target.staff_id + ')',
+ details: JSON.stringify({ staff_id: target.staff_id, role: target.role, changes: [{ mode, granted: !!value, prev: before }], source: 'permissions_centre' }),
+ created_at: new Date().toISOString()
+ }]).then(()=>{}).catch(()=>{});
+ }
+ } catch(e){}
+ // If editing self, refresh mode tab visibility immediately
+ if (a && a.staff_id === staffId && typeof window.refreshAllModeTabsVisibility === 'function') {
+ try { window.refreshAllModeTabsVisibility(); } catch(e){}
+ }
+ if (typeof showToast === 'function') showToast(target.name + ' · ' + PERM_LABELS[mode] + ' = ' + (value ? 'GRANTED' : 'REVOKED'), 'success');
+ };
+
+ window.renderPermissionsAudit = async function() {
+ const list = document.getElementById('permAuditList');
+ if (!list) return;
+ list.innerHTML = '<p style="text-align:center; padding:24px; color:var(--neutral-500);">Loading audit logs…</p>';
+ if (typeof db === 'undefined' || !db || !db.from) {
+ list.innerHTML = '<p style="text-align:center; padding:24px; color:var(--neutral-500);">Database not ready — login dulu.</p>';
+ return;
+ }
+ try {
+ const { data, error } = await db.from('audit_logs')
+ .select('*')
+ .eq('action_type', 'update_mode_access')
+ .order('created_at', { ascending: false })
+ .limit(50);
+ if (error) throw error;
+ if (!data || data.length === 0) {
+ list.innerHTML = '<p style="text-align:center; padding:32px; color:var(--neutral-500);">Tiada perubahan permission lagi. Toggle satu kat tab Mode Access untuk start audit trail.</p>';
+ return;
+ }
+ list.innerHTML = data.map(row => {
+ let parsed = {};
+ try { parsed = typeof row.details === 'string' ? JSON.parse(row.details) : (row.details || {}); } catch(e){}
+ const changes = parsed.changes || [];
+ const changeText = changes.map(c => {
+ const lbl = PERM_LABELS[c.mode] || c.mode;
+ const verb = c.granted ? 'GRANT' : 'REVOKE';
+ const cls = c.granted ? 'perm-audit-grant' : 'perm-audit-revoke';
+ return '<span class="' + cls + '">' + verb + ' ' + escAttr(lbl) + '</span>';
+ }).join(' ');
+ const ts = new Date(row.created_at);
+ const tsStr = ts.toLocaleString('en-MY', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+ const source = parsed.source ? ' · via ' + escAttr(parsed.source).replace(/_/g,' ') : '';
+ return '<div class="perm-audit-item">' +
+ '<div class="perm-audit-head"><strong>' + escAttr(row.actor_name || 'Unknown') + '</strong> → <em>' + escAttr(row.target_staff || '') + '</em></div>' +
+ '<div class="perm-audit-changes">' + (changeText || '<span style="color:var(--neutral-500);">no recorded changes</span>') + '</div>' +
+ '<div class="perm-audit-time">' + escAttr(tsStr) + escAttr(source) + '</div>' +
+ '</div>';
+ }).join('');
+ } catch(e) {
+ list.innerHTML = '<p style="text-align:center; padding:24px; color:#DC2626;">Audit query failed: ' + escAttr(e.message || e) + '</p>';
+ }
+ };
+})();

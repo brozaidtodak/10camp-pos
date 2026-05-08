@@ -1241,6 +1241,19 @@
 
 
  <!-- END INVENTORY DEPT -->
+
+ <!-- CUSTOMERS DEPARTMENT — unified CRM (p1_36): merges old Customer Database + B2B Customers -->
+ <div class="menu-item" data-group-toggle="customers" onclick="toggleSidebarGroup('customers')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
+ <span data-i18n="dept_customers">Customers</span>
+ <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
+ </div>
+ <div class="menu-item" data-group="customers" data-tab="customers_all" onclick="switchHub(['customersSection'], 'All Customers', this); if(typeof renderCustomersV2==='function') renderCustomersV2();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="users" style="width:16px; height:16px;"></i> All Customers
+ </div>
+ <div class="menu-item" data-group="customers" data-tab="customers_b2b" onclick="switchHub(['b2bCustomersSection'], 'B2B Accounts', this); if(typeof renderB2BCustomers==='function') renderB2BCustomers();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="briefcase" style="width:16px; height:16px;"></i> B2B Accounts
+ </div>
+ <!-- END CUSTOMERS DEPT -->
  
  
 
@@ -1278,12 +1291,9 @@
  <div class="menu-item" data-group="admin" data-tab="admin_ask" onclick="switchHub(['askSection'], 'Tanya 10 CAMP (AI)', this); if(typeof renderAskSection==='function') renderAskSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="sparkles" style="width:16px; height:16px;"></i> Tanya 10 CAMP (AI)
  </div>
- <div class="menu-item" data-group="admin" data-tab="admin_crm" onclick="switchHub(['customersSection'], 'Customer Database', this); if(typeof renderCustomersV2==='function') renderCustomersV2();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="users" style="width:16px; height:16px;"></i> Customer Database
- </div>
- <div class="menu-item" data-group="admin" data-tab="admin_b2b" onclick="switchHub(['b2bCustomersSection'], 'B2B Customers', this); if(typeof renderB2BCustomers==='function') renderB2BCustomers();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="briefcase" style="width:16px; height:16px;"></i> B2B Customers
- </div>
+ <!-- p1_36: Customer Database + B2B Customers moved out → Customers group above -->
+ <!-- — Marketing — -->
+ <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;">— Marketing —</div>
  <div class="menu-item" data-group="admin" data-tab="admin_promotions" onclick="switchHub(['promotionsSection'], 'Promotions &amp; Vouchers', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="gift" style="width:16px; height:16px;"></i> Promotions &amp; Vouchers
  </div>
@@ -1294,16 +1304,16 @@
  <div class="menu-item" data-group="admin" data-tab="admin_reengage" onclick="switchHub(['reengageSection'], 'Re-engage Campaign', this); if(typeof renderReengage==='function') renderReengage();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="heart-handshake" style="width:16px; height:16px;"></i> Re-engage Campaign
  </div>
- <!-- p1_30: System Test Guide -->
- <div class="menu-item superior-only" data-group="admin" data-tab="admin_test_guide" onclick="switchHub(['testGuideSection'], 'System Test Guide', this); if(typeof renderTestGuide==='function') renderTestGuide();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> System Test Guide
- </div>
+ <!-- — Operations — -->
+ <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;">— Operations —</div>
  <div class="menu-item" data-group="admin" data-tab="admin_invoice" onclick="switchHub(['invoiceSection'], 'Invoice &amp; Quotation', this)" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="file-text" style="width:16px; height:16px;"></i> Invoice &amp; Quotation
  </div>
  <div class="menu-item" data-group="admin" data-tab="admin_bulk_ops" onclick="switchHub(['bulkOpsSection'], 'Bulk Product Edit', this); if(typeof renderBulkOps === 'function') renderBulkOps();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="check-square" style="width:16px; height:16px;"></i> Bulk Product Edit
  </div>
+ <!-- — Setup — -->
+ <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;">— Setup —</div>
  <div class="menu-item" data-group="admin" data-tab="admin_settings" onclick="window.openComplianceFiltered('settings', 'shop', 'Shop Settings'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="settings" style="width:16px; height:16px;"></i> Shop Settings
  </div>
@@ -1312,6 +1322,10 @@
  </div>
  <div class="menu-item" data-group="admin" data-tab="admin_sync" onclick="switchHub(['syncSection'], 'Sync', this); if(typeof renderSyncSection==='function') renderSyncSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="git-merge" style="width:16px; height:16px;"></i> Sync (Advanced)
+ </div>
+ <!-- p1_30: System Test Guide (relocated to Setup p1_36) -->
+ <div class="menu-item superior-only" data-group="admin" data-tab="admin_test_guide" onclick="switchHub(['testGuideSection'], 'System Test Guide', this); if(typeof renderTestGuide==='function') renderTestGuide();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> System Test Guide
  </div>
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->

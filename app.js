@@ -420,6 +420,17 @@ let masterProducts = [];
 window.isPublished = function(p) { return !!p && p.is_published === true; };
 
 let pettyCashLedger = [];
+// p1_50 — persistence so refresh doesn't wipe the ledger (was in-memory only).
+window.PETTY_KEY = 'pettyCash_v1';
+window.loadPettyCash = function() {
+ try { pettyCashLedger = JSON.parse(localStorage.getItem(window.PETTY_KEY) || '[]'); }
+ catch(e) { pettyCashLedger = []; }
+};
+window.persistPettyCash = function() {
+ try { localStorage.setItem(window.PETTY_KEY, JSON.stringify(pettyCashLedger)); }
+ catch(e) { console.warn('persistPettyCash failed:', e); }
+};
+window.loadPettyCash();
 let customerIssues = [];
 let globalMemo = { active: false, text: "" };
 
@@ -4997,7 +5008,8 @@ document.getElementById("savePettyBtn")?.addEventListener('click', () => {
  amount: amount,
  notes: notes
  });
- 
+ if(typeof window.persistPettyCash === 'function') window.persistPettyCash();
+
  alert("Buku tunai dikemaskini.");
  document.getElementById("pcAmount").value = "";
  document.getElementById("pcNotes").value = "";
@@ -15477,3 +15489,154 @@ window.permApplyTemplateWithExpiry = function(tplId, durationDays) {
  if (typeof window.renderPermissionsMatrix === 'function') window.renderPermissionsMatrix();
  }
 };
+
+// =============================================================
+// p1_50 — Q1 2026 ALIFF REPORT SEED (idempotent, boot-time auto-run)
+// =============================================================
+// Imports data from Aliff's Q1 Pentadbiran/HR/Finance report (14.03.2026):
+//   - 5 memos issued (HR/sales/admin departments)
+//   - 7 petty cash entries (1 baki carry + 3 TODAK top-ups + 3 monthly spend lumps)
+//     Final baki RM 1,262.14 matches Aliff's Mac 2026 figure.
+//   - 6 finance_records (3 project CAPEX: SSM/pagar/lesen-parking + 3 monthly payment summaries)
+// Idempotent via SEED_Q1_ALIFF_FLAG so refresh won't duplicate.
+// Manual re-run: window.seedQ1Aliff({force:true}).
+// Reset: localStorage.removeItem('q1AliffSeeded_v1') then refresh.
+window.SEED_Q1_ALIFF_FLAG = 'q1AliffSeeded_v1';
+
+window.seedQ1Aliff = async function(opts) {
+ opts = opts || {};
+ if(!opts.force && localStorage.getItem(window.SEED_Q1_ALIFF_FLAG)) {
+ console.log('[seedQ1Aliff] Already seeded. Pass {force:true} to re-run.');
+ return { skipped: true };
+ }
+
+ const aliffId = 'CMP008';
+ const aliffName = 'Muhammad Aliff Ashraf Bin Johar';
+ const summary = { memos: 0, petty: 0, finance: 0, errors: [] };
+
+ // ---- 1. MEMOS (5) ------------------------------------------------------
+ const Q1_MEMOS = [
+ { dept: 'hr', title: 'Memo Waktu Rehat & Solat',
+ body: 'Penyelarasan waktu rehat dan waktu solat sepanjang minggu.\n\nDikeluarkan: 23.01.2026\nKuatkuasa: 24.01.2026\n\nRujukan asal: https://drive.google.com/file/d/1bHtroLcitMCLkZ6OLvPfAXPRiG9uWQ25/view',
+ posted_at: '2026-01-23T09:00:00.000Z' },
+ { dept: 'sales', title: 'Memo Komisen Live TikTok & Shopee',
+ body: 'Penyelarasan kadar komisen untuk live session TikTok dan Shopee.\n\nDikeluarkan & Kuatkuasa: 03.02.2026\n\nRujukan asal: https://drive.google.com/file/d/1eb0VpbnMiwWMFYRYnCn-dOzgnKq0Xz58/view',
+ posted_at: '2026-02-03T09:00:00.000Z' },
+ { dept: 'hr', title: 'Memo Cuti Awal Ramadhan & Waktu Operasi',
+ body: 'Pengumuman cuti awal Ramadhan dan jadual operasi kedai sepanjang bulan puasa.\n\nDikeluarkan: 17.02.2026\nKuatkuasa: 19.02.2026\n\nRujukan asal: https://drive.google.com/file/d/1ZNxeZMwQ8PhRIP44t02y_rer_2Pxin5W/view',
+ posted_at: '2026-02-17T09:00:00.000Z' },
+ { dept: 'hr', title: 'Memo Cuti Mingguan & Cuti Raya Aidilfitri',
+ body: 'Jadual cuti mingguan dan cuti Aidilfitri 2026.\n\nDikeluarkan: 14.03.2026\nKuatkuasa: 16.03.2026\n\nRujukan asal: https://drive.google.com/file/d/1LdojmoCvMu3hRj9WMRCZ20PTNOrng1Ve/view',
+ posted_at: '2026-03-14T09:00:00.000Z' },
+ { dept: 'admin', title: 'Memo Operasi Kedai Selepas Cuti Raya',
+ body: 'Jadual operasi kedai selepas Aidilfitri.\n\nDikeluarkan: 14.03.2026\nKuatkuasa: 25.03.2026\n\nRujukan asal: https://drive.google.com/file/d/1jhEyMVcIRKtYiDzhw3-b0n_r2XoGJFGc/view',
+ posted_at: '2026-03-14T09:00:00.000Z' }
+ ];
+ try {
+ const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
+ const existing = new Set(memos.map(m => m.title));
+ Q1_MEMOS.forEach((m, i) => {
+ if(existing.has(m.title)) return;
+ memos.unshift({
+ id: 'q1aliff_memo_' + i + '_' + Date.now(),
+ department: m.dept,
+ title: m.title,
+ body: m.body,
+ pinned: false,
+ posted_by_id: aliffId,
+ posted_by_name: aliffName,
+ posted_at: m.posted_at,
+ status: 'approved',
+ approved_by_name: 'Zaid (auto-import Q1 Aliff Report)',
+ approved_at: m.posted_at,
+ reject_reason: null
+ });
+ summary.memos++;
+ });
+ if(typeof window.memoSaveAll === 'function') window.memoSaveAll(memos);
+ } catch(e) { summary.errors.push('memos: ' + e.message); }
+
+ // ---- 2. PETTY CASH (9 entries — opening balance, top-ups, monthly spend) ----
+ const Q1_PETTY = [
+ { date: '2026-01-01T00:00:00.000Z', type: 'IN', amount: 1303.63, notes: 'Q1 Aliff: Baki Petty Cash bawa ke Januari 2026' },
+ { date: '2026-01-05T00:00:00.000Z', type: 'IN', amount: 1500.00, notes: 'Q1 Aliff: Top-up TODAK (Januari)' },
+ { date: '2026-01-31T23:59:00.000Z', type: 'OUT', amount: 1829.39, notes: 'Q1 Aliff: Perbelanjaan Januari (rumusan bulanan)' },
+ { date: '2026-02-05T00:00:00.000Z', type: 'IN', amount: 1500.00, notes: 'Q1 Aliff: Top-up TODAK (Februari)' },
+ { date: '2026-02-28T23:59:00.000Z', type: 'OUT', amount: 1580.90, notes: 'Q1 Aliff: Perbelanjaan Februari (rumusan bulanan)' },
+ { date: '2026-03-05T00:00:00.000Z', type: 'IN', amount: 1500.00, notes: 'Q1 Aliff: Top-up TODAK (Mac)' },
+ { date: '2026-03-31T23:59:00.000Z', type: 'OUT', amount: 1131.20, notes: 'Q1 Aliff: Perbelanjaan Mac (rumusan bulanan)' }
+ ];
+ try {
+ const existingPetty = new Set(pettyCashLedger.map(p => p.notes));
+ Q1_PETTY.forEach((p, i) => {
+ if(existingPetty.has(p.notes)) return;
+ pettyCashLedger.push({
+ id: 'q1aliff_petty_' + i + '_' + Date.now(),
+ date: p.date,
+ type: p.type,
+ amount: p.amount,
+ notes: p.notes
+ });
+ summary.petty++;
+ });
+ if(typeof window.persistPettyCash === 'function') window.persistPettyCash();
+ if(typeof renderPettyCash === 'function') renderPettyCash();
+ } catch(e) { summary.errors.push('petty: ' + e.message); }
+
+ // ---- 3. FINANCE RECORDS (projects + monthly payment summaries) ----
+ // 3 project CAPEX: SSM (Dec 2025), Pagar (Jan), Lesen Parking (Feb)
+ // 3 monthly summary: Jan RM 11,790.80, Feb RM 8,500, Mar RM 5,688
+ const Q1_FINANCE = [
+ { month: 'December', year: 2025, category: 'CAPEX', amount: 285.00, description: 'Q1 Aliff: Pembaharuan Lesen Perniagaan SSM 10Camp Enterprise 2026 (22.12.2025)' },
+ { month: 'January', year: 2026, category: 'CAPEX', amount: 12020.00, description: 'Q1 Aliff: Pemasangan Pagar & Pintu Pagar parking tingkat bawah (14.01.2026)' },
+ { month: 'February', year: 2026, category: 'CAPEX', amount: 2385.00, description: 'Q1 Aliff: Lesen Parking Kenderaan Tambahan 2026 (Apr-Dec, lulus 01.04.2026)' },
+ { month: 'January', year: 2026, category: 'OPEX', amount: 11790.80, description: 'Q1 Aliff: Rumusan 5 Payment Januari (Pembelian Barang, Petty Cash, Pemasaran, Renovasi Pagar)' },
+ { month: 'February', year: 2026, category: 'OPEX', amount: 8500.00, description: 'Q1 Aliff: Rumusan 4 Payment Februari (Petty Cash, Pemasaran, Lesen Parking, Event)' },
+ { month: 'March', year: 2026, category: 'OPEX', amount: 5688.00, description: 'Q1 Aliff: Rumusan 3 Payment Mac (Petty Cash, Pemasaran, Pembelian Barang)' }
+ ];
+ try {
+ // Build a set of existing descriptions to dedupe by Q1 Aliff prefix.
+ const fr = (typeof financeRecords !== 'undefined' && Array.isArray(financeRecords)) ? financeRecords : [];
+ const existingFin = new Set(fr.map(f => (f.description || '')));
+ for(const rec of Q1_FINANCE) {
+ if(existingFin.has(rec.description)) continue;
+ const payload = Object.assign({}, rec);
+ let inserted = false;
+ try {
+ if(typeof db !== 'undefined' && db && db.from) {
+ const { data, error } = await db.from('finance_records').insert([payload]).select();
+ if(!error && data) {
+ if(Array.isArray(financeRecords)) financeRecords.unshift(data[0]);
+ inserted = true;
+ }
+ }
+ } catch(e) {}
+ if(!inserted) {
+ payload.id = Date.now() + Math.floor(Math.random()*1000);
+ if(Array.isArray(financeRecords)) financeRecords.push(payload);
+ }
+ summary.finance++;
+ }
+ if(typeof window.finRender === 'function') window.finRender();
+ } catch(e) { summary.errors.push('finance: ' + e.message); }
+
+ // ---- Mark seeded so boot won't re-run ----
+ localStorage.setItem(window.SEED_Q1_ALIFF_FLAG, new Date().toISOString());
+
+ console.log('[seedQ1Aliff] Done.', summary);
+ if(typeof showToast === 'function') {
+ showToast('Q1 Aliff Report imported: ' + summary.memos + ' memos, ' + summary.petty + ' petty cash, ' + summary.finance + ' finance records', 'success');
+ }
+ return summary;
+};
+
+// Boot-time auto-seed (idempotent — only runs once per browser).
+// Defer to let core data load first.
+document.addEventListener('DOMContentLoaded', () => {
+ setTimeout(() => {
+ if(!localStorage.getItem(window.SEED_Q1_ALIFF_FLAG)) {
+ console.log('[seedQ1Aliff] First boot — auto-seeding Q1 Aliff Report...');
+ window.seedQ1Aliff().catch(e => console.warn('[seedQ1Aliff] auto-seed failed:', e));
+ }
+ }, 3500);
+});

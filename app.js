@@ -3366,6 +3366,180 @@ window.lpExpandChips = function(btn) {
     btn.remove();
 };
 
+// p1_52: customer-facing product detail modal (storefront PDP)
+window.lpPdpState = null;
+
+window.lpOpenProductDetail = function(sku) {
+    if (!sku || typeof masterProducts === 'undefined') return;
+    const lead = masterProducts.find(p => p.sku === sku);
+    if (!lead) return;
+    const parentSku = lead.parent_sku || lead.sku;
+    const variants = masterProducts.filter(p => (p.parent_sku || p.sku) === parentSku);
+    if (!variants.length) return;
+    window.lpPdpState = { variants, currentSku: sku, qty: 1, imgIdx: 0 };
+    window.lpRenderPdp();
+    const modal = document.getElementById('lpPdpModal');
+    if (modal) {
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.lpClosePdp = function() {
+    const modal = document.getElementById('lpPdpModal');
+    if (modal) {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
+    window.lpPdpState = null;
+};
+
+window.lpRenderPdp = function() {
+    const state = window.lpPdpState;
+    if (!state) return;
+    const body = document.getElementById('lpPdpBody');
+    if (!body) return;
+    const current = state.variants.find(v => v.sku === state.currentSku) || state.variants[0];
+    const parsed = window.lpParseProductName(current);
+    const cleanCat = window.lpRealCategory(current);
+    const sameBC = current.brand && cleanCat && current.brand.toLowerCase().replace(/\s/g,'') === cleanCat.toLowerCase().replace(/\s/g,'');
+    const fmt = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+    const price = parseFloat(current.price || 0);
+    const compareAt = parseFloat(current.compare_at_price || 0);
+    const onSale = compareAt > price && price > 0;
+    const off = onSale ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+
+    const myBatches = (typeof inventoryBatches !== 'undefined') ? inventoryBatches.filter(b => b.sku === current.sku && b.qty_remaining > 0) : [];
+    const totalStock = myBatches.reduce((s, b) => s + b.qty_remaining, 0);
+    let stockBadge = '';
+    if (totalStock <= 0) stockBadge = '<span class="lp-pdp__stock lp-pdp__stock--out">Sold Out</span>';
+    else if (totalStock <= 3) stockBadge = `<span class="lp-pdp__stock lp-pdp__stock--low">Only ${totalStock} left</span>`;
+    else stockBadge = '<span class="lp-pdp__stock lp-pdp__stock--ok">In stock</span>';
+
+    if (state.qty > Math.max(1, totalStock)) state.qty = Math.max(1, totalStock);
+
+    const images = (current.images && current.images.length) ? current.images : ['https://placehold.co/600x600?text=No+Img'];
+    if (state.imgIdx >= images.length) state.imgIdx = 0;
+    const mainImg = images[state.imgIdx];
+
+    const escAttr = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;');
+    const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const escJs = (s) => String(s == null ? '' : s).replace(/'/g, "\\'");
+
+    let thumbsHtml = '';
+    if (images.length > 1) {
+        images.forEach((url, i) => {
+            const active = (i === state.imgIdx) ? ' is-active' : '';
+            thumbsHtml += `<button type="button" class="lp-pdp__thumb${active}" onclick="window.lpPdpPickImage(${i})"><img src="${escAttr(url)}" alt=""></button>`;
+        });
+    }
+
+    let variantsHtml = '';
+    if (state.variants.length > 1) {
+        state.variants.forEach((v) => {
+            const vp = window.lpParseProductName(v);
+            const label = (vp.variantName || v.variant_color || v.variant_size || v.sku).slice(0, 32);
+            const active = (v.sku === current.sku) ? ' is-active' : '';
+            variantsHtml += `<button type="button" class="lp-variant-chip${active}" onclick="window.lpPdpSelectVariant('${escJs(v.sku)}')">${escHtml(label)}</button>`;
+        });
+    }
+
+    let specsHtml = '';
+    let meta = current.metafields;
+    if (typeof meta === 'string') { try { meta = JSON.parse(meta); } catch(e) { meta = null; } }
+    if (meta && typeof meta === 'object') {
+        const entries = Object.entries(meta).filter(([k,v]) => k && String(v).trim());
+        if (entries.length) {
+            specsHtml = '<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Specifications</h4><ul class="lp-pdp__specs">';
+            entries.forEach(([k, v]) => { specsHtml += `<li><strong>${escHtml(k)}</strong><span>${escHtml(v)}</span></li>`; });
+            specsHtml += '</ul></div>';
+        }
+    }
+
+    let desc = (current.description || '').replace(/^\[STOK BELUM DISAHKAN[^\]]*\]\s*\n*/, '').trim();
+    const descHtml = desc ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Description</h4><p class="lp-pdp__desc">${escHtml(desc)}</p></div>` : '';
+
+    body.innerHTML = `
+        <div class="lp-pdp__gallery">
+            <img src="${escAttr(mainImg)}" class="lp-pdp__main-img" alt="${escAttr(parsed.title)}" onerror="this.src='https://placehold.co/600x600?text=No+Img'">
+            ${thumbsHtml ? `<div class="lp-pdp__thumbs">${thumbsHtml}</div>` : ''}
+        </div>
+        <div class="lp-pdp__info">
+            <div class="lp-pdp__meta">
+                ${current.brand ? `<span class="lp-pdp__brand">${escHtml(current.brand)}</span>` : ''}
+                ${(!sameBC && cleanCat) ? `<span class="lp-pdp__cat">${escHtml(cleanCat)}</span>` : ''}
+                <span class="lp-pdp__sku">${escHtml(current.sku)}</span>
+            </div>
+            <h2 class="lp-pdp__title" id="lpPdpTitle">${escHtml(parsed.title)}</h2>
+            <div class="lp-pdp__price-row">
+                <span class="lp-pdp__price">${fmt(price)}</span>
+                ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span><span class="lp-pdp__discount">-${off}%</span>` : ''}
+            </div>
+            ${stockBadge}
+            ${variantsHtml ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Options (${state.variants.length})</h4><div class="lp-pdp__variants">${variantsHtml}</div></div>` : ''}
+            ${descHtml}
+            ${specsHtml}
+            <div class="lp-pdp__cta-row">
+                <div class="lp-pdp__qty">
+                    <button type="button" onclick="window.lpPdpQty(-1)" ${state.qty <= 1 ? 'disabled' : ''}>−</button>
+                    <input type="number" id="lpPdpQtyInput" value="${state.qty}" min="1" max="${Math.max(1, totalStock)}" onchange="window.lpPdpQtySet(this.value)">
+                    <button type="button" onclick="window.lpPdpQty(1)" ${state.qty >= totalStock ? 'disabled' : ''}>+</button>
+                </div>
+                <button class="lp-pdp__cta" onclick="window.lpPdpAddToCart()" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? 'Sold Out' : 'Add to Cart'}</button>
+            </div>
+        </div>
+    `;
+};
+
+window.lpPdpPickImage = function(idx) {
+    if (!window.lpPdpState) return;
+    window.lpPdpState.imgIdx = idx;
+    window.lpRenderPdp();
+};
+
+window.lpPdpSelectVariant = function(sku) {
+    if (!window.lpPdpState) return;
+    window.lpPdpState.currentSku = sku;
+    window.lpPdpState.imgIdx = 0;
+    window.lpPdpState.qty = 1;
+    window.lpRenderPdp();
+};
+
+window.lpPdpQty = function(delta) {
+    if (!window.lpPdpState) return;
+    const next = (window.lpPdpState.qty || 1) + delta;
+    if (next < 1) return;
+    window.lpPdpState.qty = next;
+    window.lpRenderPdp();
+};
+
+window.lpPdpQtySet = function(val) {
+    if (!window.lpPdpState) return;
+    const q = Math.max(1, parseInt(val, 10) || 1);
+    window.lpPdpState.qty = q;
+    window.lpRenderPdp();
+};
+
+window.lpPdpAddToCart = function() {
+    if (!window.lpPdpState) return;
+    const sku = window.lpPdpState.currentSku;
+    const qty = window.lpPdpState.qty || 1;
+    if (typeof addToPublicCart === 'function') {
+        for (let i = 0; i < qty; i++) addToPublicCart(sku);
+    }
+    window.lpClosePdp();
+};
+
+// ESC closes the PDP if open
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('lpPdpModal');
+        if (modal && !modal.hidden) window.lpClosePdp();
+    }
+});
+
 function renderPublicStorefront() {
     const list = document.getElementById("publicProductsList");
     if(!list) return;
@@ -3462,13 +3636,13 @@ function renderPublicStorefront() {
         }
         html += `
             <div class="lp-product-card" id="${cardId}">
-                <div class="lp-product-card__media">
+                <div class="lp-product-card__media" onclick="window.lpOpenProductDetail('${skuEsc}')">
                     ${badge}
                     <img class="lp-product-card__img" src="${thumb}" alt="${parsed.title.replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
                 </div>
                 <div class="lp-product-card__body">
                     <div class="lp-product-card__meta">${brandPill}${catPill}</div>
-                    <h3 class="lp-product-card__name">${parsed.title}</h3>
+                    <h3 class="lp-product-card__name" onclick="window.lpOpenProductDetail('${skuEsc}')">${parsed.title}</h3>
                     <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
                     <p class="lp-product-card__price" data-role="price">${fmt(price)}${onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">' + fmt(compareAt) + '</small>' : ''}</p>
                     ${chipsHtml}

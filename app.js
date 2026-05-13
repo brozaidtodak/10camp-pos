@@ -3164,7 +3164,7 @@ window.lpFilterByActivity = function(activityKey) {
 window.lpRenderActivityTiles = function() {
     const wrap = document.getElementById('lpActivityGrid');
     if(!wrap || typeof masterProducts === 'undefined') return;
-    const products = masterProducts.filter(p => isPublished && isPublished(p));
+    const products = masterProducts.filter(p => isPublished && isPublished(p) && !window.lpIsEventSku(p));
     let html = '';
     Object.entries(window.LP_ACTIVITY_GROUPS).forEach(([key, g]) => {
         // p1_48: count uses lpRealCategory so brand-named cats remap to real cats first
@@ -3196,7 +3196,7 @@ window.lpRenderCategoryPills = function() {
     const activity = window.lpActiveActivity && window.LP_ACTIVITY_GROUPS && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity];
     const allowedCats = activity ? new Set(activity.cats) : null;
     const cats = {};
-    masterProducts.filter(p => isPublished && isPublished(p)).forEach(p => {
+    masterProducts.filter(p => isPublished && isPublished(p) && !window.lpIsEventSku(p)).forEach(p => {
         // p1_48: use cleaned category (brand-named cats remapped via heuristic)
         const c = window.lpRealCategory(p) || 'Uncat';
         // p1_48: never expose brand-named cats as a pill (BLACKDOG, NATUREHIKE, etc.)
@@ -3576,6 +3576,15 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// p1_54: event SKU groups are operational staff data (e.g. OutdoorExpo booth catalogues), not real customer products.
+// Add new event keywords here as staff create new event groups in EasyStore.
+window.LP_EVENT_KEYWORDS = ['OUTDOOREXPO'];
+window.lpIsEventSku = function(p) {
+    if (!p || !window.LP_EVENT_KEYWORDS || !window.LP_EVENT_KEYWORDS.length) return false;
+    const haystack = ((p.parent_sku || '') + ' ' + (p.sku || '') + ' ' + (p.name || '')).toUpperCase();
+    return window.LP_EVENT_KEYWORDS.some(k => haystack.includes(String(k).toUpperCase()));
+};
+
 function renderPublicStorefront() {
     const list = document.getElementById("publicProductsList");
     if(!list) return;
@@ -3584,7 +3593,7 @@ function renderPublicStorefront() {
         return;
     }
 
-    let filtered = masterProducts.filter(p => isPublished(p));
+    let filtered = masterProducts.filter(p => isPublished(p) && !window.lpIsEventSku(p));
     if(window.lpSearchTerm) {
         const q = window.lpSearchTerm;
         filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));

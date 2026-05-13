@@ -607,6 +607,7 @@ async function initApp() {
  // p1_47: re-render activity tiles + category pills now that masterProducts is populated
  try { if(typeof window.lpRenderActivityTiles === 'function') window.lpRenderActivityTiles(); } catch(e){}
  try { if(typeof window.lpRenderCategoryPills === 'function') window.lpRenderCategoryPills(); } catch(e){}
+ try { if(typeof window.lpUpdateTrustStats === 'function') window.lpUpdateTrustStats(); } catch(e){}
  renderPublicStorefront();
  renderPOS();
 
@@ -3161,6 +3162,27 @@ window.lpFilterByActivity = function(activityKey) {
     const shop = document.getElementById('shop');
     if(shop) shop.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+// p1_56: replace hardcoded hero/trust/about counts ("10K+ products", "2,800+ customers", "11 brands")
+// with live numbers from masterProducts + customersData. Runs after data load.
+window.lpUpdateTrustStats = function() {
+    if (typeof masterProducts === 'undefined' || !Array.isArray(masterProducts)) return;
+    const eligible = masterProducts.filter(p => isPublished(p) && !window.lpIsEventSku(p));
+    const productCount = eligible.length;
+    const brandSet = new Set();
+    eligible.forEach(p => { if (p.brand && String(p.brand).trim()) brandSet.add(String(p.brand).trim().toLowerCase()); });
+    const brandCount = brandSet.size;
+    const customerCount = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData.length : 0;
+    document.querySelectorAll('[data-stat="products"]').forEach(el => {
+        el.textContent = productCount > 0 ? productCount.toLocaleString() + '+' : '—';
+    });
+    document.querySelectorAll('[data-stat="brands"]').forEach(el => {
+        el.textContent = brandCount > 0 ? String(brandCount) : '—';
+    });
+    document.querySelectorAll('[data-stat="customers"]').forEach(el => {
+        el.textContent = customerCount > 0 ? customerCount.toLocaleString() + '+' : '—';
+    });
+};
+
 window.lpRenderActivityTiles = function() {
     const wrap = document.getElementById('lpActivityGrid');
     if(!wrap || typeof masterProducts === 'undefined') return;

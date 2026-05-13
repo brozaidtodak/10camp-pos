@@ -142,10 +142,19 @@ def migrate_products(products, dry_run=False):
     print(f"  POS DB has {len(existing_skus)} products")
 
     # Flatten variants — each variant becomes a POS DB row
+    # p1_59: canonical brand-name map — EasyStore stores some brands in all-caps ("SHINE TRIP"),
+    # we display them as Title Case ("Shine Trip"). Add aliases here when staff create new brand
+    # entries with non-canonical casing in EasyStore.
+    BRAND_CANONICAL = {
+        'SHINE TRIP': 'Shine Trip',
+    }
+
     rows = []
     skipped_no_sku = 0
     for p in products:
         brand = p.get('vendors') or p.get('brands') or None
+        if brand and brand in BRAND_CANONICAL:
+            brand = BRAND_CANONICAL[brand]
         category = None
         if p.get('collections'):
             # Use first collection that's not "Feature on homepage"

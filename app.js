@@ -3356,6 +3356,16 @@ window.lpSelectVariant = function(cardId, sku, btn) {
     }
 };
 
+// p1_51: reveal the hidden chip row and remove the "+N more" toggle
+window.lpExpandChips = function(btn) {
+    if (!btn) return;
+    const card = btn.closest('.lp-product-card');
+    if (!card) return;
+    const extra = card.querySelector('.lp-variant-chips--extra');
+    if (extra) extra.hidden = false;
+    btn.remove();
+};
+
 function renderPublicStorefront() {
     const list = document.getElementById("publicProductsList");
     if(!list) return;
@@ -3427,15 +3437,28 @@ function renderPublicStorefront() {
         const catPill = (!sameBC && cleanCat) ? `<span class="lp-product-card__cat">${cleanCat}</span>` : '';
         let chipsHtml = '';
         if (variants.length > 1) {
-            chipsHtml = '<div class="lp-variant-chips">';
-            variants.forEach((v, i) => {
+            // p1_51: cap visible chips at 3, push the rest into a hidden row revealed by "+N more"
+            const MAX_VISIBLE_CHIPS = 3;
+            const renderChip = (v, i) => {
                 const vp = window.lpParseProductName(v);
                 const label = (vp.variantName || v.variant_color || v.variant_size || ('Pilihan ' + (i + 1))).slice(0, 24);
                 const isActive = i === 0 ? ' is-active' : '';
                 const vSkuEsc = String(v.sku).replace(/'/g, "\\'");
-                chipsHtml += `<button type="button" class="lp-variant-chip${isActive}" onclick="window.lpSelectVariant('${cardId}', '${vSkuEsc}', this)">${label}</button>`;
-            });
+                return `<button type="button" class="lp-variant-chip${isActive}" onclick="window.lpSelectVariant('${cardId}', '${vSkuEsc}', this)">${label}</button>`;
+            };
+            const visible = variants.slice(0, MAX_VISIBLE_CHIPS);
+            const hidden = variants.slice(MAX_VISIBLE_CHIPS);
+            chipsHtml = '<div class="lp-variant-chips">';
+            visible.forEach((v, i) => { chipsHtml += renderChip(v, i); });
+            if (hidden.length) {
+                chipsHtml += `<button type="button" class="lp-variant-chip lp-variant-more" onclick="window.lpExpandChips(this)">+${hidden.length} more</button>`;
+            }
             chipsHtml += '</div>';
+            if (hidden.length) {
+                chipsHtml += '<div class="lp-variant-chips lp-variant-chips--extra" hidden>';
+                hidden.forEach((v, i) => { chipsHtml += renderChip(v, MAX_VISIBLE_CHIPS + i); });
+                chipsHtml += '</div>';
+            }
         }
         html += `
             <div class="lp-product-card" id="${cardId}">

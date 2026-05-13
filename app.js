@@ -3369,6 +3369,31 @@ window.lpExpandChips = function(btn) {
 // p1_52: customer-facing product detail modal (storefront PDP)
 window.lpPdpState = null;
 
+// p1_53: turn the HTML body EasyStore stores in `description` into readable plain text
+// (block tags → newlines, list items → bullets, table rows → " · ", remaining tags stripped).
+window.lpFormatDescription = function(raw) {
+    if (!raw) return '';
+    let text = String(raw);
+    text = text.replace(/^\[EASYSTORE-ID:[^\]]+\]\s*/, '');
+    text = text.replace(/^\[STOK BELUM DISAHKAN[^\]]*\]\s*\n*/, '');
+    text = text.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    text = text.replace(/<li[^>]*>/gi, '• ');
+    text = text.replace(/<\/td>\s*<td[^>]*>/gi, ' · ');
+    text = text.replace(/<\/(p|div|h[1-6]|tr|li|ul|ol|table|thead|tbody|section)>/gi, '\n');
+    text = text.replace(/<[^>]+>/g, '');
+    text = text.replace(/&nbsp;/g, ' ')
+               .replace(/&amp;/g, '&')
+               .replace(/&lt;/g, '<')
+               .replace(/&gt;/g, '>')
+               .replace(/&quot;/g, '"')
+               .replace(/&#39;/g, "'")
+               .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+               .replace(/&[a-z]+;/gi, '');
+    text = text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+    return text.trim();
+};
+
 window.lpOpenProductDetail = function(sku) {
     if (!sku || typeof masterProducts === 'undefined') return;
     const lead = masterProducts.find(p => p.sku === sku);
@@ -3458,8 +3483,18 @@ window.lpRenderPdp = function() {
         }
     }
 
-    let desc = (current.description || '').replace(/^\[STOK BELUM DISAHKAN[^\]]*\]\s*\n*/, '').trim();
+    const desc = window.lpFormatDescription(current.description);
     const descHtml = desc ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Description</h4><p class="lp-pdp__desc">${escHtml(desc)}</p></div>` : '';
+
+    // p1_53: quick-spec strip surfaces weight + size at-a-glance so staff/customer don't have to scan the description
+    const fmtKg = (n) => { const num = Number(n); if (!num) return ''; return (num >= 1 ? num.toFixed(2) : num.toFixed(3)).replace(/\.?0+$/, '') + ' kg'; };
+    const quickSpecs = [];
+    if (current.weight_kg) { const v = fmtKg(current.weight_kg); if (v) quickSpecs.push({ label: 'Berat', value: v }); }
+    if (current.variant_size) quickSpecs.push({ label: 'Saiz', value: current.variant_size });
+    if (current.unit && current.unit !== 'pcs') quickSpecs.push({ label: 'Unit', value: current.unit });
+    const quickHtml = quickSpecs.length
+        ? `<div class="lp-pdp__quick">${quickSpecs.map(s => `<div class="lp-pdp__quick-item"><span class="lp-pdp__quick-label">${escHtml(s.label)}</span><span class="lp-pdp__quick-value">${escHtml(s.value)}</span></div>`).join('')}</div>`
+        : '';
 
     body.innerHTML = `
         <div class="lp-pdp__gallery">
@@ -3478,6 +3513,7 @@ window.lpRenderPdp = function() {
                 ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span><span class="lp-pdp__discount">-${off}%</span>` : ''}
             </div>
             ${stockBadge}
+            ${quickHtml}
             ${variantsHtml ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Options (${state.variants.length})</h4><div class="lp-pdp__variants">${variantsHtml}</div></div>` : ''}
             ${descHtml}
             ${specsHtml}

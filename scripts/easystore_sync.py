@@ -168,7 +168,7 @@ def migrate_products(products, dry_run=False):
                 'price': float(p.get('min_price') or 0),
                 'cost_price': None,
                 'unit': 'pcs',
-                'description': f"[EASYSTORE-ID:{p.get('id')}] {(p.get('description') or '')[:400]}",
+                'description': f"[EASYSTORE-ID:{p.get('id')}] {p.get('body_html') or p.get('description') or ''}",
                 'images': all_images or None,
                 'is_published': bool(p.get('published_at') or p.get('is_published_in_selected_channel')),
                 'easystore_product_id': str(p.get('id'))
@@ -200,7 +200,7 @@ def migrate_products(products, dry_run=False):
                 'variant_size': v.get('option1') if (p.get('options') and any('size' in (o.get('name','').lower() if isinstance(o, dict) else '') for o in p.get('options', []))) else None,
                 'images': v_images or None,
                 'is_published': bool(p.get('published_at') or p.get('is_published_in_selected_channel')),
-                'description': f"[EASYSTORE-ID:{p.get('id')}-V{v.get('id')}] {(p.get('description') or '')[:400]}",
+                'description': f"[EASYSTORE-ID:{p.get('id')}-V{v.get('id')}] {p.get('body_html') or p.get('description') or ''}",
                 'easystore_product_id': str(p.get('id')),
                 'easystore_variant_id': str(v.get('id')),
                 'easystore_qty': int(v.get('inventory_quantity') or 0)
@@ -238,20 +238,23 @@ def migrate_products(products, dry_run=False):
                 es_qty = int(r.get('easystore_qty') or 0)
                 es_variant_id = js(r.get('easystore_variant_id') or '')
                 es_product_id = js(r.get('easystore_product_id') or '')
-                vals.append(f"('{sku}', {price}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}')")
+                # p1_53: refresh description too so existing rows get full EasyStore body (truncation removed)
+                desc = js(r.get('description') or '')
+                vals.append(f"('{sku}', {price}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}', '{desc}')")
             values_sql = ",".join(vals)
             sql = f"""
             UPDATE public.products_master pm
             SET price = u.price,
                 images = CASE WHEN jsonb_array_length(u.images) > 0 THEN u.images ELSE pm.images END,
                 is_published = u.is_published,
+                description = CASE WHEN length(u.description) > 0 THEN u.description ELSE pm.description END,
                 metadata = COALESCE(pm.metadata, '{{}}'::jsonb) || jsonb_build_object(
                     'easystore_qty', u.es_qty,
                     'easystore_variant_id', NULLIF(u.es_variant_id, ''),
                     'easystore_product_id', NULLIF(u.es_product_id, ''),
                     'easystore_synced_at', '{datetime.utcnow().isoformat()}'
                 )
-            FROM (VALUES {values_sql}) AS u(sku, price, images, is_published, es_qty, es_variant_id, es_product_id)
+            FROM (VALUES {values_sql}) AS u(sku, price, images, is_published, es_qty, es_variant_id, es_product_id, description)
             WHERE upper(pm.sku) = upper(u.sku);
             """
             try:

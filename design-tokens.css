@@ -841,6 +841,10 @@
 .lp-pdp__stock--ok { background: #D1FAE5; color: #065F46; }
 .lp-pdp__stock--low { background: #FEF3C7; color: #92400E; }
 .lp-pdp__stock--out { background: #FEE2E2; color: #991B1B; }
+.lp-pdp__quick { display: flex; gap: 8px; flex-wrap: wrap; }
+.lp-pdp__quick-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; background: #F9FAFB; border-radius: 8px; border: 1px solid #F3F4F6; min-width: 80px; }
+.lp-pdp__quick-label { font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.7px; }
+.lp-pdp__quick-value { font-size: 13px; font-weight: 700; color: #111827; }
 .lp-pdp__section { border-top: 1px solid #F3F4F6; padding-top: 12px; }
 .lp-pdp__section-title { font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; letter-spacing: 1.2px; margin: 0 0 8px; }
 .lp-pdp__variants { display: flex; flex-wrap: wrap; gap: 6px; }

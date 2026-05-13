@@ -3563,10 +3563,13 @@ window.lpRenderPdp = function() {
     const desc = window.lpFormatDescription(current.description);
     const descHtml = desc ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Description</h4><p class="lp-pdp__desc">${escHtml(desc)}</p></div>` : '';
 
-    // p1_53: quick-spec strip surfaces weight + size at-a-glance so staff/customer don't have to scan the description
+    // p1_53/p1_61: quick-spec strip surfaces weight, packed dimensions, variant size at-a-glance
     const fmtKg = (n) => { const num = Number(n); if (!num) return ''; return (num >= 1 ? num.toFixed(2) : num.toFixed(3)).replace(/\.?0+$/, '') + ' kg'; };
+    const fmtCm = (n) => { const num = Number(n); if (!num) return ''; return (Number.isInteger(num) ? String(num) : num.toFixed(1).replace(/\.?0+$/, '')); };
     const quickSpecs = [];
     if (current.weight_kg) { const v = fmtKg(current.weight_kg); if (v) quickSpecs.push({ label: 'Berat', value: v }); }
+    const L = fmtCm(current.length_cm), W = fmtCm(current.width_cm), H = fmtCm(current.height_cm);
+    if (L && W && H) quickSpecs.push({ label: 'Saiz Packed', value: `${L} × ${W} × ${H} cm` });
     if (current.variant_size) quickSpecs.push({ label: 'Saiz', value: current.variant_size });
     if (current.unit && current.unit !== 'pcs') quickSpecs.push({ label: 'Unit', value: current.unit });
     const quickHtml = quickSpecs.length

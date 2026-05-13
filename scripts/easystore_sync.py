@@ -207,6 +207,10 @@ def migrate_products(products, dry_run=False):
                 'unit': 'pcs',
                 'erp_barcode': v.get('barcode') or None,
                 'weight_kg': float(v.get('weight_in_kg') or v.get('weight') or 0) / 1000 if (v.get('weight_unit') == 'g') else float(v.get('weight') or 0) or None,
+                # p1_61: packed dimensions per variant (EasyStore admin → product → variants → L/W/H)
+                'length_cm': float(v.get('length') or 0) or None,
+                'width_cm': float(v.get('width') or 0) or None,
+                'height_cm': float(v.get('height') or 0) or None,
                 'variant_size': v.get('option1') if (p.get('options') and any('size' in (o.get('name','').lower() if isinstance(o, dict) else '') for o in p.get('options', []))) else None,
                 'images': v_images or None,
                 'is_published': bool(p.get('published_at') or p.get('is_published_in_selected_channel')),
@@ -253,12 +257,19 @@ def migrate_products(products, dry_run=False):
                 # p1_57: capture sale price from EasyStore variant.compare_at_price; NULL when no sale
                 cap_val = r.get('compare_at_price')
                 cap = 'NULL' if not cap_val else str(float(cap_val))
-                vals.append(f"('{sku}', {price}, {cap}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}', '{desc}')")
+                # p1_61: pull packed dimensions; NULL when EasyStore admin hasn't filled them yet
+                len_val = r.get('length_cm');  len_cm = 'NULL' if not len_val else str(float(len_val))
+                wid_val = r.get('width_cm');   wid_cm = 'NULL' if not wid_val else str(float(wid_val))
+                hgt_val = r.get('height_cm');  hgt_cm = 'NULL' if not hgt_val else str(float(hgt_val))
+                vals.append(f"('{sku}', {price}, {cap}, {len_cm}, {wid_cm}, {hgt_cm}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}', '{desc}')")
             values_sql = ",".join(vals)
             sql = f"""
             UPDATE public.products_master pm
             SET price = u.price,
                 compare_at_price = u.compare_at_price,
+                length_cm = COALESCE(u.length_cm, pm.length_cm),
+                width_cm = COALESCE(u.width_cm, pm.width_cm),
+                height_cm = COALESCE(u.height_cm, pm.height_cm),
                 images = CASE WHEN jsonb_array_length(u.images) > 0 THEN u.images ELSE pm.images END,
                 is_published = u.is_published,
                 description = CASE WHEN length(u.description) > 0 THEN u.description ELSE pm.description END,
@@ -268,7 +279,7 @@ def migrate_products(products, dry_run=False):
                     'easystore_product_id', NULLIF(u.es_product_id, ''),
                     'easystore_synced_at', '{datetime.utcnow().isoformat()}'
                 )
-            FROM (VALUES {values_sql}) AS u(sku, price, compare_at_price, images, is_published, es_qty, es_variant_id, es_product_id, description)
+            FROM (VALUES {values_sql}) AS u(sku, price, compare_at_price, length_cm, width_cm, height_cm, images, is_published, es_qty, es_variant_id, es_product_id, description)
             WHERE upper(pm.sku) = upper(u.sku);
             """
             try:
@@ -283,8 +294,8 @@ def migrate_products(products, dry_run=False):
         return 0
 
     # Insert in chunks. Strip the easystore_* fields (not in schema).
-    cols_def = "sku text, name text, brand text, category text, price numeric, compare_at_price numeric, cost_price numeric, unit text, erp_barcode text, weight_kg numeric, variant_size text, images jsonb, is_published boolean, description text"
-    col_names = "sku, name, brand, category, price, compare_at_price, cost_price, unit, erp_barcode, weight_kg, variant_size, images, is_published, description"
+    cols_def = "sku text, name text, brand text, category text, price numeric, compare_at_price numeric, cost_price numeric, unit text, erp_barcode text, weight_kg numeric, length_cm numeric, width_cm numeric, height_cm numeric, variant_size text, images jsonb, is_published boolean, description text"
+    col_names = "sku, name, brand, category, price, compare_at_price, cost_price, unit, erp_barcode, weight_kg, length_cm, width_cm, height_cm, variant_size, images, is_published, description"
 
     inserted = 0
     for chunk in chunked(new_rows, 50):

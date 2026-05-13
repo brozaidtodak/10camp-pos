@@ -193,6 +193,7 @@ def migrate_products(products, dry_run=False):
                 'name': (p.get('title') or '') + (f' — {opt}' if opt else ''),
                 'brand': brand, 'category': category,
                 'price': float(v.get('price') or 0),
+                'compare_at_price': float(v.get('compare_at_price') or 0) if v.get('compare_at_price') else None,
                 'cost_price': float(v.get('cost') or 0) if v.get('cost') else None,
                 'unit': 'pcs',
                 'erp_barcode': v.get('barcode') or None,
@@ -240,11 +241,15 @@ def migrate_products(products, dry_run=False):
                 es_product_id = js(r.get('easystore_product_id') or '')
                 # p1_53: refresh description too so existing rows get full EasyStore body (truncation removed)
                 desc = js(r.get('description') or '')
-                vals.append(f"('{sku}', {price}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}', '{desc}')")
+                # p1_57: capture sale price from EasyStore variant.compare_at_price; NULL when no sale
+                cap_val = r.get('compare_at_price')
+                cap = 'NULL' if not cap_val else str(float(cap_val))
+                vals.append(f"('{sku}', {price}, {cap}, '{images_json}'::jsonb, {is_pub}, {es_qty}, '{es_variant_id}', '{es_product_id}', '{desc}')")
             values_sql = ",".join(vals)
             sql = f"""
             UPDATE public.products_master pm
             SET price = u.price,
+                compare_at_price = u.compare_at_price,
                 images = CASE WHEN jsonb_array_length(u.images) > 0 THEN u.images ELSE pm.images END,
                 is_published = u.is_published,
                 description = CASE WHEN length(u.description) > 0 THEN u.description ELSE pm.description END,
@@ -254,7 +259,7 @@ def migrate_products(products, dry_run=False):
                     'easystore_product_id', NULLIF(u.es_product_id, ''),
                     'easystore_synced_at', '{datetime.utcnow().isoformat()}'
                 )
-            FROM (VALUES {values_sql}) AS u(sku, price, images, is_published, es_qty, es_variant_id, es_product_id, description)
+            FROM (VALUES {values_sql}) AS u(sku, price, compare_at_price, images, is_published, es_qty, es_variant_id, es_product_id, description)
             WHERE upper(pm.sku) = upper(u.sku);
             """
             try:
@@ -269,8 +274,8 @@ def migrate_products(products, dry_run=False):
         return 0
 
     # Insert in chunks. Strip the easystore_* fields (not in schema).
-    cols_def = "sku text, name text, brand text, category text, price numeric, cost_price numeric, unit text, erp_barcode text, weight_kg numeric, variant_size text, images jsonb, is_published boolean, description text"
-    col_names = "sku, name, brand, category, price, cost_price, unit, erp_barcode, weight_kg, variant_size, images, is_published, description"
+    cols_def = "sku text, name text, brand text, category text, price numeric, compare_at_price numeric, cost_price numeric, unit text, erp_barcode text, weight_kg numeric, variant_size text, images jsonb, is_published boolean, description text"
+    col_names = "sku, name, brand, category, price, compare_at_price, cost_price, unit, erp_barcode, weight_kg, variant_size, images, is_published, description"
 
     inserted = 0
     for chunk in chunked(new_rows, 50):

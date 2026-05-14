@@ -4805,7 +4805,7 @@
  { id:'p1_62', label:'BM/EN language toggle + sold-out social proof carousel + POS10C rebrand — window.toggleLang button in lp-header + I18N dictionary (~80 keys, lp_* prefix); renderPopularSoldOut() ranks fully-sold-out groups by 90d sales velocity (top 12) with wa.me Notify-Me CTA; main grid filter hides fully-sold-out groups (surfaces them in carousel instead) and sorts variants in-stock-first; brand rebrand "10 CAMP POS" → "POS10C" in README + sessionUsername UI', d:'done' },
  { id:'p1_63', label:'Architecture migration — HR + Finance Department UI dipindah dari POS ke 10cc Command Centre (10cc.10camp.com, React/Vite app). Sidebar entries data-group=hr/finance dan group-toggle headers di-hide via single CSS rule kat style.css (sementara waktu, mudah revert). Section divs (staffMgmtSection, financeSection, rosterSection, rosterReconSection, salesLedgerSection, dataBackupSection) kekal dalam DOM untuk back-compat dengan auto-landing flow + audit log writes — tak boleh access via sidebar tapi function intact untuk Bos kalau direct nav diperlukan. 10cc side: accounting module dah live (COA + journal entries via RPC, tencc schema kat Brain). Port lanjut: Staff Mgmt → Roster → Roster-Attendance recon → Finance Dashboard → Sales Ledger → Compliance & Tax → Data Backup (priority order ikut frequency Bos guna)', d:'done' }
 ]},
- { id:'p2', num:'PHASE 2', name:'Compliance & Payments MY', status:'active', goal:'Legal-ready untuk pasaran Malaysia', eta:'Q2-Q3 2026 · Mostly Done',
+ { id:'p2', num:'PHASE 2', name:'Compliance & Payments MY', status:'active', goal:'Legal-ready untuk pasaran Malaysia', eta:'Q2-Q3 2026 · 5/7 shipped (e-Invoice LHDN + e-wallet native blocked on external creds)',
  desc:'Tier-1 critical untuk B2B Malaysia: e-Invoice MyInvois (mandatory LHDN), DuitNow QR + e-wallet native (TnG/Boost/GrabPay/ShopeePay), SST automation, PDPA compliance. Audit + 20-bug fix done 2026-05-06. Yang masih scaffold: real LHDN API submission + native e-wallet APIs (kena server-side service / merchant onboarding).',
  deliverables:[
  { id:'p2_1', label:'e-Invoice MyInvois LHDN integration (UBL 2.1 XML + JSON Production-API spec; bulk-submit + export bundle; B2B TIN auto-lookup from customers; validation pre-check). Real LHDN submission still needs sandbox creds + signing cert', d:'progress' },
@@ -4816,7 +4816,7 @@
  { id:'p2_6', label:'PDPA: data export + right-to-delete', d:'done' },
  { id:'p2_7', label:'Returns/exchanges first-class flow', d:'done' }
 ]},
- { id:'p3', num:'PHASE 3', name:'Channels & Reach', status:'active', goal:'Multi-channel: WhatsApp, marketplace, mobile', eta:'Q3-Q4 2026 · In Progress',
+ { id:'p3', num:'PHASE 3', name:'Channels & Reach', status:'active', goal:'Multi-channel: WhatsApp, marketplace, mobile', eta:'Q3-Q4 2026 · 4/8 shipped + 2 in progress',
  desc:'Untuk MY merchant, marketplace sync = acquisition flywheel. Shopee/Lazada/TikTok Shop satu inventory, banyak channel. WhatsApp Commerce native (receipt + reorder + broadcast). Native mobile app untuk owner peek revenue. 5-min onboarding wizard supaya trialer jadi convert.',
  deliverables:[
  { id:'p3_1', label:'Shopee / Lazada / TikTok Shop sync (via EasyStore unified channels)', d:'progress' },
@@ -4828,8 +4828,8 @@
  { id:'p3_7', label:'EasyStore live API integration (one-time sync 432 orders + real-time webhooks)', d:'done' },
  { id:'p3_8', label:'Shopify CSV migration (22 months · 4,083 orders · 2,881 customers)', d:'done' }
 ]},
- { id:'p4', num:'PHASE 4', name:'Operations Excellence', status:'active', goal:'Roster, commission, KPI, hardware', eta:'Q4 2026 · Started',
- desc:'Close-the-loop antara operasi harian dan KPI manager. Plus hardware ecosystem (printer profiles, cash drawer, scanner setup wizard, customer-facing display) — tanpa ni, kaunter masih rely on manual workaround.',
+ { id:'p4', num:'PHASE 4', name:'Operations Excellence', status:'done', goal:'Roster, commission, KPI, hardware', eta:'Q4 2026 · Shipped (12/12 · last 2026-05-14)',
+ desc:'Operasi harian fully closed-loop: commission auto-calc, roster ↔ attendance reconciliation, Manager Dashboard KPIs, EOD Z-report, hardware profiles (printer/drawer/scanner), customer-facing display, PO + GRN + Supplier DB, stock aging + reservations, bulk operations, Sales Ledger. Foundation untuk Phase 2-7.',
  deliverables:[
  { id:'p4_1', label:'Auto-calc commission dari sales', d:'done' },
  { id:'p4_2', label:'Roster ↔ attendance reconciliation', d:'done' },
@@ -4844,7 +4844,7 @@
  { id:'p4_11', label:'Sales Ledger + Product Sales Summary (post-Shopify migration)', d:'done' },
  { id:'p4_12', label:'Stock reservation wired into quote/invoice flow (auto-reserve on save, release on void/supersede; reservations panel + Inventory tab)', d:'done' }
 ]},
- { id:'p5', num:'PHASE 5', name:'Retail Specialization', status:'active', goal:'10 CAMP = Retail-first POS (outdoor gear)', eta:'2026 Q3 · Decided: Retail',
+ { id:'p5', num:'PHASE 5', name:'Retail Specialization', status:'active', goal:'10 CAMP = Retail-first POS (outdoor gear)', eta:'2026 Q3 · Decision locked, 1/7 (variant matrix + bundle SKU next)',
  desc:'Decided 2026-05-07: 10 CAMP fokus Retail (camping/outdoor gear). Build features yang most valuable for retail vertical: variant matrix (size/colour for apparel + tents), bundle SKU (camping starter packs), gift cards (Raya/CNY presents), size-grid module for apparel, layaway/Atome for big-ticket items (RM 2K+ tents). Drop: KDS (F&B), appointment booking (Service).',
  deliverables:[
  { id:'p5_1', label:'Vertical decision: RETAIL (camping & outdoor gear). Decided 2026-05-07. Drives feature priority for Phase 5+. F&B (KDS, table mgmt) and Service (booking) explicitly out of scope.', d:'done' },
@@ -4863,8 +4863,8 @@
  { id:'p6_3', label:'Consolidated reporting', d:'todo' },
  { id:'p6_4', label:'Per-branch pricing override', d:'todo' }
 ]},
- { id:'p7', num:'PHASE 7', name:'Growth & Loyalty', status:'active', goal:'CRM automation & repeat-purchase engine', eta:'Q2 2026 · 10/10 shipped (re-engage live)',
- desc:'Sistem dah ada CRM table tapi belum trigger campaign. Turn customer data jadi repeat-purchase engine. Festival promo template (Raya/CNY/Deepavali) untuk MY context.',
+ { id:'p7', num:'PHASE 7', name:'Growth & Loyalty', status:'done', goal:'CRM automation & repeat-purchase engine', eta:'Q2 2026 · Shipped (10/10)',
+ desc:'CRM automation lengkap: Loyalty Tier (Bronze/Silver/Gold), Promo engine, Festival templates (Raya/CNY/Deepavali/Merdeka), RFM segmentation, re-engage campaign untuk dormant customers, VIP auto-discount, Shopify migration (22mo data). Ready untuk drive repeat purchases.',
  deliverables:[
  { id:'p7_1', label:'Loyalty Tier system (Bronze/Silver/Gold) with per-tier discount', d:'done' },
  { id:'p7_2', label:'Auto re-engage Campaign — wins back dormant customers via tiered WhatsApp outreach. New section under Admin Dept (admin_reengage). 3-tier dashboard: Sleeping (30-59 days, amber), Cold (60-89 days, orange), Lost (90+ days, red) with count + historic value at risk per tier. Click tier → see ranked list (highest spender first) with per-row checkbox, days-since-last-order, total_spent. Tier-specific message templates in BM with variable substitution ({name}, {last_order_days}, {promo_code}) — gentle nudge for Sleeping, RM10 off for Cold, 20% off last-chance for Lost. Suggested promo codes per tier (COMEBACK / WELCOME10 / MISSYOU20). Anti-spam guard: skip customers messaged within last 30 days (RE_SPAM_GUARD_DAYS), shows red SENT-Nd-AGO tag and disables checkbox. Batched send via wa.me (10 per batch, 200ms stagger to avoid popup blocker). Activity log to localStorage reengageLog_v1 + audit_logs table. Reuses existing __waFillVars helper from p3_2', d:'done' },
@@ -4877,7 +4877,7 @@
  { id:'p7_9', label:'Email blast generator (mailto fallback)', d:'done' },
  { id:'p7_10', label:'VIP auto-discount at checkout (3+ order members)', d:'done' }
 ]},
- { id:'p8', num:'PHASE 8', name:'Intelligence', status:'future', goal:'AI assistant & predictive ops', eta:'2028 H2 · Vision',
+ { id:'p8', num:'PHASE 8', name:'Intelligence', status:'active', goal:'AI assistant & predictive ops', eta:'Q2 2026 · 4/5 shipped (Tanya AI in progress, needs API key)',
  desc:'Layer AI atas data yang dah accumulate. Demand forecast, smart re-order, anomaly detection dalam audit, natural-language query untuk owner.',
  deliverables:[
  { id:'p8_1', label:'Demand forecasting per SKU (in-app velocity analysis)', d:'done' },

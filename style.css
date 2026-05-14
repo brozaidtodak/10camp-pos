@@ -199,3 +199,15 @@ body.pos-mobile-mode #mobileCartFloatingBar:active {
 .menu-item[data-group-toggle="finance"] {
     display: none !important;
 }
+
+/* =============================================================
+   p1_65 — MODE BAR HIDDEN (2026-05-14)
+   Zaid feedback: existence menu bar merumitkan process. Disembunyikan
+   untuk SEMUA user. Sidebar sekarang papar UNION semua modes yang user
+   ada access — tak perlu manual switch antara Kaunter/Operasi/Pengurus.
+   setMode() masih fungsi untuk programmatic login routing + landing-page
+   redirect. Untuk restore mode bar: hapus rule ni.
+   ============================================================= */
+#modeBar {
+    display: none !important;
+}

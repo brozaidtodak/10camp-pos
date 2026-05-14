@@ -2812,7 +2812,7 @@ function maybeShowOnboarding(user) {
 // IMPORTANT: defaultMode must match the home section's mode group,
 // otherwise the home tab will be hidden by mode-bar's class filter.
 const ROLE_CAPS = {
- superior: { modes: ['cashier', 'operations', 'manager', 'management', 'hq', 'investor'], defaultMode: 'hq', home: 'finance_main', label: 'Superior', emoji: '' },
+ superior: { modes: ['cashier', 'operations', 'manager', 'management', 'hq', 'investor'], defaultMode: 'manager', home: 'admin_dashboard', label: 'Superior', emoji: '' },
  mgmt: { modes: ['cashier', 'operations', 'manager'], defaultMode: 'manager', home: 'admin_dashboard', label: 'Manager', emoji: '' },
  inventory: { modes: ['cashier', 'operations'], defaultMode: 'operations', home: 'inv_database', label: 'Inventory', emoji: '' },
  sales: { modes: ['cashier', 'operations'], defaultMode: 'cashier', home: 'sales_cashier', label: 'Sales', emoji: '' },
@@ -2983,9 +2983,10 @@ function loginAs(user) {
  let defaultMode = (typeof window.pickDefaultMode === 'function') ? window.pickDefaultMode(user) : (cap.defaultMode || 'cashier');
  // Home tab matches default mode landing
  let homeTab = cap.home;
- // p1_32: Bos lands on Finance Dashboard when management access; otherwise admin_dashboard
+ // p1_65 (2026-05-14): Manager mode lands on Manager Dashboard for everyone
+ // (was finance_main for Bos pre-p1_63 — Finance now lives at 10cc).
  if(defaultMode === 'manager') {
-   homeTab = (user && user.role === 'superior') ? 'finance_main' : (cap.home || 'admin_dashboard');
+   homeTab = cap.home || 'admin_dashboard';
  } else if(defaultMode === 'operations') homeTab = 'inv_database';
  else if(defaultMode === 'cashier') homeTab = 'sales_cashier';
  else if(defaultMode === 'investor') homeTab = 'investor_overview';
@@ -12275,8 +12276,11 @@ window.pickDefaultMode = function(user) {
  const access = window.getModesAccess(user);
  const onlyInvestor = access.investor && !access.cashier && !access.operations && !access.manager && !access.hq;
  if(onlyInvestor) return 'investor';
- // p1_37: Bos (and any user with hq access) lands on HQ → Finance Dashboard.
- if(user && user.role === 'superior') return 'hq';
+ // p1_65 (2026-05-14): Bos lands on Manager mode (was 'hq' pre-p1_63).
+ // HR + Finance Department dah migrated ke 10cc, so HQ mode tinggal Setup je —
+ // tak guna untuk daily landing. Manager mode lebih relevant + sidebar superior
+ // bypass (p1_45) tetap papar Setup items kalau Bos perlu access.
+ if(user && user.role === 'superior') return 'manager';
  // p1_64: Manager-role staff (Aliff/Zack/Moyy) skip Cashier — go straight to Manager mode.
  if(user && user.role === 'mgmt' && access.manager) return 'manager';
  if(access.cashier) return 'cashier';
@@ -12351,20 +12355,21 @@ window.setMode = function(mode) {
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 
+ // p1_65 (2026-05-14): mode bar disembunyikan — sidebar papar UNION semua modes user
+ // ada access (bukan hanya current mode). Setiap staff nampak semua items yang dia
+ // berhak akses tanpa perlu manual switch mode. setMode() masih lari untuk auto-jump
+ // landing redirect tapi `mode` arg tak digunakan untuk filter sidebar lagi.
+ const accessUnion = (typeof window.getModesAccess === 'function') ? window.getModesAccess(__u) : { cashier:false, operations:false, manager:false, hq:false, investor:false };
  let show = false;
- if(mode === 'cashier') {
- show = isSales || (groupToggle === 'sales');
- } else if(mode === 'operations') {
- show = isInv || (groupToggle === 'inv');
- } else if(mode === 'investor') {
- show = isInvestor; // Investor dashboard only — locked-down view
- } else if(mode === 'hq') {
- // p1_37: control centre — only HQ items (HR + Finance + Setup groups)
- show = isHq;
- } else { // manager — wide view: Sales + Inventory + Customers + Admin (everything except HQ + Investor)
- if(isHq || isInvestor) show = false;
- else show = true;
- }
+ // Manager access is wide-view: shows everything except hq + investor (those gated separately)
+ if(accessUnion.manager && !isHq && !isInvestor) show = true;
+ // Cashier-mode items: sales-only class OR group-toggle="sales"
+ if(!show && accessUnion.cashier && (isSales || groupToggle === 'sales')) show = true;
+ // Operations-mode items: inv-only class OR group-toggle="inv"
+ if(!show && accessUnion.operations && (isInv || groupToggle === 'inv')) show = true;
+ // HQ + Investor: only show if user has explicit access (role-gated)
+ if(!show && accessUnion.hq && isHq) show = true;
+ if(!show && accessUnion.investor && isInvestor) show = true;
  it.classList.toggle('mode-hidden', !show);
  });
 
@@ -12412,9 +12417,10 @@ window.setMode = function(mode) {
  const inv = document.querySelector('[data-tab="inv_database"]');
  if(inv) inv.click();
  } else if(mode === 'hq' || mode === 'management') {
- // p1_37: HQ lands on Finance Dashboard (preserves Bos's prior Pengurusan landing)
- const fin = document.querySelector('[data-tab="finance_main"]');
- if(fin) fin.click();
+ // p1_65 (2026-05-14): finance_main moved to 10cc; HQ now auto-lands on Manager Dashboard
+ // since HQ mode no longer has a meaningful daily-ops home page.
+ const dash = document.querySelector('[data-tab="admin_dashboard"]');
+ if(dash) dash.click();
  } else if(mode === 'investor') {
  const inv = document.querySelector('[data-tab="investor_overview"]');
  if(inv) inv.click();

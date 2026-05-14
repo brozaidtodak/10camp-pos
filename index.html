@@ -4738,7 +4738,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (63/63 · last 2026-05-14)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (64/64 · last 2026-05-14)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -4803,7 +4803,8 @@
  { id:'p1_60', label:'Newsletter Supabase persistence — form was saving to localStorage only, emails lost on browser clear. New newsletter_subscribers table (id/email/subscribed_at/source/user_agent), RLS allows anon INSERT only. Form posts directly with localStorage as fallback', d:'done' },
  { id:'p1_61', label:'EasyStore variant L/W/H → PDP — length_cm/width_cm/height_cm columns existed but all 0 even though EasyStore had real values. Sync now pulls v.length/width/height; 597/598 eligible products show "Saiz Packed L × W × H cm" chip in PDP', d:'done' },
  { id:'p1_62', label:'BM/EN language toggle + sold-out social proof carousel + POS10C rebrand — window.toggleLang button in lp-header + I18N dictionary (~80 keys, lp_* prefix); renderPopularSoldOut() ranks fully-sold-out groups by 90d sales velocity (top 12) with wa.me Notify-Me CTA; main grid filter hides fully-sold-out groups (surfaces them in carousel instead) and sorts variants in-stock-first; brand rebrand "10 CAMP POS" → "POS10C" in README + sessionUsername UI', d:'done' },
- { id:'p1_63', label:'Architecture migration — HR + Finance Department UI dipindah dari POS ke 10cc Command Centre (10cc.10camp.com, React/Vite app). Sidebar entries data-group=hr/finance dan group-toggle headers di-hide via single CSS rule kat style.css (sementara waktu, mudah revert). Section divs (staffMgmtSection, financeSection, rosterSection, rosterReconSection, salesLedgerSection, dataBackupSection) kekal dalam DOM untuk back-compat dengan auto-landing flow + audit log writes — tak boleh access via sidebar tapi function intact untuk Bos kalau direct nav diperlukan. 10cc side: accounting module dah live (COA + journal entries via RPC, tencc schema kat Brain). Port lanjut: Staff Mgmt → Roster → Roster-Attendance recon → Finance Dashboard → Sales Ledger → Compliance & Tax → Data Backup (priority order ikut frequency Bos guna)', d:'done' }
+ { id:'p1_63', label:'Architecture migration — HR + Finance Department UI dipindah dari POS ke 10cc Command Centre (10cc.10camp.com, React/Vite app). Sidebar entries data-group=hr/finance dan group-toggle headers di-hide via single CSS rule kat style.css (sementara waktu, mudah revert). Section divs (staffMgmtSection, financeSection, rosterSection, rosterReconSection, salesLedgerSection, dataBackupSection) kekal dalam DOM untuk back-compat dengan auto-landing flow + audit log writes — tak boleh access via sidebar tapi function intact untuk Bos kalau direct nav diperlukan. 10cc side: accounting module dah live (COA + journal entries via RPC, tencc schema kat Brain). Port lanjut: Staff Mgmt → Roster → Roster-Attendance recon → Finance Dashboard → Sales Ledger → Compliance & Tax → Data Backup (priority order ikut frequency Bos guna)', d:'done' },
+ { id:'p1_64', label:'Manager-role default landing fix — Aliff/Zack/Moyy (mgmt role) previously had to tekan "Pengurus" tab manually selepas login sebab pickDefaultMode rule "Cashier as universal entry point" (p1_27) routed semua user dengan cashier access ke Cashier mode dulu. Tapi mgmt staff kerja primary kat Manager sections (Manager Dashboard, Customer DB, Memo Board, Admin Dept) — Cashier landing buang 1 click untuk mereka. Fix: tambah 1 rule kat pickDefaultMode — kalau user.role === "mgmt" dan ada access.manager, terus return "manager". Inventory + sales role tak terjejas (kekal default cashier). Bos + Investor tak terjejas (rule existing run dulu). Berkesan untuk Aliff (CMP008), Zack (CMP005), Farhan Moyy (CMP010) + future mgmt hires', d:'done' }
 ]},
  { id:'p2', num:'PHASE 2', name:'Compliance & Payments MY', status:'active', goal:'Legal-ready untuk pasaran Malaysia', eta:'Q2-Q3 2026 · 5/7 shipped (e-Invoice LHDN + e-wallet native blocked on external creds)',
  desc:'Tier-1 critical untuk B2B Malaysia: e-Invoice MyInvois (mandatory LHDN), DuitNow QR + e-wallet native (TnG/Boost/GrabPay/ShopeePay), SST automation, PDPA compliance. Audit + 20-bug fix done 2026-05-06. Yang masih scaffold: real LHDN API submission + native e-wallet APIs (kena server-side service / merchant onboarding).',
@@ -9188,7 +9189,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=150"></script>
+ <script src="app.js?v=151"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

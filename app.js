@@ -12265,9 +12265,11 @@ window.getModesAccess = function(user) {
 };
 
 // Default landing mode picker (p1_32 — Pengurusan merged into Pengurus).
-// Rule: Cashier is universal entry point. Investor-only persona → Investor.
-// Bos (Superior) → Manager mode (now includes HR + Finance), lands on Finance Dashboard.
-// Everyone else → Cashier.
+// Rule: Cashier is universal entry point for cashier/inventory/sales daily-ops.
+// Investor-only persona → Investor. Bos (Superior) → HQ Control Centre.
+// p1_64 (2026-05-14): Manager role lands directly on Manager mode so Aliff/Zack/Moyy
+// see their full sidebar (Customer DB, Admin, Memo Board, etc.) immediately on login
+// — their primary daily work is in Manager sections, not the cashier counter.
 window.pickDefaultMode = function(user) {
  user = user || window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
  const access = window.getModesAccess(user);
@@ -12275,6 +12277,8 @@ window.pickDefaultMode = function(user) {
  if(onlyInvestor) return 'investor';
  // p1_37: Bos (and any user with hq access) lands on HQ → Finance Dashboard.
  if(user && user.role === 'superior') return 'hq';
+ // p1_64: Manager-role staff (Aliff/Zack/Moyy) skip Cashier — go straight to Manager mode.
+ if(user && user.role === 'mgmt' && access.manager) return 'manager';
  if(access.cashier) return 'cashier';
  // Fallbacks for users without cashier access
  if(access.hq) return 'hq';

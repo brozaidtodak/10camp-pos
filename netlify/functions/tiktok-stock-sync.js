@@ -158,7 +158,7 @@ async function getTiktokProducts(accessToken, shopCipher) {
         const q = { page_size: 50 };
         if (pageToken) q.page_token = pageToken;
         const res = await ttRequest('POST', `/product/${VERSION}/products/search`, {
-            query: q, body: { status: 'ACTIVE' },
+            query: q, body: { status: 'ACTIVATE' },
             accessToken, shopCipher
         });
         if (res.code !== 0) throw new Error(`products/search failed: ${res.message} (code ${res.code})`);
@@ -183,7 +183,7 @@ exports.handler = async (event) => {
         // PEEK — one page, return raw shape so we can confirm the SKU structure
         if (mode === 'peek') {
             const res = await ttRequest('POST', `/product/${VERSION}/products/search`, {
-                query: { page_size: 5 }, body: { status: 'ACTIVE' },
+                query: { page_size: 5 }, body: { status: 'ACTIVATE' },
                 accessToken: tok.access_token, shopCipher
             });
             if (res.code !== 0) { out.error = `${res.message} (code ${res.code})`; return json(502, out); }

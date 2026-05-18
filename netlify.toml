@@ -34,3 +34,9 @@
   to = "/.netlify/functions/tiktok-sync"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/tiktok-stock-sync"
+  to = "/.netlify/functions/tiktok-stock-sync"
+  status = 200
+  force = true

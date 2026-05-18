@@ -277,7 +277,7 @@
  <label class="small-lbl">2. Saluran &amp; Status</label>
  <div style="display:flex; gap:10px;">
  <select id="checkoutChannel" class="login-input" style="margin-bottom:0; padding:10px; flex:1;">
- <option value="In-Store">In-Store (POS)</option>
+ <option value="Walk-in Kedai">Walk-in Kedai</option>
  <option value="WhatsApp">WhatsApp</option>
  <option value="Shopee">Shopee</option>
  </select>
@@ -369,7 +369,7 @@
  <p class="cp-section__title">Channel &amp; Status</p>
  <div class="cp-input--inline-row">
  <select id="cpChannel" class="cp-input">
- <option value="In-Store">In-Store (POS)</option>
+ <option value="Walk-in Kedai">Walk-in Kedai</option>
  <option value="WhatsApp">WhatsApp</option>
  <option value="Shopee">Shopee</option>
  <option value="TikTok">TikTok</option>
@@ -4822,7 +4822,7 @@
  { id:'p3', num:'PHASE 3', name:'Channels & Reach', status:'active', goal:'Multi-channel: WhatsApp, marketplace, mobile', eta:'Q3-Q4 2026 · 5/8 shipped + 1 in progress',
  desc:'Untuk MY merchant, marketplace sync = acquisition flywheel. Shopee/Lazada/TikTok Shop satu inventory, banyak channel. WhatsApp Commerce native (receipt + reorder + broadcast). Native mobile app untuk owner peek revenue. 5-min onboarding wizard supaya trialer jadi convert.',
  deliverables:[
- { id:'p3_1', label:'Shopee / TikTok Shop sync (via EasyStore unified channels) — channel attribution. Sebelum ni webhook + sync longgok semua order online jadi "EasyStore Online" generik (guna customer.creation_source). Sekarang baca order.source_name (tiktok-shop / shopee-malaysia / pos / sf) dan map ke label betul: TikTok Shop, Shopee, Walk-in Kedai, Web EasyStore (+ Lazada-ready). Order dari TikTok/Shopee memang dah masuk POS lalu rantai marketplace→EasyStore→POS — yang hilang cuma label channel. Fix: mapChannel() helper dalam easystore-webhook.js + map_channel() dalam easystore_sync.py + easystore_source_name disimpan dalam metadata. Backfill script (scripts/backfill_channels.py) re-tag 641 order sejarah. Bug pagination dijumpa & fixed — EasyStore API ulang page terakhir (bukan return kosong) bila page melebihi had, jadi loop guna response.page_count. UI: Manager Dashboard card "Channel Mix" → "Sales by Channel" papar order count + RM revenue + % share per channel', d:'done' },
+ { id:'p3_1', label:'Shopee / TikTok Shop sync (via EasyStore unified channels) — channel attribution. Sebelum ni webhook + sync longgok semua order online jadi "EasyStore Online" generik (guna customer.creation_source). Sekarang baca order.source_name (tiktok-shop / shopee-malaysia / pos / sf) dan map ke label betul: TikTok Shop, Shopee, Walk-in Kedai, Web EasyStore (+ Lazada-ready). Order dari TikTok/Shopee memang dah masuk POS lalu rantai marketplace→EasyStore→POS — yang hilang cuma label channel. Fix: mapChannel() helper dalam easystore-webhook.js + map_channel() dalam easystore_sync.py + easystore_source_name disimpan dalam metadata. Backfill script (scripts/backfill_channels.py) re-tag 641 order sejarah. Bug pagination dijumpa & fixed — EasyStore API ulang page terakhir (bukan return kosong) bila page melebihi had, jadi loop guna response.page_count. UI: Manager Dashboard card "Channel Mix" → "Sales by Channel" papar order count + RM revenue + % share per channel. Channel taxonomy diselaraskan — set rasmi: Walk-in Kedai / TikTok Shop / Shopee / WhatsApp / Web EasyStore. Label lama Shopify era dinormalize (In-Store + POS In-Store → Walk-in Kedai, TikTok → TikTok Shop, Web + Website → Web EasyStore); dropdown kaunter + fallback app.js diselaras sama. Bucket "TikTok/Shopee" (522 order Shopify lama yang tak boleh pisah) dikekalkan apa adanya', d:'done' },
  { id:'p3_2', label:'WhatsApp Commerce (receipt + reorder + broadcast). Broadcast tool: 7 templates (Raya/CNY/Deepavali/Merdeka/VIP/Reorder/Generic), 5 audience filters, batched click-to-send via wa.me, log audit', d:'done' },
  { id:'p3_3', label:'Native mobile app (iOS + Android)', d:'todo' },
  { id:'p3_4', label:'5-min onboarding wizard', d:'done' },
@@ -9191,7 +9191,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=153"></script>
+ <script src="app.js?v=154"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

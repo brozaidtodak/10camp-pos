@@ -797,7 +797,7 @@ window.renderDashboard = function() {
  totalSales = round2(totalSales + rev);
  
  // Channels
- let ch = sale.channel || 'In-Store';
+ let ch = sale.channel || 'Walk-in Kedai';
  channelFreq[ch] = (channelFreq[ch] || 0) + rev;
 
  // Status
@@ -939,7 +939,7 @@ function renderHistory() {
  if(!el) return;
  el.innerHTML = "";
  salesHistory.forEach(sale => {
- let sc = sale.channel || 'In-Store';
+ let sc = sale.channel || 'Walk-in Kedai';
  let st = sale.status || 'Completed';
  let stColor = st==='Completed'?'#000000': (st==='Unpaid'?'#6F6F6F': (st==='To Fulfil'?'#F37021':'#D80000'));
 
@@ -4070,7 +4070,7 @@ window.processPublicCheckout = async function() {
  // Push to Sales History as E-Commerce Website Order
  const invStr = "WEB-10C-" + Math.floor(1000 + Math.random() * 9000);
  await db.from('sales_history').insert([{
- channel: 'Website',
+ channel: 'Web EasyStore',
  status: 'Pending Fulfillment',
  customer_name: cName, 
  payment_method: 'Online Transfer',
@@ -4804,8 +4804,8 @@ function renderSalesMgmtTarget() {
  let ariffTotal = 0;
  let irfanTotal = 0;
  
- // Tally Omnichannel
- let channels = { 'In-Store': 0, 'Tiktok': 0, 'Shopee': 0, 'Website': 0, 'Lain-Lain': 0 };
+ // Tally Omnichannel — canonical channel set (p3_1)
+ let channels = { 'Walk-in Kedai': 0, 'TikTok Shop': 0, 'Shopee': 0, 'WhatsApp': 0, 'Web EasyStore': 0 };
  let totalSalesSystem = 0;
  let totalTransactions = salesHistory.length;
 
@@ -4816,7 +4816,7 @@ function renderSalesMgmtTarget() {
  if(sale.staff_name === 'Irfan') irfanTotal = round2(irfanTotal + amt);
  
  // Taburan Omnichannel
- let ch = sale.channel || 'Lain-Lain';
+ let ch = sale.channel || 'Walk-in Kedai';
  if(!channels[ch]) channels[ch] = 0;
  channels[ch] += amt;
  totalSalesSystem = round2(totalSalesSystem + amt);
@@ -4845,9 +4845,9 @@ function renderSalesMgmtTarget() {
  if(tbodyOmni) {
  let omniHtml = "";
  for (let ch in channels) {
- if(channels[ch]> 0 || ch === 'In-Store' || ch === 'Tiktok') {
+ if(channels[ch]> 0 || ch === 'Walk-in Kedai' || ch === 'TikTok Shop') {
  let pct = totalSalesSystem> 0 ? ((channels[ch] / totalSalesSystem) * 100).toFixed(1) : 0;
- let count = salesHistory.filter(s => (s.channel || 'Lain-Lain') === ch).length;
+ let count = salesHistory.filter(s => (s.channel || 'Walk-in Kedai') === ch).length;
  omniHtml += `<tr>
  <td><strong>${ch}</strong></td>
  <td>${count} resit</td>
@@ -12677,7 +12677,7 @@ window.openCheckoutPanel = function() {
  ['cpCustName','cpCustPhone','cpCustEmail','cpBuyerTin','cpEwalletRef'].forEach(id => {
  const el = document.getElementById(id); if(el) el.value = '';
  });
- document.getElementById('cpChannel').value = 'In-Store';
+ document.getElementById('cpChannel').value = 'Walk-in Kedai';
  document.getElementById('cpStatus').value = 'Completed';
  cpSetPayment('Cash');
 

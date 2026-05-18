@@ -220,14 +220,21 @@ exports.handler = async (event) => {
     const sinceMs = params.since
         ? Date.parse(params.since)
         : Date.now() - 2 * 24 * 60 * 60 * 1000;
-    if (isNaN(sinceMs)) return json(400, { error: 'invalid ?since date (use YYYY-MM-DD)' });
-    const createGe = Math.floor(sinceMs / 1000);
+    if (isNaN(sinceMs)) return json(400, { error: 'invalid ?since date (use YYYY-MM-DD or ISO datetime)' });
 
-    const out = { mode, since: new Date(sinceMs).toISOString() };
+    const out = { mode };
 
     try {
         const tok = await getValidToken();
         const shop = await ensureShopCipher(tok);
+
+        // Cutover floor — never import orders created before the EasyStore→direct
+        // cutover, otherwise they double-up with EasyStore-sourced TikTok orders.
+        const cutoverMs = tok.direct_sync_cutover ? Date.parse(tok.direct_sync_cutover) : 0;
+        const effectiveSinceMs = Math.max(sinceMs, cutoverMs || 0);
+        const createGe = Math.floor(effectiveSinceMs / 1000);
+        out.since = new Date(effectiveSinceMs).toISOString();
+        out.cutover = tok.direct_sync_cutover || null;
 
         // 1. Pull all order IDs since cutoff (paginated)
         const ids = [];

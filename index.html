@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=36">
- <link rel="stylesheet" href="design-tokens.css?v=43">
+ <link rel="stylesheet" href="design-tokens.css?v=44">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1236,6 +1236,10 @@
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
  <!-- Daily ops (most-clicked first) -->
+ <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_fulfillment" onclick="switchHub(['fulfillmentSection'], 'Pesanan Online', this); if(typeof renderFulfillment==='function') renderFulfillment();">
+ <i data-lucide="package-check" style="width:16px; height:16px;"></i> Pesanan Online
+ <span id="ffSidebarBadge" style="display:none; margin-left:auto; background:#EF4444; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
+ </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_database" onclick="switchHub(['databaseSection'], 'Browse Products', this)">
  <i data-lucide="package" style="width:16px; height:16px;"></i> Browse Products
  </div>
@@ -1898,6 +1902,39 @@
  <p style="font-size:12px; color:#888; margin-bottom:15px;">Tanda [Channel] dan [Status] dipaparkan pada setiap resit.</p>
  <div id="salesHistory" class="history-list"><p>Fetching from Cloud...</p></div>
  </section>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- SECTION: ONLINE ORDER FULFILLMENT (p3_10) -->
+ <!-- ============================================== -->
+ <div id="fulfillmentSection" class="tab-section" style="display: none;">
+ <h2 class="section-title" style="margin-top:30px;">Pesanan Online</h2>
+ <p class="inv-page-sub">Proses pesanan TikTok, Shopee &amp; web — pack, hantar, rekod tracking. Papar pesanan 14 hari terakhir.</p>
+
+ <div class="ff-kpi-strip">
+ <div class="ff-kpi ff-kpi--warn"><span class="ff-kpi__num" id="ffKpiToFulfil">0</span><span class="ff-kpi__lbl">Perlu Pack</span></div>
+ <div class="ff-kpi"><span class="ff-kpi__num" id="ffKpiPacked">0</span><span class="ff-kpi__lbl">Dah Pack</span></div>
+ <div class="ff-kpi"><span class="ff-kpi__num" id="ffKpiShipped">0</span><span class="ff-kpi__lbl">Dah Hantar</span></div>
+ </div>
+
+ <div class="ff-tabs" id="ffTabs" role="tablist">
+ <button class="ff-tab is-active" data-ff-tab="to_fulfil" onclick="window.ffSetTab('to_fulfil')">Perlu Pack</button>
+ <button class="ff-tab" data-ff-tab="packed" onclick="window.ffSetTab('packed')">Dah Pack</button>
+ <button class="ff-tab" data-ff-tab="shipped" onclick="window.ffSetTab('shipped')">Dah Hantar</button>
+ <button class="ff-tab" data-ff-tab="all" onclick="window.ffSetTab('all')">Semua</button>
+ </div>
+
+ <div id="ffOrderList" class="ff-order-list"><p style="color:#888; padding:20px;">Loading...</p></div>
+ <datalist id="ffCourierList">
+ <option value="J&amp;T Express"></option>
+ <option value="Pos Laju"></option>
+ <option value="Ninja Van"></option>
+ <option value="Flash Express"></option>
+ <option value="Shopee Xpress"></option>
+ <option value="City-Link Express"></option>
+ <option value="GDex"></option>
+ <option value="DHL eCommerce"></option>
+ </datalist>
  </div>
 
  <!-- ============================================== -->
@@ -4820,7 +4857,7 @@
  { id:'p2_6', label:'PDPA: data export + right-to-delete', d:'done' },
  { id:'p2_7', label:'Returns/exchanges first-class flow', d:'done' }
 ]},
- { id:'p3', num:'PHASE 3', name:'Channels & Reach', status:'active', goal:'Multi-channel: WhatsApp, marketplace, mobile', eta:'Q3-Q4 2026 · 5/9 shipped + 2 in progress',
+ { id:'p3', num:'PHASE 3', name:'Channels & Reach', status:'active', goal:'Multi-channel: WhatsApp, marketplace, mobile', eta:'Q3-Q4 2026 · 5/10 shipped + 3 in progress',
  desc:'Untuk MY merchant, marketplace sync = acquisition flywheel. Shopee/Lazada/TikTok Shop satu inventory, banyak channel. WhatsApp Commerce native (receipt + reorder + broadcast). Native mobile app untuk owner peek revenue. 5-min onboarding wizard supaya trialer jadi convert.',
  deliverables:[
  { id:'p3_1', label:'Shopee / TikTok Shop sync (via EasyStore unified channels) — channel attribution. Sebelum ni webhook + sync longgok semua order online jadi "EasyStore Online" generik (guna customer.creation_source). Sekarang baca order.source_name (tiktok-shop / shopee-malaysia / pos / sf) dan map ke label betul: TikTok Shop, Shopee, Walk-in Kedai, Web EasyStore (+ Lazada-ready). Order dari TikTok/Shopee memang dah masuk POS lalu rantai marketplace→EasyStore→POS — yang hilang cuma label channel. Fix: mapChannel() helper dalam easystore-webhook.js + map_channel() dalam easystore_sync.py + easystore_source_name disimpan dalam metadata. Backfill script (scripts/backfill_channels.py) re-tag 641 order sejarah. Bug pagination dijumpa & fixed — EasyStore API ulang page terakhir (bukan return kosong) bila page melebihi had, jadi loop guna response.page_count. UI: Manager Dashboard card "Channel Mix" → "Sales by Channel" papar order count + RM revenue + % share per channel. Channel taxonomy diselaraskan — set rasmi: Walk-in Kedai / TikTok Shop / Shopee / WhatsApp / Web EasyStore. Label lama Shopify era dinormalize (In-Store + POS In-Store → Walk-in Kedai, TikTok → TikTok Shop, Web + Website → Web EasyStore); dropdown kaunter + fallback app.js diselaras sama. Bucket "TikTok/Shopee" (522 order Shopify lama yang tak boleh pisah) dikekalkan apa adanya', d:'done' },
@@ -4831,7 +4868,8 @@
  { id:'p3_6', label:'Public API + webhooks', d:'todo' },
  { id:'p3_7', label:'EasyStore live API integration (one-time sync 432 orders + real-time webhooks)', d:'done' },
  { id:'p3_8', label:'Shopify CSV migration (22 months · 4,083 orders · 2,881 customers)', d:'done' },
- { id:'p3_9', label:'TikTok Shop DIRECT API integration — sambung POS terus dengan TikTok Shop tanpa perantara EasyStore (Zaid mahu "kawalan penuh"). EasyStore dikekalkan jalan selari sepanjang transisi. App custom dicipta dalam TikTok Shop Partner Center (app key 6k0nma4tfq2en, Service ID 7641105771128194836, region MY/ROW). Fasa 1 (siap): Netlify function tiktok-oauth tukar auth_code → access/refresh token (endpoint auth.tiktok-shops.com/api/v2/token/get, grant_type=authorized_code, tiada signature); table Supabase tiktok_tokens (RLS-locked, service-role only); env vars set di Netlify (TIKTOK_APP_KEY/SECRET, SUPABASE_SERVICE_KEY). 6 API scope diaktifkan (seller.authorization.info, seller.order.info, seller.product.basic, seller.product.write, seller.fulfillment.basic, seller.delivery.status.write) — under TikTok review. Fasa 2-5 (pending): tarik order → POS, tolak stok → TikTok, listing produk, status pesanan. Token endpoint tiada signature tapi Open API calls perlu HMAC-SHA256 + header x-tts-access-token + shop_cipher', d:'progress' }
+ { id:'p3_9', label:'TikTok Shop DIRECT API integration — sambung POS terus dengan TikTok Shop tanpa perantara EasyStore (Zaid mahu "kawalan penuh"). EasyStore dikekalkan jalan selari sepanjang transisi. App custom dicipta dalam TikTok Shop Partner Center (app key 6k0nma4tfq2en, Service ID 7641105771128194836, region MY/ROW). Fasa 1 (SIAP): Netlify function tiktok-oauth tukar auth_code → access/refresh token; table Supabase tiktok_tokens (RLS-locked); 6 API scope aktif + kedai 10 Camp Store di-authorize, token tersimpan. Fasa 2 (SIAP, BELUM DIAKTIF): tiktok-sync.js tarik order TikTok → map ke sales_history (channel TikTok Shop), dedup metadata.tiktok_order_id, cutover floor; signature HMAC-SHA256 disahkan jalan (dryrun 27 order). Parked dalam dryrun sebab staff masih guna EasyStore — aktif bila cutover. Fasa 3-5 (pending): tolak stok, listing produk, status pesanan', d:'progress' },
+ { id:'p3_10', label:'Modul Fulfillment "Pesanan Online" — seksyen POS baru untuk staff proses order online (TikTok/Shopee/web) tanpa perlu EasyStore. Sebelum ni POS cuma papar order online read-only. Modul ni bagi: senarai antrian order ikut status (To Fulfil/Packed/Shipped), tab tapis, kad per-order (barang, customer, total, channel), aksi staff tandai Packed → Shipped dengan input kurier + tracking number, print packing slip untuk pembungkus, kemaskini status + tracking ke sales_history. Tujuan: tutup gap utama yang halang staff tinggalkan EasyStore. Bahagian tarik AWB/label terus dari marketplace = fasa lanjut (cangkuk pada direct integration)', d:'progress' }
 ]},
  { id:'p4', num:'PHASE 4', name:'Operations Excellence', status:'done', goal:'Roster, commission, KPI, hardware', eta:'Q4 2026 · Shipped (12/12 · last 2026-05-14)',
  desc:'Operasi harian fully closed-loop: commission auto-calc, roster ↔ attendance reconciliation, Manager Dashboard KPIs, EOD Z-report, hardware profiles (printer/drawer/scanner), customer-facing display, PO + GRN + Supplier DB, stock aging + reservations, bulk operations, Sales Ledger. Foundation untuk Phase 2-7.',
@@ -9193,7 +9231,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=155"></script>
+ <script src="app.js?v=156"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

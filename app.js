@@ -617,6 +617,8 @@ async function initApp() {
 
  let { data: sales } = await db.from('sales_history').select('*').order('created_at', {ascending: false});
  if(sales) salesHistory = [...salesHistory,...sales];
+ // p3_10: refresh fulfillment KPIs + sidebar badge once orders are loaded
+ if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
 
  let { data: custs } = await db.from('customers').select('*');
  if(custs) customersData = custs;
@@ -1090,6 +1092,197 @@ function renderWMS() {
  renderInventoryGrid(filtered);
  }
 }
+
+// ============= p3_10 ONLINE ORDER FULFILLMENT ("Pesanan Online") =============
+window.ffActiveTab = 'to_fulfil';
+const FF_ONLINE_CHANNELS = ['TikTok Shop', 'Shopee', 'Web EasyStore'];
+const FF_WINDOW_DAYS = 14;
+
+window.ffSetTab = function(tab) {
+ window.ffActiveTab = tab;
+ document.querySelectorAll('#ffTabs .ff-tab').forEach(b => {
+ b.classList.toggle('is-active', b.dataset.ffTab === tab);
+ });
+ window.renderFulfillment();
+};
+
+// Fulfillment stage overlay — stored in sales_history.metadata.ff_stage
+function ffStage(sale) {
+ const m = sale.metadata || {};
+ if (m.ff_stage === 'shipped') return 'shipped';
+ if (m.ff_stage === 'packed') return 'packed';
+ return 'to_fulfil';
+}
+
+function ffOnlineOrders() {
+ if (typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return [];
+ const cutoff = Date.now() - FF_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+ return salesHistory.filter(s => {
+ if (!FF_ONLINE_CHANNELS.includes(s.channel)) return false;
+ const t = new Date(s.created_at || s.timestamp || 0).getTime();
+ if (isNaN(t) || t < cutoff) return false;
+ const st = (s.status || '').toLowerCase();
+ if (st === 'voided' || st === 'cancelled' || st === 'refund') return false;
+ return true;
+ });
+}
+
+function ffChanClass(ch) {
+ if (ch === 'TikTok Shop') return 'ff-card__chan--tiktok';
+ if (ch === 'Shopee') return 'ff-card__chan--shopee';
+ return 'ff-card__chan--web';
+}
+
+function ffParseItems(raw) {
+ let items = raw;
+ if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e){ items = []; } }
+ return Array.isArray(items) ? items : [];
+}
+
+function ffCardHtml(o) {
+ const stage = ffStage(o);
+ const m = o.metadata || {};
+ const ref = m.tiktok_order_id || m.easystore_order_number || m.easystore_order_id
+ || (o.id ? ('#' + String(o.id).slice(0, 8)) : '#-');
+ const dt = new Date(o.created_at || 0).toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
+ const total = Number(o.total || o.total_amount || 0).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
+ const itemsHtml = ffParseItems(o.items).map(it =>
+ `<li>${it.qty || it.quantity || 1} &times; ${(it.sku||'')} — ${(it.name||'item')}</li>`).join('');
+ const stageLabels = { to_fulfil:'Perlu Pack', packed:'Dah Pack', shipped:'Dah Hantar' };
+
+ let actions = `<button class="ff-btn" onclick="ffPrintSlip('${o.id}')"><i data-lucide="printer"></i>Packing Slip</button>`;
+ if (stage === 'to_fulfil') {
+ actions += `<button class="ff-btn ff-btn--primary" onclick="ffMarkPacked('${o.id}')"><i data-lucide="package"></i>Tandai Dah Pack</button>`;
+ } else if (stage === 'packed') {
+ actions += `<button class="ff-btn ff-btn--ship" onclick="ffOpenShipForm('${o.id}')"><i data-lucide="truck"></i>Tandai Dah Hantar</button>`;
+ }
+
+ const trackHtml = (stage === 'shipped' && m.ff_tracking)
+ ? `<div class="ff-card__track">Dihantar via <strong>${m.ff_courier||'-'}</strong> · Tracking: <strong>${m.ff_tracking}</strong></div>`
+ : (stage === 'shipped' ? `<div class="ff-card__track">Dihantar via <strong>${m.ff_courier||'-'}</strong></div>` : '');
+
+ return `<div class="ff-card" id="ffCard_${o.id}">
+ <div class="ff-card__top">
+ <div>
+ <span class="ff-card__chan ${ffChanClass(o.channel)}">${o.channel||'-'}</span>
+ <span class="ff-card__ref"> ${ref}</span>
+ <span class="ff-card__meta"> · ${dt}</span>
+ </div>
+ <div style="text-align:right;">
+ <div class="ff-card__total">RM ${total}</div>
+ <span class="ff-card__stage ff-stage--${stage}">${stageLabels[stage]}</span>
+ </div>
+ </div>
+ <div class="ff-card__cust"><i data-lucide="user" style="width:13px;height:13px;vertical-align:-2px;"></i> ${o.customer_name||'-'} · ${o.customer_phone||'-'}</div>
+ <ul class="ff-card__items">${itemsHtml || '<li>(tiada item)</li>'}</ul>
+ ${trackHtml}
+ <div class="ff-card__actions">${actions}</div>
+ </div>`;
+}
+
+window.renderFulfillment = function() {
+ const orders = ffOnlineOrders();
+ const counts = { to_fulfil:0, packed:0, shipped:0 };
+ orders.forEach(o => counts[ffStage(o)]++);
+ const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+ set('ffKpiToFulfil', counts.to_fulfil);
+ set('ffKpiPacked', counts.packed);
+ set('ffKpiShipped', counts.shipped);
+
+ const badge = document.getElementById('ffSidebarBadge');
+ if (badge) {
+ if (counts.to_fulfil > 0) { badge.style.display = ''; badge.textContent = counts.to_fulfil; }
+ else badge.style.display = 'none';
+ }
+
+ const container = document.getElementById('ffOrderList');
+ if (!container) return;
+ const tab = window.ffActiveTab || 'to_fulfil';
+ let list = (tab === 'all') ? orders : orders.filter(o => ffStage(o) === tab);
+ list = list.sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+ if (!list.length) {
+ container.innerHTML = '<div class="ff-empty">Tiada pesanan dalam kategori ni.</div>';
+ return;
+ }
+ container.innerHTML = list.map(ffCardHtml).join('');
+ if (window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+function ffFindOrder(id) {
+ return (typeof salesHistory !== 'undefined' ? salesHistory : []).find(s => String(s.id) === String(id));
+}
+
+window.ffMarkPacked = async function(id) {
+ const o = ffFindOrder(id);
+ if (!o) return;
+ const meta = Object.assign({}, o.metadata || {}, { ff_stage:'packed', ff_packed_at:new Date().toISOString() });
+ try {
+ const { error } = await db.from('sales_history').update({ metadata: meta }).eq('id', id);
+ if (error) throw error;
+ o.metadata = meta;
+ if (typeof showToast === 'function') showToast('Order ditandai Dah Pack', 'success');
+ window.renderFulfillment();
+ } catch(e) {
+ if (typeof showToast === 'function') showToast('Gagal kemaskini: ' + (e.message||e), 'error');
+ }
+};
+
+window.ffOpenShipForm = function(id) {
+ const card = document.getElementById('ffCard_' + id);
+ if (!card || card.querySelector('.ff-ship-form')) return;
+ const form = document.createElement('div');
+ form.className = 'ff-ship-form';
+ form.innerHTML = `
+ <div><label>Kurier</label><input id="ffCourier_${id}" list="ffCourierList" placeholder="cth: J&amp;T Express"></div>
+ <div><label>Tracking Number</label><input id="ffTrack_${id}" placeholder="cth: MY123456789"></div>
+ <button class="ff-btn ff-btn--ship" onclick="ffMarkShipped('${id}')">Sahkan Hantar</button>`;
+ card.querySelector('.ff-card__actions').after(form);
+ const ci = document.getElementById('ffCourier_' + id);
+ if (ci) ci.focus();
+};
+
+window.ffMarkShipped = async function(id) {
+ const o = ffFindOrder(id);
+ if (!o) return;
+ const courier = ((document.getElementById('ffCourier_'+id)||{}).value || '').trim();
+ const tracking = ((document.getElementById('ffTrack_'+id)||{}).value || '').trim();
+ if (!courier) { if (typeof showToast === 'function') showToast('Isi nama kurier dulu', 'warn'); return; }
+ const meta = Object.assign({}, o.metadata || {}, {
+ ff_stage:'shipped', ff_courier:courier, ff_tracking:tracking, ff_shipped_at:new Date().toISOString()
+ });
+ try {
+ const { error } = await db.from('sales_history').update({ metadata: meta, status:'Shipped' }).eq('id', id);
+ if (error) throw error;
+ o.metadata = meta; o.status = 'Shipped';
+ if (typeof showToast === 'function') showToast('Order ditandai Dah Hantar', 'success');
+ window.renderFulfillment();
+ } catch(e) {
+ if (typeof showToast === 'function') showToast('Gagal kemaskini: ' + (e.message||e), 'error');
+ }
+};
+
+window.ffPrintSlip = function(id) {
+ const o = ffFindOrder(id);
+ if (!o) return;
+ const m = o.metadata || {};
+ const ref = m.tiktok_order_id || m.easystore_order_number || m.easystore_order_id || o.id;
+ const rows = ffParseItems(o.items).map(it =>
+ `<tr><td>${it.sku||''}</td><td>${it.name||'item'}</td><td style="text-align:center;">${it.qty||it.quantity||1}</td></tr>`).join('');
+ const w = window.open('', '_blank', 'width=420,height=620');
+ if (!w) { if (typeof showToast === 'function') showToast('Popup blocked — benarkan popup', 'warn'); return; }
+ w.document.write(`<html><head><title>Packing Slip ${ref}</title>
+ <style>body{font-family:-apple-system,Arial,sans-serif;padding:20px;font-size:13px;}
+ h2{margin:0 0 4px;} .meta{color:#666;font-size:12px;margin-bottom:14px;line-height:1.5;}
+ table{width:100%;border-collapse:collapse;} th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;}
+ th{font-size:11px;text-transform:uppercase;color:#888;}</style></head><body>
+ <h2>10 CAMP — Packing Slip</h2>
+ <div class="meta"><strong>${o.channel||''}</strong> · ${ref}<br>${o.customer_name||''} · ${o.customer_phone||''}<br>
+ ${new Date(o.created_at||0).toLocaleString('en-MY')}</div>
+ <table><thead><tr><th>SKU</th><th>Produk</th><th>Qty</th></tr></thead><tbody>${rows||'<tr><td colspan=3>(tiada item)</td></tr>'}</tbody></table>
+ <p style="margin-top:20px;font-size:12px;color:#666;">Jumlah: RM ${Number(o.total||0).toFixed(2)}</p>
+ <scr`+`ipt>window.print();</scr`+`ipt></body></html>`);
+ w.document.close();
+};
 
 function renderInventoryGrid(products) {
  const container = document.getElementById('invGridContainer');

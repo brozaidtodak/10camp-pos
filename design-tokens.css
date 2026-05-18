@@ -3161,3 +3161,74 @@ a:focus-visible {
  .lp-soldout-card { flex: 0 0 150px; }
  .lp-soldout-card__name { font-size: 11px; }
 }
+
+/* =============================================================
+   p3_10 — ONLINE ORDER FULFILLMENT ("Pesanan Online")
+   ============================================================= */
+.ff-kpi-strip { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+.ff-kpi {
+ flex: 1; min-width: 120px;
+ background: #fff; border: 1px solid var(--neutral-200);
+ border-radius: 10px; padding: 12px 16px;
+ display: flex; flex-direction: column; gap: 2px;
+}
+.ff-kpi--warn { border-left: 3px solid var(--warning-500, #F59E0B); }
+.ff-kpi__num { font-size: 22px; font-weight: 800; color: var(--neutral-900); letter-spacing: -0.5px; }
+.ff-kpi__lbl { font-size: 11px; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+
+.ff-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.ff-tab {
+ padding: 7px 16px; border: 1px solid var(--neutral-200);
+ background: #fff; border-radius: 999px; cursor: pointer;
+ font-size: 13px; font-weight: 600; color: var(--neutral-600);
+}
+.ff-tab.is-active { background: var(--primary-600, #D85F12); color: #fff; border-color: var(--primary-600, #D85F12); }
+.ff-tab:hover:not(.is-active) { border-color: var(--primary-400, #F59E0B); }
+
+.ff-order-list { display: flex; flex-direction: column; gap: 12px; }
+.ff-card {
+ background: #fff; border: 1px solid var(--neutral-200);
+ border-radius: 12px; padding: 14px 16px;
+}
+.ff-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.ff-card__chan {
+ font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+ padding: 3px 9px; border-radius: 999px; background: var(--neutral-100); color: var(--neutral-700);
+}
+.ff-card__chan--tiktok { background: #111; color: #fff; }
+.ff-card__chan--shopee { background: #FEE2D5; color: #C0390B; }
+.ff-card__chan--web { background: #DBEAFE; color: #1E40AF; }
+.ff-card__ref { font-size: 13px; font-weight: 700; color: var(--neutral-900); }
+.ff-card__meta { font-size: 12px; color: var(--neutral-500); }
+.ff-card__total { font-size: 15px; font-weight: 800; color: var(--neutral-900); }
+.ff-card__cust { font-size: 13px; color: var(--neutral-700); margin: 8px 0 6px; }
+.ff-card__items { font-size: 12px; color: var(--neutral-600); line-height: 1.6; }
+.ff-card__items li { list-style: none; }
+.ff-card__stage {
+ font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+ padding: 3px 9px; border-radius: 999px;
+}
+.ff-stage--to_fulfil { background: #FEF3C7; color: #92400E; }
+.ff-stage--packed   { background: #DBEAFE; color: #1E40AF; }
+.ff-stage--shipped  { background: #D1FAE5; color: #065F46; }
+.ff-card__actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ff-btn {
+ padding: 7px 14px; border-radius: 8px; border: 1px solid var(--neutral-200);
+ background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--neutral-700);
+ display: inline-flex; align-items: center; gap: 6px;
+}
+.ff-btn:hover { border-color: var(--primary-500, #F37021); }
+.ff-btn--primary { background: var(--primary-600, #D85F12); color: #fff; border-color: var(--primary-600, #D85F12); }
+.ff-btn--ship { background: #059669; color: #fff; border-color: #059669; }
+.ff-ship-form {
+ margin-top: 10px; padding: 12px; background: var(--neutral-50, #FAFAFA);
+ border: 1px dashed var(--neutral-300); border-radius: 8px;
+ display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;
+}
+.ff-ship-form label { font-size: 10px; font-weight: 700; color: var(--neutral-600); text-transform: uppercase; display: block; margin-bottom: 3px; }
+.ff-ship-form input {
+ padding: 7px 10px; border: 1px solid var(--neutral-300); border-radius: 6px; font-size: 13px; min-width: 150px;
+}
+.ff-card__track { font-size: 12px; color: var(--neutral-600); margin-top: 8px; }
+.ff-card__track strong { color: var(--neutral-900); }
+.ff-empty { text-align: center; padding: 40px 20px; color: var(--neutral-400); font-size: 14px; }

@@ -22,3 +22,9 @@
   to = "/.netlify/functions/claude-ask"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/tiktok-oauth"
+  to = "/.netlify/functions/tiktok-oauth"
+  status = 200
+  force = true

@@ -2649,13 +2649,7 @@ const authUsers = [
  { name: 'Fahmi', role: 'inventory', pin_hash: '1eeab06ad295d2d41259419cb3a5d1d914ddd9c9e70c66e658042341986c91de', dept: 'Inventory Assistance', email: 'fahmi@10camp.com', staff_id: 'CMP009', full_name: 'Shahrul Fahmi Bin Ramlee', join_date: '2024-07-01' },
  // p1_21: Investor persona — 51% majority shareholder
  { name: 'brolantodak', role: 'investor', pin_hash: '585790e32d7ab7bf6262dbb9bfec4f4d6831638364f429d25d03090c724e3822', dept: 'Investor (51% Equity)', email: 'investor@10camp.com', staff_id: 'INV001', full_name: 'Brolantodak (Majority Shareholder)', join_date: '2024-01-01' },
-// Additional staff
- { name: 'Adam Faisal', role: 'sales', pin_hash: '439ec1dbe8edfbb3168a53292dbebbf916b3b64987256b8580bf1eaed71e6dfc', dept: 'Sales Department', email: 'adam.f@10camp.com', staff_id: 'CMP012', full_name: 'Adam Faisal Bin Yusoff', join_date: '2024-08-15' },
- { name: 'Hakim Ridzuan', role: 'inventory', pin_hash: '9f0043f2a7743022d7118a018fac6120d24021bf78a5a845ac9797ab673b05b2', dept: 'Inventory Assistance', email: 'hakim.r@10camp.com', staff_id: 'CMP013', full_name: 'Hakim Ridzuan Bin Ramli', join_date: '2024-09-20' },
- { name: 'Daniel Aiman', role: 'sales', pin_hash: '7e57db05dfec7a2d6ccdc7caca29200b74623a8388dc501dee522f77b5591605', dept: 'Customer Service', email: 'daniel.a@10camp.com', staff_id: 'CMP014', full_name: 'Daniel Aiman Bin Mokhtar', join_date: '2024-10-05' },
- { name: 'Nazri Hakimi', role: 'sales', pin_hash: '442a831baf98bdb46de2a9aa7325bbcb6ca9da0adecbfb26c2723bff70395c9e', dept: 'Marketing Interim', email: 'nazri.h@10camp.com', staff_id: 'CMP015', full_name: 'Mohamad Nazri Hakimi', join_date: '2024-11-22' },
- { name: 'Tester', role: 'sales', pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef', dept: 'External Demo Account', email: 'tester@10camp.com', staff_id: 'TST001', full_name: 'External QA Tester', join_date: '2026-05-07' },
- { name: 'Syafiq Iskandar', role: 'inventory', pin_hash: '3137eb1ebb393a5ceceb327d62b178c2ecc7b65d6b80faad13d79238ed20823d', dept: 'Logistics Coordinator', email: 'syafiq.i@10camp.com', staff_id: 'CMP016', full_name: 'Syafiq Iskandar Bin Mahmud', join_date: '2025-01-10' }
+ { name: 'Tester', role: 'sales', pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef', dept: 'External Demo Account', email: 'tester@10camp.com', staff_id: 'TST001', full_name: 'External QA Tester', join_date: '2026-05-07' }
 ];
 
 // p1_21: Pre-seed mode access overlay for investor — only investor mode (lock down all others)

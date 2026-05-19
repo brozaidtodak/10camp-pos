@@ -1,20 +1,18 @@
 /**
- * TikTok Shop product sync — Netlify Function (p3_9 direct integration, Phase 4).
+ * TikTok Shop product compare — Netlify Function (p3_9 direct integration, Phase 4).
  *
- * Phase 4a + 4b: push POS product PRICE and TITLE out to TikTok Shop listings.
- * (Description + image sync are a separate follow-up — they need per-product
- *  detail calls / an image-upload flow, not feasible as a bulk reconcile.)
+ * READ-ONLY. POS does NOT push price or title to TikTok — decided 2026-05-18:
+ * TikTok listings carry an intentional channel markup (~25% over POS price)
+ * managed on the TikTok side. Pushing POS price/title would wipe the markup
+ * and overwrite TikTok's SEO titles. This function only pulls TikTok product
+ * data and compares it against POS, as a reference view.
  *
  * Query modes:
- *   ?mode=peek    (default) — products/search page 1, return raw product shape
- *                             so the price structure can be confirmed.
- *   ?mode=dryrun            — build mapping, compare POS price/name vs TikTok
- *                             price/title, return the diff plan. No push.
- *   ?mode=push              — apply: prices/update + partial_edit (title).
+ *   ?mode=peek    (default) — products/search page 1, raw product shape.
+ *   ?mode=compare           — build mapping, compare POS price/name vs TikTok
+ *                             price/title, return the diff list. No write.
  *
  * Public URL: https://pos.10camp.com/api/tiktok-product-sync
- *
- * PARKED until EasyStore cutover (EasyStore also manages TikTok listings).
  * Signature: same HMAC-SHA256 scheme as the other tiktok-* functions.
  */
 
@@ -172,7 +170,7 @@ exports.handler = async (event) => {
     if (!SERVICE_KEY) return json(500, { error: 'SUPABASE_SERVICE_KEY not set' });
 
     const params = event.queryStringParameters || {};
-    const mode = ['dryrun', 'push'].includes(params.mode) ? params.mode : 'peek';
+    const mode = params.mode === 'compare' ? 'compare' : 'peek';
     const out = { mode };
 
     try {
@@ -232,47 +230,10 @@ exports.handler = async (event) => {
         out.mapped_skus = mapped;
         out.price_diffs = priceDiffs.length;
         out.title_diffs = titleDiffs.length;
-
-        if (mode === 'dryrun') {
-            out.sample_price_diffs = priceDiffs.slice(0, 12);
-            out.sample_title_diffs = titleDiffs.slice(0, 6);
-            out.note = 'DRY RUN — nothing pushed. Add ?mode=push to apply.';
-            return json(200, out);
-        }
-
-        // PUSH — 4a prices, then 4b titles
-        let pricePushed = 0, titlePushed = 0, failed = 0;
-        const errors = [];
-
-        const priceByProduct = {};
-        for (const d of priceDiffs) (priceByProduct[d.product_id] = priceByProduct[d.product_id] || []).push(d);
-        for (const [productId, list] of Object.entries(priceByProduct)) {
-            const body = {
-                skus: list.map(d => ({
-                    id: d.sku_id,
-                    price: { amount: d.pos_price.toFixed(2), currency: 'MYR' }
-                }))
-            };
-            const res = await ttRequest('POST', `/product/${VERSION}/products/${productId}/prices/update`, {
-                body, accessToken: tok.access_token, shopCipher
-            });
-            if (res.code === 0) pricePushed += list.length;
-            else { failed += list.length; errors.push(`price product ${productId}: ${res.message} (code ${res.code})`); }
-        }
-
-        for (const d of titleDiffs) {
-            const res = await ttRequest('POST', `/product/${VERSION}/products/${d.product_id}/partial_edit`, {
-                body: { title: d.pos_title }, accessToken: tok.access_token, shopCipher
-            });
-            if (res.code === 0) titlePushed++;
-            else { failed++; errors.push(`title product ${d.product_id}: ${res.message} (code ${res.code})`); }
-        }
-
-        out.price_pushed = pricePushed;
-        out.title_pushed = titlePushed;
-        out.failed = failed;
-        if (errors.length) out.errors = errors.slice(0, 20);
-        out.ok = failed === 0;
+        out.sample_price_diffs = priceDiffs.slice(0, 12);
+        out.sample_title_diffs = titleDiffs.slice(0, 6);
+        out.note = 'READ-ONLY compare. POS does NOT push price/title to TikTok — '
+            + 'TikTok prices carry an intentional channel markup managed on TikTok.';
         return json(200, out);
 
     } catch (err) {

@@ -16400,6 +16400,46 @@ document.addEventListener('DOMContentLoaded', () => {
  }, 3500);
 });
 
+// p1_67: boot-seed the Hari Raya Aidiladha leave memo (memo by Aliff, 18 May 2026).
+// Idempotent — one memo, runs once per browser, broadcasts to every staff device.
+document.addEventListener('DOMContentLoaded', () => {
+ setTimeout(() => {
+ const FLAG = 'memoRayaAidiladha2026_seeded_v1';
+ const MEMO_ID = 'm-raya-aidiladha-2026';
+ try {
+ if(localStorage.getItem(FLAG)) return;
+ const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
+ if(!memos.some(m => m.id === MEMO_ID)) {
+ memos.unshift({
+ id: MEMO_ID,
+ department: 'general',
+ title: 'Cuti Mingguan & Cuti Umum Hari Raya Aidiladha 2026',
+ body: 'Pihak Pengurusan telah membuat keputusan berikut untuk minggu 25.05.2026 hingga 31.05.2026:\n\n'
+ + '1) CUTI MINGGUAN (diseragamkan untuk bulan May)\n   - Selasa, 26.05.2026\n\n'
+ + '2) CUTI UMUM HARI RAYA AIDILADHA\n   - Rabu, 27.05.2026\n\n'
+ + '3) CUTI TAMBAHAN HARI RAYA AIDILADHA\n   - Khamis, 28.05.2026\n   - Jumaat, 29.05.2026\n   - Sabtu, 30.05.2026\n\n'
+ + 'HARI BEKERJA minggu tersebut (Shift C, 11:00am - 8:00pm):\n   - Isnin, 25.05.2026\n   - Ahad, 31.05.2026\n\n'
+ + 'Kakitangan yang ingin memohon cuti tambahan perlu memohon awal melalui aplikasi HR2000.\n\n'
+ + 'Memo ini bertujuan melancarkan pengurusan 10 CAMP supaya lebih lancar dan teratur. Sekian, terima kasih.\n\n'
+ + 'Arahan: Pengurusan Tertinggi 10 CAMP Enterprise · Tarikh memo: 18 May 2026',
+ pinned: true,
+ posted_by_id: 'CMP008',
+ posted_by_name: 'Aliff',
+ posted_at: '2026-05-18T09:00:00.000Z',
+ status: 'approved',
+ approved_by_name: 'Pengurusan Tertinggi 10 CAMP',
+ approved_at: '2026-05-18T09:00:00.000Z',
+ reject_reason: null
+ });
+ if(typeof window.memoSaveAll === 'function') window.memoSaveAll(memos);
+ if(typeof window.renderMemoBoard === 'function') { try { window.renderMemoBoard(); } catch(e){} }
+ console.log('[seedRayaMemo] Hari Raya Aidiladha memo seeded.');
+ }
+ localStorage.setItem(FLAG, '1');
+ } catch(e) { console.warn('[seedRayaMemo] failed:', e); }
+ }, 3800);
+});
+
 // =============================================================
 // p1_50 — ESYNC HEALTH BADGE (HQ → Sync section)
 // =============================================================

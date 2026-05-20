@@ -3242,6 +3242,16 @@ a:focus-visible {
 .ff-card__track strong { color: var(--neutral-900); }
 .ff-empty { text-align: center; padding: 40px 20px; color: var(--neutral-400); font-size: 14px; }
 
+/* p1_79 fix #6: POS product skeleton — shimmer card while products load.
+   Uses existing skelShim keyframe (defined globally inside #homeSection block). */
+.pos-skel-card {
+ background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
+ background-size: 200% 100%;
+ border-radius: 10px;
+ height: 170px;
+ animation: skelShim 1.4s infinite;
+}
+
 /* =============================================================
    p1_78 fix #4 — homeSection (Overview) — moved from inline <style>.
    Every selector scoped under #homeSection to prevent .dash-hero

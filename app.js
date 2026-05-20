@@ -14,9 +14,37 @@ try {
 
 // p1_72: Wire Supabase Auth password recovery listener — fires when user
 // clicks reset link in email and Supabase returns to redirectTo with recovery hash.
+// p1_75: Also auto-restore session on refresh so staff tak perlu login balik.
 document.addEventListener('DOMContentLoaded', () => {
  try { if(typeof window.__initPasswordRecovery === 'function') window.__initPasswordRecovery(); } catch(e){}
+ try { if(typeof window.__restoreSession === 'function') window.__restoreSession(); } catch(e){}
 });
+
+// p1_75: Auto-login on refresh — Supabase persists session in localStorage by default.
+// On boot, fetch active session; if user matches authUsers, loginAs silent
+// (skip welcome modal flash). Staff stays logged in across refresh.
+window.__restoreSession = async function() {
+ try {
+ if(!db || !db.auth || typeof db.auth.getSession !== 'function') return false;
+ const { data, error } = await db.auth.getSession();
+ if(error || !data || !data.session || !data.session.user) return false;
+ const email = (data.session.user.email || '').toLowerCase();
+ const user = (typeof authUsers !== 'undefined' ? authUsers : []).find(u => (u.email || '').toLowerCase() === email);
+ if(!user) {
+ // Stale Supabase session for an unknown email — sign out to avoid loops.
+ try { await db.auth.signOut(); } catch(e){}
+ return false;
+ }
+ // Hide any lingering login overlay, then boot user session silently.
+ const overlay = document.getElementById('pinLoginOverlay');
+ if(overlay) overlay.style.display = 'none';
+ loginAs(user, { silent: true });
+ return true;
+ } catch(e) {
+ console.warn('Session restore failed:', e);
+ return false;
+ }
+};
 
 
 // Money helper: avoid float-drift accumulation. Use after every += / arithmetic
@@ -3168,7 +3196,8 @@ const ROLE_CAPS = {
 // p1_72: isBoss — identifies the Managing Director (single source of truth, replaces old role==='superior').
 window.isBoss = function(u) { return !!(u && u.dept === 'Managing Director'); };
 
-function loginAs(user) {
+function loginAs(user, opts) {
+ opts = opts || {};
  if(!user) return;
  currentUser = user;
  window.currentUser = user; // expose for helpers (e.g. hasManagementAccess)
@@ -3178,8 +3207,12 @@ function loginAs(user) {
  // Boot side-effects (deferred: don't block UI thread on these)
  queueMicrotask(() => { try { checkMyAttendanceStatus(); } catch(e){} });
  queueMicrotask(() => { try { typeof renderPersonalCommission === "function" && renderPersonalCommission(); } catch(e){} });
- setTimeout(() => maybeShowOnboarding(user), 2700); // after welcome auto-dismiss (2.4s + 0.3s buffer)
+ if(!opts.silent) setTimeout(() => maybeShowOnboarding(user), 2700); // after welcome auto-dismiss
 
+ // p1_75: silent mode skips welcome modal (used by session restore on refresh)
+ if(opts.silent) {
+ // Jump straight to bootstrap below — skip welcome theatre entirely
+ } else
  // p1_26: redesigned welcome screen with personality
  (function showWelcome() {
  const welcomeModal = document.getElementById("staffWelcomeModal");

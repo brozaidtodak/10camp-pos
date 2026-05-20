@@ -6139,9 +6139,9 @@ window.memoLoad = function() {
 window.memoSaveAll = function(arr) {
  try { localStorage.setItem(window.MEMO_KEY, JSON.stringify(arr)); }
  catch(e) { console.warn('memoSaveAll failed:', e); }
- // p1_74 fix #2: refresh overview widget so Manager Dashboard reflects new memo
- // changes immediately (submit / approve / reject / delete all funnel through here).
- try { if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo(); } catch(e){}
+ // p1_74 fix #2+#8: refresh overview coordinator so empty-state swap + memo list
+ // both reflect the new memo state (submit/approve/reject/delete funnel through here).
+ try { if(typeof window.__renderDashOverview === 'function') window.__renderDashOverview(); } catch(e){}
 };
 window.memoCurrentUser = function() {
  return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
@@ -11262,10 +11262,34 @@ window.__renderDashOverviewRoster = function() {
  list.innerHTML = html || '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Jadual belum ditetapkan untuk hari ni.</p>';
 };
 
+// p1_74 fix #8: Coordinator that checks if both memo + roster empty and swaps
+// the layout — single combined empty card vs normal 2-col widgets row.
+window.__renderDashOverview = function() {
+ try {
+ const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
+ const memosApproved = memos.filter(m => m.status === 'approved');
+ const todayStr = new Date().toISOString().slice(0,10);
+ const all = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules)) ? staffSchedules : [];
+ const todayRoster = all.filter(s => s.date === todayStr);
+ const bothEmpty = memosApproved.length === 0 && todayRoster.length === 0;
+ const row = document.querySelector('.dash-overview-row');
+ const combined = document.getElementById('dashOverviewCombinedEmpty');
+ if(bothEmpty) {
+ if(row) row.style.display = 'none';
+ if(combined) combined.style.display = 'block';
+ } else {
+ if(row) row.style.display = 'grid';
+ if(combined) combined.style.display = 'none';
+ if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo();
+ if(typeof window.__renderDashOverviewRoster === 'function') window.__renderDashOverviewRoster();
+ }
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ } catch(e){ console.warn('__renderDashOverview failed:', e); }
+};
+
 window.renderManagerDashboard = function() {
- // p1_74: Render overview widgets first (lightweight, runs even tanpa sales data)
- try { window.__renderDashOverviewMemo(); } catch(e){}
- try { window.__renderDashOverviewRoster(); } catch(e){}
+ // p1_74: Overview row — memo + jadual ringkas (lightweight, runs even tanpa sales)
+ try { window.__renderDashOverview(); } catch(e){}
  // p1_76: re-apply i18n to catch any dynamic labels injected by render fns
  try { if(typeof window.applyI18N === 'function') window.applyI18N(); } catch(e){}
 
@@ -13953,6 +13977,10 @@ window.I18N = {
  dash_target_label: { bm: 'Kemajuan Sasaran Bulanan', en: 'Monthly Target Progress' },
  dash_target_hint_empty: { bm: 'Tetapkan sasaran bulanan untuk mula track kemajuan.', en: 'Set monthly target to enable progress tracking.' },
  dash_overview_section_title: { bm: 'Overview Hari Ni', en: "Today's Overview" },
+ dash_overview_combined_empty_title: { bm: 'Semua tenang hari ni', en: 'All quiet today' },
+ dash_overview_combined_empty_sub: { bm: 'Tiada memo aktif & jadual belum ditetapkan untuk hari ni.', en: 'No active memos & schedule not set yet.' },
+ dash_overview_combined_action_memo: { bm: 'Hantar Memo', en: 'Post Memo' },
+ dash_overview_combined_action_roster: { bm: 'Tetap Jadual', en: 'Set Schedule' },
  dash_overview_memo_title: { bm: 'Memo Terkini', en: 'Latest Memos' },
  dash_overview_memo_view: { bm: 'Lihat semua', en: 'View all' },
  dash_overview_memo_empty: { bm: 'Tiada memo aktif buat masa ni.', en: 'No active memos right now.' },
@@ -14107,10 +14135,9 @@ window.setLang = function(lang) {
  window.I18N.lang = lang;
  try { localStorage.setItem('lang_v1', lang); } catch(e){}
  window.applyI18N();
- // p1_74 fix #5: re-render overview widgets so JS-set values (roster date,
+ // p1_74 fix #5+#8: re-run overview coordinator so JS-set values (roster date,
  // SHIFT_LABEL list, memo dept labels) reflect the new locale without refresh.
- try { if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo(); } catch(e){}
- try { if(typeof window.__renderDashOverviewRoster === 'function') window.__renderDashOverviewRoster(); } catch(e){}
+ try { if(typeof window.__renderDashOverview === 'function') window.__renderDashOverview(); } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }

@@ -535,6 +535,102 @@ function toggleSidebar() {
 }
 window.toggleSidebar = toggleSidebar;
 
+// p1_88: Icon rail state — controls which group's items are visible in the panel.
+// Stand-alone items (overview/memo/roadmap) navigate directly + activate rail.
+// Group items (sales/customers/inv/hr/admin/marketing/hq_setup) show their items.
+window.__activeRail = localStorage.getItem('activeRail_v1') || 'sales';
+
+window.setActiveRail = function(railId, navigateDirect) {
+ window.__activeRail = railId;
+ try { localStorage.setItem('activeRail_v1', railId); } catch(e){}
+
+ // Mark active rail icon
+ document.querySelectorAll('.sidebar-rail .rail-item').forEach(b => {
+ b.classList.toggle('is-active', b.getAttribute('data-rail') === railId);
+ });
+
+ // Filter sidebar items in the panel
+ const items = document.querySelectorAll('#sidebarMain .menu-item');
+ items.forEach(it => {
+ const group = it.getAttribute('data-group');
+ const tab = it.getAttribute('data-tab');
+ const isToggle = it.hasAttribute('data-group-toggle');
+ if(isToggle) { it.style.display = 'none'; return; } // CAPS headers always hidden
+ // Standalone items (overview / memo_board / roadmap) — show only when their own rail is active
+ if(tab === 'overview') { it.style.display = (railId === 'overview') ? '' : 'none'; return; }
+ if(tab === 'memo_board') { it.style.display = (railId === 'memo') ? '' : 'none'; return; }
+ if(tab === 'roadmap') { it.style.display = (railId === 'roadmap') ? '' : 'none'; return; }
+ // Group items — show only when their group matches active rail
+ if(group) { it.style.display = (group === railId) ? '' : 'none'; return; }
+ // Items without group (legacy) — show by default
+ it.style.display = '';
+ });
+
+ // Navigate direct for standalone rails
+ if(navigateDirect) {
+ setTimeout(() => {
+ const item = document.querySelector('#sidebarMain .menu-item[data-tab="' + (
+ railId === 'overview' ? 'overview' :
+ railId === 'memo' ? 'memo_board' :
+ railId === 'roadmap' ? 'roadmap' : ''
+ ) + '"]');
+ if(item && typeof item.click === 'function') item.click();
+ }, 50);
+ }
+};
+
+// Map data-tab → which rail it belongs to (used for auto-sync rail with current section)
+window.__tabToRail = function(tab) {
+ if(!tab) return null;
+ if(tab === 'overview') return 'overview';
+ if(tab === 'memo_board') return 'memo';
+ if(tab === 'roadmap') return 'roadmap';
+ if(tab.startsWith('sales_')) return 'sales';
+ if(tab.startsWith('customers_')) return 'customers';
+ if(tab.startsWith('inv_') || tab === 'hr_roster') return 'inv';
+ if(tab.startsWith('hr_')) return 'hr';
+ if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
+ if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
+ if(tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
+ return null;
+};
+
+// p1_88: aggregate badges on rail icons (memo + roster+claim → hr; fulfillment → inv; audit → admin)
+window.refreshRailBadges = function() {
+ const setBadge = (id, count) => {
+ const b = document.getElementById(id);
+ if(!b) return;
+ if(count > 0) { b.style.display = ''; b.textContent = count; }
+ else b.style.display = 'none';
+ };
+ // Memo (Bos sees pending memo)
+ try {
+ if(typeof window.memoGetPendingCount === 'function' && typeof window.isBoss === 'function' && window.isBoss(window.currentUser)) {
+ setBadge('railBadgeMemo', window.memoGetPendingCount());
+ } else setBadge('railBadgeMemo', 0);
+ } catch(e){}
+ // HR: roster pending + claim pending
+ try {
+ const u = window.currentUser;
+ const roster = (typeof pendingSchedules !== 'undefined' && Array.isArray(pendingSchedules)) ? pendingSchedules.length : 0;
+ const claims = (typeof _hrcLoadClaims === 'function') ? _hrcLoadClaims().filter(c => c.status === 'pending').length : 0;
+ const isApprover = u && (typeof window.isBoss === 'function' && window.isBoss(u)) || (u && u.staff_id === 'CMP008');
+ setBadge('railBadgeHr', isApprover ? (roster + claims) : 0);
+ } catch(e){}
+ // Fulfillment (Pesanan Online)
+ try {
+ const orders = (typeof ffOnlineOrders === 'function') ? ffOnlineOrders() : [];
+ const toFulfil = orders.filter(o => (typeof ffStage === 'function' ? ffStage(o) : 'to_fulfil') === 'to_fulfil').length;
+ setBadge('railBadgeFulfill', toFulfil);
+ } catch(e){}
+ // Audit
+ try {
+ const el = document.getElementById('auditAlertBadge');
+ const txt = el ? parseInt(el.textContent || '0') : 0;
+ setBadge('railBadgeAudit', isNaN(txt) ? 0 : txt);
+ } catch(e){}
+};
+
 function switchHub(sectionIds, title, btnElement) {
  // Hide all sections first
  document.querySelectorAll('.tab-section').forEach(s => s.style.display = 'none');
@@ -3727,11 +3823,17 @@ function loginAs(user, opts) {
  }
  setTimeout(() => {
  const homeBtn = document.querySelector(`.menu-item[data-tab="${homeTab}"]`);
+ // p1_88: pick correct rail before clicking the home item
+ if(typeof window.__tabToRail === 'function' && typeof window.setActiveRail === 'function') {
+ const rail = window.__tabToRail(homeTab);
+ if(rail) window.setActiveRail(rail);
+ }
  if(homeBtn) homeBtn.click();
  else {
  const overviewBtn = document.querySelector('.menu-item[data-tab="overview"]');
- if(overviewBtn) overviewBtn.click();
+ if(overviewBtn) { if(typeof window.setActiveRail === 'function') window.setActiveRail('overview'); overviewBtn.click(); }
  }
+ try { if(typeof window.refreshRailBadges === 'function') window.refreshRailBadges(); } catch(e){}
  }, 200);
 }
 

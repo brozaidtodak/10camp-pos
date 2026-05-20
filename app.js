@@ -6139,6 +6139,9 @@ window.memoLoad = function() {
 window.memoSaveAll = function(arr) {
  try { localStorage.setItem(window.MEMO_KEY, JSON.stringify(arr)); }
  catch(e) { console.warn('memoSaveAll failed:', e); }
+ // p1_74 fix #2: refresh overview widget so Manager Dashboard reflects new memo
+ // changes immediately (submit / approve / reject / delete all funnel through here).
+ try { if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo(); } catch(e){}
 };
 window.memoCurrentUser = function() {
  return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);

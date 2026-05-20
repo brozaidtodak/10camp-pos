@@ -2656,21 +2656,11 @@ const authUsers = [
  { name: 'Irfan', role: 'sales', pin_hash: '1ac46628226b2db70ab61adf7e7912aa6456b7c703c1b922a9a5bba78d16396c', dept: 'Marketing Interim', email: 'irfan@10camp.com', staff_id: 'CMP003', full_name: 'Muhammad Irfansyah Bin Abd Fattah', join_date: '2024-07-01' },
  { name: 'Tarmizi Kael', role: 'inventory', pin_hash: '4c3c39d9b9cd41540b359ffed45b97d5b76b04a6461d1cdedb79eb4003727779', dept: 'Chief Inventory', email: 'tarmizi@10camp.com', staff_id: 'CMP011', full_name: 'Tarmizi bin Rusli', join_date: '2025-08-11' },
  { name: 'Fahmi', role: 'inventory', pin_hash: '1eeab06ad295d2d41259419cb3a5d1d914ddd9c9e70c66e658042341986c91de', dept: 'Inventory Assistance', email: 'fahmi@10camp.com', staff_id: 'CMP009', full_name: 'Shahrul Fahmi Bin Ramlee', join_date: '2024-07-01' },
- // p1_21: Investor persona — 51% majority shareholder
- { name: 'brolantodak', role: 'investor', pin_hash: '585790e32d7ab7bf6262dbb9bfec4f4d6831638364f429d25d03090c724e3822', dept: 'Investor (51% Equity)', email: 'investor@10camp.com', staff_id: 'INV001', full_name: 'Brolantodak (Majority Shareholder)', join_date: '2024-01-01' },
+ // p1_73: Investor persona (brolantodak / INV001) removed — Investor Dashboard
+ // dipindah ke 10cc Command Centre (owner-only back-office). POS sekarang
+ // staff-facing only.
  { name: 'Tester', role: 'sales', pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef', dept: 'External Demo Account', email: 'tester@10camp.com', staff_id: 'TST001', full_name: 'External QA Tester', join_date: '2026-05-07' }
 ];
-
-// p1_21: Pre-seed mode access overlay for investor — only investor mode (lock down all others)
-(function __seedInvestorAccess(){
- try {
- const overlay = JSON.parse(localStorage.getItem('staffModeAccess_v1') || '{}');
- if(!overlay['INV001']) {
- overlay['INV001'] = { cashier: false, operations: false, manager: false, management: false, investor: true };
- localStorage.setItem('staffModeAccess_v1', JSON.stringify(overlay));
- }
- } catch(e){}
-})();
 
 
 let currentUser = null;
@@ -3168,11 +3158,11 @@ function maybeShowOnboarding(user) {
 // IMPORTANT: defaultMode must match the home section's mode group,
 // otherwise the home tab will be hidden by mode-bar's class filter.
 // p1_72: 'superior' role retired. Bos dikenali via dept='Managing Director' (lihat isBoss helper).
+// p1_73: Investor role removed — dashboard pindah ke 10cc Command Centre.
 const ROLE_CAPS = {
  mgmt: { modes: ['cashier', 'operations', 'manager'], defaultMode: 'manager', home: 'admin_dashboard', label: 'Manager', emoji: '' },
  inventory: { modes: ['cashier', 'operations'], defaultMode: 'operations', home: 'inv_database', label: 'Inventory', emoji: '' },
  sales: { modes: ['cashier', 'operations'], defaultMode: 'cashier', home: 'sales_cashier', label: 'Sales', emoji: '' },
- investor: { modes: ['investor'], defaultMode: 'investor', home: 'investor_overview', label: 'Investor', emoji: '' },
 };
 
 // p1_72: isBoss — identifies the Managing Director (single source of truth, replaces old role==='superior').
@@ -3203,30 +3193,30 @@ function loginAs(user) {
                   hr < 19 ? 'Selamat petang' :
                             'Selamat malam';
 
- // Role-based tagline + mode chip text
+ // Role-based tagline (Bos guna dept Managing Director untuk override).
  const taglines = {
-   superior:  ['Trail awaits, boss.', 'Komand penuh, boss.', 'Kerajaan tahan, boss.'],
-   investor:  ['Boardroom standing by.', 'Cap table refreshed.', 'Numbers ready for review.'],
    mgmt:      ['Operations command, ready.', 'Tim awak menunggu.', 'Mari pacu hari ni.'],
    inventory: ['Stok dikira, jiran.', 'Warehouse on standby.', 'Mari uruskan inventori.'],
    sales:     ['Counter ready. Layan campers!', 'Mari layan pelanggan.', 'Sales tracker on.']
  };
- const lineSet = taglines[user.role] || ['Workspace ready.'];
+ const lineSet = (typeof window.isBoss === 'function' && window.isBoss(user))
+   ? ['Trail awaits, boss.', 'Komand penuh, boss.', 'Kerajaan tahan, boss.']
+   : (taglines[user.role] || ['Workspace ready.']);
  const tagline = lineSet[Math.floor(Math.random() * lineSet.length)];
 
  // Mode destination (uses pickDefaultMode if available)
- const modeLabels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ', investor:'Investor' };
+ const modeLabels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ' };
  let destMode = (typeof window.pickDefaultMode === 'function') ? window.pickDefaultMode(user) : (cap.defaultMode || 'cashier');
  const modeText = 'Heading to ' + (modeLabels[destMode] || 'workspace') + ' mode';
 
  // Avatar icon by role
- const iconByRole = { superior:'crown', investor:'trending-up', mgmt:'briefcase', inventory:'package', sales:'shopping-cart' };
- const avatarIcon = iconByRole[user.role] || 'user';
+ const iconByRole = { mgmt:'briefcase', inventory:'package', sales:'shopping-cart' };
+ const avatarIcon = (typeof window.isBoss === 'function' && window.isBoss(user)) ? 'crown' : (iconByRole[user.role] || 'user');
 
  // Compute relevant stats based on access
  const access = (typeof window.getModesAccess === 'function') ? window.getModesAccess(user) : {};
  const stats = [];
- // Sales today (if has cashier or manager access, or is investor/superior)
+ // Sales today (if has cashier or manager access, or is Bos)
  try {
    const today = new Date(); today.setHours(0,0,0,0);
    const todaySales = (typeof salesHistory !== 'undefined' ? salesHistory : []).filter(s => {
@@ -3234,10 +3224,10 @@ function loginAs(user) {
      const amt = parseFloat(s.amount || s.total || 0);
      return amt > 0 && d >= today;
    });
-   if(access.cashier || access.manager || access.management || access.investor) {
+   if(access.cashier || access.manager || access.management) {
      const total = todaySales.reduce((sum, s) => sum + parseFloat(s.amount || s.total || 0), 0);
      stats.push({ value: todaySales.length, label: 'Sales today' });
-     if(total > 0 && (access.management || access.investor || window.isBoss(user))) {
+     if(total > 0 && (access.management || window.isBoss(user))) {
        const fmt = window.formatRMShort || (n => 'RM ' + Math.round(n));
        stats.push({ value: fmt(total), label: 'Revenue' });
      }
@@ -3348,7 +3338,7 @@ function loginAs(user) {
    homeTab = cap.home || 'admin_dashboard';
  } else if(defaultMode === 'operations') homeTab = 'inv_database';
  else if(defaultMode === 'cashier') homeTab = 'sales_cashier';
- else if(defaultMode === 'investor') homeTab = 'investor_overview';
+ // p1_73: investor mode removed — no homeTab override here
 
  if(typeof window.setMode === 'function') {
  window.__modeJumping = true; // suppress auto-jump
@@ -5401,12 +5391,11 @@ window.refreshRosterBadge = function() {
 window.HRC_CLAIMS_KEY = 'staff_claims_v1';
 const HR_BENEFITS_TEXT = 'EPF (KWSP), SOCSO (PERKESO), EIS mengikut polisi syarikat. Cuti Tahunan (AL), Cuti Sakit Sijil (MC), Cuti Kecemasan (EL), Cuti Umum (PH). Maklumat lanjut: rujuk Aliff (HR Pentadbiran).';
 const HR_JOB_SCOPE_BY_ROLE = {
- superior: 'Pengarah Urusan — kawalan menyeluruh operasi 10 CAMP, kelulusan akhir (cuti, claim, finance, polisi).',
  mgmt: 'Pengurus — pengurusan harian, sokongan pasukan, lapor kepada Bos.',
  sales: 'Sales Associate — melayani pelanggan kaunter & online, jualan, customer service.',
- inventory: 'Inventory Associate — pengurusan stok, terima barang masuk, susunan gudang, picking.',
- investor: 'Investor — pemantauan prestasi syarikat (dashboard sahaja).'
+ inventory: 'Inventory Associate — pengurusan stok, terima barang masuk, susunan gudang, picking.'
 };
+const HR_JOB_SCOPE_BOSS = 'Pengarah Urusan — kawalan menyeluruh operasi 10 CAMP, kelulusan akhir (cuti, claim, finance, polisi).';
 
 function _hrCurrentUser() {
  return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
@@ -5432,7 +5421,10 @@ window.renderHrCuti = function() {
  const benefitsEl = document.getElementById('hrcMyBenefits');
  if (benefitsEl) benefitsEl.textContent = HR_BENEFITS_TEXT;
  const jobEl = document.getElementById('hrcMyJobScope');
- if (jobEl) jobEl.textContent = (HR_JOB_SCOPE_BY_ROLE[u.role] || 'Skop kerja belum dikemaskini — rujuk Aliff.') + ' (Department: ' + (u.dept || '-') + ')';
+ if (jobEl) {
+ const scope = (typeof window.isBoss === 'function' && window.isBoss(u)) ? HR_JOB_SCOPE_BOSS : (HR_JOB_SCOPE_BY_ROLE[u.role] || 'Skop kerja belum dikemaskini — rujuk Aliff.');
+ jobEl.textContent = scope + ' (Department: ' + (u.dept || '-') + ')';
+ }
 
  // Sejarah cuti (from staffSchedules — approved leaves)
  const LEAVE_TYPES = { AL:'Cuti Tahunan', MC:'Cuti Sakit (MC)', EL:'Cuti Kecemasan', PH:'Cuti Umum', OFF:'Cuti Mingguan' };
@@ -6098,330 +6090,6 @@ document.getElementById("saveMemoBtn")?.addEventListener('click', () => {
  if(typeof window.finMemoSave === 'function') window.finMemoSave();
 });
 
-// =============================================================
-// p1_21 INVESTOR DASHBOARD — board-level metrics & cap table
-// =============================================================
-let __invGrowthChart = null, __invChannelChart = null, __invARChart = null;
-
-function __invSafeSales() { return (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) ? salesHistory : []; }
-function __invSafeFin() { return (typeof financeRecords !== 'undefined' && Array.isArray(financeRecords)) ? financeRecords : []; }
-function __invSafeCust() { return (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : []; }
-function __invSafeBatches(){ return (typeof inventoryBatches !== 'undefined' && Array.isArray(inventoryBatches)) ? inventoryBatches : []; }
-function __invSafeMaster() { return (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : []; }
-function __invSafeQuotes() { return (typeof window.quotationsLog !== 'undefined' && Array.isArray(window.quotationsLog)) ? window.quotationsLog : []; }
-function __invSafeStaff() { return (typeof authUsers !== 'undefined' && Array.isArray(authUsers)) ? authUsers.filter(u => u.role !== 'investor' && !(typeof window.isBoss === 'function' && window.isBoss(u))) : []; }
-
-function computeInvestorMetrics() {
- const now = new Date();
- const M = window.FIN_MONTHS || ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
- // === Revenue per month (last 12) ===
- const sales = __invSafeSales();
- const fin = __invSafeFin();
- const monthly = []; // [{label,start,end,rev,exp}]
- for(let i = 11; i>= 0; i--) {
- const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
- const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23,59,59);
- let rev = 0, refunds = 0;
- sales.forEach(s => {
- const d = new Date(s.created_at || s.timestamp || s.sale_date);
- if(isNaN(d) || d < start || d> end) return;
- const a = parseFloat(s.amount || s.total || s.total_amount || 0);
- if(a> 0) rev += a; else refunds += Math.abs(a);
- });
- let exp = 0;
- fin.forEach(f => {
- const idx = M.indexOf(f.month); if(idx < 0) return;
- const d = new Date(parseInt(f.year), idx, 15);
- if(d < start || d> end) return;
- exp += parseFloat(f.amount || 0);
- });
- monthly.push({ label: M[start.getMonth()] + ' ' + (start.getFullYear()%100), rev, exp, refunds, start, end });
- }
-
- const total12moRev = monthly.reduce((a,b)=>a+b.rev, 0);
- const total12moExp = monthly.reduce((a,b)=>a+b.exp, 0);
- const total12moRefunds = monthly.reduce((a,b)=>a+b.refunds, 0);
- const arr = total12moRev; // already last 12mo
- const mtd = monthly[monthly.length-1].rev;
- const lastMonthRev = monthly[monthly.length-2] ? monthly[monthly.length-2].rev : 0;
- const yoyRef = monthly[0] ? monthly[0].rev : 0; // ~12mo ago
- const mom = lastMonthRev> 0 ? ((mtd - lastMonthRev) / lastMonthRev) * 100 : null;
- const yoy = yoyRef> 0 ? ((mtd - yoyRef) / yoyRef) * 100 : null;
-
- // === COGS / margins ===
- let cogs12mo = 0, opex12mo = 0, capex12mo = 0;
- monthly.forEach(({start, end}) => {
- fin.forEach(f => {
- const idx = M.indexOf(f.month); if(idx < 0) return;
- const d = new Date(parseInt(f.year), idx, 15);
- if(d < start || d> end) return;
- const a = parseFloat(f.amount || 0);
- if(f.category === 'COGS') cogs12mo += a;
- else if(f.category === 'OPEX') opex12mo += a;
- else if(f.category === 'CAPEX') capex12mo += a;
- });
- });
- const grossMargin = total12moRev> 0 ? ((total12moRev - cogs12mo) / total12moRev) * 100 : 0;
- const netMargin = total12moRev> 0 ? ((total12moRev - total12moExp) / total12moRev) * 100 : 0;
-
- // === Burn / Runway ===
- const monthlyNet = monthly.map(m => m.rev - m.exp);
- const recentBurn = monthlyNet.slice(-3).reduce((a,b)=>a+b, 0) / 3; // last 3mo avg
- const isBurning = recentBurn < 0;
- // Cash position not tracked → estimate runway from positive net or N/A
- const runway = isBurning ? null : Infinity;
-
- // === Customers ===
- const customers = __invSafeCust();
- const custCount = customers.length;
- // Order frequency + repeat rate
- const orderCountByCust = {};
- let totalOrders = 0;
- sales.forEach(s => {
- if(parseFloat(s.amount || s.total || 0) <= 0) return; // skip refunds
- totalOrders++;
- const k = s.customer_phone || s.customer_id || s.customer_name || '_anon';
- orderCountByCust[k] = (orderCountByCust[k] || 0) + 1;
- });
- const repeatCustomers = Object.values(orderCountByCust).filter(c => c>= 2).length;
- const repeatRate = custCount> 0 ? (repeatCustomers / custCount) * 100 : 0;
- const aov = totalOrders> 0 ? total12moRev / totalOrders : 0;
- // LTV approximation: total revenue per known customer / customer count
- const ltv = custCount> 0 ? total12moRev / custCount : 0;
-
- // === Per-channel revenue ===
- let chPos = 0, chB2B = 0, chQuote = 0;
- sales.forEach(s => {
- const a = parseFloat(s.amount || s.total || 0);
- if(a <= 0) return;
- const meta = s.metadata || {};
- if(meta.from_quote || s.from_quote_ref) chQuote += a;
- else if(meta.is_b2b || s.customer_tin || meta.invoice_ref) chB2B += a;
- else chPos += a;
- });
-
- // === Inventory ===
- const batches = __invSafeBatches();
- let invValue = 0;
- batches.forEach(b => {
- const qty = parseFloat(b.qty_remaining || 0);
- const cost = parseFloat(b.cost_price || b.landed_cost || 0);
- if(qty> 0 && cost> 0) invValue += qty * cost;
- });
- // Turnover = annual COGS / avg inventory
- const turnover = invValue> 0 ? cogs12mo / invValue : 0;
- const dio = turnover> 0 ? Math.round(365 / turnover) : null;
- // Dead stock: batches inbound> 365d ago with qty_remaining> 0
- let deadValue = 0;
- const cutoff = new Date(now.getTime() - 365*24*3600*1000);
- batches.forEach(b => {
- const inb = b.inbound_date ? new Date(b.inbound_date) : null;
- if(!inb || inb> cutoff) return;
- const qty = parseFloat(b.qty_remaining || 0);
- const cost = parseFloat(b.cost_price || b.landed_cost || 0);
- if(qty> 0 && cost> 0) deadValue += qty * cost;
- });
-
- // === Top SKUs ===
- const skuRev = {};
- sales.forEach(s => {
- const items = s.items || s.cart || [];
- if(!Array.isArray(items)) return;
- items.forEach(it => {
- const sku = it.sku || it.SKU; if(!sku) return;
- const qty = parseFloat(it.qty || it.quantity || 1);
- const price = parseFloat(it.price || it.unit_price || 0);
- skuRev[sku] = (skuRev[sku] || 0) + (qty * price);
- });
- });
- const topSkus = Object.entries(skuRev).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
- // === Customer concentration ===
- const custRev = {};
- sales.forEach(s => {
- const a = parseFloat(s.amount || s.total || 0);
- if(a <= 0) return;
- const k = s.customer_name || s.customer_phone || '_anon';
- custRev[k] = (custRev[k] || 0) + a;
- });
- const sortedCust = Object.entries(custRev).sort((a,b)=>b[1]-a[1]);
- const top5Sum = sortedCust.slice(0,5).reduce((s,[,v])=>s+v, 0);
- const top5Conc = total12moRev> 0 ? (top5Sum / total12moRev) * 100 : 0;
-
- // === Refund rate ===
- const refundRate = total12moRev> 0 ? (total12moRefunds / total12moRev) * 100 : 0;
-
- // === AR aging from quotationsLog (invoice type only) ===
- const quotes = __invSafeQuotes();
- const arBuckets = { current: 0, '30': 0, '60': 0, '90': 0 };
- let arTotal = 0, arCount = 0;
- quotes.forEach(q => {
- if(q.status === 'paid' || q.status === 'cancelled' || q.status === 'voided') return;
- if(q.doc_type !== 'invoice' && q.type !== 'invoice') return;
- const amt = parseFloat(q.grand_total || q.total || 0);
- if(amt <= 0) return;
- const d = new Date(q.created_at || q.date || q.generated_date);
- if(isNaN(d)) return;
- const age = (now - d) / (1000*3600*24);
- arTotal += amt; arCount++;
- if(age < 30) arBuckets.current += amt;
- else if(age < 60) arBuckets['30'] += amt;
- else if(age < 90) arBuckets['60'] += amt;
- else arBuckets['90'] += amt;
- });
-
- // === Revenue per staff ===
- const staffCount = Math.max(__invSafeStaff().length, 1);
- const revPerStaff = total12moRev / staffCount;
-
- // === Health Score (composite 0-100) ===
- // Revenue growth (25%): MoM scaled — full marks at +20% MoM
- const sRev = mom == null ? 50 : Math.max(0, Math.min(100, 50 + (mom * 2.5)));
- // Margin (25%): net margin — full at 30%, zero at <0
- const sMargin = Math.max(0, Math.min(100, (netMargin / 30) * 100));
- // Customer retention (20%): repeat rate — full at 40%
- const sRetention = Math.max(0, Math.min(100, (repeatRate / 40) * 100));
- // Inventory efficiency (15%): turnover — full at 6 (every 2mo), zero at <1/yr
- const sInv = Math.max(0, Math.min(100, ((turnover - 1) / 5) * 100));
- // AR/Cash (15%): low concentration + low refund + low AR>90d
- const sRisk = Math.max(0, 100 - (top5Conc * 0.5) - (refundRate * 5) - (arBuckets['90'] / Math.max(arTotal,1) * 100 * 0.5));
- const score = Math.round((sRev*0.25) + (sMargin*0.25) + (sRetention*0.20) + (sInv*0.15) + (sRisk*0.15));
- const grade = score>= 85 ? 'A' : score>= 70 ? 'B' : score>= 55 ? 'C' : score>= 40 ? 'D' : 'F';
-
- return {
- monthly, total12moRev, arr, mtd, mom, yoy, lastMonthRev,
- cogs12mo, opex12mo, capex12mo, grossMargin, netMargin,
- recentBurn, isBurning, runway,
- custCount, totalOrders, repeatRate, aov, ltv,
- chPos, chB2B, chQuote,
- invValue, turnover, dio, deadValue,
- topSkus, sortedCust, top5Conc, refundRate,
- arBuckets, arTotal, arCount,
- revPerStaff, score, grade,
- components: { sRev, sMargin, sRetention, sInv, sRisk }
- };
-}
-
-window.renderInvestor = function() {
- if(!document.getElementById('investorSection')) return;
- const m = computeInvestorMetrics();
- const fmt = window.formatRM || (n => 'RM ' + (parseFloat(n)||0).toFixed(2));
- const fmtShort = window.formatRMShort || (n => 'RM ' + Math.round(parseFloat(n)||0));
-
- document.getElementById('invGenTime').textContent = new Date().toLocaleString('en-MY');
-
- // Health score ring
- const ring = document.getElementById('invScoreRing');
- if(ring) {
- const C = 2 * Math.PI * 54;
- const offset = C - (C * m.score / 100);
- ring.setAttribute('stroke-dasharray', C);
- ring.setAttribute('stroke-dashoffset', offset);
- ring.setAttribute('stroke', m.score>= 70 ? '#10B981' : m.score>= 50 ? '#F59E0B' : '#EF4444');
- }
- document.getElementById('invScoreVal').textContent = m.score;
- document.getElementById('invScoreGrade').textContent = 'Grade ' + m.grade;
-
- // KPIs
- document.getElementById('invARR').textContent = fmtShort(m.arr);
- document.getElementById('invMTD').textContent = fmtShort(m.mtd);
- const mtdDeltaEl = document.getElementById('invMTDDelta');
- if(m.mom != null) {
- const arrow = m.mom>= 0 ? '↑' : '↓';
- mtdDeltaEl.textContent = arrow + ' ' + Math.abs(m.mom).toFixed(1) + '% vs last month';
- mtdDeltaEl.style.color = m.mom>= 0 ? '#10B981' : '#EF4444';
- } else mtdDeltaEl.textContent = 'no prior period';
- document.getElementById('invGM').textContent = m.grossMargin.toFixed(1) + '%';
- document.getElementById('invNM').textContent = m.netMargin.toFixed(1) + '%';
- document.getElementById('invBurn').textContent = (m.recentBurn>= 0 ? '+' : '') + fmtShort(m.recentBurn) + '/mo';
- document.getElementById('invBurnSub').textContent = m.isBurning ? ' burn rate' : ' profitable';
- document.getElementById('invRunway').textContent = m.isBurning ? ' N/A — track cash' : '∞ (profitable)';
-
- // Growth stats
- document.getElementById('invMoM').textContent = m.mom == null ? '—' : (m.mom>=0?'+':'') + m.mom.toFixed(1) + '%';
- document.getElementById('invYoY').textContent = m.yoy == null ? '—' : (m.yoy>=0?'+':'') + m.yoy.toFixed(1) + '%';
- document.getElementById('invAOV').textContent = fmt(m.aov);
- document.getElementById('invRepeat').textContent = m.repeatRate.toFixed(1) + '%';
- document.getElementById('invLTV').textContent = fmt(m.ltv);
- document.getElementById('invCustCount').textContent = m.custCount.toLocaleString();
- document.getElementById('invOrderCount').textContent = m.totalOrders.toLocaleString();
- document.getElementById('invRevPerStaff').textContent = fmtShort(m.revPerStaff);
-
- // Inventory
- document.getElementById('invInvValue').textContent = fmtShort(m.invValue);
- document.getElementById('invTurnover').textContent = m.turnover.toFixed(2) + 'x';
- document.getElementById('invDIO').textContent = m.dio == null ? '—' : m.dio + ' days';
- document.getElementById('invDead').textContent = fmtShort(m.deadValue);
-
- // Top SKUs
- const topSkuEl = document.getElementById('invTopSkus');
- if(topSkuEl) {
- const totalSkuRev = m.topSkus.reduce((s,[,v])=>s+v, 0);
- if(!m.topSkus.length) {
- topSkuEl.innerHTML = '<div style="color:#94A3B8; padding:10px; text-align:center;">No SKU data</div>';
- } else {
- topSkuEl.innerHTML = m.topSkus.map(([sku,rev],i) => {
- const pct = totalSkuRev> 0 ? (rev/totalSkuRev*100).toFixed(0) : 0;
- return `<div class="inv-top-sku-row"><span class="inv-top-sku-rank">#${i+1}</span><span class="inv-top-sku-name">${sku}</span><span class="inv-top-sku-rev">${fmtShort(rev)}</span><span class="inv-top-sku-pct">${pct}%</span></div>`;
- }).join('');
- }
- }
-
- // Risk radar
- document.getElementById('invConcCust').textContent = m.top5Conc.toFixed(1) + '%';
- document.getElementById('invRefundRate').textContent = m.refundRate.toFixed(2) + '%';
- document.getElementById('invARTotal').textContent = fmt(m.arTotal) + ' (' + m.arCount + ')';
- document.getElementById('invAR90').textContent = fmt(m.arBuckets['90']);
-
- // Strategic notes (auto-generated)
- const notes = [];
- if(m.score>= 70) notes.push('<span class="inv-flag inv-flag--green">Strong</span> Health score grade ' + m.grade + ' — bisnes dalam keadaan baik.');
- else if(m.score>= 55) notes.push('<span class="inv-flag inv-flag--amber">Stable</span> Health score grade ' + m.grade + ' — ada ruang penambahbaikan.');
- else notes.push('<span class="inv-flag inv-flag--red">At Risk</span> Health score grade ' + m.grade + ' — perlu intervention.');
- if(m.netMargin < 10) notes.push('<span class="inv-flag inv-flag--amber">Margin</span> Net margin ' + m.netMargin.toFixed(1) + '% rendah. Target retail biasa: 15-25%. Audit OPEX atau review pricing.');
- if(m.repeatRate < 20 && m.custCount> 50) notes.push('<span class="inv-flag inv-flag--amber">Retention</span> Repeat rate ' + m.repeatRate.toFixed(1) + '% rendah. Pertimbangkan loyalty program / re-engagement campaign.');
- if(m.top5Conc> 40) notes.push('<span class="inv-flag inv-flag--red">Risk</span> Top-5 customer = ' + m.top5Conc.toFixed(0) + '% revenue. Concentration risk tinggi — diversify customer base.');
- if(m.deadValue> m.invValue * 0.15) notes.push('<span class="inv-flag inv-flag--amber">Inventory</span> Dead stock (>365d) = ' + fmtShort(m.deadValue) + ' (' + (m.deadValue/Math.max(m.invValue,1)*100).toFixed(0) + '% of stock). Clear dengan promo/bundle.');
- if(m.turnover < 2 && m.invValue> 0) notes.push('<span class="inv-flag inv-flag--amber">Turnover</span> Inventory turnover ' + m.turnover.toFixed(1) + 'x/yr — slow. Tighten reorder policy.');
- if(m.arBuckets['90']> m.arTotal * 0.2 && m.arTotal> 0) notes.push('<span class="inv-flag inv-flag--red">AR Aging</span>>90d AR = ' + fmt(m.arBuckets['90']) + '. Chase or write-off.');
- if(m.mom != null && m.mom> 15) notes.push('<span class="inv-flag inv-flag--green">Growth</span> +' + m.mom.toFixed(1) + '% MoM — strong momentum.');
- if(m.isBurning) notes.push('<span class="inv-flag inv-flag--red">Cash</span> Avg burn ' + fmtShort(Math.abs(m.recentBurn)) + '/mo. Track bank balance manually — runway calc needs cash position input.');
- notes.push('<span class="inv-flag inv-flag--blue">Cap Table</span> brolantodak (51%) majority + Zaid (49%) operator — control sits with investor.');
- document.getElementById('invStrategicNotes').innerHTML = '<ul>' + notes.map(n => '<li>' + n + '</li>').join('') + '</ul>';
-
- // === Charts ===
- if(typeof Chart !== 'undefined') {
- const labels = m.monthly.map(x => x.label);
- // Growth chart
- if(__invGrowthChart) __invGrowthChart.destroy();
- const gctx = document.getElementById('invGrowthChart');
- if(gctx) __invGrowthChart = new Chart(gctx, {
- type: 'line',
- data: { labels, datasets: [
- { label: 'Revenue', data: m.monthly.map(x=>x.rev), borderColor: '#1E40AF', backgroundColor: 'rgba(30,64,175,0.1)', tension: 0.3, fill: true, pointRadius: 3 },
- { label: 'Net', data: m.monthly.map(x=>x.rev - x.exp), borderColor: '#10B981', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2 }
-]},
- options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
- });
- // Channel chart
- if(__invChannelChart) __invChannelChart.destroy();
- const cctx = document.getElementById('invChannelChart');
- if(cctx) __invChannelChart = new Chart(cctx, {
- type: 'doughnut',
- data: { labels: ['POS','B2B','Quote'], datasets: [{ data: [m.chPos, m.chB2B, m.chQuote], backgroundColor: ['#10B981','#1E40AF','#8B5CF6'], borderWidth: 2, borderColor: '#FFF' }] },
- options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
- });
- // AR chart
- if(__invARChart) __invARChart.destroy();
- const actx = document.getElementById('invARChart');
- if(actx) __invARChart = new Chart(actx, {
- type: 'bar',
- data: { labels: ['Current','30-59d','60-89d','90d+'], datasets: [{ data: [m.arBuckets.current, m.arBuckets['30'], m.arBuckets['60'], m.arBuckets['90']], backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'] }] },
- options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
- });
- }
-};
 
 // =============================================================
 // p1_19 MEMO BOARD — workflow approval (pending → approved/rejected)
@@ -11470,7 +11138,90 @@ window.dashSaveTarget = function() {
     window.renderManagerDashboard();
 };
 
+// p1_74: Overview widgets — Memo Terkini + Jadual Hari Ni
+window.__renderDashOverviewMemo = function() {
+ const list = document.getElementById('dashOverviewMemoList');
+ if(!list) return;
+ const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
+ const approved = memos.filter(m => m.status === 'approved');
+ // Pinned first, then newest
+ approved.sort((a,b) => {
+ if(a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+ return new Date(b.posted_at) - new Date(a.posted_at);
+ });
+ const top = approved.slice(0, 3);
+ if(top.length === 0) {
+ list.innerHTML = '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Tiada memo aktif buat masa ni.</p>';
+ return;
+ }
+ const deptColor = { general:'#6B7280', sales:'#0EA5E9', inv:'#10B981', admin:'#8B5CF6', hr:'#F59E0B', finance:'#DC2626', marketing:'#EC4899' };
+ list.innerHTML = top.map(m => {
+ const dColor = deptColor[m.department] || '#6B7280';
+ const dLabel = (typeof window.memoDeptLabel === 'function') ? window.memoDeptLabel(m.department) : m.department;
+ const ago = (typeof window.memoTimeAgo === 'function') ? window.memoTimeAgo(m.posted_at) : '';
+ const pinIcon = m.pinned ? '<i data-lucide="pin" style="width:11px; height:11px; color:#B45309;"></i> ' : '';
+ return '<div style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:6px;">'
+ + '<div style="flex:1; min-width:0;">'
+ + '<div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">'
+ + '<span style="font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; background:'+dColor+'22; color:'+dColor+'; text-transform:uppercase;">'+dLabel+'</span>'
+ + (m.pinned ? '<span style="font-size:10px; color:#B45309; font-weight:700;">'+pinIcon+'PIN</span>' : '')
+ + '</div>'
+ + '<div style="font-size:13px; font-weight:700; color:#78350F; line-height:1.3;">' + (m.title || '') + '</div>'
+ + '<div style="font-size:11px; color:var(--neutral-500); margin-top:2px;">' + ago + '</div>'
+ + '</div>'
+ + '</div>';
+ }).join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+window.__renderDashOverviewRoster = function() {
+ const list = document.getElementById('dashOverviewRosterList');
+ const dateEl = document.getElementById('dashOverviewRosterDate');
+ if(!list) return;
+ const today = new Date();
+ const dateStr = today.toISOString().slice(0,10);
+ const dayLabel = today.toLocaleDateString('en-MY', { weekday:'long', day:'2-digit', month:'short' });
+ if(dateEl) dateEl.textContent = '· ' + dayLabel;
+ const all = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules)) ? staffSchedules : [];
+ const today_sched = all.filter(s => s.date === dateStr);
+ if(today_sched.length === 0) {
+ list.innerHTML = '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Jadual belum ditetapkan untuk hari ni.</p>';
+ return;
+ }
+ const SHIFT_LABEL = {
+ B: { label: 'Syif B (2-8pm)', color:'#0EA5E9' },
+ C: { label: 'Syif C (11am-8pm)', color:'#0F766E' },
+ OFF: { label: 'OFF', color:'#94A3B8' },
+ AL: { label: 'Cuti Tahunan', color:'#F59E0B' },
+ MC: { label: 'Cuti Sakit', color:'#DC2626' },
+ EL: { label: 'Kecemasan', color:'#DC2626' },
+ PH: { label: 'Cuti Umum', color:'#8B5CF6' }
+ };
+ // Group by shift
+ const groups = {};
+ today_sched.forEach(s => {
+ const key = s.shift || 'OTHER';
+ if(!groups[key]) groups[key] = [];
+ groups[key].push(s.staff_name || s.name || '-');
+ });
+ // Order: B, C, OFF, then leave types
+ const order = ['B','C','OFF','AL','MC','EL','PH'];
+ const html = order.filter(k => groups[k]).map(k => {
+ const meta = SHIFT_LABEL[k] || { label:k, color:'#6B7280' };
+ const names = groups[k].join(', ');
+ return '<div style="display:flex; gap:10px; align-items:flex-start; padding:6px 10px; background:#F8FAFC; border-left:3px solid '+meta.color+'; border-radius:4px;">'
+ + '<div style="min-width:110px; font-size:11.5px; font-weight:700; color:'+meta.color+';">'+meta.label+'</div>'
+ + '<div style="flex:1; font-size:12.5px; color:#334155;">'+names+'</div>'
+ + '</div>';
+ }).join('');
+ list.innerHTML = html || '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Jadual belum ditetapkan untuk hari ni.</p>';
+};
+
 window.renderManagerDashboard = function() {
+ // p1_74: Render overview widgets first (lightweight, runs even tanpa sales data)
+ try { window.__renderDashOverviewMemo(); } catch(e){}
+ try { window.__renderDashOverviewRoster(); } catch(e){}
+
  if(typeof salesHistory === 'undefined') return;
 
  const cutoff = dashGetCutoff();
@@ -12791,7 +12542,7 @@ window.updateBreadcrumb = function(sectionTitle) {
 // Superior auto-true (locked); others toggled via Staff Mgmt UI → staffModeAccess_v1
 // p1_37: 'hq' added — control centre mode (HR + Finance + Setup + Investor entry).
 // 'management' kept as legacy alias gate for hq access (back-compat).
-window.MODE_LIST = ['cashier','operations','manager','management','hq','investor'];
+window.MODE_LIST = ['cashier','operations','manager','management','hq'];
 
 // One-time migration: convert staffMgmtAccess_v1 (p1_18) → staffModeAccess_v1 (p1_20)
 (function __migrateModeAccess(){
@@ -12815,9 +12566,9 @@ window.MODE_LIST = ['cashier','operations','manager','management','hq','investor
 // Superior → all true. Others: read overlay; missing key → fallback to ROLE_CAPS.modes
 window.getModesAccess = function(user) {
  user = user || window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
- const out = { cashier:false, operations:false, manager:false, management:false, hq:false, investor:false };
+ const out = { cashier:false, operations:false, manager:false, management:false, hq:false };
  if(!user) return out;
- if(window.isBoss && window.isBoss(user)) return { cashier:true, operations:true, manager:true, management:true, hq:true, investor:true };
+ if(window.isBoss && window.isBoss(user)) return { cashier:true, operations:true, manager:true, management:true, hq:true };
  let overlay = {};
  try { overlay = (JSON.parse(localStorage.getItem('staffModeAccess_v1')||'{}')[user.staff_id]) || {}; } catch(e){}
  // Role-based defaults (back-compat for staff with no overlay entry)
@@ -12841,21 +12592,14 @@ window.getModesAccess = function(user) {
 window.pickDefaultMode = function(user) {
  user = user || window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
  const access = window.getModesAccess(user);
- const onlyInvestor = access.investor && !access.cashier && !access.operations && !access.manager && !access.hq;
- if(onlyInvestor) return 'investor';
  // p1_65 (2026-05-14): Bos lands on Manager mode (was 'hq' pre-p1_63).
- // HR + Finance Department dah migrated ke 10cc, so HQ mode tinggal Setup je —
- // tak guna untuk daily landing. Manager mode lebih relevant + sidebar superior
- // bypass (p1_45) tetap papar Setup items kalau Bos perlu access.
+ // p1_73 (2026-05-20): Investor mode removed.
  if(window.isBoss && window.isBoss(user)) return 'manager';
- // p1_64: Manager-role staff (Aliff/Zack/Moyy) skip Cashier — go straight to Manager mode.
  if(user && user.role === 'mgmt' && access.manager) return 'manager';
  if(access.cashier) return 'cashier';
- // Fallbacks for users without cashier access
  if(access.hq) return 'hq';
  if(access.manager) return 'manager';
  if(access.operations) return 'operations';
- if(access.investor) return 'investor';
  return 'cashier';
 };
 
@@ -12882,13 +12626,13 @@ window.refreshManagementTabVisibility = window.refreshAllModeTabsVisibility;
 
 // ============= UX-2.1 MODE BAR =============
 window.setMode = function(mode) {
- if(!['cashier','operations','manager','management','hq','investor'].includes(mode)) return;
+ if(!['cashier','operations','manager','management','hq'].includes(mode)) return;
  // p1_32: Pengurusan merged into Pengurus — redirect any 'management' calls
  if(mode === 'management') mode = 'manager';
  // Guard: every mode now checked against per-staff access overlay (p1_20)
  const access = (typeof window.getModesAccess === 'function') ? window.getModesAccess() : null;
  if(access && !access[mode]) {
- const labels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ', investor:'Investor' };
+ const labels = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', management:'Pengurusan', hq:'HQ' };
  if(typeof showToast === 'function') showToast('Tiada akses ke ' + (labels[mode]||mode) + ' mode', 'warn');
  return;
  }
@@ -12926,17 +12670,17 @@ window.setMode = function(mode) {
  // ada access (bukan hanya current mode). Setiap staff nampak semua items yang dia
  // berhak akses tanpa perlu manual switch mode. setMode() masih lari untuk auto-jump
  // landing redirect tapi `mode` arg tak digunakan untuk filter sidebar lagi.
- const accessUnion = (typeof window.getModesAccess === 'function') ? window.getModesAccess(__u) : { cashier:false, operations:false, manager:false, hq:false, investor:false };
+ const accessUnion = (typeof window.getModesAccess === 'function') ? window.getModesAccess(__u) : { cashier:false, operations:false, manager:false, hq:false };
  let show = false;
- // Manager access is wide-view: shows everything except hq + investor (those gated separately)
+ // Manager access is wide-view: shows everything except hq (gated separately).
+ // p1_73: investor-only class no longer guards any visible items, kekal harmless.
  if(accessUnion.manager && !isHq && !isInvestor) show = true;
  // Cashier-mode items: sales-only class OR group-toggle="sales"
  if(!show && accessUnion.cashier && (isSales || groupToggle === 'sales')) show = true;
  // Operations-mode items: inv-only class OR group-toggle="inv"
  if(!show && accessUnion.operations && (isInv || groupToggle === 'inv')) show = true;
- // HQ + Investor: only show if user has explicit access (role-gated)
+ // HQ: only show if user has explicit access (role-gated)
  if(!show && accessUnion.hq && isHq) show = true;
- if(!show && accessUnion.investor && isInvestor) show = true;
  it.classList.toggle('mode-hidden', !show);
  });
 
@@ -12988,9 +12732,6 @@ window.setMode = function(mode) {
  // since HQ mode no longer has a meaningful daily-ops home page.
  const dash = document.querySelector('[data-tab="admin_dashboard"]');
  if(dash) dash.click();
- } else if(mode === 'investor') {
- const inv = document.querySelector('[data-tab="investor_overview"]');
- if(inv) inv.click();
  } else {
  const dash = document.querySelector('[data-tab="admin_dashboard"]');
  if(dash) dash.click();
@@ -14130,7 +13871,6 @@ window.I18N = {
  mode_manager: { bm: 'Pengurus', en: 'Manager' },
  mode_management: { bm: 'Pengurusan', en: 'Management' },
  mode_hq: { bm: 'HQ', en: 'HQ' },
- mode_investor: { bm: 'Investor', en: 'Investor' },
 
  // Sidebar groups
  dept_sales: { bm: 'Jabatan Jualan', en: 'Sales Department' },
@@ -15661,8 +15401,8 @@ window.renderAskSection = async function() {
 // Source of truth: staffModeAccess_v1 localStorage. Audit: audit_logs Supabase
 // (action_type='update_mode_access'). Reuses existing overlay format from p1_20.
 (function(){
- const PERM_MODES = ['cashier','operations','manager','hq','investor'];
- const PERM_LABELS = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ', investor:'Investor' };
+ const PERM_MODES = ['cashier','operations','manager','hq'];
+ const PERM_LABELS = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ' };
 
  function escAttr(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
  function actor() { return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null); }
@@ -16025,7 +15765,7 @@ window.renderAskSection = async function() {
  if (row.action_type === 'update_mode_access') {
  const changes = parsed.changes || [];
  changeText = changes.map(c => {
- const lbl = ({ cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ', investor:'Investor', management:'Pengurusan' })[c.mode] || c.mode;
+ const lbl = ({ cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ', management:'Pengurusan' })[c.mode] || c.mode;
  const verb = c.granted ? 'GRANT' : 'REVOKE';
  const cls = c.granted ? 'perm-audit-grant' : 'perm-audit-revoke';
  return '<span class="' + cls + '">' + verb + ' ' + escAttr(lbl) + '</span>';

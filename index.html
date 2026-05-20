@@ -1236,10 +1236,7 @@
  </span>
  <span id="memoBadgePending" style="display:none; background:#EF4444; color:#FFF; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center;">0</span>
  </div>
- <!-- INVESTOR DASHBOARD — visible Investor mode only (p1_21) -->
- <div class="menu-item investor-only" data-tab="investor_overview" onclick="switchHub(['investorSection'], 'Investor Dashboard', this); if(typeof renderInvestor==='function') renderInvestor();" style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, #1E3A8A, #1E40AF); color:#FFF; font-weight:700; border:1px solid #1E3A8A;">
- <i data-lucide="trending-up" style="width:16px; height:16px;"></i> Investor Dashboard
- </div>
+ <!-- p1_73: Investor Dashboard removed from POS (lives in 10cc Command Centre now) -->
  <!-- SALES DEPARTMENT HUB & SUB-MENUS -->
  <div class="menu-item sales-only" data-group-toggle="sales" onclick="toggleSidebarGroup('sales')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
  <span data-i18n="dept_sales">Sales Department</span>
@@ -1500,10 +1497,7 @@
  <i data-lucide="building-2" class="mode-tab__icon" style="width:16px; height:16px;"></i>
  <span data-i18n="mode_hq">HQ</span>
  </button>
- <button class="mode-tab mode-tab--investor" id="modeTabInvestor" data-mode-set="investor" onclick="window.setMode('investor')" role="tab" aria-selected="false" style="display:none;" title="Investor — Board-level dashboard (locked-down read-only view)">
- <i data-lucide="trending-up" class="mode-tab__icon" style="width:16px; height:16px;"></i>
- <span data-i18n="mode_investor">Investor</span>
- </button>
+ <!-- p1_73: Investor mode tab removed -->
  </div>
  </div>
  <div style="margin-left:auto; display:flex; align-items:center; padding:4px 12px; font-size:11px; color:var(--neutral-500);" id="modeHint">
@@ -2670,125 +2664,6 @@
  <!-- ============================================== -->
  <!-- SECTION: FINANCE & P&L (ADMIN ONLY) -->
  <!-- ============================================== -->
- <!-- ============================================== -->
- <!-- SECTION: INVESTOR DASHBOARD (p1_21) -->
- <!-- ============================================== -->
- <div id="investorSection" class="tab-section investor-deck" style="display:none;">
- <!-- Hero header with health score -->
- <div class="inv-hero">
- <div class="inv-hero__brand">
- <div class="inv-hero__logo">10</div>
- <div>
- <div class="inv-hero__title">10 CAMP · Investor Briefing</div>
- <div class="inv-hero__sub">Confidential · For shareholders only · Generated <span id="invGenTime"></span></div>
- </div>
- </div>
- <div class="inv-hero__score">
- <div class="inv-score-ring">
- <svg viewBox="0 0 120 120">
- <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
- <circle id="invScoreRing" cx="60" cy="60" r="54" fill="none" stroke="#10B981" stroke-width="10" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" transform="rotate(-90 60 60)"/>
- </svg>
- <div class="inv-score-num">
- <span id="invScoreVal">—</span>
- <small id="invScoreGrade">—</small>
- </div>
- </div>
- <div class="inv-score-lbl">Business Health Score</div>
- </div>
- </div>
-
- <!-- Cap Table strip -->
- <div class="inv-cap-table">
- <h4 class="inv-h"> Cap Table</h4>
- <div class="inv-cap-grid">
- <div class="inv-cap-row inv-cap-row--majority">
- <div class="inv-cap-name">brolantodak <span class="inv-cap-tag">Majority</span></div>
- <div class="inv-cap-bar"><div class="inv-cap-bar__fill" style="width:51%; background:#1E40AF;"></div></div>
- <div class="inv-cap-pct">51%</div>
- </div>
- <div class="inv-cap-row">
- <div class="inv-cap-name">Zaid <span class="inv-cap-tag inv-cap-tag--ops">Operator</span></div>
- <div class="inv-cap-bar"><div class="inv-cap-bar__fill" style="width:49%; background:#0EA5E9;"></div></div>
- <div class="inv-cap-pct">49%</div>
- </div>
- </div>
- <div class="inv-cap-foot">Total equity: 100% (2 shareholders) · No outstanding options/warrants tracked</div>
- </div>
-
- <!-- KPI strip — financial snapshot -->
- <h4 class="inv-h" style="margin-top:18px;"> Financial Snapshot</h4>
- <div class="inv-kpi-grid">
- <div class="inv-kpi"><div class="inv-kpi__lbl">ARR (annualized)</div><div class="inv-kpi__val" id="invARR">—</div><div class="inv-kpi__sub">Last 12mo × annualizer</div></div>
- <div class="inv-kpi"><div class="inv-kpi__lbl">MTD Revenue</div><div class="inv-kpi__val" id="invMTD">—</div><div class="inv-kpi__sub" id="invMTDDelta">vs last month</div></div>
- <div class="inv-kpi inv-kpi--accent"><div class="inv-kpi__lbl">Gross Margin</div><div class="inv-kpi__val" id="invGM">—</div><div class="inv-kpi__sub">Revenue − COGS</div></div>
- <div class="inv-kpi inv-kpi--accent"><div class="inv-kpi__lbl">Net Margin</div><div class="inv-kpi__val" id="invNM">—</div><div class="inv-kpi__sub">After all expenses</div></div>
- <div class="inv-kpi"><div class="inv-kpi__lbl">Burn / Profit</div><div class="inv-kpi__val" id="invBurn">—</div><div class="inv-kpi__sub" id="invBurnSub">monthly avg</div></div>
- <div class="inv-kpi"><div class="inv-kpi__lbl">Runway</div><div class="inv-kpi__val" id="invRunway">—</div><div class="inv-kpi__sub">est. months at burn</div></div>
- </div>
-
- <!-- 2-col: Growth + Unit Economics -->
- <div class="inv-split">
- <div class="inv-card">
- <h4 class="inv-h"> Growth Engine</h4>
- <canvas id="invGrowthChart" style="max-height:220px;"></canvas>
- <div class="inv-stat-row">
- <div><span class="inv-stat-lbl">MoM growth</span> <span class="inv-stat-val" id="invMoM">—</span></div>
- <div><span class="inv-stat-lbl">YoY growth</span> <span class="inv-stat-val" id="invYoY">—</span></div>
- <div><span class="inv-stat-lbl">AOV</span> <span class="inv-stat-val" id="invAOV">—</span></div>
- <div><span class="inv-stat-lbl">Repeat rate</span> <span class="inv-stat-val" id="invRepeat">—</span></div>
- </div>
- </div>
- <div class="inv-card">
- <h4 class="inv-h"> Unit Economics</h4>
- <div class="inv-stat-row inv-stat-row--cols">
- <div><span class="inv-stat-lbl">LTV (avg)</span> <span class="inv-stat-val" id="invLTV">—</span></div>
- <div><span class="inv-stat-lbl">Customers</span> <span class="inv-stat-val" id="invCustCount">—</span></div>
- <div><span class="inv-stat-lbl">Total orders</span> <span class="inv-stat-val" id="invOrderCount">—</span></div>
- <div><span class="inv-stat-lbl">Revenue / staff</span> <span class="inv-stat-val" id="invRevPerStaff">—</span></div>
- </div>
- <h5 class="inv-subh">Per-channel margin</h5>
- <canvas id="invChannelChart" style="max-height:160px;"></canvas>
- </div>
- </div>
-
- <!-- 2-col: Inventory Health + Risk Radar -->
- <div class="inv-split">
- <div class="inv-card">
- <h4 class="inv-h"> Inventory Health</h4>
- <div class="inv-stat-row inv-stat-row--cols">
- <div><span class="inv-stat-lbl">Inventory value</span> <span class="inv-stat-val" id="invInvValue">—</span></div>
- <div><span class="inv-stat-lbl">Turnover (annual)</span> <span class="inv-stat-val" id="invTurnover">—</span></div>
- <div><span class="inv-stat-lbl">Days outstanding</span> <span class="inv-stat-val" id="invDIO">—</span></div>
- <div><span class="inv-stat-lbl">Dead stock (>365d)</span> <span class="inv-stat-val" id="invDead">—</span></div>
- </div>
- <h5 class="inv-subh">Top-10 SKU contribution</h5>
- <div id="invTopSkus" style="font-size:11px;"></div>
- </div>
- <div class="inv-card">
- <h4 class="inv-h"> Risk Radar</h4>
- <div class="inv-stat-row inv-stat-row--cols">
- <div><span class="inv-stat-lbl">Top-5 customer concentration</span> <span class="inv-stat-val" id="invConcCust">—</span></div>
- <div><span class="inv-stat-lbl">Refund rate (12mo)</span> <span class="inv-stat-val" id="invRefundRate">—</span></div>
- <div><span class="inv-stat-lbl">Outstanding AR</span> <span class="inv-stat-val" id="invARTotal">—</span></div>
- <div><span class="inv-stat-lbl">AR> 90 days</span> <span class="inv-stat-val" id="invAR90">—</span></div>
- </div>
- <h5 class="inv-subh">AR aging buckets</h5>
- <canvas id="invARChart" style="max-height:140px;"></canvas>
- </div>
- </div>
-
- <!-- Insights -->
- <div class="inv-card" style="margin-top:14px;">
- <h4 class="inv-h"> Strategic Outlook</h4>
- <div id="invStrategicNotes" style="font-size:13px; line-height:1.6; color:#1F2937;"></div>
- </div>
-
- <div class="inv-foot">
- <strong>Data sources:</strong> live POS sales · finance ledger · customer DB · inventory batches · quotation log<br>
- <strong>Note:</strong> Computed at view-time from local data; not reviewed by external auditor. For management use only.
- </div>
- </div>
 
  <!-- ============================================== -->
  <!-- SECTION: MEMO BOARD (p1_19) -->
@@ -4227,6 +4102,37 @@
  <div class="dash-target-bar__foot" id="dashTargetFoot">Set monthly target to enable progress tracking.</div>
  </div>
 
+ <!-- p1_74: Overview row — Memo + Jadual ringkas supaya staff nampak terus. -->
+ <div class="dash-overview-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-3); margin-bottom:var(--space-3);">
+ <!-- Memo Terkini -->
+ <div class="dash-card" id="dashOverviewMemoCard">
+ <div class="dash-card__head">
+ <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
+ <i data-lucide="megaphone" style="width:16px; height:16px; color:#B45309;"></i>
+ Memo Terkini
+ </h3>
+ <button onclick="document.querySelector('[data-tab=memo_board]').click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;">Lihat semua</button>
+ </div>
+ <div id="dashOverviewMemoList" style="display:flex; flex-direction:column; gap:8px; padding:8px 0;">
+ <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Tiada memo aktif.</p>
+ </div>
+ </div>
+
+ <!-- Jadual Hari Ni -->
+ <div class="dash-card" id="dashOverviewRosterCard">
+ <div class="dash-card__head">
+ <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
+ <i data-lucide="calendar-days" style="width:16px; height:16px; color:#0F766E;"></i>
+ Jadual <span id="dashOverviewRosterDate" style="font-weight:400; color:var(--neutral-500); font-size:12px;"></span>
+ </h3>
+ <button onclick="document.querySelector('[data-tab=hr_roster]')?.click() || document.querySelector('[data-tab=inv_roster]')?.click() || document.querySelector('[data-tab=roster]')?.click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;">Lihat penuh</button>
+ </div>
+ <div id="dashOverviewRosterList" style="display:flex; flex-direction:column; gap:6px; padding:8px 0;">
+ <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Jadual belum ditetapkan untuk hari ni.</p>
+ </div>
+ </div>
+ </div>
+
  <!-- Hero + secondary stats — now with Gross Margin + Repeat Rate -->
  <div class="dash-hero-row">
  <!-- Hero: Net Revenue with sparkline + trend + GM% -->
@@ -4890,7 +4796,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (72/72 · last 2026-05-20)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (74/74 · last 2026-05-20)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -4964,6 +4870,8 @@
  { id:'p1_69', label:'HR Department dibawa balik (staff self-service) — sebelum ni HR dihidekan p1_63 (pindah 10cc), tapi staff masih perlu lihat baki cuti + hantar tuntutan claim dalam POS harian. Skop sengaja kecil: Cuti + Claim sahaja (selebihnya nanti). (1) CSS hide sempitkan kepada finance je — HR header + items hr muncul semula. (2) Sidebar entries lama (Staff Mgmt, Roster-Attendance) digantikan dengan dua entry baru: "Cuti" (hrCutiSection) + "Claim" (hrClaimSection). (3) hrCutiSection: papar nama/department/baki cuti AL/tarikh mula kerja staff, panel Faedah (EPF/SOCSO/EIS + jenis cuti) + Skop Kerja (ikut role), jadual sejarah cuti (pending + approved digabung), butang Pohon Cuti Baru ke borang permohonan roster. (4) hrClaimSection: borang hantar tuntutan (jenis Perubatan/Pengangkutan/Makanan/Pejabat/Lain-Lain + jumlah + tarikh + keterangan), senarai tuntutan dengan badge status. Bos view nampak semua tuntutan staff + butang Lulus/Tolak; staff lain nampak tuntutan sendiri sahaja. Hanya Bos boleh lulus/tolak (hrcApproveClaim/hrcRejectClaim di-gate role==="superior"). Data claim disimpan dalam localStorage staff_claims_v1 (skema scaffold, boleh pindah Supabase kemudian)', d:'done' },
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
+ { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_74', label:'Memo + Jadual Hari Ni dalam Manager Dashboard overview. Sebelum ni staff perlu klik sidebar Memo Board / Jadual Operasi untuk lihat status. Sekarang Manager Dashboard (admin_dashboard, landing default untuk Bos + mgmt) ada baris overview baru di atas hero stats dengan dua kad: (1) Memo Terkini — papar 3 memo approved terbaharu (pinned dulu, kemudian latest), termasuk department badge berwarna, status PIN, dan timestamp "X jam lepas". Klik "Lihat semua" → terus ke sidebar Memo Board. (2) Jadual Hari Ni — papar jadual operasi staff untuk tarikh hari ni, dikelompokkan ikut syif (Syif B 2-8pm, Syif C 11am-8pm, OFF, AL, MC, EL, PH) dengan warna unik. Klik "Lihat penuh" → terus ke roster. Render functions __renderDashOverviewMemo + __renderDashOverviewRoster dipanggil dari renderManagerDashboard sebelum data sales loaded supaya tampil walaupun data POS belum ready. Source data: window.memoLoad() untuk memos + staffSchedules array untuk roster. Layout: 2-column grid, padding card sama dengan dash-card lain', d:'done' },
  { id:'p1_72', label:'Role superior dipencen + email-only login + first-login password setup. (1) Konsep "superior" sebagai role hierarchy DIBUANG — Zaid dikenali via jawatan dept="Managing Director" (helper window.isBoss(u)). authUsers Zaid role superior → mgmt. ROLE_CAPS.superior dipadam (Zaid kini guna ROLE_CAPS.mgmt + isBoss bypass untuk sidebar full access). Semua semakan role==="superior" di app.js + index.html (~25 tempat) digantikan dengan isBoss(u): approval gates (claim/leave/refund void/PDPA delete), Permissions Centre matrix (sort/lock Bos row), Memo Board (pending tab + delete), Welcome screen stats, Manager dashboards, mode access bypass (p1_45). Dropdown role Staff Mgmt + Permissions Preview keluarkan option "Superior". Counts dashboard buang counter superior. UI label "Superior" → "Bos" (Managing Director) semua tempat. (2) PIN tab DIBUANG dari login overlay default — login UI sekarang email/password sahaja. Form PIN kekal dorman dalam DOM, boleh diaktifkan via window.__showPinFallback() untuk emergency. submitPinLogin tak diubah — masih jalan kalau dipanggil. (3) Password reset/setup flow: butang "Lupa / Tetap Password Baharu" bawah login → prompt emel → db.auth.resetPasswordForEmail dengan redirectTo current page → Supabase hantar email. Auth state listener tangkap event PASSWORD_RECOVERY → buka modal Set Password Baharu → db.auth.updateUser({password, data:{must_change_password:false}}) → signOut + redirect ke login. Flow first-login: submitEmailLogin check user.user_metadata.must_change_password; jika true → buka set-password modal terus (admin set flag bila cipta Supabase Auth user dengan placeholder password). Setup steps untuk Zaid: dashboard Supabase → Authentication → cipta user untuk setiap staff guna placeholder password (cthnya Welcome10camp!) + tick raw_user_meta_data must_change_password=true. Staff first login akan auto-prompt set password baharu mereka', d:'done' }
 ]},
  { id:'p2', num:'PHASE 2', name:'Compliance & Payments MY', status:'active', goal:'Legal-ready untuk pasaran Malaysia', eta:'Q2-Q3 2026 · 5/7 shipped (e-Invoice LHDN + e-wallet native blocked on external creds)',
@@ -7025,7 +6933,6 @@
  <option value="sales">Sales</option>
  <option value="inventory">Inventory</option>
  <option value="mgmt">Management</option>
- <option value="investor">Investor</option>
  </select>
  </div>
  <div class="sm-field">
@@ -7086,13 +6993,7 @@
  <div style="font-size:11px; color:#064E3B; margin-top:2px;"><strong>Sensitive:</strong> unlock HQ mode — HR (gaji, roster, attendance) + Finance (untung-rugi, ledger, backup, compliance) + Setup (shop config, payments, sync, test guide). Pengurus mode kekal POS-only.</div>
  </span>
  </label>
- <label class="sm-mode-row" data-mode="investor" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#DBEAFE; border:1px solid #1E40AF; border-radius:6px; cursor:pointer; grid-column:1/-1;">
- <input type="checkbox" id="smfMode_investor" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
- <span>
- <strong style="color:#1E3A8A;"> Investor </strong>
- <div style="font-size:11px; color:#1E3A8A; margin-top:2px;"><strong>Highly sensitive:</strong> Cap table, equity split, ARR, unit economics, burn/runway. Hanya shareholder.</div>
- </span>
- </label>
+ <!-- p1_73: Investor mode option removed -->
  </div>
  <div class="hint" id="smfModeAccessHint" style="color:#78350f; margin-top:8px; font-size:11px;"> Hanya Bos boleh ubah. Default landing = mode tertinggi yang accessible (HQ &gt; Pengurus &gt; Operasi &gt; Kaunter).</div>
  </div>
@@ -7323,7 +7224,7 @@
  const targetIsBoss = typeof window.isBoss === 'function' ? window.isBoss(u) : false;
  const isSelf = actor && actor.staff_id === u.staff_id;
  const access = (typeof window.getModesAccess === 'function') ? window.getModesAccess(u) : { cashier:true, operations:false, manager:false, management:false };
- ['cashier','operations','manager','management','investor'].forEach(m => {
+ ['cashier','operations','manager','management'].forEach(m => {
  const el = document.getElementById('smfMode_' + m);
  if(!el) return;
  if(targetIsBoss) {
@@ -7350,7 +7251,7 @@
  // New staff: pre-check based on selected role
  const actor = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
  const actorIsBoss = typeof window.isBoss === 'function' ? window.isBoss(actor) : false;
- ['cashier','operations','manager','management','investor'].forEach(m => {
+ ['cashier','operations','manager','management'].forEach(m => {
  const el = document.getElementById('smfMode_' + m);
  if(!el) return;
  el.checked = (m === 'cashier'); // sales role default
@@ -7406,7 +7307,7 @@
  try { modeOverlay = JSON.parse(localStorage.getItem('staffModeAccess_v1')||'{}'); } catch(e){}
  const prev = (typeof window.getModesAccess === 'function') ? window.getModesAccess(staff) : {};
  const next = {};
- ['cashier','operations','manager','management','investor'].forEach(m => {
+ ['cashier','operations','manager','management'].forEach(m => {
  const el = document.getElementById('smfMode_' + m);
  next[m] = el ? !!el.checked : false;
  });
@@ -7425,7 +7326,7 @@
  try {
  if(typeof db !== 'undefined' && db && db.from) {
  const changes = [];
- ['cashier','operations','manager','management','investor'].forEach(m => {
+ ['cashier','operations','manager','management'].forEach(m => {
  if(prev[m] !== next[m]) changes.push({ mode: m, granted: next[m] });
  });
  if(changes.length) {
@@ -9350,7 +9251,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=163"></script>
+ <script src="app.js?v=164"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

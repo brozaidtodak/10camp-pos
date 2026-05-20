@@ -2532,6 +2532,16 @@ window.clearCart = function() {
  renderCart();
 }
 
+// p1_79 fix #13: Cashier-initiated cart clear with confirm guard.
+// Wraps clearCart so the button onclick + F10 keyboard shortcut both
+// route through one confirm prompt when the cart has items. Post-checkout
+// auto-clears still call clearCart directly to skip the dialog.
+window.posConfirmClearCart = function() {
+ if(!cart || cart.length === 0) { window.clearCart(); return; }
+ const msg = (typeof window.t === 'function' ? window.t('cs_clear_cart_confirm') : null) || 'Kosongkan troli?';
+ if(confirm(msg)) window.clearCart();
+};
+
 // p1_79 fix #2: Customer Attach widget — link customer to current sale before checkout.
 window.posCustomer = null;
 
@@ -2583,14 +2593,7 @@ document.addEventListener('keydown', function(e) {
  if(typeof window.openPaymentModal === 'function' && cart.length > 0) window.openPaymentModal();
  } else if(e.key === 'F10') {
  e.preventDefault();
- if(typeof window.clearCart === 'function') {
- if(cart.length > 0) {
- const msg = (typeof window.t === 'function' ? window.t('cs_clear_cart_confirm') : null) || 'Kosongkan troli?';
- if(confirm(msg)) window.clearCart();
- } else {
- window.clearCart();
- }
- }
+ if(typeof window.posConfirmClearCart === 'function') window.posConfirmClearCart();
  } else if(e.key === 'Escape') {
  const pay = document.getElementById('checkoutPaymentModal');
  if(pay && pay.style.display === 'flex') { pay.style.display = 'none'; e.preventDefault(); return; }

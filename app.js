@@ -919,7 +919,7 @@ window.renderDashboard = function() {
  tbodyLines.innerHTML = '<tr><td colspan="4" style="padding:18px; text-align:center; color:var(--text-muted); font-size:12.5px;">Belum ada sales dalam range ni. Pilih range lebih luas atau buat sale pertama.</td></tr>';
  } else {
  topArr.forEach((o, i) => {
- tbodyLines.innerHTML += `<tr style="cursor:pointer;" onclick="window.__dashGoto('inv_mapping')">
+ tbodyLines.innerHTML += `<tr style="cursor:pointer;" onclick="window.__dashGoto('inv_database')">
  <td style="width:24px; font-weight:bold; color:#888;">#${i+1}</td>
  <td><strong>${o.name}</strong></td>
  <td style="color:#10b981; font-weight:700;">${o.qty} sold</td>
@@ -12959,7 +12959,7 @@ function renderCmdkResults(query) {
  subtitle: `Customer · ${c.total_orders||0} orders · RM${(c.total_spent||0).toFixed(0)}`,
  icon: 'user',
  action: () => {
- const btn = document.querySelector('[data-tab="sales_crm"]');
+ const btn = document.querySelector('[data-tab="customers_all"]');
  if(btn) btn.click();
  setTimeout(() => {
  const s = document.getElementById('crmSearch');

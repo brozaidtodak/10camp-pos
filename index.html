@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=37">
- <link rel="stylesheet" href="design-tokens.css?v=48">
+ <link rel="stylesheet" href="design-tokens.css?v=49">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1221,40 +1221,40 @@
  <!-- p1_88: Sidebar restructured — icon rail (left) + menu panel (right). Filter items via __activeRail. -->
  <div class="sidebar" id="appSidebar">
  <aside id="sidebarRail" class="sidebar-rail">
- <button class="rail-item" data-rail="overview" data-rail-role="mgmt-only" onclick="window.setActiveRail('overview', true)" title="Overview / Ringkasan">
+ <button class="rail-item" data-rail="overview" data-rail-role="mgmt-only" onclick="window.setActiveRail('overview', true)" data-tooltip="Overview">
  <i data-lucide="layout-dashboard"></i>
  </button>
- <button class="rail-item" data-rail="memo" onclick="window.setActiveRail('memo', true)" title="Memo Board">
+ <button class="rail-item" data-rail="memo" onclick="window.setActiveRail('memo', true)" data-tooltip="Memo Board">
  <i data-lucide="megaphone"></i>
  <span class="rail-badge" id="railBadgeMemo" style="display:none;">0</span>
  </button>
  <div class="rail-divider"></div>
- <button class="rail-item" data-rail="sales" data-rail-role="sales-only" onclick="window.setActiveRail('sales')" title="Sales / Jualan">
+ <button class="rail-item" data-rail="sales" data-rail-role="sales-only" onclick="window.setActiveRail('sales')" data-tooltip="Sales">
  <i data-lucide="shopping-cart"></i>
  </button>
- <button class="rail-item" data-rail="customers" onclick="window.setActiveRail('customers')" title="Customers / Pelanggan">
+ <button class="rail-item" data-rail="customers" onclick="window.setActiveRail('customers')" data-tooltip="Customers">
  <i data-lucide="users"></i>
  </button>
- <button class="rail-item" data-rail="inv" data-rail-role="inv-only" onclick="window.setActiveRail('inv')" title="Inventory / Stok">
+ <button class="rail-item" data-rail="inv" data-rail-role="inv-only" onclick="window.setActiveRail('inv')" data-tooltip="Inventory">
  <i data-lucide="package"></i>
  <span class="rail-badge" id="railBadgeFulfill" style="display:none;">0</span>
  </button>
- <button class="rail-item" data-rail="hr" onclick="window.setActiveRail('hr')" title="HR Department">
+ <button class="rail-item" data-rail="hr" onclick="window.setActiveRail('hr')" data-tooltip="HR">
  <i data-lucide="user-round"></i>
  <span class="rail-badge" id="railBadgeHr" style="display:none;">0</span>
  </button>
- <button class="rail-item" data-rail="admin" data-rail-role="mgmt-only" onclick="window.setActiveRail('admin')" title="Admin Department">
+ <button class="rail-item" data-rail="admin" data-rail-role="mgmt-only" onclick="window.setActiveRail('admin')" data-tooltip="Admin">
  <i data-lucide="briefcase"></i>
  <span class="rail-badge" id="railBadgeAudit" style="display:none;">0</span>
  </button>
- <button class="rail-item" data-rail="marketing" onclick="window.setActiveRail('marketing')" title="Marketing">
+ <button class="rail-item" data-rail="marketing" onclick="window.setActiveRail('marketing')" data-tooltip="Marketing">
  <i data-lucide="gift"></i>
  </button>
- <button class="rail-item" data-rail="hq_setup" data-rail-role="hq-only" onclick="window.setActiveRail('hq_setup')" title="Setup">
+ <button class="rail-item" data-rail="hq_setup" data-rail-role="hq-only" onclick="window.setActiveRail('hq_setup')" data-tooltip="Setup">
  <i data-lucide="wrench"></i>
  </button>
  <div style="flex:1;"></div>
- <button class="rail-item rail-item--accent" data-rail="roadmap" onclick="window.setActiveRail('roadmap', true)" title="Roadmap & Progress">
+ <button class="rail-item rail-item--accent" data-rail="roadmap" onclick="window.setActiveRail('roadmap', true)" data-tooltip="Roadmap">
  <i data-lucide="target"></i>
  </button>
  </aside>
@@ -4965,7 +4965,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (88/88 · last 2026-05-20)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (89/89 · last 2026-05-20)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5040,6 +5040,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_89', label:'Sidebar polish — Supabase-inspired typography + custom hover tooltips. Zaid feedback: "part icon tu okay, atau kau tiru style macam supabase ni. font dia pun simple. kalau hover mouse dekat icon baru keluar nama". Improvements ke atas p1_88 rail design. (1) Custom CSS-only tooltip ganti title="..." native browser tooltip — guna data-tooltip attribute + pseudo-element ::after dengan animation fade-in delay 0.3s. Tooltip pill di kanan icon dengan dark bg (#0F1419), 12px font-size weight 500, subtle border, pointer-events:none, z-index 1000 supaya overlay panel. (2) Rail dimensions slimmer: width 60px→56px, button 44x44→40x40, icon 20px→18px, badges 16px→14px. Cleaner ratios less heavy. (3) Rail bg ditukar dari #111 ke #0F1419 (Supabase dark navy), hover state #1E293B (vs #1F2937). (4) Panel typography: menu-item font-size override 13px weight 500 (was 14px 700), tighter padding 8px 16px (was 15px 20px), gap 10px (was 12px), letter-spacing 0. Active state weight 600 (lebih subtle dari sebelum 700). Border-right active 3px (was 4px). (5) Hide redundant sub-dividers Inventory "— Operasi Harian —" / "— Pengurusan Stok —" sebab rail icon dah jadi section indicator. (6) Animation delay 0.3s pada tooltip untuk elak flicker bila staff scan icon-icon cepat. Reference: Supabase dashboard sidebar.', d:'done' },
  { id:'p1_88', label:'Sidebar redesign Slack-style — icon rail (60px) + menu panel (220px). Zaid request "buang departments" dari sidebar — redesign guna icon. Pilih Architecture A (rail + panel). Restructure: (1) #appSidebar sekarang flex container 280px lebar dengan dua child — <aside class="sidebar-rail"> di kiri (icon-only nav) + .sidebar-main di kanan (existing menu items dalam panel). (2) Rail items: Overview (mgmt-only) / Memo Board (everyone, badge) / divider / Sales (sales-only) / Customers / Inventory (inv-only, badge) / HR (badge) / Admin (mgmt-only, badge) / Marketing / Setup (hq-only) / Roadmap accent gradient di bawah. Total 10 buttons. Setiap icon Lucide consistent. (3) State: window.__activeRail persisted localStorage. window.setActiveRail(railId, navigateDirect) — set active class kat rail icon, filter #sidebarMain menu items via display:none kecuali yang match data-group=railId atau standalone matching (overview/memo/roadmap). Hide ALL data-group-toggle headers (rail jadi new header). (4) Standalone rails (overview/memo/roadmap) ada flag navigateDirect=true → terus klik item bersama tanpa perlu staff cari dalam panel. (5) Group rails (sales/customers/inv/hr/admin/marketing/hq_setup) tunjuk items dalam panel je. (6) Auto-sync: window.__tabToRail(tab) map data-tab → rail; loginAs panggil setActiveRail dengan railName before clicking homeTab. (7) Rail badges aggregate: railBadgeMemo (Bos pending memo), railBadgeHr (roster pending + claim pending untuk Bos+Aliff), railBadgeFulfill (Pesanan Online to_fulfil count), railBadgeAudit (audit critical+warn). refreshRailBadges helper centralized. (8) CSS dalam design-tokens.css — rail dark #111 bg, 44px square buttons radius 10px, hover #1F2937, active primary color, accent gradient untuk roadmap, badges red #EF4444 top-right corner. Mobile masih guna slide-in pattern (sidebar.open toggles left:-300 → 0). Total ~110 baris CSS + ~120 baris JS.', d:'done' },
  { id:'p1_87', label:'Order Detail modal ala EasyStore — 2-column comprehensive view bila klik order card. Zaid request "bila click order, aku nak macam ni" (screenshot EasyStore back-office). Build: (1) HTML overlay #orderDetailOverlay dengan header (order ref + date + status pills + close), action bar (Packing Slip + Invoice + Marketplace deep link + prev/next nav), 2-column body (main: 2 KPI tiles total amount + total items / items list dengan SKU+qty+price / breakdown subtotal+discount+shipping+SST+total / history timeline; sidebar: channel card dengan icon+color brand / customer details / shipping address dari metadata.shipping_address atau fallback phone / tracking card hijau bila ada ff_tracking / tags list). (2) JS functions: openOrderDetail(id) cari salesHistory + render, closeOrderDetail clear state, odNavOrder(±1) jump previous/next dalam ffOnlineOrders list, __renderOrderDetail populate semua DOM elements. (3) Wire dari Pesanan Online: ff-card top area dapat cursor:pointer + onclick="if(target buttonOrLink) return; openOrderDetail(o.id)" supaya klik kad body buka detail tapi klik action buttons (Print Slip / Mark Packed) kekal independent. (4) Reuse helpers: ffParseItems untuk parse items JSON, ffMarketplaceLink untuk deep link ke TikTok/Shopee Seller. (5) History timeline auto-build dari sale.created_at + payment_method + metadata.ff_packed_at + ff_shipped_at. Future enhancements (not in this commit): bulk select dari orders table, refund button wire, attachment upload, customer remark inline edit.', d:'done' },
  { id:'p1_86', label:'Buang semua feature AI dari POS — Zaid decide tak nak setup ANTHROPIC_API_KEY dalam Netlify (kena billing setup). Reverse p1_85 + retire p8_3 Tanya AI internal. (1) Padam fail Netlify function: netlify/functions/claude-ask.js + netlify/functions/claude-shop.js. (2) Buang 2 redirects dari netlify.toml: /api/ask dan /api/shop-ai. (3) Buang sidebar item "Tanya 10 CAMP (AI)" dari Admin Department. (4) Buang HTML section askSection (28 baris) + landing page shopAiBubble + shopAiPanel (30 baris). (5) Buang ~175 baris JS Tanya AI block (__askBuildContextSummary + __askExample + __askSend + renderAskSection) dari app.js + ~155 baris Shop AI block (__shopAiHistory state + shopAiToggle + __shopAiRenderHistory + shopAiAsk + shopAiSend + MutationObserver bubble hide). (6) Buang 12 translation keys: sb_tanya_ai + 10 ai_* keys (ai_title/sub/example_*/input_ph/send_btn). Netlify functions untuk TikTok + EasyStore kekal sebab tidak bergantung Anthropic. Zaid boleh revive AI nanti dari git history kalau berubah fikiran.', d:'done' },
@@ -9434,7 +9435,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=209"></script>
+ <script src="app.js?v=210"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

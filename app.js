@@ -13952,6 +13952,7 @@ window.I18N = {
  dash_last_refresh: { bm: 'kemaskini akhir', en: 'last refreshed' },
  dash_target_label: { bm: 'Kemajuan Sasaran Bulanan', en: 'Monthly Target Progress' },
  dash_target_hint_empty: { bm: 'Tetapkan sasaran bulanan untuk mula track kemajuan.', en: 'Set monthly target to enable progress tracking.' },
+ dash_overview_section_title: { bm: 'Overview Hari Ni', en: "Today's Overview" },
  dash_overview_memo_title: { bm: 'Memo Terkini', en: 'Latest Memos' },
  dash_overview_memo_view: { bm: 'Lihat semua', en: 'View all' },
  dash_overview_memo_empty: { bm: 'Tiada memo aktif buat masa ni.', en: 'No active memos right now.' },

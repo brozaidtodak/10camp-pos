@@ -11278,7 +11278,8 @@ window.__renderDashOverview = function() {
  if(row) row.style.display = 'none';
  if(combined) combined.style.display = 'block';
  } else {
- if(row) row.style.display = 'grid';
+ // p1_74 fix #9: clear inline display so CSS class controls layout (incl. media query)
+ if(row) row.style.display = '';
  if(combined) combined.style.display = 'none';
  if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo();
  if(typeof window.__renderDashOverviewRoster === 'function') window.__renderDashOverviewRoster();

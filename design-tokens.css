@@ -2238,6 +2238,15 @@ a:focus-visible {
 }
 @media (max-width: 800px) {.dash-row-2 { grid-template-columns: 1fr; } }
 
+/* p1_74: Overview row — Memo + Jadual Hari Ni (equal-width 2-col) */
+.dash-overview-row {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: var(--space-3);
+ margin-bottom: var(--space-3);
+}
+@media (max-width: 768px) {.dash-overview-row { grid-template-columns: 1fr; } }
+
 /* Three-column row: Top SKUs + Top Staff + Low Stock */
 .dash-row-3 {
  display: grid;

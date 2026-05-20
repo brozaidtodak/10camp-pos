@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=37">
- <link rel="stylesheet" href="design-tokens.css?v=50">
+ <link rel="stylesheet" href="design-tokens.css?v=51">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -2928,46 +2928,52 @@
  <div>
  <h2 style="margin:0; display:flex; align-items:center; gap:10px;">
  <i data-lucide="megaphone" style="width:24px; height:24px; color:#B45309;"></i>
- Memo Board
+ <span data-i18n="mb_title">Memo Board</span>
  </h2>
- <p style="margin:4px 0 0; font-size:13px; color:#6B7280;">Pengumuman antara department · approved memos disimpan untuk rujukan</p>
+ <p style="margin:4px 0 0; font-size:13px; color:#6B7280;" data-i18n="mb_sub">Pengumuman dan polisi · memo approved kekal sebagai rujukan staf.</p>
  </div>
  <button class="memo-btn memo-btn--gold" onclick="window.memoOpenSubmit()">
- <i data-lucide="plus" style="width:16px; height:16px;"></i> Memo Baru
+ <i data-lucide="plus" style="width:16px; height:16px;"></i> <span data-i18n="mb_new_btn">Memo Baru</span>
  </button>
+ </div>
+
+ <!-- p1_94: Search bar -->
+ <div class="memo-search-wrap">
+ <i data-lucide="search" class="memo-search-icon"></i>
+ <input type="text" id="memoSearchInput" class="memo-search-input" placeholder="Cari memo…" data-i18n-placeholder="mb_search_ph" oninput="window.memoSetSearch(this.value)">
  </div>
 
  <!-- Status filter tabs -->
  <div class="memo-tabs">
  <button class="memo-tab memo-tab--active" data-memo-status="approved" onclick="window.memoSetStatus('approved', this)">
- Approved <span class="memo-tab__count" id="memoCountApproved">0</span>
+ <i data-lucide="check-circle" style="width:14px; height:14px;"></i> <span data-i18n="mb_tab_approved">Approved</span> <span class="memo-tab__count" id="memoCountApproved">0</span>
  </button>
  <button class="memo-tab" data-memo-status="pending" onclick="window.memoSetStatus('pending', this)" id="memoTabPending">
- ⏳ Pending Approval <span class="memo-tab__count" id="memoCountPending">0</span>
+ <i data-lucide="clock" style="width:14px; height:14px;"></i> <span data-i18n="mb_tab_pending">Pending Approval</span> <span class="memo-tab__count" id="memoCountPending">0</span>
  </button>
  <button class="memo-tab" data-memo-status="rejected" onclick="window.memoSetStatus('rejected', this)">
- Rejected <span class="memo-tab__count" id="memoCountRejected">0</span>
+ <i data-lucide="x-circle" style="width:14px; height:14px;"></i> <span data-i18n="mb_tab_rejected">Rejected</span> <span class="memo-tab__count" id="memoCountRejected">0</span>
  </button>
  <button class="memo-tab" data-memo-status="mine" onclick="window.memoSetStatus('mine', this)">
- Memo Saya <span class="memo-tab__count" id="memoCountMine">0</span>
+ <i data-lucide="user" style="width:14px; height:14px;"></i> <span data-i18n="mb_tab_mine">Memo Saya</span> <span class="memo-tab__count" id="memoCountMine">0</span>
  </button>
  </div>
 
  <!-- Department filter pills -->
  <div class="memo-deptbar">
- <span style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; margin-right:6px;">Department:</span>
- <button class="memo-dept memo-dept--active" data-memo-dept="all" onclick="window.memoSetDept('all', this)">Semua</button>
- <button class="memo-dept" data-memo-dept="general" onclick="window.memoSetDept('general', this)">General</button>
- <button class="memo-dept memo-dept--sales" data-memo-dept="sales" onclick="window.memoSetDept('sales', this)">Sales</button>
- <button class="memo-dept memo-dept--inv" data-memo-dept="inv" onclick="window.memoSetDept('inv', this)">Inventory</button>
- <button class="memo-dept memo-dept--admin" data-memo-dept="admin" onclick="window.memoSetDept('admin', this)">Admin</button>
- <button class="memo-dept memo-dept--hr" data-memo-dept="hr" onclick="window.memoSetDept('hr', this)">HR</button>
- <button class="memo-dept memo-dept--finance" data-memo-dept="finance" onclick="window.memoSetDept('finance', this)">Finance</button>
+ <span style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; margin-right:6px;" data-i18n="mb_dept_label">Department:</span>
+ <button class="memo-dept memo-dept--active" data-memo-dept="all" onclick="window.memoSetDept('all', this)" data-i18n="mb_dept_all">Semua</button>
+ <button class="memo-dept" data-memo-dept="general" onclick="window.memoSetDept('general', this)" data-i18n="mb_dept_general">General</button>
+ <button class="memo-dept memo-dept--sales" data-memo-dept="sales" onclick="window.memoSetDept('sales', this)" data-i18n="mb_dept_sales">Sales</button>
+ <button class="memo-dept memo-dept--inv" data-memo-dept="inv" onclick="window.memoSetDept('inv', this)" data-i18n="mb_dept_inv">Inventory</button>
+ <button class="memo-dept memo-dept--admin" data-memo-dept="admin" onclick="window.memoSetDept('admin', this)" data-i18n="mb_dept_admin">Admin</button>
+ <button class="memo-dept memo-dept--hr" data-memo-dept="hr" onclick="window.memoSetDept('hr', this)" data-i18n="mb_dept_hr">HR</button>
+ <button class="memo-dept memo-dept--finance" data-memo-dept="finance" onclick="window.memoSetDept('finance', this)" data-i18n="mb_dept_finance">Finance</button>
  </div>
 
  <!-- Memo cards container -->
  <div id="memoBoardList" class="memo-list">
- <div class="memo-empty">Loading memos...</div>
+ <div class="memo-empty" data-i18n="mb_loading">Loading memos…</div>
  </div>
  </div>
 
@@ -2975,38 +2981,42 @@
  <div id="memoSubmitOverlay" class="fin-modal-overlay" style="display:none;" onclick="if(event.target===this)window.memoCloseSubmit()">
  <div class="fin-modal">
  <div class="fin-modal__head">
- <h3> Hantar Memo Baru</h3>
+ <h3 data-i18n="mb_sub_title">Hantar Memo Baru</h3>
  <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseSubmit()">×</button>
  </div>
  <div class="fin-modal__body">
- <div style="background:#FEF3C7; border:1px solid #FCD34D; padding:8px 10px; border-radius:6px; font-size:11px; color:#78350F; margin-bottom:14px;">
- ℹ Memo akan masuk <strong>Pending Approval</strong> dulu. Hanya selepas Bos approve, ia akan muncul untuk semua staf rujuk.
+ <div style="display:flex; gap:8px; align-items:flex-start; background:#FEF3C7; border:1px solid #FCD34D; padding:10px 12px; border-radius:6px; font-size:11px; color:#78350F; margin-bottom:14px;">
+ <i data-lucide="info" style="width:14px; height:14px; flex-shrink:0; margin-top:1px;"></i>
+ <span data-i18n="mb_sub_info">Memo akan masuk Pending Approval dulu. Hanya selepas Bos lulus, ia muncul untuk semua staf rujuk.</span>
  </div>
- <label class="fin-lbl">Department</label>
+ <label class="fin-lbl" data-i18n="mb_sub_dept_lbl">Department</label>
  <select id="memoFormDept" class="fin-input">
- <option value="general">General (semua department)</option>
- <option value="sales">Sales</option>
- <option value="inv">Inventory</option>
- <option value="admin">Admin</option>
- <option value="hr">HR</option>
- <option value="finance">Finance</option>
+ <option value="general" data-i18n="mb_sub_dept_general">Umum (semua department)</option>
+ <option value="sales" data-i18n="mb_dept_sales">Sales</option>
+ <option value="inv" data-i18n="mb_dept_inv">Inventory</option>
+ <option value="admin" data-i18n="mb_dept_admin">Admin</option>
+ <option value="hr" data-i18n="mb_dept_hr">HR</option>
+ <option value="finance" data-i18n="mb_dept_finance">Finance</option>
  </select>
- <label class="fin-lbl">Tajuk</label>
- <input type="text" id="memoFormTitle" class="fin-input" placeholder="Cth: Promosi Raya bermula 15 Mei" maxlength="100">
- <label class="fin-lbl">Isi Memo</label>
- <textarea id="memoFormBody" class="fin-input" rows="5" placeholder="Tulis details memo di sini..." maxlength="2000"></textarea>
+ <label class="fin-lbl" data-i18n="mb_sub_title_lbl">Tajuk</label>
+ <input type="text" id="memoFormTitle" class="fin-input" placeholder="Cth: Promosi Raya bermula 15 Mei" data-i18n-placeholder="mb_sub_title_ph" maxlength="100">
+ <label class="fin-lbl" data-i18n="mb_sub_body_lbl">Isi Memo</label>
+ <textarea id="memoFormBody" class="fin-input" rows="5" placeholder="Tulis detail memo di sini…" data-i18n-placeholder="mb_sub_body_ph" maxlength="2000"></textarea>
  <div style="margin-top:14px; padding:10px; background:#F9FAFB; border-radius:6px; border:1px solid #E5E7EB;">
- <label class="fin-toggle">
+ <label class="fin-toggle" style="display:flex; align-items:center; gap:8px;">
  <input type="checkbox" id="memoFormPinned">
  <span class="fin-toggle__slider"></span>
- <span class="fin-toggle__label"> Pin sebagai memo penting (popup masa staf login)</span>
+ <span class="fin-toggle__label" style="display:inline-flex; align-items:center; gap:6px;">
+ <i data-lucide="pin" style="width:13px; height:13px;"></i>
+ <span data-i18n="mb_sub_pin_lbl">Pin sebagai memo penting (popup masa staf login)</span>
+ </span>
  </label>
  </div>
  </div>
  <div class="fin-modal__foot">
- <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseSubmit()">Batal</button>
+ <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseSubmit()" data-i18n="mb_sub_cancel">Batal</button>
  <button class="fin-btn fin-btn--gold" onclick="window.memoSubmit()">
- <i data-lucide="send" style="width:14px; height:14px;"></i> Hantar untuk Approval
+ <i data-lucide="send" style="width:14px; height:14px;"></i> <span data-i18n="mb_sub_send">Hantar untuk Kelulusan</span>
  </button>
  </div>
  </div>
@@ -3016,18 +3026,18 @@
  <div id="memoRejectOverlay" class="fin-modal-overlay" style="display:none;" onclick="if(event.target===this)window.memoCloseReject()">
  <div class="fin-modal">
  <div class="fin-modal__head">
- <h3> Reject Memo</h3>
+ <h3 data-i18n="mb_rej_title">Tolak Memo</h3>
  <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseReject()">×</button>
  </div>
  <div class="fin-modal__body">
  <div id="memoRejectPreview" style="background:#F9FAFB; padding:10px; border-radius:6px; border:1px solid #E5E7EB; margin-bottom:14px; font-size:12px;"></div>
- <label class="fin-lbl">Sebab Reject (akan dilihat oleh penghantar)</label>
- <textarea id="memoRejectReason" class="fin-input" rows="3" placeholder="Cth: Tarikh tidak betul / kandungan tak sesuai untuk customer-facing..."></textarea>
+ <label class="fin-lbl" data-i18n="mb_rej_reason_lbl">Sebab Tolak (akan dilihat oleh penghantar)</label>
+ <textarea id="memoRejectReason" class="fin-input" rows="3" placeholder="Cth: Tarikh tidak betul / kandungan tidak sesuai untuk customer-facing…" data-i18n-placeholder="mb_rej_reason_ph"></textarea>
  </div>
  <div class="fin-modal__foot">
- <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseReject()">Batal</button>
- <button class="fin-btn" style="background:#EF4444; color:#FFF; border-color:#DC2626;" onclick="window.memoConfirmReject()">
- Confirm Reject
+ <button class="fin-btn fin-btn--ghost" onclick="window.memoCloseReject()" data-i18n="mb_sub_cancel">Batal</button>
+ <button class="fin-btn" style="background:#EF4444; color:#FFF; border-color:#DC2626;" onclick="window.memoConfirmReject()" data-i18n="mb_rej_confirm">
+ Sahkan Tolak
  </button>
  </div>
  </div>
@@ -5034,7 +5044,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (93/93 · last 2026-05-21)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (94/94 · last 2026-05-21)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5109,6 +5119,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_94', label:'Memo Board audit (Prong A i18n + Prong B UX polish) — confirmed A+B sekali. Findings audit: (1) Markup hardcoded — hero tajuk + sub + butang, 4 status tabs (Approved/Pending Approval/Rejected/Memo Saya), department row 7 pills, 4 empty/loading messages, 2 modal (Submit + Reject) dengan ~14 labels + 6 dropdown options + 2 placeholders + 4 buttons. Card UI papar raw lowercase English status pill (approved/pending/rejected). (2) Emoji violations — ⏳ pada Pending tab, ℹ pada submit info banner, glyph "" pada Padam button + pin icon + approval/reject prefixes. Langgar no-emoji rule. (3) UX issues — author display flat tanpa avatar, hover lift minimal, sub-text teknikal, takde search bar untuk filter title/body. Prong A (i18n + cleanup): 45 keys mb_* baharu — hero/tabs/pills/empty(6)/status(3)/card actions(3)/reason prefix/approval prefix/submit modal(10)/reject modal(4). Translation tab "Approved" → "Diluluskan" BM, "Pending" → "Menunggu", "Rejected" → "Ditolak". Status pill papar window.t-translated label instead of raw lowercase. Empty state untuk search ditambah ("Tiada memo padan dengan carian"). Semua emoji di-strip — ⏳ ganti Lucide clock icon, ℹ ganti info icon, pin emoji ganti Lucide pin (with #F59E0B amber), tick/X buttons guna Lucide check/x icons, Padam button guna trash-2 icon (icon-only). Approval/reject prefix juga ada Lucide check-circle/x-circle. Prong B (UX polish): (a) Search bar baharu — Lucide search icon di kiri, input full-width dengan focus state ring amber. window.memoSetSearch + window.__memoSearch state, filter title+body+author (lowercase contains). (b) Author avatar circle — 28px bulatan dengan initial nama (Z, A, F, dll.) warna mengikut department (general:gray, sales:emerald, inv:blue, admin:purple, hr:pink, finance:amber). Author meta jadi 2-baris: nama bold + relative time muted di bawah. (c) Card hover lift tambah translateY(-2px) + shadow lebih besar 0 6px 16px + border-color D1D5DB. (d) Sub-text rewrite — dari "Pengumuman antara department · approved memos disimpan untuk rujukan" jadi "Pengumuman dan polisi · memo approved kekal sebagai rujukan staf." Total: ~45 keys baharu, ~60 baris CSS baharu, renderMemoBoard refactor (i18n + search + avatar + Lucide icons). Bump app.js v214→v215, design-tokens.css v50→v51. ROADMAP_DATA 93/93→94/94.', d:'done' },
  { id:'p1_93', label:'Permissions Centre audit + konsolidasi mode HQ + Management → Manager. Zaid: "dah tak perlu superior mode, hq mode, management mode. semua sama je". Konteks: superior dah retire p1_72 (Bos via isBoss helper jawatan check), management dah merge ke manager p1_32 tapi UI tab disembunyikan je — flag masih wujud di overlay. HQ pulak sejak p1_65 dah jarang dipakai sebab mode bar disembunyikan. Audit findings: (1) Permissions matrix papar 5 kolum (Staff/Kaunter/Operasi/Pengurus/HQ/Investor) tapi Investor sebenarnya stale lepas p1_73 + HQ redundant. (2) Mode lock-out check di togglePermission masih iterate 4 modes termasuk hq. (3) Semua label dalam Permissions section hardcoded — tajuk "Permissions Centre", sub paragraph, 4 tab labels (Mode Access/Sidebar Items/Templates/Audit Trail), table headers, foot text, sidebar pane help, templates pane help, audit pane help. Tiada data-i18n langsung. Perubahan p1_93: A. Matrix UI — PERM_MODES dari [cashier,operations,manager,hq] tukar ke [cashier,operations,manager] sahaja. <thead> ditukar dari 6 kolum (termasuk HQ + Investor) ke 4 kolum (Staff + 3 modes). colspan loading row dari 6 ke 4. B. getModesAccess upgrade — kalau out.manager true → auto-true out.hq + out.management juga (manager = wide-view termasuk HQ items). Back-compat reverse: kalau ada legacy entry dengan hq=true atau management=true tapi manager=false, mirror balik ke manager juga supaya staff yang dah granted HQ era lama auto-transit ke Manager era baru. C. togglePermission update — bila admin tick/untick checkbox Manager, mirror nilai sama ke hq + management dalam overlay (selari dengan getModesAccess invariant). Sidebar filter logic akan re-evaluate sebab manager flag dah lebar. D. Sidebar mode-hiding logic dalam setMode (line ~13619) — branch "Manager wide-view" tukar dari `accessUnion.manager && !isHq && !isInvestor` jadi `accessUnion.manager && !isInvestor`. Manager sekarang tunjuk hq-only items (Settings, Permissions, Test Guide) terus tanpa perlu separate HQ flag. E. i18n — 17 keys baharu perm_* (title, sub, guard, 4 tab labels, 4 column labels, foot autosave, 3 button labels, 4 pane help texts). Tag semua hardcoded text dalam Permissions section dengan data-i18n. F. Mode bar markup di header (modeTabHq + modeTabManagement) kekal hidden — flag style="display:none;" cukup, tak buang button supaya rendering tak break. Hasil: Boss + mgmt staff masih nampak Settings/Permissions/Test Guide sebab Manager auto-grant HQ. Staff biasa (cashier/inv/sales) tak terjejas — mereka tiada manager flag, jadi tiada HQ access. Matrix sekarang 3-kolum bersih, mode model lebih clear: Cashier (kaunter daily), Operations (ops dept), Manager (everything mgmt + HQ). Bump app.js v213→v214. ROADMAP_DATA 92/92→93/93.', d:'done' },
  { id:'p1_92', label:'Setup → Settings rename + Settings Hub EasyStore-style landing. Zaid reference screenshot EasyStore back-office Settings — layout dengan kad profile kedai + kad Plans/billing di top, dan grid kad-kad setting dengan icon + tajuk + sub deskripsi. Cadangan accepted as p1_92. Perubahan: (1) Rename sidebar group dari "Setup" ke "Settings" — key dept_setup EN ditukar "Setup" → "Settings"; BM kekal "Tetapan" (sudah betul). Rail tooltip ditukar dari "Setup" ke "Settings". Rail icon ditukar dari "wrench" ke "settings" (gear icon lebih konvensional). (2) Tambah sidebar menu item BARU sebagai first child group hq_setup: data-tab="settings_hub" + data-i18n="sb_settings_hub" + lucide layout-grid icon. switchHub buka settingsHubSection + panggil renderSettingsHub. (3) Build settingsHubSection HTML — set-hub container max-width 1100px. Top row 2-kolum: kad profile kedai (icon store + "10 CAMP" + URL link biru ke 10camp.com + edit button kanan atas yang launch openComplianceFiltered shop settings) + kad System Status (icon server hijau + tajuk "System Version" + pill hijau "Operational" + sub "v0.91 · pos.10camp.com"). Grid bawah auto-fill 240px min: 5 kad setting (Permissions/Shop Settings/Payments/Sync/Test Guide) setiap satu dengan icon (key-round/settings/credit-card/git-merge/flask-conical), tajuk bold, sub deskripsi 1-2 ayat. Klik kad cari menu-item sepadan dalam #sidebarMain dan trigger click → jump ke section yang betul. Kad Permissions + Test Guide ada class boss-only (auto-hide untuk non-Bos via existing CSS). (4) CSS dalam design-tokens.css ~45 baris baharu: .set-hub container, .set-hub__top grid 2-col, .set-hub__card base + variants (--profile flex + --status flex), .set-hub__edit-btn absolute top-right hover bg, .set-hub__profile-url biru, .set-hub__status-pill hijau D1FAE5 + 065F46, .set-hub__grid auto-fill repeat 240px min, .set-card box-shadow + hover lift (translateY -2px + primary border + icon turns primary), .set-card__icon 36px bg gray bertukar primary on hover, mobile responsive (top grid → 1-col bawah 640px). (5) setActiveRail upgrade — bila railId === "hq_setup" dan tiada hq_setup sub-section currently active, auto-click settings_hub item (selepas 50ms timeout supaya filter loop habis dulu). User boleh ke Permissions terus dari panel kalau dia dah dalam Settings rail; klik rail icon Settings dari mana-mana → hub. (6) __tabToRail update — settings_hub map ke hq_setup. (7) renderSettingsHub function — refresh lucide icons + applyI18N selepas render supaya CSS auto-translate text + render icons untuk kad-kad baharu. Total: 15 keys baharu sb_settings_hub/set_hub_*/set_card_*. Apply pattern p1_87 (Order Detail modal) untuk popup/section new section.', d:'done' },
  { id:'p1_91', label:'Marketing Dept audit + bulk i18n (rolling). 3 seksyen ditangani: (1) Promotions & Vouchers — tajuk "Promotion & Voucher Manager", butang "Festival Templates" + "Refresh", deskripsi sub, dan 4 column headers table (Code/Description, Type/Conditions, Value, Status) ditag data-i18n (mk_promo_*). (2) Re-engage Campaign — tajuk + deskripsi panjang (translated dari English-only ke BM-friendly "Tarik balik pelanggan dorman..."), 3 tier cards (Sleeping/Cold/Lost dengan range 30-59/60-89/90+ hari + "customers · historic value" footer), butang "Select all"/"Clear", "Message template" header + variables hint, "Promo code:" label, send bar "X selected · est RM Y historic value", butang "Send next 10 via WhatsApp", history section title + empty state — semua tag data-i18n (mk_re_*). Dynamic JS dalam reSelectTier juga di-update guna window.t() supaya detail title + tier label translate ikut bahasa aktif. (3) WhatsApp Broadcast — tajuk + deskripsi panjang, 3 card titles (Template & Audience, Message preview, Send broadcast), labels (Template/Audience filter/Promo code), 7 template options (Hari Raya/CNY/Deepavali/Merdeka/VIP/Re-order/Generic), 5 audience options (Semua/VIP/SMS consent/Big spender/Dormant), "Audience match: N customer(s)", "Variables:" hint, "Sample for first match:", info text + butang "Send batch"/"Reset" — semua tag data-i18n (mk_wa_*). Emoji buang dari 7 template dropdown options + 2 emoji dari card titles (Zaid no-emojis rule). Total: 60+ keys baharu mk_promo_/mk_re_/mk_wa_ dalam I18N.dict. Sama pattern dengan p1_82 (Inventory) dan p1_84 (Admin). Reports section kekal tak audit (placeholder coming-soon).', d:'done' },
@@ -9508,7 +9519,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=214"></script>
+ <script src="app.js?v=215"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

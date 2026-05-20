@@ -6921,6 +6921,13 @@ window.memoDelete = function(id) {
 };
 
 // Tab/filter setters
+// p1_94: search term state + setter
+window.__memoSearch = window.__memoSearch || '';
+window.memoSetSearch = function(q) {
+ window.__memoSearch = (q || '').trim().toLowerCase();
+ window.renderMemoBoard();
+};
+
 window.memoSetStatus = function(s, btn) {
  window.__memoStatus = s;
  document.querySelectorAll('[data-memo-status]').forEach(b => b.classList.toggle('memo-tab--active', b === btn));
@@ -7003,7 +7010,18 @@ window.renderMemoBoard = function() {
  if(el) el.textContent = counts[k];
  });
 
+ // p1_94: i18n helper + initials/dept-colour for avatar
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const initials = (name) => {
+ if(!name) return '?';
+ const parts = String(name).trim().split(/\s+/);
+ if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+ return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+ };
+ const deptColor = { general:'#6B7280', sales:'#10B981', inv:'#3B82F6', admin:'#8B5CF6', hr:'#EC4899', finance:'#B45309' };
+
  // Filter
+ const q = (window.__memoSearch || '').toLowerCase();
  let rows = all.filter(m => {
  if(window.__memoStatus === 'mine') {
  if(!u || m.posted_by_id !== u.staff_id) return false;
@@ -7011,6 +7029,10 @@ window.renderMemoBoard = function() {
  if(m.status !== window.__memoStatus) return false;
  }
  if(window.__memoDept !== 'all' && m.department !== window.__memoDept) return false;
+ if(q) {
+ const hay = (m.title + ' ' + m.body + ' ' + (m.posted_by_name||'')).toLowerCase();
+ if(hay.indexOf(q) === -1) return false;
+ }
  return true;
  });
  // Sort: pinned first, then newest
@@ -7020,13 +7042,14 @@ window.renderMemoBoard = function() {
  });
 
  if(!rows.length) {
- const emptyMsg = {
- approved: 'Tiada memo approved untuk department ni.',
- pending: isSuperior ? 'Tiada memo pending approval. ' : 'Tiada memo pending — hanya Superior boleh tengok queue ni.',
- rejected: 'Tiada memo rejected. Bagus, semua quality.',
- mine: 'Awak belum pernah hantar memo. Klik "Memo Baru" untuk start.'
- }[window.__memoStatus] || 'Tiada memo.';
- list.innerHTML = '<div class="memo-empty">' + emptyMsg + '</div>';
+ let emptyKey;
+ if(q) emptyKey = 'mb_empty_search';
+ else if(window.__memoStatus === 'approved') emptyKey = 'mb_empty_approved';
+ else if(window.__memoStatus === 'pending') emptyKey = isSuperior ? 'mb_empty_pending_bos' : 'mb_empty_pending_staff';
+ else if(window.__memoStatus === 'rejected') emptyKey = 'mb_empty_rejected';
+ else if(window.__memoStatus === 'mine') emptyKey = 'mb_empty_mine';
+ else emptyKey = 'mb_empty_approved';
+ list.innerHTML = '<div class="memo-empty">' + escapeHtml(T(emptyKey, 'Tiada memo.')) + '</div>';
  window.memoRefreshSidebarBadge();
  return;
  }
@@ -7040,31 +7063,35 @@ window.renderMemoBoard = function() {
  const canDelete = u && (window.isBoss(u) || (m.posted_by_id === u.staff_id && m.status === 'pending'));
  const actions = [];
  if(canApprove) {
- actions.push('<button class="memo-card__act memo-card__act--approve" onclick="window.memoApprove(\''+m.id+'\')"> Approve</button>');
- actions.push('<button class="memo-card__act memo-card__act--reject" onclick="window.memoOpenReject(\''+m.id+'\')"> Reject</button>');
+ actions.push('<button class="memo-card__act memo-card__act--approve" onclick="window.memoApprove(\''+m.id+'\')"><i data-lucide="check" style="width:12px; height:12px;"></i> '+escapeHtml(T('mb_card_approve','Approve'))+'</button>');
+ actions.push('<button class="memo-card__act memo-card__act--reject" onclick="window.memoOpenReject(\''+m.id+'\')"><i data-lucide="x" style="width:12px; height:12px;"></i> '+escapeHtml(T('mb_card_reject','Reject'))+'</button>');
  }
- if(canDelete) actions.push('<button class="memo-card__act memo-card__act--delete" onclick="window.memoDelete(\''+m.id+'\')" title="Padam"></button>');
+ if(canDelete) actions.push('<button class="memo-card__act memo-card__act--delete" onclick="window.memoDelete(\''+m.id+'\')" title="'+escapeHtml(T('mb_card_delete','Padam'))+'"><i data-lucide="trash-2" style="width:13px; height:13px;"></i></button>');
 
  let reasonHtml = '';
  if(m.status === 'rejected' && m.reject_reason) {
- reasonHtml = '<div class="memo-reject-reason"> Sebab: ' + escapeHtml(m.reject_reason) + ' (oleh ' + escapeHtml(m.approved_by_name||'') + ')</div>';
+ reasonHtml = '<div class="memo-reject-reason"><i data-lucide="x-circle" style="width:13px; height:13px;"></i> <strong>'+escapeHtml(T('mb_reason_prefix','Sebab:'))+'</strong> ' + escapeHtml(m.reject_reason) + ' ('+escapeHtml(T('mb_reason_by','oleh'))+' ' + escapeHtml(m.approved_by_name||'') + ')</div>';
  } else if(m.status === 'approved' && m.approved_by_name) {
- reasonHtml = '<div class="memo-approval-note"> Approved oleh ' + escapeHtml(m.approved_by_name) + ' · ' + window.memoTimeAgo(m.approved_at) + '</div>';
+ reasonHtml = '<div class="memo-approval-note"><i data-lucide="check-circle" style="width:13px; height:13px;"></i> '+escapeHtml(T('mb_approval_prefix','Approved oleh'))+' ' + escapeHtml(m.approved_by_name) + ' · ' + window.memoTimeAgo(m.approved_at) + '</div>';
  }
+
+ const avatarBg = deptColor[m.department] || '#6B7280';
+ const pinIcon = (m.pinned ? '<i data-lucide="pin" class="memo-pin-icon" style="width:14px; height:14px;"></i> ' : '');
 
  return `<div class="${cardClass}">
  <div class="memo-card__head">
- <h4 class="memo-card__title">${m.pinned ? '<span class="memo-pin-icon"> </span>' : ''}${escapeHtml(m.title)}</h4>
+ <h4 class="memo-card__title">${pinIcon}${escapeHtml(m.title)}</h4>
  </div>
  <div class="memo-card__meta">
  <span class="memo-dept-badge" data-dept="${m.department}">${escapeHtml(window.memoDeptLabel(m.department))}</span>
- <span class="memo-status-pill memo-status-pill--${m.status}">${m.status}</span>
+ <span class="memo-status-pill memo-status-pill--${m.status}">${escapeHtml(T('mb_status_'+m.status, m.status))}</span>
  </div>
  <div class="memo-card__body">${escapeHtml(m.body)}</div>
  ${reasonHtml}
  <div class="memo-card__foot">
  <span class="memo-card__author" title="${window.memoFormatFull(m.posted_at)}">
- <strong>${escapeHtml(m.posted_by_name)}</strong> · ${window.memoTimeAgo(m.posted_at)}
+ <span class="memo-avatar" style="background:${avatarBg};">${initials(m.posted_by_name)}</span>
+ <span class="memo-author-meta"><strong>${escapeHtml(m.posted_by_name)}</strong><span class="memo-author-time">${window.memoTimeAgo(m.posted_at)}</span></span>
  </span>
  <span class="memo-card__actions">${actions.join('')}</span>
  </div>
@@ -15443,7 +15470,58 @@ window.I18N = {
  perm_sidebar_start: { bm: 'Pilih staf untuk start.', en: 'Pick a staff to start.' },
  perm_tpl_help: { bm: 'Klik "Apply" untuk grant mode + sidebar access dalam satu shot. Custom template boleh save dari tab Item Sidebar.', en: 'Click "Apply" to grant mode + sidebar access in one shot. Custom templates can be saved from the Sidebar Items tab.' },
  perm_tpl_loading: { bm: 'Memuatkan templat…', en: 'Loading templates…' },
- perm_audit_help: { bm: 'Riwayat 50 perubahan permission terkini.', en: 'Last 50 permission changes.' }
+ perm_audit_help: { bm: 'Riwayat 50 perubahan permission terkini.', en: 'Last 50 permission changes.' },
+
+ // p1_94 — Memo Board (mb_*)
+ mb_title: { bm: 'Papan Memo', en: 'Memo Board' },
+ mb_sub: { bm: 'Pengumuman dan polisi · memo approved kekal sebagai rujukan staf.', en: 'Announcements and policies · approved memos stay as staff reference.' },
+ mb_new_btn: { bm: 'Memo Baru', en: 'New Memo' },
+ mb_search_ph: { bm: 'Cari memo (tajuk / isi)…', en: 'Search memos (title / body)…' },
+ mb_tab_approved: { bm: 'Diluluskan', en: 'Approved' },
+ mb_tab_pending: { bm: 'Menunggu Lulus', en: 'Pending Approval' },
+ mb_tab_rejected: { bm: 'Ditolak', en: 'Rejected' },
+ mb_tab_mine: { bm: 'Memo Saya', en: 'My Memos' },
+ mb_dept_label: { bm: 'Department:', en: 'Department:' },
+ mb_dept_all: { bm: 'Semua', en: 'All' },
+ mb_dept_general: { bm: 'Umum', en: 'General' },
+ mb_dept_sales: { bm: 'Sales', en: 'Sales' },
+ mb_dept_inv: { bm: 'Inventory', en: 'Inventory' },
+ mb_dept_admin: { bm: 'Admin', en: 'Admin' },
+ mb_dept_hr: { bm: 'HR', en: 'HR' },
+ mb_dept_finance: { bm: 'Finance', en: 'Finance' },
+ mb_loading: { bm: 'Memuatkan memo…', en: 'Loading memos…' },
+ mb_empty_approved: { bm: 'Tiada memo diluluskan untuk department ni.', en: 'No approved memos for this department.' },
+ mb_empty_pending_bos: { bm: 'Tiada memo menunggu kelulusan.', en: 'No memos pending approval.' },
+ mb_empty_pending_staff: { bm: 'Tiada memo pending — hanya Bos boleh tengok queue ni.', en: 'No pending memos — only the boss can view this queue.' },
+ mb_empty_rejected: { bm: 'Tiada memo ditolak. Bagus, semua quality.', en: 'No rejected memos. Good, all quality.' },
+ mb_empty_mine: { bm: 'Awak belum pernah hantar memo. Klik "Memo Baru" untuk start.', en: 'You haven\'t submitted any memos yet. Click "New Memo" to start.' },
+ mb_empty_search: { bm: 'Tiada memo padan dengan carian.', en: 'No memos match your search.' },
+ mb_status_approved: { bm: 'Diluluskan', en: 'Approved' },
+ mb_status_pending: { bm: 'Menunggu', en: 'Pending' },
+ mb_status_rejected: { bm: 'Ditolak', en: 'Rejected' },
+ mb_card_approve: { bm: 'Lulus', en: 'Approve' },
+ mb_card_reject: { bm: 'Tolak', en: 'Reject' },
+ mb_card_delete: { bm: 'Padam', en: 'Delete' },
+ mb_reason_prefix: { bm: 'Sebab:', en: 'Reason:' },
+ mb_reason_by: { bm: 'oleh', en: 'by' },
+ mb_approval_prefix: { bm: 'Diluluskan oleh', en: 'Approved by' },
+ // Submit modal
+ mb_sub_title: { bm: 'Hantar Memo Baru', en: 'Submit New Memo' },
+ mb_sub_info: { bm: 'Memo akan masuk Pending Approval dulu. Hanya selepas Bos lulus, ia muncul untuk semua staf rujuk.', en: 'Memos go to Pending Approval first. Only after boss approves will it appear for all staff to reference.' },
+ mb_sub_dept_lbl: { bm: 'Department', en: 'Department' },
+ mb_sub_dept_general: { bm: 'Umum (semua department)', en: 'General (all departments)' },
+ mb_sub_title_lbl: { bm: 'Tajuk', en: 'Title' },
+ mb_sub_title_ph: { bm: 'Cth: Promosi Raya bermula 15 Mei', en: 'e.g. Raya promotion starts 15 May' },
+ mb_sub_body_lbl: { bm: 'Isi Memo', en: 'Memo Body' },
+ mb_sub_body_ph: { bm: 'Tulis detail memo di sini…', en: 'Write memo details here…' },
+ mb_sub_pin_lbl: { bm: 'Pin sebagai memo penting (popup masa staf login)', en: 'Pin as important memo (popup when staff log in)' },
+ mb_sub_cancel: { bm: 'Batal', en: 'Cancel' },
+ mb_sub_send: { bm: 'Hantar untuk Kelulusan', en: 'Submit for Approval' },
+ // Reject modal
+ mb_rej_title: { bm: 'Tolak Memo', en: 'Reject Memo' },
+ mb_rej_reason_lbl: { bm: 'Sebab Tolak (akan dilihat oleh penghantar)', en: 'Reject reason (sender will see this)' },
+ mb_rej_reason_ph: { bm: 'Cth: Tarikh tidak betul / kandungan tidak sesuai untuk customer-facing…', en: 'e.g. Wrong date / content not suitable for customer-facing…' },
+ mb_rej_confirm: { bm: 'Sahkan Tolak', en: 'Confirm Reject' }
  }
 };
 

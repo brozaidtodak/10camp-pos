@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=37">
- <link rel="stylesheet" href="design-tokens.css?v=49">
+ <link rel="stylesheet" href="design-tokens.css?v=50">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1250,8 +1250,8 @@
  <button class="rail-item" data-rail="marketing" onclick="window.setActiveRail('marketing')" data-tooltip="Marketing">
  <i data-lucide="gift"></i>
  </button>
- <button class="rail-item" data-rail="hq_setup" data-rail-role="hq-only" onclick="window.setActiveRail('hq_setup')" data-tooltip="Setup">
- <i data-lucide="wrench"></i>
+ <button class="rail-item" data-rail="hq_setup" data-rail-role="hq-only" onclick="window.setActiveRail('hq_setup')" data-tooltip="Settings">
+ <i data-lucide="settings"></i>
  </button>
  <div style="flex:1;"></div>
  <button class="rail-item rail-item--accent" data-rail="roadmap" onclick="window.setActiveRail('roadmap', true)" data-tooltip="Roadmap">
@@ -1438,10 +1438,14 @@
  <i data-lucide="hard-drive" style="width:16px; height:16px;"></i> <span data-i18n="sb_data_backup">Data &amp; Backup</span>
  </div>
 
- <!-- HQ SETUP — config + system diagnostics (HQ mode only) p1_37 -->
+ <!-- HQ SETUP — config + system diagnostics (HQ mode only) p1_37; renamed Setup → Settings p1_92 -->
  <div class="menu-item hq-only" data-group-toggle="hq_setup" onclick="toggleSidebarGroup('hq_setup')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
- <span data-i18n="dept_setup">Setup</span>
+ <span data-i18n="dept_setup">Settings</span>
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
+ </div>
+ <!-- p1_92: Settings Hub landing — EasyStore-style card grid -->
+ <div class="menu-item hq-only" data-group="hq_setup" data-tab="settings_hub" onclick="switchHub(['settingsHubSection'], 'Settings', this); if(typeof renderSettingsHub==='function') renderSettingsHub();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="layout-grid" style="width:16px; height:16px;"></i> <span data-i18n="sb_settings_hub">Settings Hub</span>
  </div>
  <!-- p1_38: Permissions Centre — Bos sets per-staff mode access in matrix view -->
  <div class="menu-item hq-only boss-only" data-group="hq_setup" data-tab="hq_permissions" onclick="switchHub(['permissionsSection'], 'Permissions', this); if(typeof renderPermissions==='function') renderPermissions();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
@@ -2844,6 +2848,71 @@
  <h2 style="margin-bottom:15px;"> Analytics Report</h2>
  <p style="font-size:13px; color:#888; margin-bottom:20px;">Laporan terperinci jualan, inventori dan prestasi channel.</p>
  <p style="color:#aaa; text-align:center; padding:40px 0;"> Modul ini akan datang dalam fasa seterusnya.</p>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- SETTINGS HUB (p1_92) — EasyStore-style landing -->
+ <!-- ============================================== -->
+ <div id="settingsHubSection" class="tab-section" style="display:none;">
+ <div class="set-hub">
+ <h2 class="set-hub__title" data-i18n="set_hub_title">Settings</h2>
+
+ <!-- Top row: Store profile + System status -->
+ <div class="set-hub__top">
+ <div class="set-hub__card set-hub__card--profile">
+ <div class="set-hub__profile-icon"><i data-lucide="store" style="width:22px; height:22px;"></i></div>
+ <div class="set-hub__profile-body">
+ <div class="set-hub__profile-name">10 CAMP</div>
+ <a href="https://10camp.com" target="_blank" rel="noopener" class="set-hub__profile-url">https://10camp.com</a>
+ </div>
+ <button class="set-hub__edit-btn" onclick="window.openComplianceFiltered('settings','shop','Shop Settings')" title="Edit">
+ <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+ </button>
+ </div>
+
+ <div class="set-hub__card set-hub__card--status">
+ <div class="set-hub__status-icon"><i data-lucide="server" style="width:22px; height:22px;"></i></div>
+ <div style="flex:1;">
+ <div class="set-hub__status-title" data-i18n="set_build_label">System Version</div>
+ <div class="set-hub__status-pill" data-i18n="set_build_pill">Operational</div>
+ <div class="set-hub__status-sub">v0.91 · <span id="setHubBuild">pos.10camp.com</span></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Grid: 5 settings cards -->
+ <div class="set-hub__grid">
+ <div class="set-card boss-only" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=hq_permissions]')?.click()">
+ <div class="set-card__icon"><i data-lucide="key-round" style="width:18px; height:18px;"></i></div>
+ <div class="set-card__title" data-i18n="set_card_perm_title">Permissions</div>
+ <div class="set-card__sub" data-i18n="set_card_perm_sub">Manage staff access, roles, and what each team member can view or do.</div>
+ </div>
+
+ <div class="set-card" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_settings]')?.click()">
+ <div class="set-card__icon"><i data-lucide="settings" style="width:18px; height:18px;"></i></div>
+ <div class="set-card__title" data-i18n="set_card_shop_title">Shop Settings</div>
+ <div class="set-card__sub" data-i18n="set_card_shop_sub">Store-wide settings — address, operating hours, contact, company info.</div>
+ </div>
+
+ <div class="set-card" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_payments]')?.click()">
+ <div class="set-card__icon"><i data-lucide="credit-card" style="width:18px; height:18px;"></i></div>
+ <div class="set-card__title" data-i18n="set_card_pay_title">Payments</div>
+ <div class="set-card__sub" data-i18n="set_card_pay_sub">DuitNow QR, FPX, cards, cash — gateways and payment settings.</div>
+ </div>
+
+ <div class="set-card" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_sync]')?.click()">
+ <div class="set-card__icon"><i data-lucide="git-merge" style="width:18px; height:18px;"></i></div>
+ <div class="set-card__title" data-i18n="set_card_sync_title">Sync (Advanced)</div>
+ <div class="set-card__sub" data-i18n="set_card_sync_sub">EasyStore, TikTok Shop, Shopee — sync stock and external orders.</div>
+ </div>
+
+ <div class="set-card boss-only" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_test_guide]')?.click()">
+ <div class="set-card__icon"><i data-lucide="flask-conical" style="width:18px; height:18px;"></i></div>
+ <div class="set-card__title" data-i18n="set_card_test_title">System Test Guide</div>
+ <div class="set-card__sub" data-i18n="set_card_test_sub">POS system test guide for the owner to verify each module flow.</div>
+ </div>
+ </div>
  </div>
  </div>
 
@@ -4965,7 +5034,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (91/91 · last 2026-05-20)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (92/92 · last 2026-05-20)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5040,6 +5109,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_92', label:'Setup → Settings rename + Settings Hub EasyStore-style landing. Zaid reference screenshot EasyStore back-office Settings — layout dengan kad profile kedai + kad Plans/billing di top, dan grid kad-kad setting dengan icon + tajuk + sub deskripsi. Cadangan accepted as p1_92. Perubahan: (1) Rename sidebar group dari "Setup" ke "Settings" — key dept_setup EN ditukar "Setup" → "Settings"; BM kekal "Tetapan" (sudah betul). Rail tooltip ditukar dari "Setup" ke "Settings". Rail icon ditukar dari "wrench" ke "settings" (gear icon lebih konvensional). (2) Tambah sidebar menu item BARU sebagai first child group hq_setup: data-tab="settings_hub" + data-i18n="sb_settings_hub" + lucide layout-grid icon. switchHub buka settingsHubSection + panggil renderSettingsHub. (3) Build settingsHubSection HTML — set-hub container max-width 1100px. Top row 2-kolum: kad profile kedai (icon store + "10 CAMP" + URL link biru ke 10camp.com + edit button kanan atas yang launch openComplianceFiltered shop settings) + kad System Status (icon server hijau + tajuk "System Version" + pill hijau "Operational" + sub "v0.91 · pos.10camp.com"). Grid bawah auto-fill 240px min: 5 kad setting (Permissions/Shop Settings/Payments/Sync/Test Guide) setiap satu dengan icon (key-round/settings/credit-card/git-merge/flask-conical), tajuk bold, sub deskripsi 1-2 ayat. Klik kad cari menu-item sepadan dalam #sidebarMain dan trigger click → jump ke section yang betul. Kad Permissions + Test Guide ada class boss-only (auto-hide untuk non-Bos via existing CSS). (4) CSS dalam design-tokens.css ~45 baris baharu: .set-hub container, .set-hub__top grid 2-col, .set-hub__card base + variants (--profile flex + --status flex), .set-hub__edit-btn absolute top-right hover bg, .set-hub__profile-url biru, .set-hub__status-pill hijau D1FAE5 + 065F46, .set-hub__grid auto-fill repeat 240px min, .set-card box-shadow + hover lift (translateY -2px + primary border + icon turns primary), .set-card__icon 36px bg gray bertukar primary on hover, mobile responsive (top grid → 1-col bawah 640px). (5) setActiveRail upgrade — bila railId === "hq_setup" dan tiada hq_setup sub-section currently active, auto-click settings_hub item (selepas 50ms timeout supaya filter loop habis dulu). User boleh ke Permissions terus dari panel kalau dia dah dalam Settings rail; klik rail icon Settings dari mana-mana → hub. (6) __tabToRail update — settings_hub map ke hq_setup. (7) renderSettingsHub function — refresh lucide icons + applyI18N selepas render supaya CSS auto-translate text + render icons untuk kad-kad baharu. Total: 15 keys baharu sb_settings_hub/set_hub_*/set_card_*. Apply pattern p1_87 (Order Detail modal) untuk popup/section new section.', d:'done' },
  { id:'p1_91', label:'Marketing Dept audit + bulk i18n (rolling). 3 seksyen ditangani: (1) Promotions & Vouchers — tajuk "Promotion & Voucher Manager", butang "Festival Templates" + "Refresh", deskripsi sub, dan 4 column headers table (Code/Description, Type/Conditions, Value, Status) ditag data-i18n (mk_promo_*). (2) Re-engage Campaign — tajuk + deskripsi panjang (translated dari English-only ke BM-friendly "Tarik balik pelanggan dorman..."), 3 tier cards (Sleeping/Cold/Lost dengan range 30-59/60-89/90+ hari + "customers · historic value" footer), butang "Select all"/"Clear", "Message template" header + variables hint, "Promo code:" label, send bar "X selected · est RM Y historic value", butang "Send next 10 via WhatsApp", history section title + empty state — semua tag data-i18n (mk_re_*). Dynamic JS dalam reSelectTier juga di-update guna window.t() supaya detail title + tier label translate ikut bahasa aktif. (3) WhatsApp Broadcast — tajuk + deskripsi panjang, 3 card titles (Template & Audience, Message preview, Send broadcast), labels (Template/Audience filter/Promo code), 7 template options (Hari Raya/CNY/Deepavali/Merdeka/VIP/Re-order/Generic), 5 audience options (Semua/VIP/SMS consent/Big spender/Dormant), "Audience match: N customer(s)", "Variables:" hint, "Sample for first match:", info text + butang "Send batch"/"Reset" — semua tag data-i18n (mk_wa_*). Emoji buang dari 7 template dropdown options + 2 emoji dari card titles (Zaid no-emojis rule). Total: 60+ keys baharu mk_promo_/mk_re_/mk_wa_ dalam I18N.dict. Sama pattern dengan p1_82 (Inventory) dan p1_84 (Admin). Reports section kekal tak audit (placeholder coming-soon).', d:'done' },
  { id:'p1_90', label:'Bugfix sidebar rail — content tertentu group tak keluar. Zaid feedback: "content dalam certain department tak keluar". Punca: legacy function initSidebarGroups() dari design lama (expandable groups era p1_36) masih jalan masa boot — dia tambah class `.sidebar-collapsed` pada items dalam group yang tak active dengan default state collapsed=true untuk semua kecuali active group. CSS rule `.menu-item[data-group].sidebar-collapsed { display:none !important }` override window.setActiveRail style.display=\"\" yang aku set untuk filter rail — items tertentu stuck tersembunyi walaupun rail yang betul dipilih. Fix: (1) Stripping `sidebar-collapsed` class dalam setActiveRail loop untuk setiap menu-item — ensure clean state setiap kali tukar rail. (2) Disable initSidebarGroups() entirely — replace dengan no-op (back-compat untuk caller existing). (3) Disable legacy click handler yang auto-expand parent group bila klik sub-item — rail filter sekarang handle visibility, tiada concept "collapsed" lagi. Items dalam setiap rail sekarang konsisten papar bila rail icon yang betul dipilih. CSS rule .sidebar-collapsed kekal harmless sebab class tak pernah ditambah lagi.', d:'done' },
  { id:'p1_89', label:'Sidebar polish — Supabase-inspired typography + custom hover tooltips. Zaid feedback: "part icon tu okay, atau kau tiru style macam supabase ni. font dia pun simple. kalau hover mouse dekat icon baru keluar nama". Improvements ke atas p1_88 rail design. (1) Custom CSS-only tooltip ganti title="..." native browser tooltip — guna data-tooltip attribute + pseudo-element ::after dengan animation fade-in delay 0.3s. Tooltip pill di kanan icon dengan dark bg (#0F1419), 12px font-size weight 500, subtle border, pointer-events:none, z-index 1000 supaya overlay panel. (2) Rail dimensions slimmer: width 60px→56px, button 44x44→40x40, icon 20px→18px, badges 16px→14px. Cleaner ratios less heavy. (3) Rail bg ditukar dari #111 ke #0F1419 (Supabase dark navy), hover state #1E293B (vs #1F2937). (4) Panel typography: menu-item font-size override 13px weight 500 (was 14px 700), tighter padding 8px 16px (was 15px 20px), gap 10px (was 12px), letter-spacing 0. Active state weight 600 (lebih subtle dari sebelum 700). Border-right active 3px (was 4px). (5) Hide redundant sub-dividers Inventory "— Operasi Harian —" / "— Pengurusan Stok —" sebab rail icon dah jadi section indicator. (6) Animation delay 0.3s pada tooltip untuk elak flicker bila staff scan icon-icon cepat. Reference: Supabase dashboard sidebar.', d:'done' },
@@ -9437,7 +9507,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=212"></script>
+ <script src="app.js?v=213"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

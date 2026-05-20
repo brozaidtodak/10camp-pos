@@ -581,6 +581,27 @@ window.setActiveRail = function(railId, navigateDirect) {
  if(item && typeof item.click === 'function') item.click();
  }, 50);
  }
+
+ // p1_92: hq_setup rail auto-opens Settings Hub when no Settings sub-section is currently active.
+ if(railId === 'hq_setup') {
+ const currentActive = document.querySelector('#sidebarMain .menu-item.active[data-group="hq_setup"]');
+ if(!currentActive) {
+ setTimeout(() => {
+ const hub = document.querySelector('#sidebarMain .menu-item[data-tab="settings_hub"]');
+ if(hub && typeof hub.click === 'function') hub.click();
+ }, 50);
+ }
+ }
+};
+
+// p1_92: Settings Hub renderer — placeholder for future dynamic content (build hash, plan badge, etc.)
+window.renderSettingsHub = function() {
+ try {
+ const el = document.getElementById('setHubBuild');
+ if(el) el.textContent = 'pos.10camp.com';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+ } catch(e){}
 };
 
 // Map data-tab → which rail it belongs to (used for auto-sync rail with current section)
@@ -595,7 +616,7 @@ window.__tabToRail = function(tab) {
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
- if(tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
+ if(tab === 'settings_hub' || tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
  return null;
 };
 
@@ -14811,7 +14832,7 @@ window.I18N = {
  dept_hr: { bm: 'Jabatan HR', en: 'HR Department' },
  dept_customers: { bm: 'Pelanggan', en: 'Customers' },
  dept_marketing: { bm: 'Jabatan Pemasaran', en: 'Marketing Department' },
- dept_setup: { bm: 'Tetapan', en: 'Setup' },
+ dept_setup: { bm: 'Tetapan', en: 'Settings' },
 
  // p1_77 — Sidebar item labels (every clickable menu-item)
  sb_overview: { bm: 'Ringkasan', en: 'Overview' },
@@ -15375,7 +15396,24 @@ window.I18N = {
  mk_wa_sample: { bm: 'Contoh untuk padanan pertama:', en: 'Sample for first match:' },
  mk_wa_send_info: { bm: 'Klik butang untuk mula. Browser akan buka 10 tab sekali (batch). Sila benarkan popup. Lepas tu klik tab "Continue" untuk batch seterusnya.', en: 'Click the button to start. The browser will open 10 tabs at once (batched). Please allow the popup. Then click the "Continue" tab for the next batch.' },
  mk_wa_send_btn: { bm: 'Hantar Batch', en: 'Send batch' },
- mk_wa_reset_btn: { bm: 'Reset', en: 'Reset' }
+ mk_wa_reset_btn: { bm: 'Reset', en: 'Reset' },
+
+ // p1_92 — Settings Hub (EasyStore-style landing)
+ sb_settings_hub: { bm: 'Hub Settings', en: 'Settings Hub' },
+ set_hub_title: { bm: 'Tetapan', en: 'Settings' },
+ set_profile_url_lbl: { bm: 'Laman web', en: 'Website' },
+ set_build_label: { bm: 'Versi Sistem', en: 'System Version' },
+ set_build_pill: { bm: 'Operasi Lancar', en: 'Operational' },
+ set_card_perm_title: { bm: 'Kebenaran', en: 'Permissions' },
+ set_card_perm_sub: { bm: 'Urus akses staf, peranan, dan apa setiap ahli boleh lihat atau buat.', en: 'Manage staff access, roles, and what each team member can view or do.' },
+ set_card_shop_title: { bm: 'Tetapan Kedai', en: 'Shop Settings' },
+ set_card_shop_sub: { bm: 'Tetapan kedai am — alamat, jam operasi, kontak, info syarikat.', en: 'Store-wide settings — address, operating hours, contact, company info.' },
+ set_card_pay_title: { bm: 'Pembayaran', en: 'Payments' },
+ set_card_pay_sub: { bm: 'DuitNow QR, FPX, kad kredit, tunai — gateway dan tetapan pembayaran.', en: 'DuitNow QR, FPX, cards, cash — gateways and payment settings.' },
+ set_card_sync_title: { bm: 'Sync (Lanjutan)', en: 'Sync (Advanced)' },
+ set_card_sync_sub: { bm: 'EasyStore, TikTok Shop, Shopee — sync stok dan pesanan luar.', en: 'EasyStore, TikTok Shop, Shopee — sync stock and external orders.' },
+ set_card_test_title: { bm: 'Panduan Ujian Sistem', en: 'System Test Guide' },
+ set_card_test_sub: { bm: 'Panduan ujian sistem POS untuk Bos verify flow setiap module.', en: 'POS system test guide for the owner to verify each module flow.' }
  }
 };
 

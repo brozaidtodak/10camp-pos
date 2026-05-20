@@ -5225,6 +5225,159 @@ window.refreshRosterBadge = function() {
  else badge.style.display = 'none';
 };
 
+// p1_69: HR self-service — Cuti (view) + Claim (submit/list). Bos approves claims.
+window.HRC_CLAIMS_KEY = 'staff_claims_v1';
+const HR_BENEFITS_TEXT = 'EPF (KWSP), SOCSO (PERKESO), EIS mengikut polisi syarikat. Cuti Tahunan (AL), Cuti Sakit Sijil (MC), Cuti Kecemasan (EL), Cuti Umum (PH). Maklumat lanjut: rujuk Aliff (HR Pentadbiran).';
+const HR_JOB_SCOPE_BY_ROLE = {
+ superior: 'Pengarah Urusan — kawalan menyeluruh operasi 10 CAMP, kelulusan akhir (cuti, claim, finance, polisi).',
+ mgmt: 'Pengurus — pengurusan harian, sokongan pasukan, lapor kepada Bos.',
+ sales: 'Sales Associate — melayani pelanggan kaunter & online, jualan, customer service.',
+ inventory: 'Inventory Associate — pengurusan stok, terima barang masuk, susunan gudang, picking.',
+ investor: 'Investor — pemantauan prestasi syarikat (dashboard sahaja).'
+};
+
+function _hrCurrentUser() {
+ return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+}
+function _hrcLoadClaims() {
+ try { return JSON.parse(localStorage.getItem(window.HRC_CLAIMS_KEY) || '[]'); } catch(e) { return []; }
+}
+function _hrcSaveClaims(arr) {
+ try { localStorage.setItem(window.HRC_CLAIMS_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+window.renderHrCuti = function() {
+ const u = _hrCurrentUser();
+ if (!u) return;
+ const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+ set('hrcMyName', u.name || '-');
+ set('hrcMyDept', u.dept || '-');
+ set('hrcMyJoinDate', u.join_date || '-');
+
+ const profile = (typeof staffProfiles !== 'undefined' ? staffProfiles : []).find(p => p.name === u.name);
+ set('hrcMyLeave', (profile && typeof profile.leave_balance === 'number') ? profile.leave_balance + ' hari' : '0 hari');
+
+ const benefitsEl = document.getElementById('hrcMyBenefits');
+ if (benefitsEl) benefitsEl.textContent = HR_BENEFITS_TEXT;
+ const jobEl = document.getElementById('hrcMyJobScope');
+ if (jobEl) jobEl.textContent = (HR_JOB_SCOPE_BY_ROLE[u.role] || 'Skop kerja belum dikemaskini — rujuk Aliff.') + ' (Department: ' + (u.dept || '-') + ')';
+
+ // Sejarah cuti (from staffSchedules — approved leaves)
+ const LEAVE_TYPES = { AL:'Cuti Tahunan', MC:'Cuti Sakit (MC)', EL:'Cuti Kecemasan', PH:'Cuti Umum', OFF:'Cuti Mingguan' };
+ const mine = (typeof staffSchedules !== 'undefined' ? staffSchedules : [])
+ .filter(s => s.staff_name === u.name && LEAVE_TYPES[s.shift])
+ .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+ const pending = (typeof pendingSchedules !== 'undefined' ? pendingSchedules : [])
+ .filter(s => s.staff_name === u.name)
+ .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+
+ const tbody = document.getElementById('hrcMyLeaveHistoryTbody');
+ if (!tbody) return;
+ const rows = [
+ ...pending.map(s => ({ date:s.date, type:(LEAVE_TYPES[s.shift] || s.shift), status:'Menunggu Kelulusan', note:s.mc_name || '' })),
+ ...mine.map(s => ({ date:s.date, type:LEAVE_TYPES[s.shift], status:'Diluluskan', note:s.mc_name || '' }))
+ ];
+ if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#999;">Tiada rekod cuti.</td></tr>'; return; }
+ tbody.innerHTML = rows.map(r => `<tr>
+ <td>${r.date}</td>
+ <td>${r.type}</td>
+ <td>${r.status === 'Diluluskan' ? '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:6px;font-weight:700;">Diluluskan</span>' : '<span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:6px;font-weight:700;">Menunggu</span>'}</td>
+ <td>${r.note || '-'}</td>
+ </tr>`).join('');
+ if (window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.renderHrClaim = function() {
+ const u = _hrCurrentUser();
+ if (!u) return;
+ const tbody = document.getElementById('hrcClaimTbody');
+ if (!tbody) return;
+
+ const all = _hrcLoadClaims();
+ const isBos = u.role === 'superior';
+ const list = isBos ? all : all.filter(c => c.staff_id === u.staff_id);
+
+ const hint = document.getElementById('hrcClaimSidebarHint');
+ if (hint) hint.textContent = isBos ? 'View Bos — semua tuntutan staff' : '';
+
+ if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">Belum ada tuntutan.</td></tr>'; return; }
+ list.sort((a,b) => (b.submitted_at || '').localeCompare(a.submitted_at || ''));
+ tbody.innerHTML = list.map(c => {
+ const statusPill = c.status === 'approved'
+ ? '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:6px;font-weight:700;">Diluluskan</span>'
+ : c.status === 'rejected'
+ ? '<span style="background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:6px;font-weight:700;">Ditolak</span>'
+ : '<span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:6px;font-weight:700;">Menunggu</span>';
+ const actions = (isBos && c.status === 'pending') ?
+ `<button onclick="window.hrcApproveClaim('${c.id}')" style="background:#10B981;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">Lulus</button>
+  <button onclick="window.hrcRejectClaim('${c.id}')" style="background:#EF4444;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Tolak</button>` : '';
+ const who = isBos ? `<br><small style="color:#888;">${c.staff_name}</small>` : '';
+ return `<tr>
+ <td>${c.date || '-'}${who}</td>
+ <td>${c.type || '-'}</td>
+ <td style="font-weight:700;">RM ${Number(c.amount || 0).toFixed(2)}</td>
+ <td>${c.description || '-'}</td>
+ <td>${statusPill}</td>
+ <td>${actions}</td>
+ </tr>`;
+ }).join('');
+};
+
+window.hrcSubmitClaim = function() {
+ const u = _hrCurrentUser();
+ if (!u) { if (typeof showToast === 'function') showToast('Sila login dulu', 'warn'); return; }
+ const type = document.getElementById('clmType').value;
+ const amount = parseFloat(document.getElementById('clmAmount').value);
+ const date = document.getElementById('clmDate').value;
+ const desc = (document.getElementById('clmDesc').value || '').trim();
+ if (!amount || amount <= 0) { if (typeof showToast === 'function') showToast('Isi jumlah RM dulu', 'warn'); return; }
+ if (!date) { if (typeof showToast === 'function') showToast('Isi tarikh dulu', 'warn'); return; }
+ const claim = {
+ id: 'clm' + Date.now() + Math.floor(Math.random()*1000),
+ staff_id: u.staff_id, staff_name: u.name,
+ type, amount, date, description: desc,
+ status: 'pending', submitted_at: new Date().toISOString(),
+ approved_by: null, decision_at: null
+ };
+ const all = _hrcLoadClaims();
+ all.push(claim);
+ _hrcSaveClaims(all);
+ document.getElementById('clmAmount').value = '';
+ document.getElementById('clmDate').value = '';
+ document.getElementById('clmDesc').value = '';
+ if (typeof showToast === 'function') showToast('Tuntutan dihantar. Tunggu kelulusan Bos.', 'success');
+ window.renderHrClaim();
+};
+
+window.hrcApproveClaim = function(id) {
+ const u = _hrCurrentUser();
+ if (!u || u.role !== 'superior') { if (typeof showToast === 'function') showToast('Hanya Bos boleh lulus tuntutan', 'warn'); return; }
+ const all = _hrcLoadClaims();
+ const c = all.find(x => x.id === id);
+ if (!c) return;
+ c.status = 'approved';
+ c.approved_by = u.name;
+ c.decision_at = new Date().toISOString();
+ _hrcSaveClaims(all);
+ if (typeof showToast === 'function') showToast('Tuntutan diluluskan: RM ' + Number(c.amount).toFixed(2), 'success');
+ window.renderHrClaim();
+};
+
+window.hrcRejectClaim = function(id) {
+ const u = _hrCurrentUser();
+ if (!u || u.role !== 'superior') { if (typeof showToast === 'function') showToast('Hanya Bos boleh tolak tuntutan', 'warn'); return; }
+ if (!confirm('Tolak tuntutan ini?')) return;
+ const all = _hrcLoadClaims();
+ const c = all.find(x => x.id === id);
+ if (!c) return;
+ c.status = 'rejected';
+ c.approved_by = u.name;
+ c.decision_at = new Date().toISOString();
+ _hrcSaveClaims(all);
+ if (typeof showToast === 'function') showToast('Tuntutan ditolak', 'success');
+ window.renderHrClaim();
+};
+
 window.renderStaffSchedule = function() {
  const theadAdmin = document.getElementById("adminRosterThead");
  const tbodyAdmin = document.getElementById("scheduleTbody");

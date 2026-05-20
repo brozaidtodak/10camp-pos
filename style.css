@@ -183,19 +183,12 @@ body.pos-mobile-mode #mobileCartFloatingBar:active {
 }
 
 /* =============================================================
-   p1_63 — MIGRATED TO 10cc (sementara, 2026-05-14)
-   HR Department + Finance Department dipindah ke 10cc Command Centre
-   (10cc.10camp.com). Sidebar entries di-hide dari POS supaya:
-   - Staff tak nampak (already gated by hq-only, belt-and-braces)
-   - Bos auto-redirect ke 10cc untuk HR + Finance workflows
-   Section divs (staffMgmtSection, financeSection, rosterSection,
-   salesLedgerSection, dataBackupSection, rosterReconSection) kekal
-   dalam DOM untuk back-compat dengan auto-landing + audit log writes.
-   Untuk restore: hapus rule ni saja.
+   p1_69 (2026-05-20) — HR Department dibawa balik dengan skop Cuti +
+   Claim sahaja (staff self-service). Finance Department kekal hidden
+   (dipindah ke 10cc). Sidebar entries lama HR (Staff Mgmt, Roster-
+   Attendance) sudah dialih keluar dari HTML.
    ============================================================= */
-.menu-item[data-group="hr"],
 .menu-item[data-group="finance"],
-.menu-item[data-group-toggle="hr"],
 .menu-item[data-group-toggle="finance"] {
     display: none !important;
 }

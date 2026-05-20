@@ -1227,12 +1227,12 @@
  </div>
  <div class="menu-list">
  <div class="menu-item mgmt-only active" data-tab="overview" onclick="switchHub(['homeSection'], 'Overview', this)" style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="layout-dashboard" style="width:18px; height:18px;"></i> Overview
+ <i data-lucide="layout-dashboard" style="width:18px; height:18px;"></i> <span data-i18n="sb_overview">Overview</span>
  </div>
  <!-- MEMO BOARD — visible in all modes (p1_19) -->
  <div class="menu-item" data-tab="memo_board" onclick="switchHub(['memoBoardSection'], 'Memo Board', this); if(typeof renderMemoBoard==='function') renderMemoBoard();" style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:linear-gradient(135deg, #FFFBEB, #FEF3C7); border:1px solid #FCD34D; color:#78350F; font-weight:700;">
  <span style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="megaphone" style="width:16px; height:16px;"></i> Memo Board
+ <i data-lucide="megaphone" style="width:16px; height:16px;"></i> <span data-i18n="sb_memo_board">Memo Board</span>
  </span>
  <span id="memoBadgePending" style="display:none; background:#EF4444; color:#FFF; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center;">0</span>
  </div>
@@ -1244,16 +1244,16 @@
  </div>
  <!-- Daily-essential items only — kept lean for cashier focus -->
  <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_cashier" onclick="switchHub(['posSection'], 'POS / Cashier', this)">
- <i data-lucide="shopping-cart" style="width:16px; height:16px;"></i> POS / Cashier
+ <i data-lucide="shopping-cart" style="width:16px; height:16px;"></i> <span data-i18n="sb_pos_cashier">POS / Cashier</span>
  </div>
  <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_customer_lookup" onclick="switchHub(['customersSection'], 'Customer Lookup', this); if(typeof renderCustomersV2==='function') renderCustomersV2();">
- <i data-lucide="search" style="width:16px; height:16px;"></i> Customer Lookup
+ <i data-lucide="search" style="width:16px; height:16px;"></i> <span data-i18n="sb_customer_lookup">Customer Lookup</span>
  </div>
  <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_commission" onclick="switchHub(['commissionSection'], 'My Commission', this)">
- <i data-lucide="calculator" style="width:16px; height:16px;"></i> My Commission
+ <i data-lucide="calculator" style="width:16px; height:16px;"></i> <span data-i18n="sb_my_commission">My Commission</span>
  </div>
  <div class="menu-item sales-only" data-group="sales" data-tab="sales_shift" onclick="switchHub(['shiftSection'], 'Shift Close', this); if(typeof renderShiftSection==='function') renderShiftSection();" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;">
- <i data-lucide="lock-keyhole" style="width:16px; height:16px;"></i> Shift Close
+ <i data-lucide="lock-keyhole" style="width:16px; height:16px;"></i> <span data-i18n="sb_shift_close">Shift Close</span>
  <span id="sidebarShiftStatusDot" style="margin-left:auto; width:8px; height:8px; border-radius:50%; background:#9CA3AF; box-shadow:0 0 0 2px rgba(156,163,175,.2);" title="No active shift"></span>
  </div>
 
@@ -1265,30 +1265,30 @@
  </div>
  <!-- Daily ops (most-clicked first) -->
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_fulfillment" onclick="switchHub(['fulfillmentSection'], 'Pesanan Online', this); if(typeof renderFulfillment==='function') renderFulfillment();">
- <i data-lucide="package-check" style="width:16px; height:16px;"></i> Pesanan Online
+ <i data-lucide="package-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_pesanan_online">Pesanan Online</span>
  <span id="ffSidebarBadge" style="display:none; margin-left:auto; background:#EF4444; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="hr_roster" onclick="window.openRoster(this)">
- <i data-lucide="calendar-clock" style="width:16px; height:16px;"></i> Jadual Operasi
+ <i data-lucide="calendar-clock" style="width:16px; height:16px;"></i> <span data-i18n="sb_jadual_operasi">Jadual Operasi</span>
  <span id="rosterSidebarBadge" style="display:none; margin-left:auto; background:#F59E0B; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_database" onclick="switchHub(['databaseSection'], 'Browse Products', this)">
- <i data-lucide="package" style="width:16px; height:16px;"></i> Browse Products
+ <i data-lucide="package" style="width:16px; height:16px;"></i> <span data-i18n="sb_browse_products">Browse Products</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_po" onclick="switchHub(['poSection'], 'Purchase Orders', this)">
- <i data-lucide="truck" style="width:16px; height:16px;"></i> Purchase Orders
+ <i data-lucide="truck" style="width:16px; height:16px;"></i> <span data-i18n="sb_purchase_orders">Purchase Orders</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_warehouse_hub" onclick="switchHub(['warehouseConfigSection'], 'Warehouse Hub', this); if(typeof refreshMpDatalists==='function') refreshMpDatalists();">
- <i data-lucide="warehouse" style="width:16px; height:16px;"></i> Warehouse Hub
+ <i data-lucide="warehouse" style="width:16px; height:16px;"></i> <span data-i18n="sb_warehouse_hub">Warehouse Hub</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_stocktake" onclick="switchHub(['stockTakeSection'], 'Stock Take', this)">
- <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> Stock Take
+ <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_stock_take">Stock Take</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_picking" onclick="switchHub(['pickingSection'], 'Smart Picking', this)">
- <i data-lucide="route" style="width:16px; height:16px;"></i> Smart Picking
+ <i data-lucide="route" style="width:16px; height:16px;"></i> <span data-i18n="sb_smart_picking">Smart Picking</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_barcode" onclick="switchHub(['barcodeSection'], 'Barcode Labels', this)">
- <i data-lucide="printer" style="width:16px; height:16px;"></i> Barcode Labels
+ <i data-lucide="printer" style="width:16px; height:16px;"></i> <span data-i18n="sb_barcode_labels">Barcode Labels</span>
  </div>
 
  <!-- p1_70: Reports section removed from Inventory sidebar (Velocity, Aging, Valuation, Snapshot, Reservations). Section divs kekal untuk back-compat. -->
@@ -1302,10 +1302,10 @@
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
  <div class="menu-item" data-group="customers" data-tab="customers_all" onclick="switchHub(['customersSection'], 'All Customers', this); if(typeof renderCustomersV2==='function') renderCustomersV2();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="users" style="width:16px; height:16px;"></i> All Customers
+ <i data-lucide="users" style="width:16px; height:16px;"></i> <span data-i18n="sb_all_customers">All Customers</span>
  </div>
  <div class="menu-item" data-group="customers" data-tab="customers_b2b" onclick="switchHub(['b2bCustomersSection'], 'B2B Accounts', this); if(typeof renderB2BCustomers==='function') renderB2BCustomers();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="briefcase" style="width:16px; height:16px;"></i> B2B Accounts
+ <i data-lucide="briefcase" style="width:16px; height:16px;"></i> <span data-i18n="sb_b2b_accounts">B2B Accounts</span>
  </div>
  <!-- END CUSTOMERS DEPT -->
  
@@ -1318,10 +1318,10 @@
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
  <div class="menu-item" data-group="hr" data-tab="hr_cuti" onclick="switchHub(['hrCutiSection'], 'Cuti &amp; Maklumat Saya', this); if(typeof renderHrCuti==='function') renderHrCuti();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="palmtree" style="width:16px; height:16px;"></i> Cuti
+ <i data-lucide="palmtree" style="width:16px; height:16px;"></i> <span data-i18n="sb_cuti">Cuti</span>
  </div>
  <div class="menu-item" data-group="hr" data-tab="hr_claim" onclick="switchHub(['hrClaimSection'], 'Tuntutan (Claim)', this); if(typeof renderHrClaim==='function') renderHrClaim();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="receipt" style="width:16px; height:16px;"></i> Claim
+ <i data-lucide="receipt" style="width:16px; height:16px;"></i> <span data-i18n="sb_claim">Claim</span>
  </div>
 
  <!-- ADMIN DEPARTMENT — manager tools, ops, system -->
@@ -1332,25 +1332,25 @@
  <!-- p8_4: Audit Anomaly Alerts -->
  <div class="menu-item mgmt-only" data-group="admin" data-tab="admin_audit_alerts" onclick="switchHub(['auditAlertsSection'], 'Audit Alerts', this); if(typeof renderAuditAlerts==='function') renderAuditAlerts();" style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding-left:35px; font-size:13px;">
  <span style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="shield-alert" style="width:16px; height:16px;"></i> Audit Alerts
+ <i data-lucide="shield-alert" style="width:16px; height:16px;"></i> <span data-i18n="sb_audit_alerts">Audit Alerts</span>
  </span>
  <span id="auditAlertBadge" style="display:none; background:#EF4444; color:#FFF; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center;">0</span>
  </div>
  <div class="menu-item" data-group="admin" data-tab="admin_dashboard" onclick="switchHub(['managerDashboardSection'], 'Manager Dashboard', this); if(typeof renderManagerDashboard==='function') renderManagerDashboard();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="layout-dashboard" style="width:16px; height:16px;"></i> Manager Dashboard
+ <i data-lucide="layout-dashboard" style="width:16px; height:16px;"></i> <span data-i18n="sb_manager_dashboard">Manager Dashboard</span>
  </div>
  <div class="menu-item" data-group="admin" data-tab="admin_ask" onclick="switchHub(['askSection'], 'Tanya 10 CAMP (AI)', this); if(typeof renderAskSection==='function') renderAskSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="sparkles" style="width:16px; height:16px;"></i> Tanya 10 CAMP (AI)
+ <i data-lucide="sparkles" style="width:16px; height:16px;"></i> <span data-i18n="sb_tanya_ai">Tanya 10 CAMP (AI)</span>
  </div>
  <!-- p1_36: Customer Database + B2B Customers moved out → Customers group above -->
  <!-- p1_70: Marketing items moved out → Marketing Department (own group below Admin) -->
  <!-- — Operations — -->
- <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;">— Operations —</div>
+ <div class="menu-item" data-group="admin" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;" data-i18n="sb_admin_operations_divider">— Operations —</div>
  <div class="menu-item" data-group="admin" data-tab="admin_invoice" onclick="switchHub(['invoiceSection'], 'Invoice &amp; Quotation', this)" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="file-text" style="width:16px; height:16px;"></i> Invoice &amp; Quotation
+ <i data-lucide="file-text" style="width:16px; height:16px;"></i> <span data-i18n="sb_invoice_quotation">Invoice &amp; Quotation</span>
  </div>
  <div class="menu-item" data-group="admin" data-tab="admin_bulk_ops" onclick="switchHub(['bulkOpsSection'], 'Bulk Product Edit', this); if(typeof renderBulkOps === 'function') renderBulkOps();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="check-square" style="width:16px; height:16px;"></i> Bulk Product Edit
+ <i data-lucide="check-square" style="width:16px; height:16px;"></i> <span data-i18n="sb_bulk_product_edit">Bulk Product Edit</span>
  </div>
  <!-- p1_37: Setup items moved out of Admin → HQ Setup group below (HQ mode only) -->
 
@@ -1360,13 +1360,13 @@
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
  <div class="menu-item" data-group="marketing" data-tab="admin_promotions" onclick="switchHub(['promotionsSection'], 'Promotions &amp; Vouchers', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="gift" style="width:16px; height:16px;"></i> Promotions &amp; Vouchers
+ <i data-lucide="gift" style="width:16px; height:16px;"></i> <span data-i18n="sb_promotions_vouchers">Promotions &amp; Vouchers</span>
  </div>
  <div class="menu-item" data-group="marketing" data-tab="admin_wa_broadcast" onclick="switchHub(['waBroadcastSection'], 'WhatsApp Broadcast', this); if(typeof renderWABroadcast==='function') renderWABroadcast();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="message-circle" style="width:16px; height:16px;"></i> WhatsApp Broadcast
+ <i data-lucide="message-circle" style="width:16px; height:16px;"></i> <span data-i18n="sb_whatsapp_broadcast">WhatsApp Broadcast</span>
  </div>
  <div class="menu-item" data-group="marketing" data-tab="admin_reengage" onclick="switchHub(['reengageSection'], 'Re-engage Campaign', this); if(typeof renderReengage==='function') renderReengage();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="heart-handshake" style="width:16px; height:16px;"></i> Re-engage Campaign
+ <i data-lucide="heart-handshake" style="width:16px; height:16px;"></i> <span data-i18n="sb_reengage_campaign">Re-engage Campaign</span>
  </div>
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->
@@ -1375,16 +1375,16 @@
  <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
  </div>
  <div class="menu-item hq-only" data-group="finance" data-tab="finance_main" onclick="switchHub(['financeSection'], 'Finance Dashboard', this); if(typeof renderFinance==='function') renderFinance();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="wallet" style="width:16px; height:16px;"></i> Finance Dashboard
+ <i data-lucide="wallet" style="width:16px; height:16px;"></i> <span data-i18n="sb_finance_dashboard">Finance Dashboard</span>
  </div>
  <div class="menu-item hq-only" data-group="finance" data-tab="finance_ledger" onclick="switchHub(['salesLedgerSection'], 'Sales Ledger', this); if(typeof renderSalesLedger==='function') renderSalesLedger();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="scroll-text" style="width:16px; height:16px;"></i> Sales Ledger
+ <i data-lucide="scroll-text" style="width:16px; height:16px;"></i> <span data-i18n="sb_sales_ledger">Sales Ledger</span>
  </div>
  <div class="menu-item hq-only" data-group="finance" data-tab="finance_compliance" onclick="window.openComplianceFiltered('compliance', 'sst', 'Compliance &amp; Tax'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="shield-check" style="width:16px; height:16px;"></i> Compliance &amp; Tax
+ <i data-lucide="shield-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_compliance_tax">Compliance &amp; Tax</span>
  </div>
  <div class="menu-item hq-only" data-group="finance" data-tab="finance_backup" onclick="switchHub(['dataBackupSection'], 'Data &amp; Backup', this); if(typeof renderDataBackup==='function') renderDataBackup();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="hard-drive" style="width:16px; height:16px;"></i> Data &amp; Backup
+ <i data-lucide="hard-drive" style="width:16px; height:16px;"></i> <span data-i18n="sb_data_backup">Data &amp; Backup</span>
  </div>
 
  <!-- HQ SETUP — config + system diagnostics (HQ mode only) p1_37 -->
@@ -1394,32 +1394,32 @@
  </div>
  <!-- p1_38: Permissions Centre — Bos sets per-staff mode access in matrix view -->
  <div class="menu-item hq-only superior-only" data-group="hq_setup" data-tab="hq_permissions" onclick="switchHub(['permissionsSection'], 'Permissions', this); if(typeof renderPermissions==='function') renderPermissions();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="shield-check" style="width:16px; height:16px;"></i> Permissions
+ <i data-lucide="shield-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_permissions">Permissions</span>
  </div>
  <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_settings" onclick="window.openComplianceFiltered('settings', 'shop', 'Shop Settings'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="settings" style="width:16px; height:16px;"></i> Shop Settings
+ <i data-lucide="settings" style="width:16px; height:16px;"></i> <span data-i18n="sb_shop_settings">Shop Settings</span>
  </div>
  <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_payments" onclick="window.openComplianceFiltered('payments', 'duitnow', 'Payments'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active')); this.classList.add('active');" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="credit-card" style="width:16px; height:16px;"></i> Payments
+ <i data-lucide="credit-card" style="width:16px; height:16px;"></i> <span data-i18n="sb_payments">Payments</span>
  </div>
  <div class="menu-item hq-only" data-group="hq_setup" data-tab="admin_sync" onclick="switchHub(['syncSection'], 'Sync', this); if(typeof renderSyncSection==='function') renderSyncSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="git-merge" style="width:16px; height:16px;"></i> Sync (Advanced)
+ <i data-lucide="git-merge" style="width:16px; height:16px;"></i> <span data-i18n="sb_sync_advanced">Sync (Advanced)</span>
  </div>
  <div class="menu-item hq-only superior-only" data-group="hq_setup" data-tab="admin_test_guide" onclick="switchHub(['testGuideSection'], 'System Test Guide', this); if(typeof renderTestGuide==='function') renderTestGuide();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> System Test Guide
+ <i data-lucide="clipboard-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_test_guide">System Test Guide</span>
  </div>
 
  <div style="border-top:1px dashed var(--border-color); margin: 15px 0 5px 0;"></div>
  <div class="menu-item" id="sidebarRoadmapBtn" data-tab="roadmap" onclick="switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="background:linear-gradient(135deg, var(--primary), #A05F22); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:11px 14px; border-radius:10px; box-shadow:0 4px 12px rgba(205,124,50,0.28); margin:6px 0 4px 0;">
  <span style="display:flex; align-items:center; gap:8px; font-size:13px;">
  <i data-lucide="target" style="width:16px; height:16px;"></i>
- Roadmap &amp; Progress
+ <span data-i18n="sb_roadmap">Roadmap &amp; Progress</span>
  </span>
  <span id="sidebarRoadmapPct" style="font-size:11px; font-weight:800; background:rgba(255,255,255,0.22); padding:3px 8px; border-radius:50px; letter-spacing:.3px;">—</span>
  </div>
  <a href="https://www.10camp.com/" target="_blank" style="text-decoration:none;">
  <div class="menu-item" style="color:var(--primary); font-weight:bold; opacity:0.8; display:flex; align-items:center; gap:8px;">
- <i data-lucide="globe" style="width:18px; height:18px;"></i> Visit Website 
+ <i data-lucide="globe" style="width:18px; height:18px;"></i> <span data-i18n="sb_visit_website">Visit Website</span>
  </div>
  </a>
  </div>
@@ -4882,7 +4882,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
- { id:'p1_77', label:'Sidebar audit fixes (rolling) — pukul pertama: tambah translation key dept_marketing (Jabatan Pemasaran / Marketing Department) yang hilang dalam window.I18N.dict. Sebelum ni header Marketing Department guna data-i18n="dept_marketing" tapi key tu tak wujud, jadi bila Zaid toggle BM/EN, label fallback ke raw string "dept_marketing". Fix ini selesaikan header marketing translate dengan betul. Audit selebihnya (item-level data-i18n, badges Cuti/Audit/Pesanan, sub-divider, re-order Customers, lucide icons distinct) akan ditangani fix-fix seterusnya', d:'done' },
+ { id:'p1_77', label:'Sidebar audit fixes (rolling). Fix #1 2026-05-20: tambah translation key dept_marketing yang hilang dalam window.I18N.dict supaya header Marketing Department translate dengan betul bila toggle BM/EN. Fix #2 2026-05-20: tag SEMUA sidebar items dengan data-i18n attribute (~37 keys baharu prefix sb_*). Sebelum ni hanya group HEADERS (Sales/Inventory/Customers/HR/Admin/Marketing/Finance/Setup) ada data-i18n; semua 37 item labels (Overview, Memo Board, POS/Cashier, Customer Lookup, My Commission, Shift Close, Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels, All Customers, B2B Accounts, Cuti, Claim, Audit Alerts, Manager Dashboard, Tanya 10 CAMP, Invoice & Quotation, Bulk Product Edit, Promotions, WhatsApp Broadcast, Re-engage, Finance Dashboard, Sales Ledger, Compliance & Tax, Data & Backup, Permissions, Shop Settings, Payments, Sync (Advanced), Test Guide, Roadmap, Visit Website, plus — Operations — sub-divider) hardcoded. Sekarang setiap label dibungkus dalam <span data-i18n="sb_*"> supaya applyI18N() auto-translate bila Zaid toggle bahasa. Sub-divider "— Operations —" pun di-tag (sb_admin_operations_divider). Hasilnya: toggle BM ↔ EN = seluruh sidebar items + headers tukar bahasa serentak. Audit selebihnya (badges Cuti/Audit/Pesanan, sub-divider redundancy, re-order Customers, lucide icons distinct, rename superior-only class) akan ditangani fix-fix seterusnya', d:'done' },
  { id:'p1_76', label:'Manager Dashboard di-wire ke sistem i18n (BM/EN toggle dah ada p1_62). Sebelum ni dashboard labels keras dalam HTML (Manager Dashboard, Net Revenue, Orders, AOV, Money at Risk, Revenue Trend, Top SKUs, dll) — campuran BM widget baru (p1_74: Memo Terkini, Jadual Hari Ni) + EN rest. Sekarang: (1) Tambah ~40 translation keys baharu (dash_*) ke window.I18N.dict — cover header, target bar, overview widgets, hero stats, charts, lists, view-links, plus shift labels (Syif B/C/OFF/AL/MC/EL/PH). (2) Tag setiap label HTML dengan data-i18n attribute supaya window.applyI18N() auto-translate. (3) Roster widget JS guna window.t() untuk SHIFT_LABEL + locale-aware tarikh (ms-MY untuk BM, en-MY untuk EN). (4) renderManagerDashboard panggil window.applyI18N() di hujung supaya labels dinamik terkemas-kini bila bahasa ditukar. (5) Lang toggle button (langToggle dalam header internal mode) — klik akan tukar bahasa POS keseluruhan termasuk Manager Dashboard. Default kekal BM (lang_v1 localStorage, set masa user pertama buka). Per-user preference disimpan dalam localStorage', d:'done' },
  { id:'p1_75', label:'Session persistence — refresh tak perlu login balik. Sebelum ni: setiap refresh wipe currentUser, staff kena masuk emel+password lagi (Zaid frustration "annoying bro"). Supabase JS client memang auto-persist session dalam localStorage (key sb-{ref}-auth-token), cuma POS tak panggil getSession() masa boot. Fix: tambah window.__restoreSession() yang dipanggil dalam DOMContentLoaded — fetch db.auth.getSession() → kalau ada session valid + emel padan authUsers → loginAs(user, {silent:true}). loginAs sekarang accept opts.silent: skip welcome modal flash (Selamat Pagi etc) + skip maybeShowOnboarding wizard, tapi tetap swap shopAppLayout→posAppLayout, setMode, navigate ke homeTab. Kalau session orphan (emel tak match mana-mana staff, cth selepas migration), auto signOut supaya tak loop. Hasil: refresh = terus masuk POS dalam keadaan macam sebelum refresh. Edge case: kalau Supabase tak ready / no session → fallback ke landing page biasa, klik Staff Login macam normal', d:'done' },
  { id:'p1_74', label:'Memo + Jadual Hari Ni dalam Manager Dashboard overview. Sebelum ni staff perlu klik sidebar Memo Board / Jadual Operasi untuk lihat status. Sekarang Manager Dashboard (admin_dashboard, landing default untuk Bos + mgmt) ada baris overview baru di atas hero stats dengan dua kad: (1) Memo Terkini — papar 3 memo approved terbaharu (pinned dulu, kemudian latest), termasuk department badge berwarna, status PIN, dan timestamp "X jam lepas". Klik "Lihat semua" → terus ke sidebar Memo Board. (2) Jadual Hari Ni — papar jadual operasi staff untuk tarikh hari ni, dikelompokkan ikut syif (Syif B 2-8pm, Syif C 11am-8pm, OFF, AL, MC, EL, PH) dengan warna unik. Klik "Lihat penuh" → terus ke roster. Render functions __renderDashOverviewMemo + __renderDashOverviewRoster dipanggil dari renderManagerDashboard sebelum data sales loaded supaya tampil walaupun data POS belum ready. Source data: window.memoLoad() untuk memos + staffSchedules array untuk roster. Layout: 2-column grid, padding card sama dengan dash-card lain. Bugfix 2026-05-20: "Lihat penuh" button asalnya pakai `?.click() || ?.click()` chain — kerana `click()` return undefined, `||` chain teruskan evaluate semua selectors. Tukar ke `(selector1 || selector2)?.click()` supaya pilih element dulu, baru klik sekali sahaja. Fix #2 2026-05-20: Memo widget auto-refresh — sebelum ni widget tunjuk data stale sehingga renderManagerDashboard dipanggil semula. Sekarang hook ke window.memoSaveAll() (chokepoint untuk semua memo writes: submit, approve, reject, delete) supaya widget langsung re-render bila memos berubah. Roster widget tak perlu — staffSchedules tak ada single saveAll chokepoint, dan Bos biasanya guna refresh button kalau ubah roster. Fix #4 2026-05-20: Memo card sekarang papar 2-line preview body memo (CSS line-clamp:2 + overflow hidden) di bawah title supaya Bos tak perlu klik "Lihat semua" untuk preview content. Plus escape memo title + body + dept label dengan HTML entity untuk elakkan XSS (kalau staff masuk markup dalam body). Fix #5 2026-05-20: window.setLang() sekarang hook re-render overview widgets (memo + roster) selepas applyI18N — sebelum ni tarikh tarikh roster + SHIFT_LABEL ditetapkan inline via JS (bukan data-i18n tagged) jadi tak update bila toggle bahasa. Sekarang tukar bahasa = widgets re-render auto dengan locale + label baharu tanpa perlu refresh. Fix #7 2026-05-20: Tambah section eyebrow "Overview Hari Ni" / "Today\'s Overview" (uppercased letter-spacing label) di atas baris Memo + Jadual supaya ada visual anchor — sebelum ni baris muncul terus tanpa context. Translation key dash_overview_section_title. Fix #8 2026-05-20: Combined empty state — bila kedua-dua memo + roster kosong, hide normal 2-col row dan papar single full-width card tengah "Semua tenang hari ni" dengan icon sparkles + dua butang CTA (Hantar Memo / Tetap Jadual) yang shortcut ke section masing-masing. Coordinator baru window.__renderDashOverview() check empty state + swap layout; renderManagerDashboard + setLang + memoSaveAll semua hook ke coordinator ini. Fix #9 2026-05-20: Mobile responsive — class .dash-overview-row dipindah dari inline style ke design-tokens.css dengan media query (max-width:768px) yang collapse 2-col grid jadi 1-col stack atas skrin sempit. Memo card stack atas Jadual card untuk Hape phone screen. Coordinator JS clear inline display supaya CSS class kekal control layout.', d:'done' },
@@ -9265,7 +9265,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=174"></script>
+ <script src="app.js?v=175"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

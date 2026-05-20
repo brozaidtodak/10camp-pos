@@ -14106,6 +14106,10 @@ window.setLang = function(lang) {
  window.I18N.lang = lang;
  try { localStorage.setItem('lang_v1', lang); } catch(e){}
  window.applyI18N();
+ // p1_74 fix #5: re-render overview widgets so JS-set values (roster date,
+ // SHIFT_LABEL list, memo dept labels) reflect the new locale without refresh.
+ try { if(typeof window.__renderDashOverviewMemo === 'function') window.__renderDashOverviewMemo(); } catch(e){}
+ try { if(typeof window.__renderDashOverviewRoster === 'function') window.__renderDashOverviewRoster(); } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }

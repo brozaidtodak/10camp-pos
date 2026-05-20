@@ -2413,6 +2413,12 @@ window.openPaymentModal = function() {
  window.__currentCheckoutVip = null;
  const vb = document.getElementById('checkoutVipBadge'); if(vb) vb.style.display = 'none';
  const vl = document.getElementById('checkoutVipDiscountLine'); if(vl) vl.remove();
+ // p1_79 fix #2: pre-fill customer fields if widget has an attached customer
+ if(window.posCustomer) {
+ const nm = document.getElementById('customerName'); if(nm && !nm.value) nm.value = window.posCustomer.name || '';
+ const ph = document.getElementById('customerPhone'); if(ph && !ph.value) ph.value = window.posCustomer.phone || '';
+ const em = document.getElementById('customerEmail'); if(em && !em.value) em.value = window.posCustomer.email || '';
+ }
  // Auto-lookup if customer name/phone already filled
  if(typeof checkoutVipLookup === 'function') checkoutVipLookup();
 }
@@ -2475,8 +2481,73 @@ window.setPaymentMethod = function(method, btnElement) {
 
 window.clearCart = function() {
  cart = [];
+ // p1_79 fix #2: also detach customer when clearing cart
+ try { window.posDetachCustomer(); } catch(e){}
  renderCart();
 }
+
+// p1_79 fix #2: Customer Attach widget — link customer to current sale before checkout.
+window.posCustomer = null;
+
+window.posSetCustomer = function(c) {
+ window.posCustomer = c || null;
+ const widget = document.getElementById('posCustomerWidget');
+ const addBtn = document.getElementById('posCustAddBtn');
+ const detail = document.getElementById('posCustDetail');
+ if(!widget) return;
+ if(c) {
+ const name = c.name || (typeof window.t === 'function' ? window.t('cs_walk_in') : 'Walk-in');
+ const phone = c.phone || '-';
+ const pts = parseInt(c.points || 0);
+ const ptsLbl = (typeof window.t === 'function') ? window.t('cs_points') : 'pts';
+ if(addBtn) addBtn.style.display = 'none';
+ if(detail) {
+ detail.style.display = 'flex';
+ detail.innerHTML =
+ '<i data-lucide="user-circle" style="width:18px; height:18px; color:var(--primary); flex-shrink:0;"></i>'
+ + '<div style="flex:1; min-width:0; line-height:1.3;">'
+ + '<div style="font-size:13px; font-weight:700; color:#111; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + name + '</div>'
+ + '<div style="font-size:11px; color:#666;">' + phone + ' · ' + pts + ' ' + ptsLbl + '</div>'
+ + '</div>'
+ + '<button onclick="window.posDetachCustomer()" title="' + (typeof window.t === 'function' ? window.t('cs_remove') : 'Remove') + '" style="background:none; border:none; color:#dc2626; font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0;">×</button>';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ }
+ } else {
+ if(addBtn) addBtn.style.display = '';
+ if(detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
+ }
+};
+
+window.posDetachCustomer = function() { window.posSetCustomer(null); };
+
+window.posAttachCustomer = function() {
+ const T = (k, f) => (typeof window.t === 'function') ? (window.t(k) || f) : f;
+ const list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
+ if(!list.length) { alert(T('cs_customer_not_found', 'No customer database loaded.')); return; }
+ const q = (prompt(T('cs_search_customer_prompt', 'Search customer (phone or name):'), '') || '').trim().toLowerCase();
+ if(!q) return;
+ const matches = list.filter(c => {
+ const ph = (c.phone || '').toLowerCase();
+ const nm = (c.name || '').toLowerCase();
+ return ph.includes(q) || nm.includes(q);
+ });
+ if(matches.length === 0) {
+ if(typeof showToast === 'function') showToast(T('cs_customer_not_found', 'Customer not found.'), 'warn');
+ else alert(T('cs_customer_not_found', 'Customer not found.'));
+ return;
+ }
+ let picked = matches[0];
+ if(matches.length > 1) {
+ // Show numbered prompt for multi-match (cap 5)
+ const top = matches.slice(0, 5);
+ const lines = top.map((c, i) => (i+1) + '. ' + (c.name || '?') + ' · ' + (c.phone || '-')).join('\n');
+ const choice = parseInt(prompt(T('cs_customer_multi', 'Multiple matches:') + '\n' + lines, '1'));
+ if(isNaN(choice) || choice < 1 || choice > top.length) return;
+ picked = top[choice - 1];
+ }
+ window.posSetCustomer(picked);
+ if(typeof showToast === 'function') showToast(T('cs_customer_attached_toast', 'Customer attached') + ': ' + (picked.name || picked.phone || '-'), 'success');
+};
 
 window.processNewCheckout = async function() {
  if(cart.length === 0) { if (typeof showToast==='function') showToast('Troli kosong — scan barang dulu','warning'); else alert('Empty Cart!'); return; }
@@ -14051,6 +14122,15 @@ window.I18N = {
 
  // p1_79 — Cashier (posSection)
  cs_cart_title: { bm: 'Troli Jualan', en: 'Sales Cart' },
+ cs_add_customer: { bm: '+ Tambah Pelanggan', en: '+ Add Customer' },
+ cs_attached_customer: { bm: 'Pelanggan', en: 'Customer' },
+ cs_points: { bm: 'mata', en: 'pts' },
+ cs_remove: { bm: 'Buang', en: 'Remove' },
+ cs_walk_in: { bm: 'Walk-in', en: 'Walk-in' },
+ cs_search_customer_prompt: { bm: 'Cari pelanggan (telefon atau nama):', en: 'Search customer (phone or name):' },
+ cs_customer_not_found: { bm: 'Pelanggan tak dijumpai. Teruskan sebagai walk-in.', en: 'Customer not found. Continue as walk-in.' },
+ cs_customer_multi: { bm: 'Banyak padanan. Sila masukkan nombor yang betul:', en: 'Multiple matches. Enter the correct number:' },
+ cs_customer_attached_toast: { bm: 'Pelanggan dilampirkan', en: 'Customer attached' },
  cs_customer_display: { bm: 'Paparan Pelanggan', en: 'Customer Display' },
  cs_subtotal: { bm: 'Subtotal', en: 'Subtotal' },
  cs_system_discount: { bm: 'Diskaun Sistem', en: 'System Discount' },

@@ -13527,9 +13527,14 @@ window.getModesAccess = function(user) {
  if(overlay[m] !== undefined) out[m] = !!overlay[m];
  else out[m] = cap.modes.includes(m); // fallback
  });
- // p1_37: 'hq' is the new control-centre mode. Back-compat: any user with the
- // legacy 'management' flag (from p1_18/p1_20 era) inherits hq access automatically.
- if (overlay.hq === undefined && out.management) out.hq = true;
+ // p1_93: Manager auto-grants HQ + Management — modes consolidated.
+ // Manager dah jadi "everything except cashier/operations specific". HQ + Management
+ // hanya kekal sebagai legacy alias supaya hq-only / mgmt-only CSS classes + back-compat
+ // callsites tak break. Setiap staff yang ada Manager mode automatic dapat HQ access juga.
+ if (out.manager) { out.hq = true; out.management = true; }
+ // Legacy back-compat: any user dengan management flag lama → grant HQ + Manager juga.
+ if (out.management && !out.manager) { out.manager = true; out.hq = true; }
+ if (out.hq && !out.manager) { out.manager = true; out.management = true; }
  return out;
 };
 
@@ -13622,14 +13627,14 @@ window.setMode = function(mode) {
  // landing redirect tapi `mode` arg tak digunakan untuk filter sidebar lagi.
  const accessUnion = (typeof window.getModesAccess === 'function') ? window.getModesAccess(__u) : { cashier:false, operations:false, manager:false, hq:false };
  let show = false;
- // Manager access is wide-view: shows everything except hq (gated separately).
- // p1_73: investor-only class no longer guards any visible items, kekal harmless.
- if(accessUnion.manager && !isHq && !isInvestor) show = true;
+ // p1_93: Manager sekarang grant HQ access secara otomatik (getModesAccess sync HQ↔Manager).
+ // Manager-mode = wide-view termasuk HQ items (Settings, Permissions, Test Guide).
+ if(accessUnion.manager && !isInvestor) show = true;
  // Cashier-mode items: sales-only class OR group-toggle="sales"
  if(!show && accessUnion.cashier && (isSales || groupToggle === 'sales')) show = true;
  // Operations-mode items: inv-only class OR group-toggle="inv"
  if(!show && accessUnion.operations && (isInv || groupToggle === 'inv')) show = true;
- // HQ: only show if user has explicit access (role-gated)
+ // HQ alias for back-compat (manager flag dah grant ni anyway).
  if(!show && accessUnion.hq && isHq) show = true;
  it.classList.toggle('mode-hidden', !show);
  });
@@ -15413,7 +15418,32 @@ window.I18N = {
  set_card_sync_title: { bm: 'Sync (Lanjutan)', en: 'Sync (Advanced)' },
  set_card_sync_sub: { bm: 'EasyStore, TikTok Shop, Shopee — sync stok dan pesanan luar.', en: 'EasyStore, TikTok Shop, Shopee — sync stock and external orders.' },
  set_card_test_title: { bm: 'Panduan Ujian Sistem', en: 'System Test Guide' },
- set_card_test_sub: { bm: 'Panduan ujian sistem POS untuk Bos verify flow setiap module.', en: 'POS system test guide for the owner to verify each module flow.' }
+ set_card_test_sub: { bm: 'Panduan ujian sistem POS untuk Bos verify flow setiap module.', en: 'POS system test guide for the owner to verify each module flow.' },
+
+ // p1_93 — Permissions Centre i18n
+ perm_title: { bm: 'Pusat Kebenaran', en: 'Permissions Centre' },
+ perm_sub: { bm: 'Bos kawal apa setiap staf boleh akses. Tick / untick checkbox terus, semua change auto-save + audit-log.', en: 'Boss controls what each staff can access. Tick / untick checkboxes directly — all changes auto-save + audit-log.' },
+ perm_guard: { bm: 'Hanya Bos boleh ubah permissions. Mode read-only sahaja.', en: 'Only the boss can modify permissions. Read-only mode.' },
+ perm_tab_matrix: { bm: 'Akses Mode', en: 'Mode Access' },
+ perm_tab_sidebar: { bm: 'Item Sidebar', en: 'Sidebar Items' },
+ perm_tab_templates: { bm: 'Templat', en: 'Templates' },
+ perm_tab_audit: { bm: 'Jejak Audit', en: 'Audit Trail' },
+ perm_col_staff: { bm: 'Staf', en: 'Staff' },
+ perm_col_cashier: { bm: 'Kaunter', en: 'Cashier' },
+ perm_col_operations: { bm: 'Operasi', en: 'Operations' },
+ perm_col_manager: { bm: 'Pengurus', en: 'Manager' },
+ perm_foot_autosave: { bm: 'Auto-save: setiap toggle terus simpan ke staffModeAccess_v1 + audit_logs.', en: 'Auto-save: every toggle saves to staffModeAccess_v1 + audit_logs.' },
+ perm_btn_refresh: { bm: 'Muat Semula', en: 'Refresh' },
+ perm_btn_reload: { bm: 'Muat Semula', en: 'Reload' },
+ perm_btn_reset: { bm: 'Reset Semua', en: 'Reset All' },
+ perm_btn_save_tpl: { bm: 'Simpan sebagai templat', en: 'Save current as template' },
+ perm_sidebar_lbl: { bm: 'Staf:', en: 'Staff:' },
+ perm_sidebar_pick: { bm: '— pilih staf —', en: '— pick staff —' },
+ perm_sidebar_help: { bm: 'Default: setiap staf nampak semua item dalam mode yang dia ada akses. Untick item untuk explicitly hide dari staf tu (extra restrict tanpa kena buang akses mode).', en: 'Default: each staff sees all items in modes they have access to. Untick to explicitly hide an item (extra restrict without revoking mode access).' },
+ perm_sidebar_start: { bm: 'Pilih staf untuk start.', en: 'Pick a staff to start.' },
+ perm_tpl_help: { bm: 'Klik "Apply" untuk grant mode + sidebar access dalam satu shot. Custom template boleh save dari tab Item Sidebar.', en: 'Click "Apply" to grant mode + sidebar access in one shot. Custom templates can be saved from the Sidebar Items tab.' },
+ perm_tpl_loading: { bm: 'Memuatkan templat…', en: 'Loading templates…' },
+ perm_audit_help: { bm: 'Riwayat 50 perubahan permission terkini.', en: 'Last 50 permission changes.' }
  }
 };
 
@@ -16671,7 +16701,8 @@ window.renderWABroadcast = function() {
 // Source of truth: staffModeAccess_v1 localStorage. Audit: audit_logs Supabase
 // (action_type='update_mode_access'). Reuses existing overlay format from p1_20.
 (function(){
- const PERM_MODES = ['cashier','operations','manager','hq'];
+ // p1_93: HQ + Management merged into Manager — 3 modes only di matrix.
+ const PERM_MODES = ['cashier','operations','manager'];
  const PERM_LABELS = { cashier:'Kaunter', operations:'Operasi', manager:'Pengurus', hq:'HQ' };
 
  function escAttr(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -16717,7 +16748,7 @@ window.renderWABroadcast = function() {
  const tbody = document.getElementById('permMatrixBody');
  if (!tbody) return;
  const list = (typeof authUsers !== 'undefined' && Array.isArray(authUsers)) ? authUsers.slice() : [];
- if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--neutral-500);">Tiada staff dijumpai.</td></tr>'; return; }
+ if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--neutral-500);">Tiada staf dijumpai.</td></tr>'; return; }
  const overlay = readOverlay();
  const inactive = inactiveSet();
  const canEdit = isSuperior();
@@ -16787,6 +16818,12 @@ window.renderWABroadcast = function() {
  overlay[staffId][mode] = !!value;
  // p1_37 alias: if writing 'hq', mirror to 'management' so legacy modal stays in sync
  if (mode === 'hq') overlay[staffId].management = !!value;
+ // p1_93: HQ + Management consolidated into Manager. Bila manager di-toggle,
+ // mirror ke hq + management juga supaya sidebar filter + legacy callsites sync.
+ if (mode === 'manager') {
+ overlay[staffId].hq = !!value;
+ overlay[staffId].management = !!value;
+ }
  writeOverlay(overlay);
  // Audit log
  try {

@@ -5034,7 +5034,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (92/92 · last 2026-05-20)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (93/93 · last 2026-05-21)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5109,6 +5109,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_93', label:'Permissions Centre audit + konsolidasi mode HQ + Management → Manager. Zaid: "dah tak perlu superior mode, hq mode, management mode. semua sama je". Konteks: superior dah retire p1_72 (Bos via isBoss helper jawatan check), management dah merge ke manager p1_32 tapi UI tab disembunyikan je — flag masih wujud di overlay. HQ pulak sejak p1_65 dah jarang dipakai sebab mode bar disembunyikan. Audit findings: (1) Permissions matrix papar 5 kolum (Staff/Kaunter/Operasi/Pengurus/HQ/Investor) tapi Investor sebenarnya stale lepas p1_73 + HQ redundant. (2) Mode lock-out check di togglePermission masih iterate 4 modes termasuk hq. (3) Semua label dalam Permissions section hardcoded — tajuk "Permissions Centre", sub paragraph, 4 tab labels (Mode Access/Sidebar Items/Templates/Audit Trail), table headers, foot text, sidebar pane help, templates pane help, audit pane help. Tiada data-i18n langsung. Perubahan p1_93: A. Matrix UI — PERM_MODES dari [cashier,operations,manager,hq] tukar ke [cashier,operations,manager] sahaja. <thead> ditukar dari 6 kolum (termasuk HQ + Investor) ke 4 kolum (Staff + 3 modes). colspan loading row dari 6 ke 4. B. getModesAccess upgrade — kalau out.manager true → auto-true out.hq + out.management juga (manager = wide-view termasuk HQ items). Back-compat reverse: kalau ada legacy entry dengan hq=true atau management=true tapi manager=false, mirror balik ke manager juga supaya staff yang dah granted HQ era lama auto-transit ke Manager era baru. C. togglePermission update — bila admin tick/untick checkbox Manager, mirror nilai sama ke hq + management dalam overlay (selari dengan getModesAccess invariant). Sidebar filter logic akan re-evaluate sebab manager flag dah lebar. D. Sidebar mode-hiding logic dalam setMode (line ~13619) — branch "Manager wide-view" tukar dari `accessUnion.manager && !isHq && !isInvestor` jadi `accessUnion.manager && !isInvestor`. Manager sekarang tunjuk hq-only items (Settings, Permissions, Test Guide) terus tanpa perlu separate HQ flag. E. i18n — 17 keys baharu perm_* (title, sub, guard, 4 tab labels, 4 column labels, foot autosave, 3 button labels, 4 pane help texts). Tag semua hardcoded text dalam Permissions section dengan data-i18n. F. Mode bar markup di header (modeTabHq + modeTabManagement) kekal hidden — flag style="display:none;" cukup, tak buang button supaya rendering tak break. Hasil: Boss + mgmt staff masih nampak Settings/Permissions/Test Guide sebab Manager auto-grant HQ. Staff biasa (cashier/inv/sales) tak terjejas — mereka tiada manager flag, jadi tiada HQ access. Matrix sekarang 3-kolum bersih, mode model lebih clear: Cashier (kaunter daily), Operations (ops dept), Manager (everything mgmt + HQ). Bump app.js v213→v214. ROADMAP_DATA 92/92→93/93.', d:'done' },
  { id:'p1_92', label:'Setup → Settings rename + Settings Hub EasyStore-style landing. Zaid reference screenshot EasyStore back-office Settings — layout dengan kad profile kedai + kad Plans/billing di top, dan grid kad-kad setting dengan icon + tajuk + sub deskripsi. Cadangan accepted as p1_92. Perubahan: (1) Rename sidebar group dari "Setup" ke "Settings" — key dept_setup EN ditukar "Setup" → "Settings"; BM kekal "Tetapan" (sudah betul). Rail tooltip ditukar dari "Setup" ke "Settings". Rail icon ditukar dari "wrench" ke "settings" (gear icon lebih konvensional). (2) Tambah sidebar menu item BARU sebagai first child group hq_setup: data-tab="settings_hub" + data-i18n="sb_settings_hub" + lucide layout-grid icon. switchHub buka settingsHubSection + panggil renderSettingsHub. (3) Build settingsHubSection HTML — set-hub container max-width 1100px. Top row 2-kolum: kad profile kedai (icon store + "10 CAMP" + URL link biru ke 10camp.com + edit button kanan atas yang launch openComplianceFiltered shop settings) + kad System Status (icon server hijau + tajuk "System Version" + pill hijau "Operational" + sub "v0.91 · pos.10camp.com"). Grid bawah auto-fill 240px min: 5 kad setting (Permissions/Shop Settings/Payments/Sync/Test Guide) setiap satu dengan icon (key-round/settings/credit-card/git-merge/flask-conical), tajuk bold, sub deskripsi 1-2 ayat. Klik kad cari menu-item sepadan dalam #sidebarMain dan trigger click → jump ke section yang betul. Kad Permissions + Test Guide ada class boss-only (auto-hide untuk non-Bos via existing CSS). (4) CSS dalam design-tokens.css ~45 baris baharu: .set-hub container, .set-hub__top grid 2-col, .set-hub__card base + variants (--profile flex + --status flex), .set-hub__edit-btn absolute top-right hover bg, .set-hub__profile-url biru, .set-hub__status-pill hijau D1FAE5 + 065F46, .set-hub__grid auto-fill repeat 240px min, .set-card box-shadow + hover lift (translateY -2px + primary border + icon turns primary), .set-card__icon 36px bg gray bertukar primary on hover, mobile responsive (top grid → 1-col bawah 640px). (5) setActiveRail upgrade — bila railId === "hq_setup" dan tiada hq_setup sub-section currently active, auto-click settings_hub item (selepas 50ms timeout supaya filter loop habis dulu). User boleh ke Permissions terus dari panel kalau dia dah dalam Settings rail; klik rail icon Settings dari mana-mana → hub. (6) __tabToRail update — settings_hub map ke hq_setup. (7) renderSettingsHub function — refresh lucide icons + applyI18N selepas render supaya CSS auto-translate text + render icons untuk kad-kad baharu. Total: 15 keys baharu sb_settings_hub/set_hub_*/set_card_*. Apply pattern p1_87 (Order Detail modal) untuk popup/section new section.', d:'done' },
  { id:'p1_91', label:'Marketing Dept audit + bulk i18n (rolling). 3 seksyen ditangani: (1) Promotions & Vouchers — tajuk "Promotion & Voucher Manager", butang "Festival Templates" + "Refresh", deskripsi sub, dan 4 column headers table (Code/Description, Type/Conditions, Value, Status) ditag data-i18n (mk_promo_*). (2) Re-engage Campaign — tajuk + deskripsi panjang (translated dari English-only ke BM-friendly "Tarik balik pelanggan dorman..."), 3 tier cards (Sleeping/Cold/Lost dengan range 30-59/60-89/90+ hari + "customers · historic value" footer), butang "Select all"/"Clear", "Message template" header + variables hint, "Promo code:" label, send bar "X selected · est RM Y historic value", butang "Send next 10 via WhatsApp", history section title + empty state — semua tag data-i18n (mk_re_*). Dynamic JS dalam reSelectTier juga di-update guna window.t() supaya detail title + tier label translate ikut bahasa aktif. (3) WhatsApp Broadcast — tajuk + deskripsi panjang, 3 card titles (Template & Audience, Message preview, Send broadcast), labels (Template/Audience filter/Promo code), 7 template options (Hari Raya/CNY/Deepavali/Merdeka/VIP/Re-order/Generic), 5 audience options (Semua/VIP/SMS consent/Big spender/Dormant), "Audience match: N customer(s)", "Variables:" hint, "Sample for first match:", info text + butang "Send batch"/"Reset" — semua tag data-i18n (mk_wa_*). Emoji buang dari 7 template dropdown options + 2 emoji dari card titles (Zaid no-emojis rule). Total: 60+ keys baharu mk_promo_/mk_re_/mk_wa_ dalam I18N.dict. Sama pattern dengan p1_82 (Inventory) dan p1_84 (Admin). Reports section kekal tak audit (placeholder coming-soon).', d:'done' },
  { id:'p1_90', label:'Bugfix sidebar rail — content tertentu group tak keluar. Zaid feedback: "content dalam certain department tak keluar". Punca: legacy function initSidebarGroups() dari design lama (expandable groups era p1_36) masih jalan masa boot — dia tambah class `.sidebar-collapsed` pada items dalam group yang tak active dengan default state collapsed=true untuk semua kecuali active group. CSS rule `.menu-item[data-group].sidebar-collapsed { display:none !important }` override window.setActiveRail style.display=\"\" yang aku set untuk filter rail — items tertentu stuck tersembunyi walaupun rail yang betul dipilih. Fix: (1) Stripping `sidebar-collapsed` class dalam setActiveRail loop untuk setiap menu-item — ensure clean state setiap kali tukar rail. (2) Disable initSidebarGroups() entirely — replace dengan no-op (back-compat untuk caller existing). (3) Disable legacy click handler yang auto-expand parent group bila klik sub-item — rail filter sekarang handle visibility, tiada concept "collapsed" lagi. Items dalam setiap rail sekarang konsisten papar bila rail icon yang betul dipilih. CSS rule .sidebar-collapsed kekal harmless sebab class tak pernah ditambah lagi.', d:'done' },
@@ -6868,75 +6869,75 @@
  <div>
  <h2 style="margin:0; font-size:20px; display:flex; align-items:center; gap:8px;">
  <i data-lucide="shield-check" style="width:22px; height:22px; color:#047857;"></i>
- Permissions Centre
+ <span data-i18n="perm_title">Permissions Centre</span>
  </h2>
- <p style="font-size:13px; color:var(--neutral-500); margin:6px 0 0;">Bos kawal apa setiap staff boleh akses. Tick / untick checkbox terus, semua change auto-save + audit-log.</p>
+ <p style="font-size:13px; color:var(--neutral-500); margin:6px 0 0;" data-i18n="perm_sub">Bos kawal apa setiap staff boleh akses. Tick / untick checkbox terus, semua change auto-save + audit-log.</p>
  </div>
- <div id="permGuard" class="perm-guard" hidden>Hanya Bos boleh ubah permissions. Click sebagai read-only sahaja.</div>
+ <div id="permGuard" class="perm-guard" hidden data-i18n="perm_guard">Hanya Bos boleh ubah permissions. Mode read-only sahaja.</div>
  </div>
 
  <div class="perm-tabs" role="tablist">
  <button class="perm-tab is-active" role="tab" aria-selected="true" data-perm-tab="matrix" onclick="window.permTab && window.permTab('matrix')">
- <i data-lucide="grid-3x3" style="width:14px; height:14px;"></i> Mode Access
+ <i data-lucide="grid-3x3" style="width:14px; height:14px;"></i> <span data-i18n="perm_tab_matrix">Mode Access</span>
  </button>
  <button class="perm-tab" role="tab" aria-selected="false" data-perm-tab="sidebar" onclick="window.permTab && window.permTab('sidebar')">
- <i data-lucide="sidebar" style="width:14px; height:14px;"></i> Sidebar Items
+ <i data-lucide="sidebar" style="width:14px; height:14px;"></i> <span data-i18n="perm_tab_sidebar">Sidebar Items</span>
  </button>
  <button class="perm-tab" role="tab" aria-selected="false" data-perm-tab="templates" onclick="window.permTab && window.permTab('templates')">
- <i data-lucide="layout-template" style="width:14px; height:14px;"></i> Templates
+ <i data-lucide="layout-template" style="width:14px; height:14px;"></i> <span data-i18n="perm_tab_templates">Templates</span>
  </button>
  <button class="perm-tab" role="tab" aria-selected="false" data-perm-tab="audit" onclick="window.permTab && window.permTab('audit')">
- <i data-lucide="history" style="width:14px; height:14px;"></i> Audit Trail
+ <i data-lucide="history" style="width:14px; height:14px;"></i> <span data-i18n="perm_tab_audit">Audit Trail</span>
  </button>
  </div>
 
  <div id="permPaneMatrix" class="perm-pane">
  <div class="perm-table-wrap">
  <table class="perm-table" id="permMatrixTable">
- <thead><tr><th class="perm-staff-col">Staff</th><th>Kaunter</th><th>Operasi</th><th>Pengurus</th><th class="perm-hq">HQ</th><th>Investor</th></tr></thead>
- <tbody id="permMatrixBody"><tr><td colspan="6" style="text-align:center; padding:30px; color:var(--neutral-500);">Loading…</td></tr></tbody>
+ <thead><tr><th class="perm-staff-col" data-i18n="perm_col_staff">Staff</th><th data-i18n="perm_col_cashier">Kaunter</th><th data-i18n="perm_col_operations">Operasi</th><th data-i18n="perm_col_manager">Pengurus</th></tr></thead>
+ <tbody id="permMatrixBody"><tr><td colspan="4" style="text-align:center; padding:30px; color:var(--neutral-500);" data-i18n="label_loading">Loading…</td></tr></tbody>
  </table>
  </div>
  <div class="perm-foot">
- <span><strong>Auto-save:</strong> setiap toggle terus simpan ke <code>staffModeAccess_v1</code> + audit_logs.</span>
- <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsMatrix && window.renderPermissionsMatrix()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> Refresh</button>
+ <span data-i18n="perm_foot_autosave">Auto-save: setiap toggle terus simpan ke staffModeAccess_v1 + audit_logs.</span>
+ <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsMatrix && window.renderPermissionsMatrix()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> <span data-i18n="perm_btn_refresh">Refresh</span></button>
  </div>
  </div>
 
  <div id="permPaneSidebar" class="perm-pane" hidden>
  <div class="perm-sidebar-toolbar">
  <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--neutral-700);">
- <span><strong>Staff:</strong></span>
+ <span><strong data-i18n="perm_sidebar_lbl">Staff:</strong></span>
  <select id="permSidebarStaff" onchange="window.renderPermSidebarFor(this.value)" style="padding:6px 10px; border:1px solid var(--neutral-200); border-radius:6px; font-size:13px; min-width:220px;">
- <option value="">— pilih staff —</option>
+ <option value="" data-i18n="perm_sidebar_pick">— pilih staff —</option>
  </select>
  </label>
  <button type="button" class="perm-btn-ghost" id="permSidebarReset" style="display:none;" onclick="window.permSidebarResetAll && window.permSidebarResetAll()">
- <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i> Reset semua
+ <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i> <span data-i18n="perm_btn_reset">Reset Semua</span>
  </button>
  </div>
- <p style="font-size:11.5px; color:var(--neutral-500); margin:8px 4px 12px;">
- Default: setiap staff nampak semua item dalam mode yang dia ada akses. Untick item untuk explicitly hide dari staff tu (extra restrict tanpa kena buang akses mode).
+ <p style="font-size:11.5px; color:var(--neutral-500); margin:8px 4px 12px;" data-i18n="perm_sidebar_help">
+ Default: setiap staf nampak semua item dalam mode yang dia ada akses. Untick item untuk explicitly hide dari staf tu (extra restrict tanpa kena buang akses mode).
  </p>
- <div id="permSidebarBody" class="perm-sidebar-body"><p style="text-align:center; padding:24px; color:var(--neutral-500);">Pilih staff untuk start.</p></div>
+ <div id="permSidebarBody" class="perm-sidebar-body"><p style="text-align:center; padding:24px; color:var(--neutral-500);" data-i18n="perm_sidebar_start">Pilih staf untuk start.</p></div>
  </div>
 
  <div id="permPaneTemplates" class="perm-pane" hidden>
  <div class="perm-tpl-toolbar">
- <span style="font-size:12px; color:var(--neutral-500);">Click "Apply" untuk grant mode + sidebar access dalam satu shot. Custom template boleh save dari sidebar items tab.</span>
+ <span style="font-size:12px; color:var(--neutral-500);" data-i18n="perm_tpl_help">Klik "Apply" untuk grant mode + sidebar access dalam satu shot. Custom template boleh save dari tab Item Sidebar.</span>
  <button type="button" class="perm-btn-ghost" onclick="window.permSaveTemplateFromCurrent && window.permSaveTemplateFromCurrent()">
- <i data-lucide="save" style="width:13px; height:13px;"></i> Save current as template
+ <i data-lucide="save" style="width:13px; height:13px;"></i> <span data-i18n="perm_btn_save_tpl">Save current as template</span>
  </button>
  </div>
- <div id="permTemplatesList" class="perm-tpl-list"><p style="text-align:center; padding:24px; color:var(--neutral-500);">Loading templates…</p></div>
+ <div id="permTemplatesList" class="perm-tpl-list"><p style="text-align:center; padding:24px; color:var(--neutral-500);" data-i18n="perm_tpl_loading">Loading templates…</p></div>
  </div>
 
  <div id="permPaneAudit" class="perm-pane" hidden>
  <div class="perm-audit-toolbar">
- <span style="font-size:12px; color:var(--neutral-500);">Riwayat 50 perubahan permission terkini.</span>
- <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsAudit && window.renderPermissionsAudit()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> Reload</button>
+ <span style="font-size:12px; color:var(--neutral-500);" data-i18n="perm_audit_help">Riwayat 50 perubahan permission terkini.</span>
+ <button type="button" class="perm-btn-ghost" onclick="window.renderPermissionsAudit && window.renderPermissionsAudit()"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> <span data-i18n="perm_btn_reload">Reload</span></button>
  </div>
- <div id="permAuditList" class="perm-audit-list"><p style="text-align:center; padding:24px; color:var(--neutral-500);">Loading…</p></div>
+ <div id="permAuditList" class="perm-audit-list"><p style="text-align:center; padding:24px; color:var(--neutral-500);" data-i18n="label_loading">Loading…</p></div>
  </div>
  </div>
  </div>
@@ -9507,7 +9508,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=213"></script>
+ <script src="app.js?v=214"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

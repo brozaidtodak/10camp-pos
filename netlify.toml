@@ -18,18 +18,6 @@
   force = true
 
 [[redirects]]
-  from = "/api/ask"
-  to = "/.netlify/functions/claude-ask"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/shop-ai"
-  to = "/.netlify/functions/claude-shop"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/api/tiktok-oauth"
   to = "/.netlify/functions/tiktok-oauth"
   status = 200

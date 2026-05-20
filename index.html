@@ -1213,36 +1213,6 @@
  </div>
  </div>
 
- <!-- p1_85: Shop AI chat bubble — customer assistant (landing page only) -->
- <button id="shopAiBubble" onclick="window.shopAiToggle()" aria-label="Chat with 10 CAMP assistant" style="position:fixed; bottom:24px; right:24px; width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #A05F22); border:none; color:#fff; box-shadow:0 8px 24px rgba(205,124,50,0.4); cursor:pointer; z-index:2500; display:flex; align-items:center; justify-content:center; transition:0.3s;">
- <i data-lucide="sparkles" style="width:26px; height:26px;"></i>
- </button>
- <div id="shopAiPanel" style="display:none; position:fixed; bottom:96px; right:24px; width:380px; max-width:calc(100vw - 32px); max-height:calc(100vh - 140px); background:#fff; border-radius:16px; box-shadow:0 16px 40px rgba(0,0,0,0.18); z-index:2501; flex-direction:column; overflow:hidden;">
- <div style="padding:14px 16px; background:linear-gradient(135deg, var(--primary), #A05F22); color:#fff; display:flex; justify-content:space-between; align-items:center;">
- <div style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="sparkles" style="width:18px; height:18px;"></i>
- <strong style="font-size:14px;">Tanya 10 CAMP</strong>
- </div>
- <button onclick="window.shopAiToggle()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; padding:0; opacity:0.9;">×</button>
- </div>
- <div id="shopAiThread" style="flex:1; padding:14px 16px; overflow-y:auto; min-height:280px; max-height:50vh; display:flex; flex-direction:column; gap:10px; background:#FAFAFA;">
- <div style="background:#FFF; border:1px solid #E5E7EB; padding:10px 12px; border-radius:12px; font-size:13px; line-height:1.5; color:#374151;">
- Hi! Aku pembantu shopping 10 CAMP. Aku boleh bantu cadang gear, jawab soalan produk, atau bagi info kedai. Try tanya: <em>"Cadang tent untuk 4 orang"</em>
- </div>
- </div>
- <div id="shopAiChips" style="padding:8px 16px; display:flex; gap:6px; flex-wrap:wrap; border-top:1px solid #E5E7EB; background:#FFF;">
- <button onclick="window.shopAiAsk('Cadang tent untuk 4 orang camping family')" style="background:#FEF3C7; color:#92400E; border:none; padding:6px 10px; border-radius:14px; font-size:11px; cursor:pointer; font-weight:600;">Tent 4 orang</button>
- <button onclick="window.shopAiAsk('Hours kedai dan lokasi?')" style="background:#DBEAFE; color:#1E40AF; border:none; padding:6px 10px; border-radius:14px; font-size:11px; cursor:pointer; font-weight:600;">Hours & lokasi</button>
- <button onclick="window.shopAiAsk('Macam mana nak return barang?')" style="background:#FEE2E2; color:#991B1B; border:none; padding:6px 10px; border-radius:14px; font-size:11px; cursor:pointer; font-weight:600;">Return policy</button>
- <button onclick="window.shopAiAsk('Brand mana paling popular?')" style="background:#D1FAE5; color:#065F46; border:none; padding:6px 10px; border-radius:14px; font-size:11px; cursor:pointer; font-weight:600;">Top brands</button>
- </div>
- <div style="padding:10px 12px; border-top:1px solid #E5E7EB; background:#FFF; display:flex; gap:8px;">
- <input type="text" id="shopAiInput" placeholder="Taip soalan… (Enter untuk hantar)" onkeydown="if(event.key==='Enter') window.shopAiSend()" style="flex:1; padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px; font-size:13px; outline:none;">
- <button onclick="window.shopAiSend()" style="background:var(--primary); color:#fff; border:none; padding:0 14px; border-radius:10px; cursor:pointer; font-weight:700;">
- <i data-lucide="send" style="width:16px; height:16px;"></i>
- </button>
- </div>
- </div>
 
 <div id="posAppLayout" style="display:none;">
 
@@ -1383,9 +1353,7 @@
  <span id="auditAlertBadge" style="display:none; background:#EF4444; color:#FFF; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center;">0</span>
  </div>
  <!-- p1_78 fix #6: Manager Dashboard sidebar item removed — content merged into Overview (top-level), avoid two pages showing similar dashboards. Section markup kekal for back-compat dengan section routing. -->
- <div class="menu-item" data-group="admin" data-tab="admin_ask" onclick="switchHub(['askSection'], 'Tanya 10 CAMP (AI)', this); if(typeof renderAskSection==='function') renderAskSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
- <i data-lucide="sparkles" style="width:16px; height:16px;"></i> <span data-i18n="sb_tanya_ai">Tanya 10 CAMP (AI)</span>
- </div>
+ <!-- p1_86: Tanya AI sidebar item removed (AI features dropped — no API key setup planned) -->
  <!-- p1_36: Customer Database + B2B Customers moved out → Customers group above -->
  <!-- p1_70: Marketing items moved out → Marketing Department (own group below Admin) -->
  <!-- p1_77 fix #5: "— Operations —" sub-divider removed (only 2 items beneath, redundant noise) -->
@@ -4487,34 +4455,6 @@
  </div>
  </div>
 
- <!-- ============================================== -->
- <!-- TANYA 10 CAMP — NL Q&A (p8_3) -->
- <!-- ============================================== -->
- <div id="askSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="sparkles" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> <span data-i18n="ai_title">Tanya 10 CAMP (AI Assistant)</span></h2>
- <p style="font-size:13px; color:#666; margin-bottom:14px;" data-i18n="ai_sub">Tanya apa-apa pasal business dalam BM/EN/mix. Contoh: "Berapa sales last week?" · "Top 5 products bulan ni?" · "Customer mana spend paling banyak?" · "Stock mana yang nak habis?"</p>
-
- <div id="askApiStatus" style="font-size:11px; color:#666; margin-bottom:8px;"></div>
-
- <div class="card" style="padding:14px; margin-bottom:14px;">
- <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Berapa total sales bulan ni vs bulan lepas?')" data-i18n="ai_example_sales">Sales bulan ni vs lepas</button>
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Top 5 products yang paling laku 30 hari kebelakangan?')" data-i18n="ai_example_top5">Top 5 products</button>
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Top 5 customer yang spend paling banyak?')" data-i18n="ai_example_top_customers">Top customers</button>
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Stock SKU mana yang qty kurang dari 5?')" data-i18n="ai_example_low_stock">Low stock</button>
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Berapa average transaction value (AOV)?')" data-i18n="ai_example_aov">AOV</button>
- <button class="btn btn--ghost btn--sm" onclick="window.__askExample('Compare performance staff bulan ni')" data-i18n="ai_example_staff_perf">Staff perf</button>
- </div>
- <div style="display:flex; gap:8px;">
- <input type="text" id="askInput" class="cp-input" placeholder="Tulis soalan… (Enter untuk hantar)" data-i18n-placeholder="ai_input_ph" style="flex:1;" onkeydown="if(event.key==='Enter') window.__askSend()">
- <button class="btn btn--primary" onclick="window.__askSend()">
- <i data-lucide="send" style="width:14px; height:14px;"></i> <span data-i18n="ai_send_btn">Tanya</span>
- </button>
- </div>
- </div>
-
- <div id="askThread" style="display:flex; flex-direction:column; gap:10px;"></div>
- </div>
 
  <!-- ============================================== -->
  <!-- p1_30 — SYSTEM TEST GUIDE (QA checklist for every shipped feature) -->
@@ -4880,7 +4820,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (85/85 · last 2026-05-20)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (86/86 · last 2026-05-20)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -4955,6 +4895,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_86', label:'Buang semua feature AI dari POS — Zaid decide tak nak setup ANTHROPIC_API_KEY dalam Netlify (kena billing setup). Reverse p1_85 + retire p8_3 Tanya AI internal. (1) Padam fail Netlify function: netlify/functions/claude-ask.js + netlify/functions/claude-shop.js. (2) Buang 2 redirects dari netlify.toml: /api/ask dan /api/shop-ai. (3) Buang sidebar item "Tanya 10 CAMP (AI)" dari Admin Department. (4) Buang HTML section askSection (28 baris) + landing page shopAiBubble + shopAiPanel (30 baris). (5) Buang ~175 baris JS Tanya AI block (__askBuildContextSummary + __askExample + __askSend + renderAskSection) dari app.js + ~155 baris Shop AI block (__shopAiHistory state + shopAiToggle + __shopAiRenderHistory + shopAiAsk + shopAiSend + MutationObserver bubble hide). (6) Buang 12 translation keys: sb_tanya_ai + 10 ai_* keys (ai_title/sub/example_*/input_ph/send_btn). Netlify functions untuk TikTok + EasyStore kekal sebab tidak bergantung Anthropic. Zaid boleh revive AI nanti dari git history kalau berubah fikiran.', d:'done' },
  { id:'p1_85', label:'Landing page AI shopping assistant (Claude Haiku 4.5) — pembantu customer dalam laman publik. POS sudah ada Tanya AI internal (p8_3 — staff-facing business analytics). Sekarang tambah versi customer-facing untuk landing page. (1) Netlify function baharu /api/shop-ai → claude-shop.js dengan system prompt berbeza: "friendly shopping advisor" — fokus product recommendations, sizing, brands, store hours, shipping/return policy. Hard guardrails: NEVER expose sales numbers / customer lists / exact stock / staff data. Stock checks redirect ke "check kedai atau WhatsApp". Off-topic queries (politik/agama/dll) politely redirect. Tone ramah, BM/EN/Manglish capable. (2) Chat bubble UI: butang bulat di bottom-right landing page (gradient primary, icon sparkles, shadow). Klik → buka panel 380px lebar di atas bubble dengan: header gradient + tutup, thread messages scrollable, 4 quick reply chips (Tent 4 orang / Hours & lokasi / Return policy / Top brands), input field + send button. (3) JS handlers: shopAiToggle / shopAiAsk / shopAiSend — POST ke /api/shop-ai dengan question + catalog_summary (top 30 published products dari masterProducts: sku/name/brand/category/price) + history (last 8 turns untuk context conversation). Conversation persisted dalam localStorage shopAiHistory_v1 (cap 20 messages). (4) Hide bubble dalam POS internal mode via MutationObserver monitor posAppLayout style.display — bubble cuma keluar masa landing/shop layout. (5) Reuse ANTHROPIC_API_KEY existing (sama dengan claude-ask). Cost: Claude Haiku ~RM 0.005/query — 500 queries/day ~RM 8/bulan. (6) Netlify redirect /api/shop-ai → claude-shop function ditambah dalam netlify.toml. Catalog summary dipasang dengan setiap query untuk grounding (avoid hallucination product yang tak wujud). Phase B (future): RAG dengan full product DB, voice input, action capabilities (add to cart via AI).', d:'done' },
  { id:'p1_84', label:'Bulk i18n untuk 4 Admin Department sections yang sebelum ni zero coverage — Audit Alerts, Tanya AI, Invoice & Quotation, Bulk Product Edit. Tambah ~70 keys baharu dengan prefix per-section: aa_* (Audit Alerts, 10 keys: title, sub, 3 period pills, 3 action buttons, rules label + list — termasuk consistency BM/EN dalam rules text), ai_* (Tanya AI, 9 keys: title, sub, 6 example query labels, input placeholder, send button), inv_* (Invoice & Quotation, 18 keys: title, sub, 6 field labels uppercase, view logs btn, edit mode label, empty title + sub, add item btn, subtotal, 4 PDF jana buttons), bk_* (Bulk Ops, 28 keys: title, sub, bin import + danger zone titles + buttons, 5 filter labels + status options, page size, 5 bulk action buttons, 9 table headers). Skip bigger refactors (Invoice 4-PDF → 1 dropdown + Bulk Edit tab-ed structure) — defer untuk Zaid request specific. Tagging je kali ni — pure i18n, no behaviour change. Toggle BM/EN sekarang affect semua label utama dalam Admin Department.', d:'done' },
  { id:'p1_83', label:'HR Department reorganization — daily essentials consolidated. Zaid scope: POS HR cuma daily tasks (schedule, clock in/out, claim, mintak cuti, balance cuti); selebihnya akan dibuat di 10cc Command Centre. Sebelum ni daily HR tasks scattered 3 tempat: sidebar Inventory > Jadual Operasi (apply leave tersorok), sidebar HR Dept > Cuti + Claim, floating clock button bottom-left. Workflow confusing — staff baru takkan sangka mintak cuti melalui Inventory group. Reorganization: (1) Tambah `hrTodaySection` baharu — overview card dengan status clock (hijau "Belum Clock In" / merah "Sedang Bekerja" / kelabu "Dah Clock Out" + button quick-toggle), 4 KPI tiles (baki cuti tahunan, cuti pending, cuti hadapan, claim pending), 3 quick action buttons (Pohon Cuti → roster, Hantar Claim → claim section, Riwayat Clock → clock history). (2) Sidebar HR Department dapat 3 items baharu: "Hari Ni" (top, ikon sun), "Jadual Saya" (moved dari Inventory, rename dari Jadual Operasi, kekal data-tab hr_roster supaya tiada break), "Riwayat Clock" (bottom, ikon history). Cuti + Claim items existing kekal. (3) Jadual Operasi entry dalam Inventory group dibuang (workflow alignment dengan p1_69 HR scope). (4) Tambah `hrClockHistorySection` — jadual 30 hari terakhir clock-in/out dari Supabase staff_attendance dengan compute jumlah jam + status badge. (5) renderHrToday compute clock state async dari staff_attendance + balance dari staffProfiles + pending leave dari pendingSchedules + next leave dari staffSchedules filter AL/MC/EL/PH + pending claim dari _hrcLoadClaims. (6) Tambah 30 keys i18n hr_today_* + hr_clock_* + 3 sidebar labels.', d:'done' },
@@ -9346,7 +9287,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=206"></script>
+ <script src="app.js?v=207"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

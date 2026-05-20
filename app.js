@@ -1214,12 +1214,35 @@ function ffParseItems(raw) {
  return Array.isArray(items) ? items : [];
 }
 
+// p1_81: build marketplace deep link / fallback list link for a sale order.
+// Returns { url, label } or null.
+function ffMarketplaceLink(o) {
+ const m = o.metadata || {};
+ const ch = (o.channel || '').toLowerCase();
+ if(m.tiktok_order_id) {
+ return { url: 'https://seller-my.tiktok.com/order/detail?order_no=' + encodeURIComponent(m.tiktok_order_id), label: 'TikTok', color: '#000' };
+ }
+ if(ch.includes('tiktok')) {
+ return { url: 'https://seller-my.tiktok.com/order', label: 'TikTok', color: '#000' };
+ }
+ if(m.shopee_order_id) {
+ return { url: 'https://seller.shopee.com.my/portal/sale/order/' + encodeURIComponent(m.shopee_order_id), label: 'Shopee', color: '#ee4d2d' };
+ }
+ if(ch.includes('shopee')) {
+ return { url: 'https://seller.shopee.com.my/portal/sale/order', label: 'Shopee', color: '#ee4d2d' };
+ }
+ return null;
+}
+
 function ffCardHtml(o) {
  const stage = ffStage(o);
  const m = o.metadata || {};
  const ref = m.tiktok_order_id || m.easystore_order_number || m.easystore_order_id
  || (o.id ? ('#' + String(o.id).slice(0, 8)) : '#-');
  const dt = new Date(o.created_at || 0).toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
+ // p1_81: marketplace quick link button — opens TikTok / Shopee Seller Centre in new tab
+ const mp = ffMarketplaceLink(o);
+ const mpLink = mp ? '<a href="' + mp.url + '" target="_blank" rel="noopener" title="Lihat di ' + mp.label + ' Seller Centre" style="margin-left:6px; padding:2px 8px; background:' + mp.color + '; color:#fff; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px; vertical-align:middle;"><i data-lucide="external-link" style="width:10px; height:10px;"></i> ' + mp.label + '</a>' : '';
  const total = Number(o.total || o.total_amount || 0).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
  const itemsHtml = ffParseItems(o.items).map(it =>
  `<li>${it.qty || it.quantity || 1} &times; ${(it.sku||'')} — ${(it.name||'item')}</li>`).join('');
@@ -1240,7 +1263,7 @@ function ffCardHtml(o) {
  <div class="ff-card__top">
  <div>
  <span class="ff-card__chan ${ffChanClass(o.channel)}">${o.channel||'-'}</span>
- <span class="ff-card__ref"> ${ref}</span>
+ <span class="ff-card__ref"> ${ref}</span>${mpLink}
  <span class="ff-card__meta"> · ${dt}</span>
  </div>
  <div style="text-align:right;">

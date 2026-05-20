@@ -2376,10 +2376,30 @@ function renderCart() {
  </div>
  </div>`;
  });
- label.textContent = total.toFixed(2);
  if(subLabel) subLabel.textContent = total.toFixed(2);
+
+ // p1_79 fix #3: apply VIP discount preview if posCustomer is a member
+ let discount = 0;
+ const cust = window.posCustomer;
+ const discLine = document.getElementById('cartDiscountLine');
+ if(cust && cust.is_member && typeof getVipDiscountPercent === 'function') {
+ try {
+ const pct = parseFloat(getVipDiscountPercent()) || 0;
+ if(pct > 0) {
+ discount = round2(total * pct / 100);
+ const pctEl = document.getElementById('cartDiscountPct');
+ const amtEl = document.getElementById('cartDiscountAmt');
+ if(pctEl) pctEl.textContent = pct;
+ if(amtEl) amtEl.textContent = discount.toFixed(2);
+ if(discLine) discLine.style.display = 'flex';
+ }
+ } catch(e) { discount = 0; }
+ }
+ if(discount === 0 && discLine) discLine.style.display = 'none';
+ const finalTotal = round2(total - discount);
+ label.textContent = finalTotal.toFixed(2);
  if(btnPay) btnPay.disabled = false;
- updateMobileBar(total, totalItems);
+ updateMobileBar(finalTotal, totalItems);
  // p4_7 Customer-facing display: broadcast cart for second screen
  if(typeof writeCustomerDisplayCart === 'function') writeCustomerDisplayCart();
 }
@@ -2491,6 +2511,8 @@ window.posCustomer = null;
 
 window.posSetCustomer = function(c) {
  window.posCustomer = c || null;
+ // p1_79 fix #3: recompute cart so VIP discount preview updates immediately
+ try { if(typeof renderCart === 'function') renderCart(); } catch(e){}
  const widget = document.getElementById('posCustomerWidget');
  const addBtn = document.getElementById('posCustAddBtn');
  const detail = document.getElementById('posCustDetail');
@@ -14134,6 +14156,7 @@ window.I18N = {
  cs_customer_display: { bm: 'Paparan Pelanggan', en: 'Customer Display' },
  cs_subtotal: { bm: 'Subtotal', en: 'Subtotal' },
  cs_system_discount: { bm: 'Diskaun Sistem', en: 'System Discount' },
+ cs_vip_discount: { bm: 'Diskaun VIP', en: 'VIP Discount' },
  cs_total: { bm: 'JUMLAH', en: 'TOTAL' },
  cs_pay_now: { bm: 'BAYAR SEKARANG', en: 'PAY NOW' },
  cs_clear_cart: { bm: 'Kosongkan Troli', en: 'Clear Cart' },

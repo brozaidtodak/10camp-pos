@@ -3354,7 +3354,7 @@ function loginAs(user, opts) {
  if(sessEl) sessEl.innerHTML = `Hi, ${(user.name.split(' ')[0])} <span class="badge badge--neutral" style="margin-left:6px; font-size:9px; vertical-align:middle;">${cap.emoji} ${cap.label}</span>`;
 
  // Capability-based visibility — clear all role-style hides, then only show what role allows
- document.querySelectorAll(".sales-only,.inv-only,.mgmt-only,.superior-only")
+ document.querySelectorAll(".sales-only,.inv-only,.mgmt-only,.boss-only")
 .forEach(el => el.style.display = ""); // reset inline (let CSS class system take over)
 
  // p1_20: per-staff mode access overlay — overrides role caps entirely
@@ -3416,7 +3416,7 @@ function handleLogout() {
  document.querySelectorAll(".tab-section").forEach(el => el.style.display = "none");
 
  // Reset all role-style inline hides (next login starts fresh)
- document.querySelectorAll(".sales-only,.inv-only,.mgmt-only,.superior-only")
+ document.querySelectorAll(".sales-only,.inv-only,.mgmt-only,.boss-only")
 .forEach(el => el.style.display = "");
 
  // Reset mode-tab capability gating
@@ -15787,7 +15787,7 @@ window.renderAskSection = async function() {
  let label = item.textContent.trim().split('\n')[0].trim().replace(/\s+/g, ' ');
  label = label.replace(/\s*P\d+\s*$/, '').trim();
  const group = item.getAttribute('data-group') || 'other';
- out.push({ tabId, label, group, isHq: item.classList.contains('hq-only'), isInvestor: item.classList.contains('investor-only'), isSuperior: item.classList.contains('superior-only') });
+ out.push({ tabId, label, group, isHq: item.classList.contains('hq-only'), isInvestor: item.classList.contains('investor-only'), isBoss: item.classList.contains('boss-only') });
  });
  return out;
  }

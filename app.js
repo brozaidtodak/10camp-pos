@@ -11191,19 +11191,25 @@ window.__renderDashOverviewMemo = function() {
  return;
  }
  const deptColor = { general:'#6B7280', sales:'#0EA5E9', inv:'#10B981', admin:'#8B5CF6', hr:'#F59E0B', finance:'#DC2626', marketing:'#EC4899' };
+ // p1_74 fix #4: escape helper for body preview (avoid XSS via memo body)
+ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  list.innerHTML = top.map(m => {
  const dColor = deptColor[m.department] || '#6B7280';
  const dLabel = (typeof window.memoDeptLabel === 'function') ? window.memoDeptLabel(m.department) : m.department;
  const ago = (typeof window.memoTimeAgo === 'function') ? window.memoTimeAgo(m.posted_at) : '';
  const pinIcon = m.pinned ? '<i data-lucide="pin" style="width:11px; height:11px; color:#B45309;"></i> ' : '';
+ const bodyPreview = m.body
+ ? '<div style="font-size:12px; color:#92400E; margin-top:3px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + esc(m.body) + '</div>'
+ : '';
  return '<div style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:6px;">'
  + '<div style="flex:1; min-width:0;">'
  + '<div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">'
- + '<span style="font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; background:'+dColor+'22; color:'+dColor+'; text-transform:uppercase;">'+dLabel+'</span>'
+ + '<span style="font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; background:'+dColor+'22; color:'+dColor+'; text-transform:uppercase;">'+esc(dLabel)+'</span>'
  + (m.pinned ? '<span style="font-size:10px; color:#B45309; font-weight:700;">'+pinIcon+'PIN</span>' : '')
  + '</div>'
- + '<div style="font-size:13px; font-weight:700; color:#78350F; line-height:1.3;">' + (m.title || '') + '</div>'
- + '<div style="font-size:11px; color:var(--neutral-500); margin-top:2px;">' + ago + '</div>'
+ + '<div style="font-size:13px; font-weight:700; color:#78350F; line-height:1.3;">' + esc(m.title || '') + '</div>'
+ + bodyPreview
+ + '<div style="font-size:11px; color:var(--neutral-500); margin-top:4px;">' + esc(ago) + '</div>'
  + '</div>'
  + '</div>';
  }).join('');

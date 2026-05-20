@@ -1774,79 +1774,79 @@
  <div class="dash-wrap">
  <!-- A. Toolbar: date pills + freshness -->
  <div class="dash-toolbar">
- <span class="dash-pill active" data-range="today" onclick="window.__setDashRange('today', this)">Today</span>
- <span class="dash-pill" data-range="yesterday" onclick="window.__setDashRange('yesterday', this)">Yesterday</span>
- <span class="dash-pill" data-range="7d" onclick="window.__setDashRange('7d', this)">7 days</span>
- <span class="dash-pill" data-range="30d" onclick="window.__setDashRange('30d', this)">30 days</span>
- <span class="dash-pill" data-range="mtd" onclick="window.__setDashRange('mtd', this)">MTD</span>
- <span class="dash-pill" data-range="all" onclick="window.__setDashRange('all', this)">All time</span>
- <span class="dash-pill" data-range="custom" onclick="window.__setDashRange('custom', this)">Custom</span>
+ <span class="dash-pill active" data-range="today" onclick="window.__setDashRange('today', this)" data-i18n="hs_range_today">Today</span>
+ <span class="dash-pill" data-range="yesterday" onclick="window.__setDashRange('yesterday', this)" data-i18n="hs_range_yesterday">Yesterday</span>
+ <span class="dash-pill" data-range="7d" onclick="window.__setDashRange('7d', this)" data-i18n="hs_range_7d">7 days</span>
+ <span class="dash-pill" data-range="30d" onclick="window.__setDashRange('30d', this)" data-i18n="hs_range_30d">30 days</span>
+ <span class="dash-pill" data-range="mtd" onclick="window.__setDashRange('mtd', this)" data-i18n="hs_range_mtd">MTD</span>
+ <span class="dash-pill" data-range="all" onclick="window.__setDashRange('all', this)" data-i18n="hs_range_all">All time</span>
+ <span class="dash-pill" data-range="custom" onclick="window.__setDashRange('custom', this)" data-i18n="hs_range_custom">Custom</span>
  <div class="dash-custom" id="dashCustomWrap">
  <input type="date" id="dashStartDate">
  <span style="color:var(--text-muted); font-size:12px;">→</span>
  <input type="date" id="dashEndDate">
- <button onclick="renderDashboard()" class="dash-pill active" style="border:none;">Apply</button>
+ <button onclick="renderDashboard()" class="dash-pill active" style="border:none;" data-i18n="hs_apply">Apply</button>
  </div>
- <div class="dash-fresh"><span class="dot"></span>Updated <span id="dashFreshStamp">—</span></div>
+ <div class="dash-fresh"><span class="dot"></span><span data-i18n="hs_updated">Updated</span> <span id="dashFreshStamp">—</span></div>
  </div>
 
  <!-- B. Hero row: Today's revenue + 3 KPIs -->
  <div class="dash-hero">
  <div class="dash-hero-card primary">
- <div class="lbl">Sales <span id="dashRangeLabel" style="opacity:.85;">— Today</span></div>
+ <div class="lbl"><span data-i18n="hs_sales">Sales</span> <span id="dashRangeLabel" style="opacity:.85;">— Today</span></div>
  <div class="val">RM <span id="dashTotalSales">0.00</span></div>
  <div class="sub" id="dashSalesDelta">—</div>
  </div>
  <div class="dash-hero-card" onclick="switchHub(['ordersSection'], 'Orders History', document.querySelector('.menu-item[data-tab=&quot;sales_cashier&quot;]'))" style="cursor:pointer;">
- <div class="lbl">Orders</div>
+ <div class="lbl" data-i18n="hs_orders">Orders</div>
  <div class="val" id="dashTotalOrders">0</div>
- <div class="sub">Avg <span id="dashAOV">RM 0.00</span> / order</div>
+ <div class="sub"><span data-i18n="hs_orders_avg_pre">Avg</span> <span id="dashAOV">RM 0.00</span> <span data-i18n="hs_orders_avg_post">/ order</span></div>
  </div>
  <div class="dash-hero-card">
- <div class="lbl">Top Channel</div>
+ <div class="lbl" data-i18n="hs_top_channel">Top Channel</div>
  <div class="val" style="font-size:20px;" id="dashTopChannel">—</div>
  <div class="sub" id="dashTopChannelShare">—</div>
  </div>
  <div class="dash-hero-card dash-hero-chart">
- <div class="lbl">Sales Trajectory</div>
+ <div class="lbl" data-i18n="hs_sales_trajectory">Sales Trajectory</div>
  <canvas id="salesChart"></canvas>
  </div>
  </div>
 
  <!-- C. Alerts (severity-coded, click-through) -->
- <div class="dash-section-label"> Needs Attention</div>
+ <div class="dash-section-label" data-i18n="hs_needs_attention">Needs Attention</div>
  <div class="dash-grid-4" id="dashAlertsRow">
  <div class="dash-alert sev-red" onclick="window.__dashGoto('inv_database')" title="Open Main Product list">
- <div class="meta"><span class="lbl">Out of Stock</span><span class="name">Restock priority</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_oos_lbl">Out of Stock</span><span class="name" data-i18n="hs_oos_name">Restock priority</span></div>
  <span class="num" id="badgeOos">0</span><span class="arrow">→</span>
  </div>
  <div class="dash-alert sev-amber" onclick="window.__dashGoto('inv_database')" title="Items running low">
- <div class="meta"><span class="lbl">Low Stock (&lt;5)</span><span class="name">Watch list</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_low_lbl">Low Stock (&lt;5)</span><span class="name" data-i18n="hs_low_name">Watch list</span></div>
  <span class="num" id="badgeLow">0</span><span class="arrow">→</span>
  </div>
  <div class="dash-alert sev-red" onclick="window.__dashGoto('sales_cashier')" title="Refund requests pending">
- <div class="meta"><span class="lbl">Return Requests</span><span class="name">Action needed</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_return_lbl">Return Requests</span><span class="name" data-i18n="hs_return_name">Action needed</span></div>
  <span class="num" id="badgeReturn">0</span><span class="arrow">→</span>
  </div>
  <div class="dash-alert sev-gray" onclick="window.__dashGoto('sales_cashier')" title="Carts not paid">
- <div class="meta"><span class="lbl">Unpaid / Abandoned</span><span class="name">Recover or close</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_unpaid_lbl">Unpaid / Abandoned</span><span class="name" data-i18n="hs_unpaid_name">Recover or close</span></div>
  <span class="num" id="badgeUnpaid">0</span><span class="arrow">→</span>
  </div>
  </div>
 
  <!-- D. Operations Queue -->
- <div class="dash-section-label"> Operations Queue</div>
+ <div class="dash-section-label" data-i18n="hs_operations_queue">Operations Queue</div>
  <div class="dash-grid-3">
  <div class="dash-alert sev-amber" onclick="window.__dashGoto('sales_cashier')">
- <div class="meta"><span class="lbl">To Fulfil</span><span class="name">Pack &amp; ship</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_fulfil_lbl">To Fulfil</span><span class="name" data-i18n="hs_fulfil_name">Pack &amp; ship</span></div>
  <span class="num" id="badgeToFulfil">0</span><span class="arrow">→</span>
  </div>
  <div class="dash-alert sev-blue" onclick="window.__dashGoto('sales_cashier')">
- <div class="meta"><span class="lbl">Processing</span><span class="name">In progress</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_processing_lbl">Processing</span><span class="name" data-i18n="hs_processing_name">In progress</span></div>
  <span class="num" id="badgeProcessing">0</span><span class="arrow">→</span>
  </div>
  <div class="dash-alert sev-gray" onclick="window.__dashGoto('inv_database')">
- <div class="meta"><span class="lbl">Draft Products</span><span class="name">Not published</span></div>
+ <div class="meta"><span class="lbl" data-i18n="hs_draft_lbl">Draft Products</span><span class="name" data-i18n="hs_draft_name">Not published</span></div>
  <span class="num" id="badgeDraft">0</span><span class="arrow">→</span>
  </div>
  </div>
@@ -1854,7 +1854,7 @@
  <!-- E. Bottom row: Top sellers + Customer & Catalog snapshot -->
  <div class="dash-grid-2">
  <div class="dash-card2">
- <h3> Top 10 Best Selling <span class="hint">click row → catalog</span></h3>
+ <h3><span data-i18n="hs_top_selling">Top 10 Best Selling</span> <span class="hint" data-i18n="hs_top_selling_hint">click row → catalog</span></h3>
  <table class="inventory-table" style="font-size:13px; margin:0;">
  <tbody id="topSellingList">
  <tr><td colspan="4"><span class="dash-skel" style="width:80%"></span></td></tr>
@@ -1862,21 +1862,21 @@
  </table>
  </div>
  <div class="dash-card2">
- <h3> Snapshot</h3>
+ <h3 data-i18n="hs_snapshot">Snapshot</h3>
  <div class="dash-mini-row clickable" onclick="window.__dashGoto('customers_all')">
- <span>Total Customers (all-time)</span>
+ <span data-i18n="hs_total_customers">Total Customers (all-time)</span>
  <strong id="dashNewBuyers">0</strong>
  </div>
  <div class="dash-mini-row clickable" onclick="window.__dashGoto('customers_all')">
- <span>With Loyalty Points</span>
+ <span data-i18n="hs_loyalty_points">With Loyalty Points</span>
  <strong id="badgeRepeat">0</strong>
  </div>
  <div class="dash-mini-row clickable" onclick="window.__dashGoto('customers_all')">
- <span>VIP Members</span>
+ <span data-i18n="hs_vip_members">VIP Members</span>
  <strong id="badgeMembers">0</strong>
  </div>
  <div class="dash-mini-row clickable" onclick="window.__dashGoto('inv_database')">
- <span>Active Products</span>
+ <span data-i18n="hs_active_products">Active Products</span>
  <strong id="badgeActive" style="color:#10b981;">0</strong>
  </div>
  </div>
@@ -4884,7 +4884,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
- { id:'p1_78', label:'homeSection (Overview page) audit fixes (rolling). Fix #1 2026-05-20: Tukar 11 stale data-tab references yang point ke tab yang tak wujud lagi. Sebelum ni klik Out of Stock / Low Stock / Draft Products / Active Products / Top 10 Best Selling row guna inv_mapping (tab tak wujud) → toast "Menu tak dijumpai". Klik Total Customers / Loyalty Points / VIP Members / View CRM → guna sales_crm (tab tak wujud) → toast sama. Replace: inv_mapping → inv_database (Browse Products dalam Inventory Operasi Harian), sales_crm → customers_all (All Customers dalam Customers Dept). 8 places dalam homeSection HTML + 1 dalam Manager Dashboard "View CRM →" link + 1 dalam Top 10 Best Selling JS tbody render + 1 dalam command palette customer action handler. Semua click sekarang navigate ke tab yang betul. Fix #2 2026-05-20: Betulkan 18 CSS selector yang rosak dalam inline <style> homeSection. Bug pattern: parent + child class ditulis tanpa space (cthnya `.dash-hero-card.lbl`) — selector ini cuma match element yang ada KEDUA-DUA classes, bukan descendant. Tapi dalam markup, parent ada class `dash-hero-card` dan CHILD ada class `lbl` (berasingan). Selektor lama tak match apa-apa, jadi styling fall back ke browser default. Fixed: `.dash-hero-card .lbl/.val/.sub` (descendant dengan space), `.dash-hero-card.primary .lbl/.val/.sub`, `.dash-alert .meta`, `.dash-alert .meta .lbl/.name`, `.dash-alert .num`, `.dash-alert.sev-red/.sev-amber/.sev-blue/.sev-gray/.sev-green .num`, `.dash-alert .arrow`, `.dash-alert:hover .arrow`, `.dash-card2 h3 .hint`. Hasil: hero cards sekarang papar label uppercase 11.5px + value bold 28px + sub teks 11px (sebelum ni rendered macam browser default plain text). Alert cards papar warna num ikut severity (red/amber/blue/gray/green) seperti yang dimaksudkan + arrow icon fade pada hover. Card2 hint span dalam h3 dapat warna muted ikut style. Selectors yang BETUL (parent + class on same element) tak diubah — `.dash-hero-card.primary`, `.dash-hero-card.dash-hero-chart`, `.dash-mini-row.clickable`, `.dash-alert.sev-*` (border-left-color). Fix #7 2026-05-20: Buang `active` class hardcoded dari sidebar Overview item. Sebelum ni markup ada class `mgmt-only active` walaupun default landing untuk Bos = Manager Dashboard (admin_dashboard) — jadi fresh login papar Manager Dashboard tapi sidebar highlight Overview. Selepas remove `active`, switchHub auto-add active class kat item yang betul masa loginAs panggil homeBtn.click(). Tiada lagi visual mismatch. Fix #8 2026-05-20: Hide alert card when count = 0 supaya Bos fokus pada item actionable je. Sebelum ni 7 kad (Out of Stock, Low Stock, Return Requests, Unpaid, To Fulfil, Processing, Draft Products) tetap papar walaupun count 0 — clutter visual. Tambah helper __setAlert(id, val) yang set text + closest(".dash-alert").style.display = (val > 0 ? "" : "none"). Active Products (snapshot mini-row, bukan alert card) kekal as-is. Kalau semua 0, kad alerts auto-hide; section header "Needs Attention" + "Operations Queue" kekal sebagai context anchor.', d:'done' },
+ { id:'p1_78', label:'homeSection (Overview page) audit fixes (rolling). Fix #1 2026-05-20: Tukar 11 stale data-tab references yang point ke tab yang tak wujud lagi. Sebelum ni klik Out of Stock / Low Stock / Draft Products / Active Products / Top 10 Best Selling row guna inv_mapping (tab tak wujud) → toast "Menu tak dijumpai". Klik Total Customers / Loyalty Points / VIP Members / View CRM → guna sales_crm (tab tak wujud) → toast sama. Replace: inv_mapping → inv_database (Browse Products dalam Inventory Operasi Harian), sales_crm → customers_all (All Customers dalam Customers Dept). 8 places dalam homeSection HTML + 1 dalam Manager Dashboard "View CRM →" link + 1 dalam Top 10 Best Selling JS tbody render + 1 dalam command palette customer action handler. Semua click sekarang navigate ke tab yang betul. Fix #2 2026-05-20: Betulkan 18 CSS selector yang rosak dalam inline <style> homeSection. Bug pattern: parent + child class ditulis tanpa space (cthnya `.dash-hero-card.lbl`) — selector ini cuma match element yang ada KEDUA-DUA classes, bukan descendant. Tapi dalam markup, parent ada class `dash-hero-card` dan CHILD ada class `lbl` (berasingan). Selektor lama tak match apa-apa, jadi styling fall back ke browser default. Fixed: `.dash-hero-card .lbl/.val/.sub` (descendant dengan space), `.dash-hero-card.primary .lbl/.val/.sub`, `.dash-alert .meta`, `.dash-alert .meta .lbl/.name`, `.dash-alert .num`, `.dash-alert.sev-red/.sev-amber/.sev-blue/.sev-gray/.sev-green .num`, `.dash-alert .arrow`, `.dash-alert:hover .arrow`, `.dash-card2 h3 .hint`. Hasil: hero cards sekarang papar label uppercase 11.5px + value bold 28px + sub teks 11px (sebelum ni rendered macam browser default plain text). Alert cards papar warna num ikut severity (red/amber/blue/gray/green) seperti yang dimaksudkan + arrow icon fade pada hover. Card2 hint span dalam h3 dapat warna muted ikut style. Selectors yang BETUL (parent + class on same element) tak diubah — `.dash-hero-card.primary`, `.dash-hero-card.dash-hero-chart`, `.dash-mini-row.clickable`, `.dash-alert.sev-*` (border-left-color). Fix #7 2026-05-20: Buang `active` class hardcoded dari sidebar Overview item. Sebelum ni markup ada class `mgmt-only active` walaupun default landing untuk Bos = Manager Dashboard (admin_dashboard) — jadi fresh login papar Manager Dashboard tapi sidebar highlight Overview. Selepas remove `active`, switchHub auto-add active class kat item yang betul masa loginAs panggil homeBtn.click(). Tiada lagi visual mismatch. Fix #8 2026-05-20: Hide alert card when count = 0 supaya Bos fokus pada item actionable je. Sebelum ni 7 kad (Out of Stock, Low Stock, Return Requests, Unpaid, To Fulfil, Processing, Draft Products) tetap papar walaupun count 0 — clutter visual. Tambah helper __setAlert(id, val) yang set text + closest(".dash-alert").style.display = (val > 0 ? "" : "none"). Active Products (snapshot mini-row, bukan alert card) kekal as-is. Kalau semua 0, kad alerts auto-hide; section header "Needs Attention" + "Operations Queue" kekal sebagai context anchor. Fix #3 2026-05-20: Wire homeSection ke sistem i18n. Sebelum ni semua label keras EN walaupun POS dah ada BM/EN toggle (p1_62). Tambah 38 translation keys baharu (prefix hs_*) cover date pills (Today/Yesterday/7d/30d/MTD/All time/Custom), toolbar Updated + Apply, hero cards (Sales/Orders/Top Channel/Sales Trajectory + avg suffix), section labels (Needs Attention/Operations Queue), 7 alert pairs (lbl + name) untuk OOS/Low Stock/Return/Unpaid/Fulfil/Processing/Draft, dan Snapshot rows (Top 10 Best Selling + hint, Total Customers, Loyalty Points, VIP Members, Active Products). Setiap label HTML dibungkus <span data-i18n="hs_*"> supaya applyI18N() auto-translate. Plus localize __getDashDateRange() — labels macam "Today"/"Yesterday"/"7 days" dll yang di-set inline via JS sekarang guna window.t() supaya dashRangeLabel ikut bahasa semasa. Hook renderDashboard ke window.setLang supaya bila toggle bahasa, homeSection auto re-render (label range + sentiasa pickup terjemahan).', d:'done' },
  { id:'p1_77', label:'Sidebar audit fixes (rolling). Fix #1 2026-05-20: tambah translation key dept_marketing yang hilang dalam window.I18N.dict supaya header Marketing Department translate dengan betul bila toggle BM/EN. Fix #2 2026-05-20: tag SEMUA sidebar items dengan data-i18n attribute (~37 keys baharu prefix sb_*). Sebelum ni hanya group HEADERS (Sales/Inventory/Customers/HR/Admin/Marketing/Finance/Setup) ada data-i18n; semua 37 item labels (Overview, Memo Board, POS/Cashier, Customer Lookup, My Commission, Shift Close, Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels, All Customers, B2B Accounts, Cuti, Claim, Audit Alerts, Manager Dashboard, Tanya 10 CAMP, Invoice & Quotation, Bulk Product Edit, Promotions, WhatsApp Broadcast, Re-engage, Finance Dashboard, Sales Ledger, Compliance & Tax, Data & Backup, Permissions, Shop Settings, Payments, Sync (Advanced), Test Guide, Roadmap, Visit Website, plus — Operations — sub-divider) hardcoded. Sekarang setiap label dibungkus dalam <span data-i18n="sb_*"> supaya applyI18N() auto-translate bila Zaid toggle bahasa. Sub-divider "— Operations —" pun di-tag (sb_admin_operations_divider). Hasilnya: toggle BM ↔ EN = seluruh sidebar items + headers tukar bahasa serentak. Audit selebihnya (badges Cuti/Audit/Pesanan, sub-divider redundancy, re-order Customers, lucide icons distinct, rename superior-only class) akan ditangani fix-fix seterusnya. Fix #7 2026-05-20: Sidebar badges audit + Claim badge baharu. Penemuan: badges Roster (rosterSidebarBadge), Pesanan Online (ffSidebarBadge), Audit Alerts (auditAlertBadge), Memo Board (memoBadgePending) sebenarnya DAH ada dan wired up — audit asal salah baca markup. Yang betul-betul MISSING: badge untuk Tuntutan (Claim) — tab Bos approve claims tapi tiada visual cue untuk pending count. Tambah claimSidebarBadge element + window.refreshClaimBadge function yang count pending claims (visible Bos sahaja via isBoss check). Hook ke _hrcSaveClaims chokepoint supaya auto-refresh bila staff submit/Bos approve. loginAs juga panggil refreshClaimBadge + refreshRosterBadge supaya semua badges muncul serta-merta lepas login (sebelum ni hanya memo badge auto-refresh on login). Cuti tab tak perlu badge berasingan kerana Roster badge dah cover pending leave (pending_requests table mencakupi shift requests + leave types AL/MC/EL/PH). Fix #5 2026-05-20: Buang "— Operations —" sub-divider dalam Admin Department. Sebelum ni divider tu cuma ada 2 items dibawahnya (Invoice & Quotation + Bulk Product Edit) — redundant noise tanpa nilai pengelompokan. Translation key sb_admin_operations_divider juga dipadam dari I18N.dict. Fix #9 2026-05-20: Re-order sidebar — Customers group dipindah dari posisi selepas Inventory ke selepas Sales. Sebab: aliran kerja cashier biasanya panggil Customer Lookup masa transaksi, jadi Customers semula-jadi berdekatan dengan Sales (POS Cashier). Order baru: Sales → Customers → Inventory → HR → Admin → Marketing → Setup. data-group="customers" + tab IDs (customers_all, customers_b2b) kekal sama supaya tiada impact pada section routing atau staffSidebarAccess_v1 overlay. Fix #8 2026-05-20: Tukar 3 lucide icon yang ada duplikat untuk visual distinction. (1) Stock Take kekal clipboard-check (paling sesuai untuk physical count); System Test Guide tukar dari clipboard-check ke flask-conical (laboratorium/testing). (2) Compliance & Tax kekal shield-check (rasa compliance); Permissions tukar dari shield-check ke key-round (akses/kunci). (3) Overview kekal layout-dashboard (dashboard layout); Manager Dashboard tukar dari layout-dashboard ke gauge (meter KPI). Tiada perubahan fungsi — pure visual cleanup. Fix #6 2026-05-20: Pecah Inventory Department 8 items flat jadi 2 sub-group dengan sub-divider style. "— Operasi Harian —" (3 items most-clicked daily: Pesanan Online, Jadual Operasi, Browse Products) dan "— Pengurusan Stok —" (5 items stock admin: Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Items kekal dalam data-group="inv" yang sama supaya collapse bersama parent group. Threshold pengelompokan: 5+ items dalam group warrants sub-divider; 2 items je tak perlu (sebab tu Admin sub-divider dibuang fix #5). Translation keys baharu sb_inv_daily_divider + sb_inv_stock_divider untuk BM/EN. Fix #3 2026-05-20: Rename legacy class superior-only → boss-only untuk align dengan p1_72 (role superior dipencen, Bos via isBoss helper jawatan check). 2 items terjejas (Permissions, System Test Guide); 4 callsites lain diupdate: querySelectorAll role-reset loop dalam loginAs + logout (2 tempat), preview check dalam Staff Mgmt Permission Preview, dan property name dalam collectSidebarItems (isSuperior → isBoss). Tiada CSS rule untuk class ini — pure semantic marker. Tiada perubahan tingkah laku — Bos masih nampak items via isBoss + hq access bypass. Fix #10 2026-05-20: Buang "Visit Website" link di bottom sidebar. Staff bukan customer — tiada sebab buka 10camp.com dari POS (clutter sahaja). Sidebar lebih bersih sekarang; Zaid masih boleh akses website via browser tab/bookmark kalau perlu preview. Translation key sb_visit_website juga dipadam dari I18N.dict. Sidebar audit complete: semua 10 dapatan ditangani (1 dept_marketing key + 37 item data-i18n + Claim badge + buang Operations divider + Inventory sub-group + de-dupe icons + reorder Customers + rename boss-only class + buang Visit Website).', d:'done' },
  { id:'p1_76', label:'Manager Dashboard di-wire ke sistem i18n (BM/EN toggle dah ada p1_62). Sebelum ni dashboard labels keras dalam HTML (Manager Dashboard, Net Revenue, Orders, AOV, Money at Risk, Revenue Trend, Top SKUs, dll) — campuran BM widget baru (p1_74: Memo Terkini, Jadual Hari Ni) + EN rest. Sekarang: (1) Tambah ~40 translation keys baharu (dash_*) ke window.I18N.dict — cover header, target bar, overview widgets, hero stats, charts, lists, view-links, plus shift labels (Syif B/C/OFF/AL/MC/EL/PH). (2) Tag setiap label HTML dengan data-i18n attribute supaya window.applyI18N() auto-translate. (3) Roster widget JS guna window.t() untuk SHIFT_LABEL + locale-aware tarikh (ms-MY untuk BM, en-MY untuk EN). (4) renderManagerDashboard panggil window.applyI18N() di hujung supaya labels dinamik terkemas-kini bila bahasa ditukar. (5) Lang toggle button (langToggle dalam header internal mode) — klik akan tukar bahasa POS keseluruhan termasuk Manager Dashboard. Default kekal BM (lang_v1 localStorage, set masa user pertama buka). Per-user preference disimpan dalam localStorage', d:'done' },
  { id:'p1_75', label:'Session persistence — refresh tak perlu login balik. Sebelum ni: setiap refresh wipe currentUser, staff kena masuk emel+password lagi (Zaid frustration "annoying bro"). Supabase JS client memang auto-persist session dalam localStorage (key sb-{ref}-auth-token), cuma POS tak panggil getSession() masa boot. Fix: tambah window.__restoreSession() yang dipanggil dalam DOMContentLoaded — fetch db.auth.getSession() → kalau ada session valid + emel padan authUsers → loginAs(user, {silent:true}). loginAs sekarang accept opts.silent: skip welcome modal flash (Selamat Pagi etc) + skip maybeShowOnboarding wizard, tapi tetap swap shopAppLayout→posAppLayout, setMode, navigate ke homeTab. Kalau session orphan (emel tak match mana-mana staff, cth selepas migration), auto signOut supaya tak loop. Hasil: refresh = terus masuk POS dalam keadaan macam sebelum refresh. Edge case: kalau Supabase tak ready / no session → fallback ke landing page biasa, klik Staff Login macam normal', d:'done' },
@@ -9268,7 +9268,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=186"></script>
+ <script src="app.js?v=187"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

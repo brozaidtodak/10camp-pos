@@ -797,12 +797,14 @@ function __getDashDateRange() {
  const now = new Date();
  const startOf = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
  const endOf = (d) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
- if (r === 'today') return { start: startOf(now), end: endOf(now), label: 'Today' };
- if (r === 'yesterday') { const y = new Date(now); y.setDate(y.getDate()-1); return { start: startOf(y), end: endOf(y), label: 'Yesterday' }; }
- if (r === '7d') { const s = new Date(now); s.setDate(s.getDate()-6); return { start: startOf(s), end: endOf(now), label: 'Last 7 days' }; }
- if (r === '30d') { const s = new Date(now); s.setDate(s.getDate()-29); return { start: startOf(s), end: endOf(now), label: 'Last 30 days' }; }
- if (r === 'mtd') { const s = new Date(now.getFullYear(), now.getMonth(), 1); return { start: startOf(s), end: endOf(now), label: 'Month-to-date' }; }
- if (r === 'all') return { start: null, end: null, label: 'All time' };
+ // p1_78 fix #3: locale-aware range labels via window.t() (fallback to EN if i18n not ready)
+ const T = (key, fallback) => (typeof window.t === 'function') ? (window.t(key) || fallback) : fallback;
+ if (r === 'today') return { start: startOf(now), end: endOf(now), label: T('hs_range_today', 'Today') };
+ if (r === 'yesterday') { const y = new Date(now); y.setDate(y.getDate()-1); return { start: startOf(y), end: endOf(y), label: T('hs_range_yesterday', 'Yesterday') }; }
+ if (r === '7d') { const s = new Date(now); s.setDate(s.getDate()-6); return { start: startOf(s), end: endOf(now), label: T('hs_range_7d', '7 days') }; }
+ if (r === '30d') { const s = new Date(now); s.setDate(s.getDate()-29); return { start: startOf(s), end: endOf(now), label: T('hs_range_30d', '30 days') }; }
+ if (r === 'mtd') { const s = new Date(now.getFullYear(), now.getMonth(), 1); return { start: startOf(s), end: endOf(now), label: T('hs_range_mtd', 'MTD') }; }
+ if (r === 'all') return { start: null, end: null, label: T('hs_range_all', 'All time') };
  if (r === 'custom') {
  const ss = document.getElementById('dashStartDate')?.value;
  const ee = document.getElementById('dashEndDate')?.value;
@@ -14045,6 +14047,46 @@ window.I18N = {
  label_loading: { bm: 'Loading…', en: 'Loading…' },
  label_total: { bm: 'Jumlah', en: 'Total' },
 
+ // p1_78 — homeSection (Overview)
+ hs_range_today: { bm: 'Hari Ini', en: 'Today' },
+ hs_range_yesterday: { bm: 'Semalam', en: 'Yesterday' },
+ hs_range_7d: { bm: '7 Hari', en: '7 days' },
+ hs_range_30d: { bm: '30 Hari', en: '30 days' },
+ hs_range_mtd: { bm: 'Bulan Semasa', en: 'MTD' },
+ hs_range_all: { bm: 'Sepanjang Masa', en: 'All time' },
+ hs_range_custom: { bm: 'Custom', en: 'Custom' },
+ hs_apply: { bm: 'Apply', en: 'Apply' },
+ hs_updated: { bm: 'Dikemaskini', en: 'Updated' },
+ hs_sales: { bm: 'Jualan', en: 'Sales' },
+ hs_orders: { bm: 'Pesanan', en: 'Orders' },
+ hs_top_channel: { bm: 'Saluran Utama', en: 'Top Channel' },
+ hs_sales_trajectory: { bm: 'Trajektori Jualan', en: 'Sales Trajectory' },
+ hs_orders_avg_pre: { bm: 'Purata', en: 'Avg' },
+ hs_orders_avg_post: { bm: '/ pesanan', en: '/ order' },
+ hs_needs_attention: { bm: 'Perlu Perhatian', en: 'Needs Attention' },
+ hs_operations_queue: { bm: 'Antrian Operasi', en: 'Operations Queue' },
+ hs_oos_lbl: { bm: 'Stok Habis', en: 'Out of Stock' },
+ hs_oos_name: { bm: 'Prioriti Restok', en: 'Restock priority' },
+ hs_low_lbl: { bm: 'Stok Rendah (<5)', en: 'Low Stock (<5)' },
+ hs_low_name: { bm: 'Senarai Pantau', en: 'Watch list' },
+ hs_return_lbl: { bm: 'Permohonan Pulang', en: 'Return Requests' },
+ hs_return_name: { bm: 'Perlu Tindakan', en: 'Action needed' },
+ hs_unpaid_lbl: { bm: 'Tidak Dibayar / Tinggal', en: 'Unpaid / Abandoned' },
+ hs_unpaid_name: { bm: 'Recover atau Tutup', en: 'Recover or close' },
+ hs_fulfil_lbl: { bm: 'Untuk Dipenuhi', en: 'To Fulfil' },
+ hs_fulfil_name: { bm: 'Bungkus & Hantar', en: 'Pack & ship' },
+ hs_processing_lbl: { bm: 'Memproses', en: 'Processing' },
+ hs_processing_name: { bm: 'Sedang Berjalan', en: 'In progress' },
+ hs_draft_lbl: { bm: 'Produk Draf', en: 'Draft Products' },
+ hs_draft_name: { bm: 'Belum Terbit', en: 'Not published' },
+ hs_top_selling: { bm: 'Top 10 Paling Laku', en: 'Top 10 Best Selling' },
+ hs_top_selling_hint: { bm: 'klik baris → katalog', en: 'click row → catalog' },
+ hs_snapshot: { bm: 'Ringkasan', en: 'Snapshot' },
+ hs_total_customers: { bm: 'Jumlah Pelanggan (sepanjang masa)', en: 'Total Customers (all-time)' },
+ hs_loyalty_points: { bm: 'Dengan Mata Loyalti', en: 'With Loyalty Points' },
+ hs_vip_members: { bm: 'Ahli VIP', en: 'VIP Members' },
+ hs_active_products: { bm: 'Produk Aktif', en: 'Active Products' },
+
  // p1_76 — Manager Dashboard
  dash_title: { bm: 'Papan Pemuka Pengurus', en: 'Manager Dashboard' },
  dash_subtitle_prefix: { bm: 'Snapshot 10 CAMP', en: 'Snapshot 10 CAMP' },
@@ -14213,6 +14255,8 @@ window.setLang = function(lang) {
  // p1_74 fix #5+#8: re-run overview coordinator so JS-set values (roster date,
  // SHIFT_LABEL list, memo dept labels) reflect the new locale without refresh.
  try { if(typeof window.__renderDashOverview === 'function') window.__renderDashOverview(); } catch(e){}
+ // p1_78 fix #3: re-render homeSection so JS-set dashRangeLabel + values pick up locale
+ try { if(typeof window.renderDashboard === 'function') window.renderDashboard(); } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }

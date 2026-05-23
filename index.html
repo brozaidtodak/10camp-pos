@@ -1831,6 +1831,45 @@
  <div id="homeSection" class="tab-section">
 
  <div class="dash-wrap">
+ <!-- p1_95: Memo + Jadual moved here (was inside managerDashboardSection) — top placement so staff lihat dulu masa landing -->
+ <div class="dash-section-eyebrow" style="font-size:11px; font-weight:700; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; margin:0 0 var(--space-2);" data-i18n="dash_overview_section_title">Overview Hari Ni</div>
+ <div id="dashOverviewCombinedEmpty" class="dash-card" style="display:none; text-align:center; padding:24px var(--space-3); margin-bottom:var(--space-3);">
+ <i data-lucide="sparkles" style="width:32px; height:32px; color:var(--neutral-400); margin-bottom:10px;"></i>
+ <h3 style="margin:0 0 6px; font-size:15px; font-weight:700; color:var(--neutral-700);" data-i18n="dash_overview_combined_empty_title">Semua tenang hari ni</h3>
+ <p style="margin:0 0 14px; font-size:12.5px; color:var(--neutral-500);" data-i18n="dash_overview_combined_empty_sub">Tiada memo aktif & jadual belum ditetapkan untuk hari ni.</p>
+ <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+ <button onclick="document.querySelector('[data-tab=memo_board]')?.click();" style="padding:6px 14px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_memo">Hantar Memo</button>
+ <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="padding:6px 14px; background:#fff; color:var(--primary); border:1px solid var(--primary); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_roster">Tetap Jadual</button>
+ </div>
+ </div>
+ <div class="dash-overview-row" style="margin-bottom:var(--space-4);">
+ <div class="dash-card" id="dashOverviewMemoCard">
+ <div class="dash-card__head">
+ <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
+ <i data-lucide="megaphone" style="width:16px; height:16px; color:#B45309;"></i>
+ <span data-i18n="dash_overview_memo_title">Memo Terkini</span>
+ </h3>
+ <button onclick="document.querySelector('[data-tab=memo_board]').click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_memo_view">Lihat semua</button>
+ </div>
+ <div id="dashOverviewMemoList" style="display:flex; flex-direction:column; gap:8px; padding:8px 0;">
+ <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_memo_empty">Tiada memo aktif.</p>
+ </div>
+ </div>
+
+ <div class="dash-card" id="dashOverviewRosterCard">
+ <div class="dash-card__head">
+ <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
+ <i data-lucide="calendar-days" style="width:16px; height:16px; color:#0F766E;"></i>
+ <span data-i18n="dash_overview_roster_title">Jadual</span> <span id="dashOverviewRosterDate" style="font-weight:400; color:var(--neutral-500); font-size:12px;"></span>
+ </h3>
+ <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_roster_view">Lihat penuh</button>
+ </div>
+ <div id="dashOverviewRosterList" style="display:flex; flex-direction:column; gap:6px; padding:8px 0;">
+ <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_roster_empty">Jadual belum ditetapkan untuk hari ni.</p>
+ </div>
+ </div>
+ </div>
+
  <!-- A. Toolbar: date pills + freshness -->
  <div class="dash-toolbar">
  <span class="dash-pill active" data-range="today" onclick="window.__setDashRange('today', this)" data-i18n="hs_range_today">Today</span>
@@ -1875,19 +1914,19 @@
  <!-- C. Alerts (severity-coded, click-through) -->
  <div class="dash-section-label" data-i18n="hs_needs_attention">Needs Attention</div>
  <div class="dash-grid-4" id="dashAlertsRow">
- <div class="dash-alert sev-red" onclick="window.__dashGoto('inv_database')" title="Open Main Product list">
+ <div class="dash-alert sev-red" onclick="window.__dashGoto('inv_database')" title="Open main product list" data-i18n-title="hs_title_oos">
  <div class="meta"><span class="lbl" data-i18n="hs_oos_lbl">Out of Stock</span><span class="name" data-i18n="hs_oos_name">Restock priority</span></div>
  <span class="num" id="badgeOos">0</span><span class="arrow">→</span>
  </div>
- <div class="dash-alert sev-amber" onclick="window.__dashGoto('inv_database')" title="Items running low">
+ <div class="dash-alert sev-amber" onclick="window.__dashGoto('inv_database')" title="Items running low" data-i18n-title="hs_title_low">
  <div class="meta"><span class="lbl" data-i18n="hs_low_lbl">Low Stock (&lt;5)</span><span class="name" data-i18n="hs_low_name">Watch list</span></div>
  <span class="num" id="badgeLow">0</span><span class="arrow">→</span>
  </div>
- <div class="dash-alert sev-red" onclick="window.__dashGoto('sales_cashier')" title="Refund requests pending">
+ <div class="dash-alert sev-red" onclick="window.__dashGoto('sales_cashier')" title="Refund requests pending" data-i18n-title="hs_title_return">
  <div class="meta"><span class="lbl" data-i18n="hs_return_lbl">Return Requests</span><span class="name" data-i18n="hs_return_name">Action needed</span></div>
  <span class="num" id="badgeReturn">0</span><span class="arrow">→</span>
  </div>
- <div class="dash-alert sev-gray" onclick="window.__dashGoto('sales_cashier')" title="Carts not paid">
+ <div class="dash-alert sev-gray" onclick="window.__dashGoto('sales_cashier')" title="Carts not paid" data-i18n-title="hs_title_unpaid">
  <div class="meta"><span class="lbl" data-i18n="hs_unpaid_lbl">Unpaid / Abandoned</span><span class="name" data-i18n="hs_unpaid_name">Recover or close</span></div>
  <span class="num" id="badgeUnpaid">0</span><span class="arrow">→</span>
  </div>
@@ -4330,10 +4369,10 @@
  <p style="font-size:var(--text-sm); color:var(--neutral-600); margin:0;" id="dashSubtitle"><span data-i18n="dash_subtitle_prefix">Snapshot 10 CAMP</span> · <strong id="dashPeriodLabel">—</strong> · <span data-i18n="dash_last_refresh">last refreshed</span> <span id="dashLastRefresh" style="font-weight:600;">—</span></p>
  </div>
  <div style="display:flex; gap:8px; align-items:center;">
- <button class="dash-icon-btn" onclick="renderManagerDashboard()" title="Refresh data">
+ <button class="dash-icon-btn" onclick="renderManagerDashboard()" title="Refresh data" data-i18n-title="hs_title_refresh">
  <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
  </button>
- <button class="dash-icon-btn" onclick="window.dashOpenTargetEditor()" title="Set monthly target">
+ <button class="dash-icon-btn" onclick="window.dashOpenTargetEditor()" title="Set monthly target" data-i18n-title="hs_title_target">
  <i data-lucide="target" style="width:14px;height:14px;"></i>
  </button>
  <div class="dash-period-bar" role="group" aria-label="Period selector">
@@ -4367,47 +4406,7 @@
  <div class="dash-target-bar__foot" id="dashTargetFoot" data-i18n="dash_target_hint_empty">Set monthly target to enable progress tracking.</div>
  </div>
 
- <!-- p1_74: Overview row — Memo + Jadual ringkas supaya staff nampak terus. -->
- <div class="dash-section-eyebrow" style="font-size:11px; font-weight:700; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; margin:var(--space-3) 0 var(--space-2);" data-i18n="dash_overview_section_title">Overview Hari Ni</div>
- <!-- p1_74 fix #8: combined empty state (shown only when both memo + roster empty) -->
- <div id="dashOverviewCombinedEmpty" class="dash-card" style="display:none; text-align:center; padding:24px var(--space-3); margin-bottom:var(--space-3);">
- <i data-lucide="sparkles" style="width:32px; height:32px; color:var(--neutral-400); margin-bottom:10px;"></i>
- <h3 style="margin:0 0 6px; font-size:15px; font-weight:700; color:var(--neutral-700);" data-i18n="dash_overview_combined_empty_title">Semua tenang hari ni</h3>
- <p style="margin:0 0 14px; font-size:12.5px; color:var(--neutral-500);" data-i18n="dash_overview_combined_empty_sub">Tiada memo aktif & jadual belum ditetapkan untuk hari ni.</p>
- <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
- <button onclick="document.querySelector('[data-tab=memo_board]')?.click();" style="padding:6px 14px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_memo">Hantar Memo</button>
- <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="padding:6px 14px; background:#fff; color:var(--primary); border:1px solid var(--primary); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_roster">Tetap Jadual</button>
- </div>
- </div>
- <div class="dash-overview-row">
- <!-- Memo Terkini -->
- <div class="dash-card" id="dashOverviewMemoCard">
- <div class="dash-card__head">
- <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="megaphone" style="width:16px; height:16px; color:#B45309;"></i>
- <span data-i18n="dash_overview_memo_title">Memo Terkini</span>
- </h3>
- <button onclick="document.querySelector('[data-tab=memo_board]').click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_memo_view">Lihat semua</button>
- </div>
- <div id="dashOverviewMemoList" style="display:flex; flex-direction:column; gap:8px; padding:8px 0;">
- <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_memo_empty">Tiada memo aktif.</p>
- </div>
- </div>
-
- <!-- Jadual Hari Ni -->
- <div class="dash-card" id="dashOverviewRosterCard">
- <div class="dash-card__head">
- <h3 class="dash-card__title" style="display:flex; align-items:center; gap:8px;">
- <i data-lucide="calendar-days" style="width:16px; height:16px; color:#0F766E;"></i>
- <span data-i18n="dash_overview_roster_title">Jadual</span> <span id="dashOverviewRosterDate" style="font-weight:400; color:var(--neutral-500); font-size:12px;"></span>
- </h3>
- <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_roster_view">Lihat penuh</button>
- </div>
- <div id="dashOverviewRosterList" style="display:flex; flex-direction:column; gap:6px; padding:8px 0;">
- <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_roster_empty">Jadual belum ditetapkan untuk hari ni.</p>
- </div>
- </div>
- </div>
+ <!-- p1_95: Memo + Jadual block dipindah ke top homeSection — paling penting untuk staff "what should I do today". -->
 
  <!-- Hero + secondary stats — now with Gross Margin + Repeat Rate -->
  <div class="dash-hero-row">
@@ -5044,7 +5043,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (94/94 · last 2026-05-21)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (95/95 · last 2026-05-23)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5119,6 +5118,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_95', label:'Overview section audit — Zaid pilih scope B+C (skip Prong A de-dupe untuk tak ganggu data sources homeSection vs managerDashboardSection — kekal 2 set period filters + dual hero strips). Prong B (reorder): blok "Overview Hari Ni" (memo + jadual + combined empty state) dialihkan dari position asal dalam managerDashboardSection (line 4370 — antara target bar dan hero stats row) ke TOP homeSection (paling awal dalam .dash-wrap, sebelum dash-toolbar period pills). Sebab: staff landing kebanyakan nak tahu dulu (a) ada memo penting tak (b) shift saya bila/dengan siapa hari ni — info ni kena di-prioritize visually, bukan kena scroll dulu lalui chart dan target bar. Hasil: page flow baru — Memo+Jadual → Date pills → Hero (Sales/Orders/Channel/chart) → Needs Attention → Operations Queue → Top 10 + Snapshot → Manager Dashboard (analitik penuh dengan target bar, hero KPI, charts, top SKUs/staff/customers). Tiada perubahan logic — IDs (dashOverviewMemoList, dashOverviewRosterList, dashOverviewMemoCard, dashOverviewRosterCard, dashOverviewCombinedEmpty, dashOverviewRosterDate) kekal sama jadi JS renderer (renderManagerDashboard memo + roster widgets) tetap tepu target element yang sama. Tambah margin-bottom:var(--space-4) untuk visual breathing room sebelum date pills. Prong C (i18n title attributes): applyI18N upgrade — querySelectorAll("[data-i18n-title]") loop ditambah selepas existing aria-label loop. Walk through el.setAttribute("title", t(key)) untuk setiap node. 6 keys baharu hs_title_* — oos (Open main product list / Buka senarai produk utama), low (Items running low / Item stok hampir habis), return (Refund requests pending / Permintaan refund menunggu), unpaid (Carts not paid / Troli tidak dibayar), refresh (Refresh data / Muat semula data), target (Set monthly target / Set target bulanan). Tag 4 alert cards di homeSection + 2 icon buttons di managerDashboardSection header (refresh-cw + target icons). Boleh apply untuk title attr tag mana-mana element going forward (same pattern dengan placeholder + aria-label dari p1_50). Bump app.js v215→v216. ROADMAP_DATA 94/94→95/95 (last 2026-05-23).', d:'done' },
  { id:'p1_94', label:'Memo Board audit (Prong A i18n + Prong B UX polish) — confirmed A+B sekali. Findings audit: (1) Markup hardcoded — hero tajuk + sub + butang, 4 status tabs (Approved/Pending Approval/Rejected/Memo Saya), department row 7 pills, 4 empty/loading messages, 2 modal (Submit + Reject) dengan ~14 labels + 6 dropdown options + 2 placeholders + 4 buttons. Card UI papar raw lowercase English status pill (approved/pending/rejected). (2) Emoji violations — ⏳ pada Pending tab, ℹ pada submit info banner, glyph "" pada Padam button + pin icon + approval/reject prefixes. Langgar no-emoji rule. (3) UX issues — author display flat tanpa avatar, hover lift minimal, sub-text teknikal, takde search bar untuk filter title/body. Prong A (i18n + cleanup): 45 keys mb_* baharu — hero/tabs/pills/empty(6)/status(3)/card actions(3)/reason prefix/approval prefix/submit modal(10)/reject modal(4). Translation tab "Approved" → "Diluluskan" BM, "Pending" → "Menunggu", "Rejected" → "Ditolak". Status pill papar window.t-translated label instead of raw lowercase. Empty state untuk search ditambah ("Tiada memo padan dengan carian"). Semua emoji di-strip — ⏳ ganti Lucide clock icon, ℹ ganti info icon, pin emoji ganti Lucide pin (with #F59E0B amber), tick/X buttons guna Lucide check/x icons, Padam button guna trash-2 icon (icon-only). Approval/reject prefix juga ada Lucide check-circle/x-circle. Prong B (UX polish): (a) Search bar baharu — Lucide search icon di kiri, input full-width dengan focus state ring amber. window.memoSetSearch + window.__memoSearch state, filter title+body+author (lowercase contains). (b) Author avatar circle — 28px bulatan dengan initial nama (Z, A, F, dll.) warna mengikut department (general:gray, sales:emerald, inv:blue, admin:purple, hr:pink, finance:amber). Author meta jadi 2-baris: nama bold + relative time muted di bawah. (c) Card hover lift tambah translateY(-2px) + shadow lebih besar 0 6px 16px + border-color D1D5DB. (d) Sub-text rewrite — dari "Pengumuman antara department · approved memos disimpan untuk rujukan" jadi "Pengumuman dan polisi · memo approved kekal sebagai rujukan staf." Total: ~45 keys baharu, ~60 baris CSS baharu, renderMemoBoard refactor (i18n + search + avatar + Lucide icons). Bump app.js v214→v215, design-tokens.css v50→v51. ROADMAP_DATA 93/93→94/94.', d:'done' },
  { id:'p1_93', label:'Permissions Centre audit + konsolidasi mode HQ + Management → Manager. Zaid: "dah tak perlu superior mode, hq mode, management mode. semua sama je". Konteks: superior dah retire p1_72 (Bos via isBoss helper jawatan check), management dah merge ke manager p1_32 tapi UI tab disembunyikan je — flag masih wujud di overlay. HQ pulak sejak p1_65 dah jarang dipakai sebab mode bar disembunyikan. Audit findings: (1) Permissions matrix papar 5 kolum (Staff/Kaunter/Operasi/Pengurus/HQ/Investor) tapi Investor sebenarnya stale lepas p1_73 + HQ redundant. (2) Mode lock-out check di togglePermission masih iterate 4 modes termasuk hq. (3) Semua label dalam Permissions section hardcoded — tajuk "Permissions Centre", sub paragraph, 4 tab labels (Mode Access/Sidebar Items/Templates/Audit Trail), table headers, foot text, sidebar pane help, templates pane help, audit pane help. Tiada data-i18n langsung. Perubahan p1_93: A. Matrix UI — PERM_MODES dari [cashier,operations,manager,hq] tukar ke [cashier,operations,manager] sahaja. <thead> ditukar dari 6 kolum (termasuk HQ + Investor) ke 4 kolum (Staff + 3 modes). colspan loading row dari 6 ke 4. B. getModesAccess upgrade — kalau out.manager true → auto-true out.hq + out.management juga (manager = wide-view termasuk HQ items). Back-compat reverse: kalau ada legacy entry dengan hq=true atau management=true tapi manager=false, mirror balik ke manager juga supaya staff yang dah granted HQ era lama auto-transit ke Manager era baru. C. togglePermission update — bila admin tick/untick checkbox Manager, mirror nilai sama ke hq + management dalam overlay (selari dengan getModesAccess invariant). Sidebar filter logic akan re-evaluate sebab manager flag dah lebar. D. Sidebar mode-hiding logic dalam setMode (line ~13619) — branch "Manager wide-view" tukar dari `accessUnion.manager && !isHq && !isInvestor` jadi `accessUnion.manager && !isInvestor`. Manager sekarang tunjuk hq-only items (Settings, Permissions, Test Guide) terus tanpa perlu separate HQ flag. E. i18n — 17 keys baharu perm_* (title, sub, guard, 4 tab labels, 4 column labels, foot autosave, 3 button labels, 4 pane help texts). Tag semua hardcoded text dalam Permissions section dengan data-i18n. F. Mode bar markup di header (modeTabHq + modeTabManagement) kekal hidden — flag style="display:none;" cukup, tak buang button supaya rendering tak break. Hasil: Boss + mgmt staff masih nampak Settings/Permissions/Test Guide sebab Manager auto-grant HQ. Staff biasa (cashier/inv/sales) tak terjejas — mereka tiada manager flag, jadi tiada HQ access. Matrix sekarang 3-kolum bersih, mode model lebih clear: Cashier (kaunter daily), Operations (ops dept), Manager (everything mgmt + HQ). Bump app.js v213→v214. ROADMAP_DATA 92/92→93/93.', d:'done' },
  { id:'p1_92', label:'Setup → Settings rename + Settings Hub EasyStore-style landing. Zaid reference screenshot EasyStore back-office Settings — layout dengan kad profile kedai + kad Plans/billing di top, dan grid kad-kad setting dengan icon + tajuk + sub deskripsi. Cadangan accepted as p1_92. Perubahan: (1) Rename sidebar group dari "Setup" ke "Settings" — key dept_setup EN ditukar "Setup" → "Settings"; BM kekal "Tetapan" (sudah betul). Rail tooltip ditukar dari "Setup" ke "Settings". Rail icon ditukar dari "wrench" ke "settings" (gear icon lebih konvensional). (2) Tambah sidebar menu item BARU sebagai first child group hq_setup: data-tab="settings_hub" + data-i18n="sb_settings_hub" + lucide layout-grid icon. switchHub buka settingsHubSection + panggil renderSettingsHub. (3) Build settingsHubSection HTML — set-hub container max-width 1100px. Top row 2-kolum: kad profile kedai (icon store + "10 CAMP" + URL link biru ke 10camp.com + edit button kanan atas yang launch openComplianceFiltered shop settings) + kad System Status (icon server hijau + tajuk "System Version" + pill hijau "Operational" + sub "v0.91 · pos.10camp.com"). Grid bawah auto-fill 240px min: 5 kad setting (Permissions/Shop Settings/Payments/Sync/Test Guide) setiap satu dengan icon (key-round/settings/credit-card/git-merge/flask-conical), tajuk bold, sub deskripsi 1-2 ayat. Klik kad cari menu-item sepadan dalam #sidebarMain dan trigger click → jump ke section yang betul. Kad Permissions + Test Guide ada class boss-only (auto-hide untuk non-Bos via existing CSS). (4) CSS dalam design-tokens.css ~45 baris baharu: .set-hub container, .set-hub__top grid 2-col, .set-hub__card base + variants (--profile flex + --status flex), .set-hub__edit-btn absolute top-right hover bg, .set-hub__profile-url biru, .set-hub__status-pill hijau D1FAE5 + 065F46, .set-hub__grid auto-fill repeat 240px min, .set-card box-shadow + hover lift (translateY -2px + primary border + icon turns primary), .set-card__icon 36px bg gray bertukar primary on hover, mobile responsive (top grid → 1-col bawah 640px). (5) setActiveRail upgrade — bila railId === "hq_setup" dan tiada hq_setup sub-section currently active, auto-click settings_hub item (selepas 50ms timeout supaya filter loop habis dulu). User boleh ke Permissions terus dari panel kalau dia dah dalam Settings rail; klik rail icon Settings dari mana-mana → hub. (6) __tabToRail update — settings_hub map ke hq_setup. (7) renderSettingsHub function — refresh lucide icons + applyI18N selepas render supaya CSS auto-translate text + render icons untuk kad-kad baharu. Total: 15 keys baharu sb_settings_hub/set_hub_*/set_card_*. Apply pattern p1_87 (Order Detail modal) untuk popup/section new section.', d:'done' },
@@ -9519,7 +9519,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=215"></script>
+ <script src="app.js?v=216"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

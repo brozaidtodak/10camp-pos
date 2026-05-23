@@ -15521,7 +15521,15 @@ window.I18N = {
  mb_rej_title: { bm: 'Tolak Memo', en: 'Reject Memo' },
  mb_rej_reason_lbl: { bm: 'Sebab Tolak (akan dilihat oleh penghantar)', en: 'Reject reason (sender will see this)' },
  mb_rej_reason_ph: { bm: 'Cth: Tarikh tidak betul / kandungan tidak sesuai untuk customer-facing…', en: 'e.g. Wrong date / content not suitable for customer-facing…' },
- mb_rej_confirm: { bm: 'Sahkan Tolak', en: 'Confirm Reject' }
+ mb_rej_confirm: { bm: 'Sahkan Tolak', en: 'Confirm Reject' },
+
+ // p1_95 — Overview title tooltips + reorder
+ hs_title_oos: { bm: 'Buka senarai produk utama', en: 'Open main product list' },
+ hs_title_low: { bm: 'Item stok hampir habis', en: 'Items running low' },
+ hs_title_return: { bm: 'Permintaan refund menunggu', en: 'Refund requests pending' },
+ hs_title_unpaid: { bm: 'Troli tidak dibayar', en: 'Carts not paid' },
+ hs_title_refresh: { bm: 'Muat semula data', en: 'Refresh data' },
+ hs_title_target: { bm: 'Set target bulanan', en: 'Set monthly target' }
  }
 };
 
@@ -15548,6 +15556,12 @@ window.applyI18N = function() {
  const key = el.getAttribute('data-i18n-aria');
  const val = window.t(key);
  if(val) el.setAttribute('aria-label', val);
+ });
+ // p1_95: title tooltips
+ document.querySelectorAll('[data-i18n-title]').forEach(el => {
+ const key = el.getAttribute('data-i18n-title');
+ const val = window.t(key);
+ if(val) el.setAttribute('title', val);
  });
  // Update lang button label
  document.querySelectorAll('#langLabel, .lp-lang-btn__label').forEach(lbl => {

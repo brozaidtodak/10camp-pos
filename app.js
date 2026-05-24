@@ -687,12 +687,75 @@ window.renderMyReport = function() {
  };
  if(roleEl) roleEl.textContent = tpl ? roleLabels[tpl] : T('rp_role_unknown','Unknown role');
 
- // Dispatch to template
- if(tpl === 'admin') return window.__rpRenderAdminTemplate(body, u, range);
+ // Dispatch to template — render template body first, then append generic Roadmap
+ if(tpl === 'admin') {
+ window.__rpRenderAdminTemplate(body, u, range);
+ } else if(tpl) {
  // Other templates — placeholder coming soon
+ body.innerHTML = '<div class="rp-section"><div class="rp-empty">Template untuk role ni akan datang Phase 1B.</div></div>';
+ } else {
  body.innerHTML = '<div class="rp-empty">' + escapeHtml(T('rp_unknown_help','Dept staff awak belum di-map ke template laporan. Hubungi Bos untuk setup.')) + '</div>';
+ }
+ // p1_97 — Roadmap section appended to EVERY role view (generic)
+ if(tpl && u) window.__rpRenderRoadmap(body, u, tpl);
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// p1_97 — Roadmap section renderer (generic, called from all templates)
+window.__rpRenderRoadmap = function(body, u, tpl) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const items = (window.RP_ROADMAP_TEMPLATES && window.RP_ROADMAP_TEMPLATES[tpl]) || [];
+ const stateKey = 'staffRoadmap_' + u.staff_id;
+ let state = {};
+ try { state = JSON.parse(localStorage.getItem(stateKey) || '{}'); } catch(e){}
+ const doneCount = items.filter(it => state[it.id]).length;
+ const total = items.length;
+ const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+ const html = `
+ <div class="rp-section rp-roadmap">
+ <h3 class="rp-section__title"><i data-lucide="target" style="width:14px;height:14px;"></i> <span data-i18n="rp_rm_title">Roadmap Saya</span></h3>
+ <p class="rp-section__help" data-i18n="rp_rm_help">Checklist tugasan & skill yang perlu kau master. Tick bila dah buat. Bos boleh tambah/edit item.</p>
+
+ <div class="rp-rm-progress-wrap">
+ <div class="rp-rm-progress-label">
+ <span><span data-i18n="rp_rm_progress">Progress</span>: <strong>${doneCount}</strong>/${total} <span data-i18n="rp_rm_done">siap</span></span>
+ <strong class="rp-rm-pct ${pct === 100 ? 'rp-rm-pct--full' : (pct >= 50 ? 'rp-rm-pct--mid' : '')}">${pct}%</strong>
+ </div>
+ <div class="rp-rm-progress-bar"><div class="rp-rm-progress-fill" style="width:${pct}%"></div></div>
+ </div>
+
+ ${items.length === 0 ? '<div class="rp-empty" data-i18n="rp_rm_empty">Tiada item dalam roadmap.</div>' : `
+ <ul class="rp-rm-list">
+ ${items.map(it => {
+ const done = !!state[it.id];
+ return `<li class="rp-rm-item ${done ? 'rp-rm-item--done' : ''}">
+ <label class="rp-rm-check">
+ <input type="checkbox" ${done ? 'checked' : ''} onchange="window.__rpToggleRoadmap('${escAttr(u.staff_id)}', '${escAttr(it.id)}', this.checked)">
+ <span class="rp-rm-checkbox"><i data-lucide="${done ? 'check' : 'circle'}" style="width:12px;height:12px;"></i></span>
+ </label>
+ <span class="rp-rm-label">${escAttr(it.label)}</span>
+ </li>`;
+ }).join('')}
+ </ul>
+ `}
+ </div>
+ `;
+ body.insertAdjacentHTML('beforeend', html);
+};
+
+window.__rpToggleRoadmap = function(staffId, itemId, checked) {
+ const stateKey = 'staffRoadmap_' + staffId;
+ let state = {};
+ try { state = JSON.parse(localStorage.getItem(stateKey) || '{}'); } catch(e){}
+ state[itemId] = !!checked;
+ state['__updated_at'] = new Date().toISOString();
+ localStorage.setItem(stateKey, JSON.stringify(state));
+ // Re-render to update % bar
+ if(typeof window.renderMyReport === 'function') window.renderMyReport();
 };
 
 // Admin template renderer — for Aliff (CMP008) + Bos (CMP001)
@@ -15904,8 +15967,73 @@ window.I18N = {
  // Team (Bos drill-down) — placeholder
  rp_team_title: { bm: 'Lihat Laporan Staf', en: 'View Team Reports' },
  rp_team_help: { bm: 'Klik kad staff untuk buka laporan terperinci.', en: 'Click a staff card to view detailed report.' },
- rp_team_coming: { bm: 'Drill-down view akan datang Phase 1B (selepas Admin template stable).', en: 'Drill-down view coming Phase 1B (after Admin template stable).' }
+ rp_team_coming: { bm: 'Drill-down view akan datang Phase 1B (selepas Admin template stable).', en: 'Drill-down view coming Phase 1B (after Admin template stable).' },
+
+ // p1_97 — Roadmap per staff
+ rp_rm_title: { bm: 'Roadmap Saya', en: 'My Roadmap' },
+ rp_rm_help: { bm: 'Checklist tugasan & skill yang perlu kau master. Tick bila dah buat. Bos boleh tambah/edit item.', en: 'Checklist of tasks & skills you must master. Tick when done. The Boss can add/edit items.' },
+ rp_rm_progress: { bm: 'Progress', en: 'Progress' },
+ rp_rm_done: { bm: 'siap', en: 'done' },
+ rp_rm_of: { bm: 'daripada', en: 'of' },
+ rp_rm_empty: { bm: 'Tiada item dalam roadmap. Bos belum tambah item untuk role kau.', en: 'No items in roadmap. Boss hasn\'t added items for your role yet.' }
  }
+};
+
+// p1_97 — Pre-defined roadmap items per role template
+window.RP_ROADMAP_TEMPLATES = {
+ admin: [
+ { id:'adm_1', label:'Approve cuti staff (workflow lengkap)' },
+ { id:'adm_2', label:'Approve claim (verify resit + approve)' },
+ { id:'adm_3', label:'Kira komisen staff jualan bulanan' },
+ { id:'adm_4', label:'Issue invoice / sebut harga B2B' },
+ { id:'adm_5', label:'Update info akaun B2B' },
+ { id:'adm_6', label:'Review & approve memo board' },
+ { id:'adm_7', label:'Onboarding staff baharu (admin process)' },
+ { id:'adm_8', label:'File dokumen audit & rekod kompliance' }
+ ],
+ sales: [
+ { id:'sl_1', label:'Master POS Cashier flow (scan, payment, receipt)' },
+ { id:'sl_2', label:'Customer Lookup + cipta pelanggan baharu' },
+ { id:'sl_3', label:'Handle B2B quotation request' },
+ { id:'sl_4', label:'Process refund (dengan approval Bos)' },
+ { id:'sl_5', label:'Daily shift close + cash reconcile' },
+ { id:'sl_6', label:'Top up VIP loyalty points' },
+ { id:'sl_7', label:'DuitNow QR payment flow' },
+ { id:'sl_8', label:'Hand off Pesanan Online ke Inventory' }
+ ],
+ marketing: [
+ { id:'mk_1', label:'Schedule social media post (TikTok/IG/FB)' },
+ { id:'mk_2', label:'Reply customer DM (response time < 4 jam)' },
+ { id:'mk_3', label:'Setup WhatsApp Broadcast campaign' },
+ { id:'mk_4', label:'Re-engage dormant customers (30+ days)' },
+ { id:'mk_5', label:'Festival promo template setup (Raya/CNY/dll)' },
+ { id:'mk_6', label:'Track engagement metrics (views/likes/saves)' }
+ ],
+ inventory: [
+ { id:'inv_1', label:'Receive PO + match dengan invois supplier' },
+ { id:'inv_2', label:'Stock take procedure (full + spot check)' },
+ { id:'inv_3', label:'Smart picking workflow (bin → pack)' },
+ { id:'inv_4', label:'Print barcode label (SKU + variant)' },
+ { id:'inv_5', label:'Update bin location masa rearrange gudang' },
+ { id:'inv_6', label:'Handle returns + damage report' },
+ { id:'inv_7', label:'Reconcile stock variance lepas stock take' }
+ ],
+ bizdev: [
+ { id:'bd_1', label:'Lead generation (cold outreach)' },
+ { id:'bd_2', label:'Lead followup workflow (3-touch rule)' },
+ { id:'bd_3', label:'New B2B account opening process' },
+ { id:'bd_4', label:'Pipeline management (CRM update mingguan)' },
+ { id:'bd_5', label:'Closing techniques + negotiation' },
+ { id:'bd_6', label:'Partnership outreach (event/sponsor)' }
+ ],
+ sysmgmt: [
+ { id:'sm_1', label:'Sync troubleshooting (EasyStore / TikTok / Shopee)' },
+ { id:'sm_2', label:'Permission management (Aliff escalation handling)' },
+ { id:'sm_3', label:'User onboarding (technical setup)' },
+ { id:'sm_4', label:'Backup verification (weekly check)' },
+ { id:'sm_5', label:'Issue resolution log (track bugs / fixes)' },
+ { id:'sm_6', label:'Webhook + integration monitoring' }
+ ]
 };
 
 window.t = function(key) {

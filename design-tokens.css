@@ -3523,3 +3523,28 @@ a:focus-visible {
 .rp-team-card:hover { border-color: var(--primary, #CD7C32); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
 
 .rp-empty { padding: 40px; text-align: center; color: #9CA3AF; font-size: 13px; }
+
+/* p1_97 — Per-staff Roadmap checklist */
+.rp-roadmap { }
+.rp-rm-progress-wrap { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.rp-rm-progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12.5px; color: #4B5563; }
+.rp-rm-progress-label strong { color: var(--text-main, #111827); }
+.rp-rm-pct { font-size: 16px; font-weight: 800; color: #6B7280; letter-spacing: -0.3px; }
+.rp-rm-pct--mid { color: #D97706; }
+.rp-rm-pct--full { color: #059669; }
+.rp-rm-progress-bar { height: 8px; background: #E5E7EB; border-radius: 999px; overflow: hidden; }
+.rp-rm-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary, #CD7C32), #B45309); border-radius: 999px; transition: width 0.3s ease; }
+
+.rp-rm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.rp-rm-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; transition: 0.15s; cursor: default; }
+.rp-rm-item:hover { background: #F9FAFB; }
+.rp-rm-item--done .rp-rm-label { color: #9CA3AF; text-decoration: line-through; }
+
+.rp-rm-check { display: inline-flex; cursor: pointer; flex-shrink: 0; }
+.rp-rm-check input { position: absolute; opacity: 0; pointer-events: none; }
+.rp-rm-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 2px solid #D1D5DB; border-radius: 6px; background: #FFF; color: transparent; transition: 0.15s; }
+.rp-rm-check:hover .rp-rm-checkbox { border-color: var(--primary, #CD7C32); }
+.rp-rm-check input:checked + .rp-rm-checkbox { background: var(--primary, #CD7C32); border-color: var(--primary, #CD7C32); color: #FFF; }
+.rp-rm-check input:focus + .rp-rm-checkbox { box-shadow: 0 0 0 3px rgba(205,124,50,0.18); }
+
+.rp-rm-label { font-size: 13px; color: var(--text-main, #111827); line-height: 1.4; }

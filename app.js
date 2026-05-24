@@ -592,6 +592,17 @@ window.setActiveRail = function(railId, navigateDirect) {
  }, 50);
  }
  }
+
+ // p1_96: reports rail auto-opens "Laporan Saya" when no sub-section active.
+ if(railId === 'reports') {
+ const currentActive = document.querySelector('#sidebarMain .menu-item.active[data-group="reports"]');
+ if(!currentActive) {
+ setTimeout(() => {
+ const myReport = document.querySelector('#sidebarMain .menu-item[data-tab="report_my"]');
+ if(myReport && typeof myReport.click === 'function') myReport.click();
+ }, 50);
+ }
+ }
 };
 
 // p1_92: Settings Hub renderer — placeholder for future dynamic content (build hash, plan badge, etc.)
@@ -602,6 +613,304 @@ window.renderSettingsHub = function() {
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  if(typeof window.applyI18N === 'function') window.applyI18N();
  } catch(e){}
+};
+
+// p1_96 — Reports system =====================================================
+// State
+window.__rpPeriod = window.__rpPeriod || 'mtd';
+window.setReportPeriod = function(p) {
+ window.__rpPeriod = p;
+ document.querySelectorAll('[data-rp-period]').forEach(b => b.classList.toggle('rp-pill--active', b.dataset.rpPeriod === p));
+ window.renderMyReport();
+};
+
+// Period helpers — returns { start: Date, end: Date, label: string }
+window.__rpPeriodRange = function() {
+ const now = new Date();
+ const period = window.__rpPeriod || 'mtd';
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ if(period === 'lastmonth') {
+ const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
+ const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+ return { start, end, label: T('rp_period_lastmonth','Bulan Lepas') };
+ }
+ if(period === '30d') {
+ const start = new Date(now.getTime() - 30*24*3600*1000);
+ return { start, end: now, label: T('rp_period_30d','30 Hari') };
+ }
+ if(period === 'ytd') {
+ const start = new Date(now.getFullYear(), 0, 1);
+ return { start, end: now, label: T('rp_period_ytd','YTD') };
+ }
+ // mtd default
+ const start = new Date(now.getFullYear(), now.getMonth(), 1);
+ return { start, end: now, label: T('rp_period_mtd','Bulan Ini') };
+};
+
+// Map dept (actual) → template key
+window.__rpTemplateForDept = function(dept) {
+ if(!dept) return null;
+ const d = dept.toLowerCase();
+ if(d.includes('administrative')) return 'admin';
+ if(d.includes('business development')) return 'bizdev';
+ if(d.includes('system manager')) return 'sysmgmt';
+ if(d.includes('sales & product')) return 'sales';
+ if(d.includes('marketing')) return 'marketing';
+ if(d.includes('inventory') || d.includes('chief inventory')) return 'inventory';
+ if(d.includes('managing director')) return 'admin'; // Bos default-view as admin
+ return null;
+};
+
+// Main render router
+window.renderMyReport = function() {
+ const body = document.getElementById('rpBody');
+ if(!body) return;
+ const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+
+ // Header — staff name + role + period
+ const nameEl = document.getElementById('rpStaffName');
+ const roleEl = document.getElementById('rpRoleLabel');
+ const periodEl = document.getElementById('rpPeriodLabel');
+ const range = window.__rpPeriodRange();
+ if(nameEl) nameEl.textContent = u ? u.name : '—';
+ if(periodEl) periodEl.textContent = range.label;
+
+ const tpl = u ? window.__rpTemplateForDept(u.dept) : null;
+ const roleLabels = {
+ admin: T('rp_role_admin','Admin Department'),
+ sales: T('rp_role_sales','Sales & Product'),
+ marketing: T('rp_role_marketing','Marketing (Interim)'),
+ inventory: T('rp_role_inventory','Inventory / Warehouse'),
+ bizdev: T('rp_role_bizdev','Business Development'),
+ sysmgmt: T('rp_role_sysmgmt','System Management')
+ };
+ if(roleEl) roleEl.textContent = tpl ? roleLabels[tpl] : T('rp_role_unknown','Unknown role');
+
+ // Dispatch to template
+ if(tpl === 'admin') return window.__rpRenderAdminTemplate(body, u, range);
+ // Other templates — placeholder coming soon
+ body.innerHTML = '<div class="rp-empty">' + escapeHtml(T('rp_unknown_help','Dept staff awak belum di-map ke template laporan. Hubungi Bos untuk setup.')) + '</div>';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// Admin template renderer — for Aliff (CMP008) + Bos (CMP001)
+window.__rpRenderAdminTemplate = function(body, u, range) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+
+ // ---- 1. KPI counts (from existing data sources, period-filtered) ----
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+
+ let invoiceCount = 0;
+ try {
+ const logs = JSON.parse(localStorage.getItem('invoiceLogs_v1') || '[]');
+ invoiceCount = logs.filter(l => { const t = new Date(l.created_at || l.date || 0).getTime(); return t >= startMs && t <= endMs; }).length;
+ } catch(e){}
+
+ let b2bTouched = 0;
+ try {
+ if(typeof customersData !== 'undefined' && Array.isArray(customersData)) {
+ b2bTouched = customersData.filter(c => c.is_b2b || (c.tags && /b2b/i.test(String(c.tags)))).length;
+ }
+ } catch(e){}
+
+ let memosApproved = 0;
+ try {
+ const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
+ memosApproved = memos.filter(m => m.status === 'approved' && new Date(m.approved_at || m.posted_at || 0).getTime() >= startMs).length;
+ } catch(e){}
+
+ // ---- 2. Approval workflow counts ----
+ const pendingRoster = (typeof pendingSchedules !== 'undefined' && Array.isArray(pendingSchedules)) ? pendingSchedules.length : 0;
+ let claimsPending = 0, claimsApproved = 0, claimsRejected = 0, claimsTotalRM = 0;
+ try {
+ if(typeof _hrcLoadClaims === 'function') {
+ const claims = _hrcLoadClaims();
+ claims.forEach(c => {
+ const ct = new Date(c.created_at || c.submitted_at || 0).getTime();
+ if(c.status === 'pending') claimsPending++;
+ if(c.status === 'approved' && ct >= startMs && ct <= endMs) { claimsApproved++; claimsTotalRM += Number(c.amount || 0); }
+ if(c.status === 'rejected' && ct >= startMs && ct <= endMs) claimsRejected++;
+ });
+ }
+ } catch(e){}
+
+ // ---- 3. Commission table for sales staff ----
+ const salesStaff = (typeof authUsers !== 'undefined' && Array.isArray(authUsers))
+ ? authUsers.filter(s => s.role === 'sales' && s.staff_id !== 'TST001')
+ : [];
+ const salesMtdRows = salesStaff.map(s => {
+ let revenue = 0, orders = 0;
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < startMs || t > endMs) return;
+ // Match by staff_id (sales attribution) — fallback name
+ if((sale.staff_id && sale.staff_id === s.staff_id) || (sale.cashier_name && sale.cashier_name === s.name)) {
+ revenue += Number(sale.total || sale.amount || 0);
+ orders++;
+ }
+ });
+ }
+ } catch(e){}
+ return { staff: s, revenue, orders };
+ });
+
+ // Load saved commission entries (localStorage scratchpad — Phase 1A)
+ const commKey = 'commissionDraft_' + (window.__rpPeriod || 'mtd');
+ const commDraft = (function() { try { return JSON.parse(localStorage.getItem(commKey) || '{}'); } catch(e) { return {}; } })();
+
+ // ---- 4. Aliff's own attendance/cuti/claim (placeholder — will pull from real data Phase 1B) ----
+ // ---- 5. Manual notes ----
+ const manualKey = 'reportManual_' + (u ? u.staff_id : '') + '_' + (window.__rpPeriod || 'mtd');
+ const manualText = localStorage.getItem(manualKey) || '';
+
+ // ---- RENDER ----
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+ body.innerHTML = `
+ <!-- Section 1: KPI -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="trending-up" style="width:14px;height:14px;"></i> KPI Utama</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="file-text" style="width:12px;height:12px;"></i> <span data-i18n="rp_kpi_invoice">Invois / Sebut Harga</span></div>
+ <div class="rp-kpi__val">${invoiceCount}</div>
+ <div class="rp-kpi__sub" data-i18n="rp_kpi_invoice_sub">jumlah dikeluarkan</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="briefcase" style="width:12px;height:12px;"></i> <span data-i18n="rp_kpi_b2b">B2B Touched</span></div>
+ <div class="rp-kpi__val">${b2bTouched}</div>
+ <div class="rp-kpi__sub" data-i18n="rp_kpi_b2b_sub">akaun baharu + kemaskini</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="megaphone" style="width:12px;height:12px;"></i> <span data-i18n="rp_kpi_memos">Memo Diluluskan</span></div>
+ <div class="rp-kpi__val">${memosApproved}</div>
+ <div class="rp-kpi__sub" data-i18n="rp_kpi_memos_sub">pengumuman approved</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Section 2: Approval workflow -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> <span data-i18n="rp_appr_title">Aliran Kelulusan</span></h3>
+ <div class="rp-approval-grid">
+ <div class="rp-approval-card">
+ <h4 class="rp-approval-card__title"><i data-lucide="calendar-x" style="width:13px;height:13px;"></i> <span data-i18n="rp_appr_cuti_title">Cuti</span></h4>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_pending">Menunggu Saya</span><strong class="${pendingRoster > 0 ? 'rp-warn' : ''}">${pendingRoster}</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_approved">Diluluskan Bulan Ini</span><strong>—</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_rejected">Ditolak</span><strong>—</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_escalated">Eskalasi ke Bos</span><strong>—</strong></div>
+ </div>
+ <div class="rp-approval-card">
+ <h4 class="rp-approval-card__title"><i data-lucide="receipt" style="width:13px;height:13px;"></i> <span data-i18n="rp_appr_claim_title">Tuntutan</span></h4>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_pending">Menunggu Saya</span><strong class="${claimsPending > 0 ? 'rp-warn' : ''}">${claimsPending}</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_approved">Diluluskan Bulan Ini</span><strong>${claimsApproved}</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_rejected">Ditolak</span><strong>${claimsRejected}</strong></div>
+ <div class="rp-appr-row"><span data-i18n="rp_appr_total_rm">Jumlah RM</span><strong>RM ${claimsTotalRM.toFixed(2)}</strong></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Section 3: Commission calculator -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="calculator" style="width:14px;height:14px;"></i> <span data-i18n="rp_comm_title">Pengiraan Komisen Staff Jualan</span></h3>
+ <p class="rp-section__help" data-i18n="rp_comm_help">Sales MTD setiap staff jualan. Aliff isi kadar / amaun komisen, klik Simpan untuk hantar ke Bos approve.</p>
+ <table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th data-i18n="rp_comm_col_staff">Staff</th>
+ <th style="text-align:right;" data-i18n="rp_comm_col_sales">Sales MTD (RM)</th>
+ <th style="text-align:right;" data-i18n="rp_comm_col_orders">Orders</th>
+ <th style="text-align:right;" data-i18n="rp_comm_col_rate">Kadar % (opsyenal)</th>
+ <th style="text-align:right;" data-i18n="rp_comm_col_amount">Komisen (RM)</th>
+ <th style="text-align:right;" data-i18n="rp_comm_col_action">Tindakan</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${salesMtdRows.map(row => {
+ const draft = commDraft[row.staff.staff_id] || {};
+ const initials = row.staff.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+ return `<tr data-staff-id="${escAttr(row.staff.staff_id)}">
+ <td><div class="rp-staff-meta"><span class="rp-staff-avatar">${escAttr(initials)}</span><div class="rp-staff-info"><strong>${escAttr(row.staff.name)}</strong><span>${escAttr(row.staff.staff_id)}</span></div></div></td>
+ <td style="text-align:right;">RM ${row.revenue.toFixed(2)}</td>
+ <td style="text-align:right;">${row.orders}</td>
+ <td style="text-align:right;"><input type="number" class="rp-comm-input" data-rate-for="${escAttr(row.staff.staff_id)}" placeholder="0" value="${escAttr(draft.rate || '')}" step="0.5" min="0" max="100" onchange="window.__rpCalcComm('${escAttr(row.staff.staff_id)}', ${row.revenue})"></td>
+ <td style="text-align:right;"><input type="number" class="rp-comm-input" data-amount-for="${escAttr(row.staff.staff_id)}" placeholder="0.00" value="${escAttr(draft.amount || '')}" step="0.01" min="0"></td>
+ <td style="text-align:right;"><button class="rp-comm-btn" onclick="window.__rpSaveComm('${escAttr(row.staff.staff_id)}')" data-i18n="rp_comm_save_btn">Simpan</button></td>
+ </tr>`;
+ }).join('') || '<tr><td colspan="6" style="text-align:center; padding:20px; color:#9CA3AF;">Tiada staff jualan dijumpai.</td></tr>'}
+ </tbody>
+ </table>
+ </div>
+
+ <!-- Section 4: Manual notes -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> <span data-i18n="rp_manual_title">Catatan Manual</span></h3>
+ <p class="rp-section__help" data-i18n="rp_manual_help">Tulis pencapaian tambahan, cabaran, rancangan minggu hadapan.</p>
+ <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Selesai filing audit Q1, follow-up 3 supplier baharu…" data-i18n-placeholder="rp_manual_ph">${escAttr(manualText)}</textarea>
+ <div class="rp-manual-foot">
+ <span class="rp-manual-status" id="rpManualStatus"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>
+ </div>
+ </div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// Commission calc helpers
+window.__rpCalcComm = function(staffId, revenue) {
+ const rateEl = document.querySelector('[data-rate-for="' + staffId + '"]');
+ const amtEl = document.querySelector('[data-amount-for="' + staffId + '"]');
+ if(!rateEl || !amtEl) return;
+ const rate = parseFloat(rateEl.value) || 0;
+ if(rate > 0) amtEl.value = ((revenue * rate) / 100).toFixed(2);
+};
+window.__rpSaveComm = function(staffId) {
+ const rateEl = document.querySelector('[data-rate-for="' + staffId + '"]');
+ const amtEl = document.querySelector('[data-amount-for="' + staffId + '"]');
+ if(!rateEl || !amtEl) return;
+ const key = 'commissionDraft_' + (window.__rpPeriod || 'mtd');
+ const draft = (function() { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) { return {}; } })();
+ draft[staffId] = { rate: rateEl.value, amount: amtEl.value, saved_at: new Date().toISOString() };
+ localStorage.setItem(key, JSON.stringify(draft));
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ if(typeof showToast === 'function') showToast(T('rp_comm_saved','Komisen disimpan untuk approval Bos.'), 'success');
+};
+// Manual notes save
+window.__rpSaveManual = function(manualKey) {
+ const el = document.getElementById('rpManualText');
+ if(!el) return;
+ localStorage.setItem(manualKey, el.value);
+ const status = document.getElementById('rpManualStatus');
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ if(status) { status.textContent = T('rp_manual_saved','Catatan disimpan'); setTimeout(() => { status.textContent = ''; }, 2500); }
+};
+
+// Team reports (Bos drill-down — Phase 1A placeholder)
+window.renderTeamReports = function() {
+ const grid = document.getElementById('rpTeamGrid');
+ if(!grid) return;
+ const staffList = (typeof authUsers !== 'undefined' && Array.isArray(authUsers))
+ ? authUsers.filter(s => s.staff_id !== 'TST001' && (!window.isBoss || !window.isBoss(s)))
+ : [];
+ grid.innerHTML = staffList.map(s => {
+ const initials = (s.name||'').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+ return `<div class="rp-team-card" data-staff-id="${s.staff_id}">
+ <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+ <span class="rp-staff-avatar" style="width:36px; height:36px; font-size:13px;">${initials}</span>
+ <div class="rp-staff-info"><strong style="font-size:13.5px;">${s.name}</strong><span>${s.staff_id} · ${s.dept || s.role}</span></div>
+ </div>
+ <p style="font-size:11px; color:#9CA3AF; margin:6px 0 0;">Drill-down report coming Phase 1B.</p>
+ </div>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
 // Map data-tab → which rail it belongs to (used for auto-sync rail with current section)
@@ -616,6 +925,7 @@ window.__tabToRail = function(tab) {
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
+ if(tab === 'report_my' || tab === 'report_team') return 'reports';
  if(tab === 'settings_hub' || tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
  return null;
 };
@@ -15529,7 +15839,72 @@ window.I18N = {
  hs_title_return: { bm: 'Permintaan refund menunggu', en: 'Refund requests pending' },
  hs_title_unpaid: { bm: 'Troli tidak dibayar', en: 'Carts not paid' },
  hs_title_refresh: { bm: 'Muat semula data', en: 'Refresh data' },
- hs_title_target: { bm: 'Set target bulanan', en: 'Set monthly target' }
+ hs_title_target: { bm: 'Set target bulanan', en: 'Set monthly target' },
+
+ // p1_96 — Reports section (rp_*)
+ dept_reports: { bm: 'Laporan', en: 'Reports' },
+ sb_report_my: { bm: 'Laporan Saya', en: 'My Report' },
+ sb_report_team: { bm: 'Lihat Staf', en: 'View Team' },
+ rp_title: { bm: 'Laporan Saya', en: 'My Report' },
+ rp_subtitle_pre: { bm: 'Ringkasan prestasi', en: 'Performance summary' },
+ rp_period_mtd: { bm: 'Bulan Ini', en: 'This Month' },
+ rp_period_lastmonth: { bm: 'Bulan Lepas', en: 'Last Month' },
+ rp_period_30d: { bm: '30 Hari', en: '30 Days' },
+ rp_period_ytd: { bm: 'Tahun Ini', en: 'YTD' },
+ rp_role_admin: { bm: 'Jabatan Admin', en: 'Admin Department' },
+ rp_role_sales: { bm: 'Jualan & Produk', en: 'Sales & Product' },
+ rp_role_marketing: { bm: 'Pemasaran (Interim)', en: 'Marketing (Interim)' },
+ rp_role_inventory: { bm: 'Stok / Gudang', en: 'Inventory / Warehouse' },
+ rp_role_bizdev: { bm: 'Pembangunan Perniagaan', en: 'Business Development' },
+ rp_role_sysmgmt: { bm: 'Pengurusan Sistem', en: 'System Management' },
+ rp_role_unknown: { bm: 'Peranan tidak dikenali', en: 'Unknown role' },
+ rp_unknown_help: { bm: 'Dept staff awak belum di-map ke template laporan. Hubungi Bos untuk setup.', en: 'Your dept is not mapped to a report template yet. Contact the Boss to set up.' },
+ // KPI cards
+ rp_kpi_invoice: { bm: 'Invois / Sebut Harga', en: 'Invoices / Quotations' },
+ rp_kpi_b2b: { bm: 'B2B Touched', en: 'B2B Touched' },
+ rp_kpi_memos: { bm: 'Memo Diluluskan', en: 'Memos Approved' },
+ rp_kpi_invoice_sub: { bm: 'jumlah dikeluarkan', en: 'issued count' },
+ rp_kpi_b2b_sub: { bm: 'akaun baharu + kemaskini', en: 'new + updated accounts' },
+ rp_kpi_memos_sub: { bm: 'pengumuman approved', en: 'announcements approved' },
+ // Approval workflow
+ rp_appr_title: { bm: 'Aliran Kelulusan', en: 'Approval Workflow' },
+ rp_appr_cuti_title: { bm: 'Cuti', en: 'Leave' },
+ rp_appr_claim_title: { bm: 'Tuntutan', en: 'Claims' },
+ rp_appr_pending: { bm: 'Menunggu Saya', en: 'Pending My Review' },
+ rp_appr_approved: { bm: 'Diluluskan Bulan Ini', en: 'Approved This Month' },
+ rp_appr_rejected: { bm: 'Ditolak', en: 'Rejected' },
+ rp_appr_escalated: { bm: 'Eskalasi ke Bos', en: 'Escalated to Boss' },
+ rp_appr_total_rm: { bm: 'Jumlah RM', en: 'Total RM' },
+ // Commission calculator
+ rp_comm_title: { bm: 'Pengiraan Komisen Staff Jualan', en: 'Sales Staff Commission Calculator' },
+ rp_comm_help: { bm: 'Sales MTD setiap staff jualan. Aliff isi kadar / amaun komisen, klik Simpan untuk hantar ke Bos approve.', en: 'MTD sales per sales staff. Aliff enters commission rate / amount, click Save to send for Boss approval.' },
+ rp_comm_col_staff: { bm: 'Staff', en: 'Staff' },
+ rp_comm_col_sales: { bm: 'Sales MTD (RM)', en: 'MTD Sales (RM)' },
+ rp_comm_col_orders: { bm: 'Bilangan Pesanan', en: 'Order Count' },
+ rp_comm_col_rate: { bm: 'Kadar % (opsyenal)', en: 'Rate % (optional)' },
+ rp_comm_col_amount: { bm: 'Komisen (RM)', en: 'Commission (RM)' },
+ rp_comm_col_action: { bm: 'Tindakan', en: 'Action' },
+ rp_comm_calc_btn: { bm: 'Kira', en: 'Calc' },
+ rp_comm_save_btn: { bm: 'Simpan', en: 'Save' },
+ rp_comm_saved: { bm: 'Komisen disimpan untuk approval Bos.', en: 'Commission saved for Boss approval.' },
+ // My own (KPI for Aliff personally)
+ rp_my_attend_title: { bm: 'Kehadiran Saya', en: 'My Attendance' },
+ rp_my_attend_days: { bm: 'Hari hadir', en: 'Days present' },
+ rp_my_attend_late: { bm: 'Lewat', en: 'Late' },
+ rp_my_leave_title: { bm: 'Baki Cuti Saya', en: 'My Leave Balance' },
+ rp_my_claim_title: { bm: 'Tuntutan Saya', en: 'My Claims' },
+ rp_my_claim_total: { bm: 'Total dituntut', en: 'Total claimed' },
+ rp_my_claim_pending: { bm: 'Menunggu approval', en: 'Pending approval' },
+ // Manual input
+ rp_manual_title: { bm: 'Catatan Manual', en: 'Manual Notes' },
+ rp_manual_help: { bm: 'Tulis pencapaian tambahan, cabaran, rancangan minggu hadapan.', en: 'Write extra achievements, challenges, next week\'s plan.' },
+ rp_manual_ph: { bm: 'Cth: Selesai filing audit Q1, follow-up 3 supplier baharu…', en: 'e.g. Completed Q1 audit filing, followed up 3 new suppliers…' },
+ rp_manual_save: { bm: 'Simpan Catatan', en: 'Save Notes' },
+ rp_manual_saved: { bm: 'Catatan disimpan', en: 'Notes saved' },
+ // Team (Bos drill-down) — placeholder
+ rp_team_title: { bm: 'Lihat Laporan Staf', en: 'View Team Reports' },
+ rp_team_help: { bm: 'Klik kad staff untuk buka laporan terperinci.', en: 'Click a staff card to view detailed report.' },
+ rp_team_coming: { bm: 'Drill-down view akan datang Phase 1B (selepas Admin template stable).', en: 'Drill-down view coming Phase 1B (after Admin template stable).' }
  }
 };
 

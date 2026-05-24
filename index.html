@@ -17,7 +17,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=37">
- <link rel="stylesheet" href="design-tokens.css?v=51">
+ <link rel="stylesheet" href="design-tokens.css?v=52">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1250,6 +1250,10 @@
  <button class="rail-item" data-rail="marketing" onclick="window.setActiveRail('marketing')" data-tooltip="Marketing">
  <i data-lucide="gift"></i>
  </button>
+ <button class="rail-item" data-rail="reports" onclick="window.setActiveRail('reports')" data-tooltip="Laporan">
+ <i data-lucide="file-text"></i>
+ <span class="rail-badge" id="railBadgeReportEscalation" style="display:none;">0</span>
+ </button>
  <button class="rail-item" data-rail="hq_setup" data-rail-role="hq-only" onclick="window.setActiveRail('hq_setup')" data-tooltip="Settings">
  <i data-lucide="settings"></i>
  </button>
@@ -1418,6 +1422,18 @@
  </div>
  <div class="menu-item" data-group="marketing" data-tab="admin_reengage" onclick="switchHub(['reengageSection'], 'Re-engage Campaign', this); if(typeof renderReengage==='function') renderReengage();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="heart-handshake" style="width:16px; height:16px;"></i> <span data-i18n="sb_reengage_campaign">Re-engage Campaign</span>
+ </div>
+
+ <!-- p1_96: REPORTS — staff self-report + Bos drill-down + posted reports inbox -->
+ <div class="menu-item" data-group-toggle="reports" onclick="toggleSidebarGroup('reports')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
+ <span data-i18n="dept_reports">Laporan</span>
+ <span class="group-chevron"><i data-lucide="chevron-down" style="width:14px; height:14px;"></i></span>
+ </div>
+ <div class="menu-item" data-group="reports" data-tab="report_my" onclick="switchHub(['reportsSection'], 'Laporan Saya', this); if(typeof renderMyReport==='function') renderMyReport();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="file-text" style="width:16px; height:16px;"></i> <span data-i18n="sb_report_my">Laporan Saya</span>
+ </div>
+ <div class="menu-item mgmt-only" data-group="reports" data-tab="report_team" onclick="switchHub(['reportsTeamSection'], 'Lihat Staf', this); if(typeof renderTeamReports==='function') renderTeamReports();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="users" style="width:16px; height:16px;"></i> <span data-i18n="sb_report_team">Lihat Staf</span>
  </div>
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->
@@ -2880,13 +2896,41 @@
  </div>
 
  <!-- ============================================== -->
- <!-- SECTION: REPORTS -->
+ <!-- p1_96 — REPORTS SECTION (staff self-view) -->
  <!-- ============================================== -->
- <div id="reportsSection" class="tab-section" style="display: none;">
- <div class="admin-card" style="padding:20px;">
- <h2 style="margin-bottom:15px;"> Analytics Report</h2>
- <p style="font-size:13px; color:#888; margin-bottom:20px;">Laporan terperinci jualan, inventori dan prestasi channel.</p>
- <p style="color:#aaa; text-align:center; padding:40px 0;"> Modul ini akan datang dalam fasa seterusnya.</p>
+ <div id="reportsSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="file-text" style="width:22px; height:22px; color:var(--primary);"></i> <span data-i18n="rp_title">Laporan Saya</span></h2>
+ <p class="rp-subtitle"><span data-i18n="rp_subtitle_pre">Ringkasan prestasi</span> · <strong id="rpStaffName">—</strong> · <span id="rpRoleLabel">—</span> · <span id="rpPeriodLabel">—</span></p>
+ </div>
+ <div class="rp-period-bar" role="group">
+ <button class="rp-pill rp-pill--active" data-rp-period="mtd" onclick="window.setReportPeriod('mtd')" data-i18n="rp_period_mtd">Bulan Ini</button>
+ <button class="rp-pill" data-rp-period="lastmonth" onclick="window.setReportPeriod('lastmonth')" data-i18n="rp_period_lastmonth">Bulan Lepas</button>
+ <button class="rp-pill" data-rp-period="30d" onclick="window.setReportPeriod('30d')" data-i18n="rp_period_30d">30 Hari</button>
+ <button class="rp-pill" data-rp-period="ytd" onclick="window.setReportPeriod('ytd')" data-i18n="rp_period_ytd">YTD</button>
+ </div>
+ </div>
+
+ <!-- Template body — populated by renderMyReport() based on dept -->
+ <div id="rpBody"></div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- p1_96 — TEAM REPORTS (Bos drill-down placeholder) -->
+ <!-- ============================================== -->
+ <div id="reportsTeamSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="users" style="width:22px; height:22px; color:var(--primary);"></i> <span data-i18n="rp_team_title">Lihat Laporan Staf</span></h2>
+ <p class="rp-subtitle" data-i18n="rp_team_help">Klik kad staff untuk buka laporan terperinci.</p>
+ </div>
+ </div>
+ <div id="rpTeamGrid" class="rp-team-grid"></div>
+ <p style="margin-top:24px; padding:14px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; font-size:12px; color:#78350F;" data-i18n="rp_team_coming">Drill-down view akan datang Phase 1B (selepas Admin template stable).</p>
  </div>
  </div>
 
@@ -5043,7 +5087,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (95/95 · last 2026-05-23)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (96/96 · last 2026-05-24)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5118,6 +5162,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_96', label:'Reports infrastructure + Admin template (Aliff) Phase 1A. Setiap staff sekarang ada ruangan Laporan Saya — KPI MTD auto + manual notes + (Admin) commission calculator + approval queue counts. Build: (1) Sidebar — rail icon baharu data-rail="reports" (file-text icon) antara Marketing dan Settings, dengan rail-badge id=railBadgeReportEscalation untuk future Phase 1B. Group "Laporan" baru selepas Marketing dept, sebelum Finance — 2 menu items: "Laporan Saya" (semua staff) + "Lihat Staf" (mgmt-only, drill-down placeholder). __tabToRail mapping report_my/report_team → reports rail. setActiveRail auto-open report_my bila reports rail klik (sama pattern dengan Settings hub p1_92). (2) Sections HTML baru — reportsSection (.rp-wrap) ada header dengan rp-staff-name + rp-role-label + rp-period-label dynamic + period bar pills (MTD default, Bulan Lepas, 30 Hari, YTD). #rpBody div populated by renderMyReport(). reportsTeamSection placeholder Phase 1B dengan rp-team-grid + banner amber "Drill-down coming Phase 1B". Legacy reportsSection placeholder ("Analytics Report coming soon") replaced. (3) Renderer logic JS — window.__rpPeriod state (default mtd) + setReportPeriod toggle. __rpPeriodRange returns { start, end, label } untuk mtd/lastmonth/30d/ytd. __rpTemplateForDept dispatch dari dept string ke template key (admin/sales/marketing/inventory/bizdev/sysmgmt). renderMyReport() main router: set header (name/role/period), dispatch ke template renderer berdasarkan u.dept (Bos defaults to admin template view). __rpRenderAdminTemplate (untuk Aliff CMP008 + Bos CMP001 default) papar 4 sections: (a) KPI grid 3 cards — Invoice/Quotation count (invoiceLogs_v1 localStorage filter period), B2B Touched (customersData filter is_b2b), Memo Approved (memoLoad filter status+approved_at). (b) Approval workflow 2-col grid — Cuti card dengan rows Pending/Approved/Rejected/Escalated (pendingSchedules count untuk pending — placeholder dash untuk lain Phase 1B), Claim card dengan rows + Jumlah RM (full data dari _hrcLoadClaims). (c) Commission calculator table — list semua sales staff (Ariff/Irfan, exclude Tester) dengan Sales MTD (salesHistory filter by staff_id|cashier_name, period-filtered), Orders count, input Rate % (auto-calc Amount = revenue * rate / 100 on change), input Amount (manual override), Save button hantar ke localStorage scratchpad commissionDraft_<period> per staff. (d) Manual notes — textarea besar dengan placeholder bilingual, save button hantar ke localStorage reportManual_<staff_id>_<period>. Status pill flash "Catatan disimpan" 2.5s lepas save. (4) Renderers tambahan — renderTeamReports() (Bos drill-down) list staff cards dengan avatar circle (initial dari nama) + dept tagline + "coming Phase 1B" footer. (5) CSS ~95 baris design-tokens.css — .rp-wrap container, .rp-header + period bar pills, .rp-section card style, .rp-kpi-grid 3-col auto-fit, .rp-approval-grid 2-col responsive ke 1-col bawah 720px, .rp-comm-table dengan input number kecik, .rp-staff-avatar 28px primary-color circle dengan initials, .rp-manual-input textarea dengan focus ring primary, .rp-team-grid auto-fill 200px cards dengan hover lift. (6) i18n ~50 keys baharu dept_reports/sb_report_my/sb_report_team/rp_* — semua role labels, period labels, KPI labels, approval workflow rows, commission table headers, manual notes labels, team page placeholder copy. BM/EN translation lengkap. (7) Mapping staff → template ikut dept (actual, bukan role): Administrative→admin, Business Development→bizdev, System Manager→sysmgmt, Sales & Product→sales, Marketing Interim→marketing, Chief Inventory + Inventory Assistance→inventory, Managing Director→admin (Bos default-view), External Demo Account→skip. Aliff (CMP008, dept "Administrative Department") fully wired. Other dept → "coming soon" placeholder (Phase 1B akan tambah templates lain + escalation buttons + Bos badge + Posted Reports inbox). Bump app.js v216→v217, design-tokens.css v51→v52. ROADMAP_DATA 95/95→96/96 (last 2026-05-24).', d:'done' },
  { id:'p1_95', label:'Overview section audit — Zaid pilih scope B+C (skip Prong A de-dupe untuk tak ganggu data sources homeSection vs managerDashboardSection — kekal 2 set period filters + dual hero strips). Prong B (reorder): blok "Overview Hari Ni" (memo + jadual + combined empty state) dialihkan dari position asal dalam managerDashboardSection (line 4370 — antara target bar dan hero stats row) ke TOP homeSection (paling awal dalam .dash-wrap, sebelum dash-toolbar period pills). Sebab: staff landing kebanyakan nak tahu dulu (a) ada memo penting tak (b) shift saya bila/dengan siapa hari ni — info ni kena di-prioritize visually, bukan kena scroll dulu lalui chart dan target bar. Hasil: page flow baru — Memo+Jadual → Date pills → Hero (Sales/Orders/Channel/chart) → Needs Attention → Operations Queue → Top 10 + Snapshot → Manager Dashboard (analitik penuh dengan target bar, hero KPI, charts, top SKUs/staff/customers). Tiada perubahan logic — IDs (dashOverviewMemoList, dashOverviewRosterList, dashOverviewMemoCard, dashOverviewRosterCard, dashOverviewCombinedEmpty, dashOverviewRosterDate) kekal sama jadi JS renderer (renderManagerDashboard memo + roster widgets) tetap tepu target element yang sama. Tambah margin-bottom:var(--space-4) untuk visual breathing room sebelum date pills. Prong C (i18n title attributes): applyI18N upgrade — querySelectorAll("[data-i18n-title]") loop ditambah selepas existing aria-label loop. Walk through el.setAttribute("title", t(key)) untuk setiap node. 6 keys baharu hs_title_* — oos (Open main product list / Buka senarai produk utama), low (Items running low / Item stok hampir habis), return (Refund requests pending / Permintaan refund menunggu), unpaid (Carts not paid / Troli tidak dibayar), refresh (Refresh data / Muat semula data), target (Set monthly target / Set target bulanan). Tag 4 alert cards di homeSection + 2 icon buttons di managerDashboardSection header (refresh-cw + target icons). Boleh apply untuk title attr tag mana-mana element going forward (same pattern dengan placeholder + aria-label dari p1_50). Bump app.js v215→v216. ROADMAP_DATA 94/94→95/95 (last 2026-05-23).', d:'done' },
  { id:'p1_94', label:'Memo Board audit (Prong A i18n + Prong B UX polish) — confirmed A+B sekali. Findings audit: (1) Markup hardcoded — hero tajuk + sub + butang, 4 status tabs (Approved/Pending Approval/Rejected/Memo Saya), department row 7 pills, 4 empty/loading messages, 2 modal (Submit + Reject) dengan ~14 labels + 6 dropdown options + 2 placeholders + 4 buttons. Card UI papar raw lowercase English status pill (approved/pending/rejected). (2) Emoji violations — ⏳ pada Pending tab, ℹ pada submit info banner, glyph "" pada Padam button + pin icon + approval/reject prefixes. Langgar no-emoji rule. (3) UX issues — author display flat tanpa avatar, hover lift minimal, sub-text teknikal, takde search bar untuk filter title/body. Prong A (i18n + cleanup): 45 keys mb_* baharu — hero/tabs/pills/empty(6)/status(3)/card actions(3)/reason prefix/approval prefix/submit modal(10)/reject modal(4). Translation tab "Approved" → "Diluluskan" BM, "Pending" → "Menunggu", "Rejected" → "Ditolak". Status pill papar window.t-translated label instead of raw lowercase. Empty state untuk search ditambah ("Tiada memo padan dengan carian"). Semua emoji di-strip — ⏳ ganti Lucide clock icon, ℹ ganti info icon, pin emoji ganti Lucide pin (with #F59E0B amber), tick/X buttons guna Lucide check/x icons, Padam button guna trash-2 icon (icon-only). Approval/reject prefix juga ada Lucide check-circle/x-circle. Prong B (UX polish): (a) Search bar baharu — Lucide search icon di kiri, input full-width dengan focus state ring amber. window.memoSetSearch + window.__memoSearch state, filter title+body+author (lowercase contains). (b) Author avatar circle — 28px bulatan dengan initial nama (Z, A, F, dll.) warna mengikut department (general:gray, sales:emerald, inv:blue, admin:purple, hr:pink, finance:amber). Author meta jadi 2-baris: nama bold + relative time muted di bawah. (c) Card hover lift tambah translateY(-2px) + shadow lebih besar 0 6px 16px + border-color D1D5DB. (d) Sub-text rewrite — dari "Pengumuman antara department · approved memos disimpan untuk rujukan" jadi "Pengumuman dan polisi · memo approved kekal sebagai rujukan staf." Total: ~45 keys baharu, ~60 baris CSS baharu, renderMemoBoard refactor (i18n + search + avatar + Lucide icons). Bump app.js v214→v215, design-tokens.css v50→v51. ROADMAP_DATA 93/93→94/94.', d:'done' },
  { id:'p1_93', label:'Permissions Centre audit + konsolidasi mode HQ + Management → Manager. Zaid: "dah tak perlu superior mode, hq mode, management mode. semua sama je". Konteks: superior dah retire p1_72 (Bos via isBoss helper jawatan check), management dah merge ke manager p1_32 tapi UI tab disembunyikan je — flag masih wujud di overlay. HQ pulak sejak p1_65 dah jarang dipakai sebab mode bar disembunyikan. Audit findings: (1) Permissions matrix papar 5 kolum (Staff/Kaunter/Operasi/Pengurus/HQ/Investor) tapi Investor sebenarnya stale lepas p1_73 + HQ redundant. (2) Mode lock-out check di togglePermission masih iterate 4 modes termasuk hq. (3) Semua label dalam Permissions section hardcoded — tajuk "Permissions Centre", sub paragraph, 4 tab labels (Mode Access/Sidebar Items/Templates/Audit Trail), table headers, foot text, sidebar pane help, templates pane help, audit pane help. Tiada data-i18n langsung. Perubahan p1_93: A. Matrix UI — PERM_MODES dari [cashier,operations,manager,hq] tukar ke [cashier,operations,manager] sahaja. <thead> ditukar dari 6 kolum (termasuk HQ + Investor) ke 4 kolum (Staff + 3 modes). colspan loading row dari 6 ke 4. B. getModesAccess upgrade — kalau out.manager true → auto-true out.hq + out.management juga (manager = wide-view termasuk HQ items). Back-compat reverse: kalau ada legacy entry dengan hq=true atau management=true tapi manager=false, mirror balik ke manager juga supaya staff yang dah granted HQ era lama auto-transit ke Manager era baru. C. togglePermission update — bila admin tick/untick checkbox Manager, mirror nilai sama ke hq + management dalam overlay (selari dengan getModesAccess invariant). Sidebar filter logic akan re-evaluate sebab manager flag dah lebar. D. Sidebar mode-hiding logic dalam setMode (line ~13619) — branch "Manager wide-view" tukar dari `accessUnion.manager && !isHq && !isInvestor` jadi `accessUnion.manager && !isInvestor`. Manager sekarang tunjuk hq-only items (Settings, Permissions, Test Guide) terus tanpa perlu separate HQ flag. E. i18n — 17 keys baharu perm_* (title, sub, guard, 4 tab labels, 4 column labels, foot autosave, 3 button labels, 4 pane help texts). Tag semua hardcoded text dalam Permissions section dengan data-i18n. F. Mode bar markup di header (modeTabHq + modeTabManagement) kekal hidden — flag style="display:none;" cukup, tak buang button supaya rendering tak break. Hasil: Boss + mgmt staff masih nampak Settings/Permissions/Test Guide sebab Manager auto-grant HQ. Staff biasa (cashier/inv/sales) tak terjejas — mereka tiada manager flag, jadi tiada HQ access. Matrix sekarang 3-kolum bersih, mode model lebih clear: Cashier (kaunter daily), Operations (ops dept), Manager (everything mgmt + HQ). Bump app.js v213→v214. ROADMAP_DATA 92/92→93/93.', d:'done' },
@@ -9519,7 +9564,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=216"></script>
+ <script src="app.js?v=217"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

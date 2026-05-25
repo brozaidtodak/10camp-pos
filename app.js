@@ -655,6 +655,8 @@ window.__rpTemplateForDept = function(dept) {
  if(d.includes('business development')) return 'bizdev';
  if(d.includes('system manager')) return 'sysmgmt';
  if(d.includes('sales & product')) return 'sales';
+ // p1_106: Marketing Interim (Irfan) primary role = Sales — map to sales template
+ if(d.includes('marketing interim')) return 'sales';
  if(d.includes('marketing')) return 'marketing';
  if(d.includes('inventory') || d.includes('chief inventory')) return 'inventory';
  if(d.includes('managing director')) return 'admin'; // Bos default-view as admin
@@ -690,6 +692,8 @@ window.renderMyReport = function() {
  // Dispatch to template — render template body first, then append generic Roadmap
  if(tpl === 'admin') {
  window.__rpRenderAdminTemplate(body, u, range);
+ } else if(tpl === 'sales') {
+ window.__rpRenderSalesTemplate(body, u, range);
  } else if(tpl) {
  // Other templates — placeholder coming soon
  body.innerHTML = '<div class="rp-section"><div class="rp-empty">Template untuk role ni akan datang Phase 1B.</div></div>';
@@ -915,6 +919,190 @@ window.__rpRenderAdminTemplate = function(body, u, range) {
  <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> <span data-i18n="rp_manual_title">Catatan Manual</span></h3>
  <p class="rp-section__help" data-i18n="rp_manual_help">Tulis pencapaian tambahan, cabaran, rancangan minggu hadapan.</p>
  <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Selesai filing audit Q1, follow-up 3 supplier baharu…" data-i18n-placeholder="rp_manual_ph">${escAttr(manualText)}</textarea>
+ <div class="rp-manual-foot">
+ <span class="rp-manual-status" id="rpManualStatus"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>
+ </div>
+ </div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// p1_106 — Sales template renderer (Ariff CMP006, Irfan CMP003 primary)
+window.__rpRenderSalesTemplate = function(body, u, range) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+
+ // ---- 1. Aggregate sales for THIS staff in period ----
+ let myOrders = 0, myRevenue = 0;
+ const customerSet = new Set();
+ const skuTally = {};
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < startMs || t > endMs) return;
+ if(!((sale.staff_id && sale.staff_id === u.staff_id) || (sale.cashier_name && sale.cashier_name === u.name))) return;
+ myOrders++;
+ myRevenue += Number(sale.total || sale.amount || 0);
+ if(sale.customer_phone) customerSet.add(sale.customer_phone);
+ else if(sale.customer_name) customerSet.add(sale.customer_name);
+ // Tally items
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ if(!sku) return;
+ if(!skuTally[sku]) skuTally[sku] = { sku, name: it.name || sku, qty: 0, revenue: 0 };
+ skuTally[sku].qty += Number(it.qty || 0);
+ skuTally[sku].revenue += Number(it.qty || 0) * Number(it.price || 0);
+ });
+ });
+ }
+ } catch(e){}
+ const aov = myOrders > 0 ? myRevenue / myOrders : 0;
+ const topSkus = Object.values(skuTally).sort((a, b) => b.qty - a.qty).slice(0, 5);
+ const topOne = topSkus[0];
+ const customersServed = customerSet.size;
+
+ // ---- 2. Commission saved by Aliff (from localStorage commissionDraft) ----
+ const commKey = 'commissionDraft_' + (window.__rpPeriod || 'mtd');
+ let myComm = null;
+ try {
+ const drafts = JSON.parse(localStorage.getItem(commKey) || '{}');
+ myComm = drafts[u.staff_id] || null;
+ } catch(e){}
+
+ // ---- 3. Own claims (this period) ----
+ let claimsTotal = 0, claimsPending = 0;
+ try {
+ if(typeof _hrcLoadClaims === 'function') {
+ const claims = _hrcLoadClaims();
+ claims.forEach(c => {
+ if(c.staff_id !== u.staff_id && c.staffId !== u.staff_id) return;
+ const ct = new Date(c.created_at || c.submitted_at || 0).getTime();
+ if(ct < startMs || ct > endMs) return;
+ if(c.status === 'pending') claimsPending++;
+ else if(c.status === 'approved') claimsTotal += Number(c.amount || 0);
+ });
+ }
+ } catch(e){}
+
+ // ---- 4. Own attendance (placeholder — full data Phase 2 once attendance table verified) ----
+ // ---- 5. Manual notes ----
+ const manualKey = 'reportManual_' + u.staff_id + '_' + (window.__rpPeriod || 'mtd');
+ const manualText = localStorage.getItem(manualKey) || '';
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+ // ---- Marketing interim banner (Irfan-specific) ----
+ const isMktInterim = (u.dept || '').toLowerCase().includes('marketing interim');
+ const interimBanner = isMktInterim ? `
+ <div class="rp-section" style="border-left:4px solid #EC4899; background:rgba(236,72,153,.05);">
+ <h3 class="rp-section__title" style="color:#EC4899;"><i data-lucide="megaphone" style="width:14px;height:14px;"></i> Marketing Interim</h3>
+ <p class="rp-section__help" style="margin:0;">Awak handle Marketing tasks juga selain Sales. KPI Marketing (posts/views/engagement) akan ditambah Phase 2 bila feature collection siap. Buat masa ni, tulis pencapaian Marketing dalam <em>Catatan Manual</em> di bawah.</p>
+ </div>` : '';
+
+ body.innerHTML = `
+ ${interimBanner}
+
+ <!-- 1. Sales KPI Grid -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="trending-up" style="width:14px;height:14px;"></i> Prestasi Jualan</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="shopping-cart" style="width:12px;height:12px;"></i> Pesanan Saya</div>
+ <div class="rp-kpi__val">${myOrders}</div>
+ <div class="rp-kpi__sub">${fmtRM(myRevenue)} jumlah jualan</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="bar-chart-3" style="width:12px;height:12px;"></i> AOV</div>
+ <div class="rp-kpi__val">${fmtRM(aov)}</div>
+ <div class="rp-kpi__sub">purata per pesanan</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="users" style="width:12px;height:12px;"></i> Pelanggan Unik</div>
+ <div class="rp-kpi__val">${customersServed}</div>
+ <div class="rp-kpi__sub">dilayani period ni</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="award" style="width:12px;height:12px;"></i> Top SKU</div>
+ <div class="rp-kpi__val" style="font-size:14px;">${escAttr(topOne ? topOne.sku : '—')}</div>
+ <div class="rp-kpi__sub">${topOne ? topOne.qty + ' unit · ' + fmtRM(topOne.revenue) : 'tiada data'}</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 2. Top 5 SKUs table -->
+ ${topSkus.length > 0 ? `
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="package" style="width:14px;height:14px;"></i> Top 5 SKU Saya Jual</h3>
+ <table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th>SKU</th>
+ <th>Nama</th>
+ <th style="text-align:right;">Unit</th>
+ <th style="text-align:right;">Revenue</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${topSkus.map(s => `
+ <tr>
+ <td><strong>${escAttr(s.sku)}</strong></td>
+ <td style="font-size:12px; color:#6B7280;">${escAttr(s.name)}</td>
+ <td style="text-align:right;">${s.qty}</td>
+ <td style="text-align:right;">${fmtRM(s.revenue)}</td>
+ </tr>`).join('')}
+ </tbody>
+ </table>
+ </div>` : ''}
+
+ <!-- 3. My Commission -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="calculator" style="width:14px;height:14px;"></i> Komisen Saya</h3>
+ ${myComm ? `
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Kadar</div>
+ <div class="rp-kpi__val">${myComm.rate || '—'}<span style="font-size:14px;">%</span></div>
+ <div class="rp-kpi__sub">ditetapkan Admin</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Anggaran Komisen</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${fmtRM(myComm.amount || 0)}</div>
+ <div class="rp-kpi__sub">menunggu approval Bos</div>
+ </div>
+ </div>
+ ` : `
+ <p class="rp-section__help">Admin belum kira komisen kau untuk period ni. Tunggu Aliff/Bos process — biasanya hujung bulan.</p>
+ `}
+ </div>
+
+ <!-- 4. My Claims -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="receipt" style="width:14px;height:14px;"></i> Tuntutan Saya</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Diluluskan</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${fmtRM(claimsTotal)}</div>
+ <div class="rp-kpi__sub">bulan ni</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Menunggu</div>
+ <div class="rp-kpi__val" style="color:${claimsPending > 0 ? '#D97706' : '#9CA3AF'};">${claimsPending}</div>
+ <div class="rp-kpi__sub">claims pending</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 5. Manual notes -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> <span data-i18n="rp_manual_title">Catatan Manual</span></h3>
+ <p class="rp-section__help" data-i18n="rp_manual_help">Tulis pencapaian tambahan, cabaran, rancangan minggu hadapan.</p>
+ <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Close deal B2B RM 5k dengan Camper Outdoor Trading, follow-up 2 customer VIP, dll" data-i18n-placeholder="rp_manual_ph">${escAttr(manualText)}</textarea>
  <div class="rp-manual-foot">
  <span class="rp-manual-status" id="rpManualStatus"></span>
  <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>

@@ -1481,6 +1481,157 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
+// p1_115 — Stock Reorder Auto-Suggest
+window.__rsAllRows = [];
+
+window.renderReorderSuggest = function() {
+ const wrap = document.getElementById('rsTableWrap');
+ if(!wrap) return;
+ wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Computing suggestions…</p>';
+
+ try {
+ const windowDays = parseInt(document.getElementById('rsWindow').value || '30', 10);
+ const leadTime = parseFloat(document.getElementById('rsLeadTime').value || '14');
+ const safety = parseFloat(document.getElementById('rsSafety').value || '1.5');
+ const minVel = parseFloat(document.getElementById('rsMinVel').value || '1');
+ const cutoffMs = Date.now() - windowDays * 86400000;
+
+ // Tally units sold per SKU in window
+ const skuSold = {};
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < cutoffMs) return;
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ if(!sku) return;
+ skuSold[sku] = (skuSold[sku] || 0) + Number(it.qty || 0);
+ });
+ });
+ }
+
+ // Build current stock map from inventory_batches sum (fallback to masterProducts.stock)
+ const currentStock = {};
+ if(typeof inventoryBatches !== 'undefined' && Array.isArray(inventoryBatches)) {
+ inventoryBatches.forEach(b => {
+ const sku = (b.sku || '').toUpperCase();
+ if(!sku) return;
+ currentStock[sku] = (currentStock[sku] || 0) + Number(b.qty_remaining || b.current_qty || 0);
+ });
+ }
+ if(typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+ masterProducts.forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ if(!sku) return;
+ if(!(sku in currentStock)) currentStock[sku] = Number(p.stock || p.qty_on_hand || 0);
+ });
+ }
+
+ // Compute suggestions
+ const rows = [];
+ (masterProducts || []).forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ if(!sku) return;
+ const sold = skuSold[sku] || 0;
+ const dailyAvg = sold / windowDays;
+ if(dailyAvg < minVel / 30) return; // skip very-low velocity
+ const cur = currentStock[sku] || 0;
+ const targetStock = dailyAvg * leadTime * safety;
+ const suggestedQty = Math.max(0, Math.ceil(targetStock - cur));
+ if(suggestedQty <= 0) return; // already enough stock
+ const daysTillStockout = dailyAvg > 0 ? Math.floor(cur / dailyAvg) : 999;
+ const cost = Number(p.cost_price || 0);
+ const estCost = suggestedQty * cost;
+ rows.push({
+ sku, name: p.name || '', brand: p.brand || '', category: p.category || '',
+ currentStock: cur,
+ sold, dailyAvg,
+ daysTillStockout,
+ suggestedQty,
+ cost,
+ estCost,
+ isOutOfStock: cur <= 0,
+ isUrgent: daysTillStockout < 7
+ });
+ });
+
+ window.__rsAllRows = rows;
+ window.__rsApplyFilter();
+ } catch(e) {
+ wrap.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__rsApplyFilter = function() {
+ const wrap = document.getElementById('rsTableWrap');
+ if(!wrap) return;
+ const search = (document.getElementById('rsSearchInput').value || '').toUpperCase().trim();
+ const sortBy = document.getElementById('rsSortBy').value || 'urgency';
+ let rows = window.__rsAllRows.slice();
+ if(search) rows = rows.filter(r => r.sku.includes(search) || r.brand.toUpperCase().includes(search) || r.name.toUpperCase().includes(search));
+ // Sort
+ if(sortBy === 'urgency') rows.sort((a, b) => a.daysTillStockout - b.daysTillStockout);
+ else if(sortBy === 'qty') rows.sort((a, b) => b.suggestedQty - a.suggestedQty);
+ else if(sortBy === 'velocity') rows.sort((a, b) => b.dailyAvg - a.dailyAvg);
+ else if(sortBy === 'cost') rows.sort((a, b) => b.estCost - a.estCost);
+
+ // KPI
+ const urgentCount = rows.filter(r => r.isUrgent).length;
+ const oosCount = rows.filter(r => r.isOutOfStock).length;
+ const totalCost = rows.reduce((s, r) => s + r.estCost, 0);
+ document.getElementById('rsTotalSku').textContent = rows.length;
+ document.getElementById('rsUrgent').textContent = urgentCount;
+ document.getElementById('rsOutOfStock').textContent = oosCount;
+ document.getElementById('rsEstCost').textContent = 'RM ' + totalCost.toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+ // Sidebar badge
+ const badge = document.getElementById('reorderBadge');
+ if(badge) {
+ if(urgentCount > 0) { badge.style.display = ''; badge.textContent = urgentCount; }
+ else badge.style.display = 'none';
+ }
+
+ if(!rows.length) {
+ wrap.innerHTML = '<p style="color:#10B981; padding:30px; text-align:center;">Tiada SKU perlu reorder pada settings ni — bagus.</p>';
+ return;
+ }
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ wrap.innerHTML = `<table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th>SKU</th>
+ <th>Brand / Nama</th>
+ <th style="text-align:right;">Stok</th>
+ <th style="text-align:right;">Sold (${parseInt(document.getElementById('rsWindow').value || '30', 10)}d)</th>
+ <th style="text-align:right;">Avg/Hari</th>
+ <th style="text-align:right;">Risk</th>
+ <th style="text-align:right;">Reorder Qty</th>
+ <th style="text-align:right;">Anggaran Cost</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${rows.slice(0, 100).map(r => {
+ const riskColor = r.isOutOfStock ? '#991B1B' : (r.isUrgent ? '#EF4444' : (r.daysTillStockout < 14 ? '#D97706' : '#10B981'));
+ const riskLabel = r.isOutOfStock ? 'OUT' : (r.daysTillStockout >= 999 ? '—' : r.daysTillStockout + 'd');
+ const rowBg = r.isOutOfStock ? 'background:#FEE2E2;' : (r.isUrgent ? 'background:#FEF2F2;' : '');
+ return `<tr style="${rowBg}">
+ <td><strong>${escAttr(r.sku)}</strong></td>
+ <td style="font-size:12px;"><strong>${escAttr(r.brand)}</strong><br><span style="color:#6B7280;">${escAttr(r.name).slice(0, 60)}</span></td>
+ <td style="text-align:right; color:${r.isOutOfStock ? '#991B1B' : '#374151'}; font-weight:${r.isOutOfStock ? 700 : 400};">${r.currentStock}</td>
+ <td style="text-align:right;">${r.sold}</td>
+ <td style="text-align:right;">${r.dailyAvg.toFixed(2)}</td>
+ <td style="text-align:right; color:${riskColor}; font-weight:700;">${riskLabel}</td>
+ <td style="text-align:right; font-weight:700; color:#1F2937;">${r.suggestedQty}</td>
+ <td style="text-align:right;">${fmtRM(r.estCost)}</td>
+ </tr>`;
+ }).join('')}
+ </tbody>
+ </table>
+ ${rows.length > 100 ? `<p style="font-size:11px; color:#9CA3AF; text-align:center; margin-top:10px;">Papar 100 pertama dari ${rows.length} rows. Narrow filter untuk lihat selebihnya.</p>` : ''}`;
+};
+
 // p1_113 — Simplified Sales template (Ariff CMP006)
 // Strip complex tables. Big-number style: 1 main KPI + commission + manual notes + roadmap.
 window.__rpRenderSalesSimpleTemplate = function(body, u, range) {
@@ -2445,7 +2596,7 @@ window.__tabToRail = function(tab) {
  if(tab === 'roadmap') return 'roadmap';
  if(tab.startsWith('sales_')) return 'sales';
  if(tab.startsWith('customers_')) return 'customers';
- if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_pricehistory') return 'inv';
+ if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_pricehistory' || tab === 'inv_reorder') return 'inv';
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
@@ -16720,6 +16871,7 @@ window.I18N = {
  sb_floor_price: { bm: 'Floor Price', en: 'Floor Price' },
  sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
  sb_price_history: { bm: 'Sejarah Harga', en: 'Price History' },
+ sb_reorder: { bm: 'Reorder Suggest', en: 'Reorder Suggest' },
  sb_all_customers: { bm: 'Semua Pelanggan', en: 'All Customers' },
  sb_b2b_accounts: { bm: 'Akaun B2B', en: 'B2B Accounts' },
  sb_cuti: { bm: 'Cuti', en: 'Leave' },

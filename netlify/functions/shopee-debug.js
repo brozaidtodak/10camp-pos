@@ -76,7 +76,32 @@ exports.handler = async () => {
                 A: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signA}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`,
                 B: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signB}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`,
                 C: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signC}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`
-            }
+            },
+            server_side_test: await (async () => {
+                const tries = { A: signA, B: signB, C: signC };
+                const out = {};
+                for (const [name, s] of Object.entries(tries)) {
+                    if (!s) { out[name] = { skipped: 'no_sign' }; continue; }
+                    const url = `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${s}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`;
+                    try {
+                        const r = await fetch(url, { method: 'GET', redirect: 'manual' });
+                        const text = await r.text().catch(() => '');
+                        let parsed = null;
+                        try { parsed = JSON.parse(text); } catch(e) {}
+                        out[name] = {
+                            status: r.status,
+                            content_type: r.headers.get('content-type') || '',
+                            location: r.headers.get('location') || '',
+                            body_snippet: text.slice(0, 300),
+                            parsed_error: parsed?.error || null,
+                            parsed_message: parsed?.message || null
+                        };
+                    } catch(e) {
+                        out[name] = { fetch_error: String(e).slice(0, 200) };
+                    }
+                }
+                return out;
+            })()
         }, null, 2)
     };
 };

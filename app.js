@@ -1481,6 +1481,60 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
+// p1_117 — Margin Watcher: detect SKU sold below floor price dalam 24h terakhir
+window.checkMarginWatcher = function() {
+ const banner = document.getElementById('marginWatcherBanner');
+ const msg = document.getElementById('mwMessage');
+ if(!banner || !msg) return;
+ // Respect dismissed state for current day
+ const dismissedKey = 'mwDismissed_' + new Date().toISOString().slice(0, 10);
+ if(localStorage.getItem(dismissedKey)) { banner.style.display = 'none'; return; }
+ // Only show to mgmt / Bos
+ const u = window.currentUser || {};
+ const isMgmtOrBoss = u.role === 'mgmt' || (typeof window.isBoss === 'function' && window.isBoss(u));
+ if(!isMgmtOrBoss) { banner.style.display = 'none'; return; }
+ try {
+ if(typeof masterProducts === 'undefined' || typeof salesHistory === 'undefined') return;
+ // Build floor map
+ const floorMap = {};
+ masterProducts.forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ const fp = Number(p.floor_price || 0);
+ if(sku && fp > 0) floorMap[sku] = fp;
+ });
+ // Scan recent sales (24h)
+ const cutoffMs = Date.now() - 24 * 3600 * 1000;
+ const violators = new Set();
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < cutoffMs) return;
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ const sold = Number(it.price || 0);
+ if(sku && floorMap[sku] && sold > 0 && sold < floorMap[sku]) violators.add(sku);
+ });
+ });
+ if(violators.size === 0) { banner.style.display = 'none'; return; }
+ msg.innerHTML = `Margin Watcher: <strong>${violators.size}</strong> SKU dijual bawah floor price dalam 24 jam terakhir.`;
+ banner.style.display = '';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) { /* silent */ }
+};
+window.__mwDismiss = function() {
+ const dismissedKey = 'mwDismissed_' + new Date().toISOString().slice(0, 10);
+ localStorage.setItem(dismissedKey, '1');
+ const banner = document.getElementById('marginWatcherBanner');
+ if(banner) banner.style.display = 'none';
+};
+
+// Hook to auto-check after login + every 5 min while session active
+(function(){
+ const checkPeriodically = () => { if(typeof window.checkMarginWatcher === 'function') window.checkMarginWatcher(); };
+ setTimeout(checkPeriodically, 2000); // initial after boot
+ setInterval(checkPeriodically, 5 * 60 * 1000); // every 5 min
+})();
+
 // p1_116 — Channel Profitability dashboard
 window.__cpPeriod = 'mtd';
 window.__cpDefaultFees = {

@@ -1564,7 +1564,7 @@ window.__fpSave = async function() {
  };
  try {
  if(typeof db !== 'undefined' && db && db.from) {
- const { error } = await db.from('masterProducts').update(payload).eq('sku', sku);
+ const { error } = await db.from('products_master').update(payload).eq('sku', sku);
  if(error) throw error;
  // Update in-memory
  const idx = masterProducts.findIndex(p => (p.sku || '').toUpperCase() === sku);

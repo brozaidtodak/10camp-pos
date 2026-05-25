@@ -696,6 +696,8 @@ window.renderMyReport = function() {
  window.__rpRenderSalesTemplate(body, u, range);
  } else if(tpl === 'inventory') {
  window.__rpRenderInventoryTemplate(body, u, range);
+ } else if(tpl === 'bizdev') {
+ window.__rpRenderBizdevTemplate(body, u, range);
  } else if(tpl) {
  // Other templates — placeholder coming soon
  body.innerHTML = '<div class="rp-section"><div class="rp-empty">Template untuk role ni akan datang Phase 1B.</div></div>';
@@ -1301,6 +1303,182 @@ window.__rpRenderInventoryTemplate = function(body, u, range) {
 
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// p1_108 — BizDev template renderer (Farhan CMP010)
+// Mix of auto-data (B2B from existing tables) + structured manual input form.
+window.__rpRenderBizdevTemplate = function(body, u, range) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+
+ // ---- 1. Auto: New B2B accounts opened in period ----
+ let newB2b = 0;
+ try {
+ if(typeof customersData !== 'undefined' && Array.isArray(customersData)) {
+ customersData.forEach(c => {
+ if(!(c.is_b2b || (c.tags && /b2b/i.test(String(c.tags))))) return;
+ const ct = new Date(c.created_at || 0).getTime();
+ if(ct >= startMs && ct <= endMs) newB2b++;
+ });
+ }
+ } catch(e){}
+
+ // ---- 2. Auto: B2B deals closed (sales attributable to B2B customers) ----
+ let b2bDeals = 0, b2bRevenue = 0;
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ const b2bPhones = new Set();
+ if(typeof customersData !== 'undefined') {
+ customersData.forEach(c => {
+ if(c.is_b2b || (c.tags && /b2b/i.test(String(c.tags)))) {
+ if(c.phone) b2bPhones.add(c.phone);
+ }
+ });
+ }
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < startMs || t > endMs) return;
+ const isB2B = (sale.channel || '').toLowerCase().includes('b2b') ||
+ (sale.customer_phone && b2bPhones.has(sale.customer_phone));
+ if(isB2B) {
+ b2bDeals++;
+ b2bRevenue += Number(sale.total || sale.amount || 0);
+ }
+ });
+ }
+ } catch(e){}
+
+ // ---- 3. Manual input form data (localStorage) ----
+ const bizKey = 'bizdevData_' + u.staff_id + '_' + (window.__rpPeriod || 'mtd');
+ let bizData = {};
+ try { bizData = JSON.parse(localStorage.getItem(bizKey) || '{}'); } catch(e){}
+
+ // ---- 4. Own claims ----
+ let claimsTotal = 0, claimsPending = 0;
+ try {
+ if(typeof _hrcLoadClaims === 'function') {
+ const claims = _hrcLoadClaims();
+ claims.forEach(c => {
+ if(c.staff_id !== u.staff_id && c.staffId !== u.staff_id) return;
+ const ct = new Date(c.created_at || c.submitted_at || 0).getTime();
+ if(ct < startMs || ct > endMs) return;
+ if(c.status === 'pending') claimsPending++;
+ else if(c.status === 'approved') claimsTotal += Number(c.amount || 0);
+ });
+ }
+ } catch(e){}
+
+ const manualKey = 'reportManual_' + u.staff_id + '_' + (window.__rpPeriod || 'mtd');
+ const manualText = localStorage.getItem(manualKey) || '';
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+ body.innerHTML = `
+ <div class="rp-section" style="border-left:4px solid #8B5CF6; background:rgba(139,92,246,.04);">
+ <h3 class="rp-section__title" style="color:#6D28D9;"><i data-lucide="handshake" style="width:14px;height:14px;"></i> Business Development</h3>
+ <p class="rp-section__help" style="margin:0;">Bahagian atas auto-data dari B2B customers + sales. Bahagian bawah form manual untuk track pipeline + outreach yang POS tak ada visibility.</p>
+ </div>
+
+ <!-- 1. Auto KPI from B2B data -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="target" style="width:14px;height:14px;"></i> Auto Data — B2B</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="user-plus" style="width:12px;height:12px;"></i> Akaun Baharu</div>
+ <div class="rp-kpi__val">${newB2b}</div>
+ <div class="rp-kpi__sub">B2B customers opened</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> Deals Closed</div>
+ <div class="rp-kpi__val">${b2bDeals}</div>
+ <div class="rp-kpi__sub">${fmtRM(b2bRevenue)} jumlah</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 2. Manual input form -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="clipboard-list" style="width:14px;height:14px;"></i> Pipeline Manual (Self-Report)</h3>
+ <p class="rp-section__help">POS tak ada visibility ke leads/pipeline kau — isi sendiri. Save bila habis. Bos baca dalam Posted Reports inbox.</p>
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:10px;">
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">LEADS DIHUBUNGI (cold/warm)</label>
+ <input type="number" data-biz-field="leads_contacted" class="rp-comm-input" style="width:100%; text-align:left;" min="0" value="${escAttr(bizData.leads_contacted || '')}" placeholder="0">
+ </div>
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">FOLLOWUPS BUAT</label>
+ <input type="number" data-biz-field="followups" class="rp-comm-input" style="width:100%; text-align:left;" min="0" value="${escAttr(bizData.followups || '')}" placeholder="0">
+ </div>
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">PIPELINE VALUE (RM)</label>
+ <input type="number" data-biz-field="pipeline_rm" class="rp-comm-input" style="width:100%; text-align:left;" min="0" step="100" value="${escAttr(bizData.pipeline_rm || '')}" placeholder="0">
+ </div>
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">MEETING / DEMO</label>
+ <input type="number" data-biz-field="meetings" class="rp-comm-input" style="width:100%; text-align:left;" min="0" value="${escAttr(bizData.meetings || '')}" placeholder="0">
+ </div>
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">PARTNERSHIP OUTREACH</label>
+ <input type="number" data-biz-field="partnerships" class="rp-comm-input" style="width:100%; text-align:left;" min="0" value="${escAttr(bizData.partnerships || '')}" placeholder="0">
+ </div>
+ <div>
+ <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">EVENT / EXPO HADIR</label>
+ <input type="number" data-biz-field="events" class="rp-comm-input" style="width:100%; text-align:left;" min="0" value="${escAttr(bizData.events || '')}" placeholder="0">
+ </div>
+ </div>
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+ <span class="rp-manual-status" id="rpBizStatus" style="font-size:11px; color:var(--text-muted);"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveBizdev('${escAttr(bizKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> Simpan Pipeline Data</button>
+ </div>
+ </div>
+
+ <!-- 3. My Claims -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="receipt" style="width:14px;height:14px;"></i> Tuntutan Saya</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Diluluskan</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${fmtRM(claimsTotal)}</div>
+ <div class="rp-kpi__sub">bulan ni (claim parking/petrol/etc)</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Menunggu</div>
+ <div class="rp-kpi__val" style="color:${claimsPending > 0 ? '#D97706' : '#9CA3AF'};">${claimsPending}</div>
+ <div class="rp-kpi__sub">claims pending</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 4. Narrative notes -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> Achievements + Plan Minggu Hadapan</h3>
+ <p class="rp-section__help">Tulis narratif: deals yang close, halangan, plan minggu depan. Bos baca dalam Posted Reports inbox.</p>
+ <textarea id="rpManualText" class="rp-manual-input" placeholder="Contoh: Close deal RM 12k dengan Camper Outdoor Trading; followup pending 3 corporate accounts; weekend hadir Expo Outdoor Damansara — dapat 8 leads warm" style="min-height:140px;">${escAttr(manualText)}</textarea>
+ <div class="rp-manual-foot">
+ <span class="rp-manual-status" id="rpManualStatus"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>
+ </div>
+ </div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// Save BizDev pipeline form data
+window.__rpSaveBizdev = function(bizKey) {
+ const data = {};
+ document.querySelectorAll('[data-biz-field]').forEach(input => {
+ const field = input.getAttribute('data-biz-field');
+ const val = input.value;
+ if(val !== '') data[field] = Number(val) || 0;
+ });
+ data.__updated_at = new Date().toISOString();
+ localStorage.setItem(bizKey, JSON.stringify(data));
+ const status = document.getElementById('rpBizStatus');
+ if(status) { status.textContent = 'Pipeline data disimpan ' + new Date().toLocaleTimeString('en-MY'); setTimeout(() => { status.textContent = ''; }, 2500); }
+ if(typeof showToast === 'function') showToast('Pipeline data saved.', 'success');
 };
 
 // Commission calc helpers

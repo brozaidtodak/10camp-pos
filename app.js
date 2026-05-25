@@ -694,6 +694,8 @@ window.renderMyReport = function() {
  window.__rpRenderAdminTemplate(body, u, range);
  } else if(tpl === 'sales') {
  window.__rpRenderSalesTemplate(body, u, range);
+ } else if(tpl === 'inventory') {
+ window.__rpRenderInventoryTemplate(body, u, range);
  } else if(tpl) {
  // Other templates — placeholder coming soon
  body.innerHTML = '<div class="rp-section"><div class="rp-empty">Template untuk role ni akan datang Phase 1B.</div></div>';
@@ -1103,6 +1105,193 @@ window.__rpRenderSalesTemplate = function(body, u, range) {
  <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> <span data-i18n="rp_manual_title">Catatan Manual</span></h3>
  <p class="rp-section__help" data-i18n="rp_manual_help">Tulis pencapaian tambahan, cabaran, rancangan minggu hadapan.</p>
  <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Close deal B2B RM 5k dengan Camper Outdoor Trading, follow-up 2 customer VIP, dll" data-i18n-placeholder="rp_manual_ph">${escAttr(manualText)}</textarea>
+ <div class="rp-manual-foot">
+ <span class="rp-manual-status" id="rpManualStatus"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>
+ </div>
+ </div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+// p1_107 — Inventory template renderer (Kael CMP011, Fahmi CMP009)
+window.__rpRenderInventoryTemplate = function(body, u, range) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+
+ // ---- 1. Fulfilment metrics (team-wide, since inventory work shared) ----
+ let packed = 0, shipped = 0, packMinutesSum = 0, packMinutesCount = 0;
+ const skuTally = {};
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const meta = sale.metadata || {};
+ const packedAt = meta.ff_packed_at;
+ const shippedAt = meta.ff_shipped_at;
+ if(packedAt) {
+ const t = new Date(packedAt).getTime();
+ if(t >= startMs && t <= endMs) {
+ packed++;
+ // pack time = packed_at - created_at
+ const created = new Date(sale.created_at || sale.timestamp || 0).getTime();
+ if(created > 0 && t > created) {
+ packMinutesSum += (t - created) / 60000;
+ packMinutesCount++;
+ }
+ // Tally items packed
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ if(!sku) return;
+ if(!skuTally[sku]) skuTally[sku] = { sku, name: it.name || sku, qty: 0 };
+ skuTally[sku].qty += Number(it.qty || 0);
+ });
+ }
+ }
+ if(shippedAt) {
+ const t = new Date(shippedAt).getTime();
+ if(t >= startMs && t <= endMs) shipped++;
+ }
+ });
+ }
+ } catch(e){}
+ const avgPackMin = packMinutesCount > 0 ? packMinutesSum / packMinutesCount : 0;
+ const topSkus = Object.values(skuTally).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+ // ---- 2. Pending fulfilment (current backlog) ----
+ let pendingPack = 0;
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ pendingPack = salesHistory.filter(s => {
+ const meta = s.metadata || {};
+ if(meta.ff_packed_at) return false; // already packed
+ // Show only online/marketplace orders that need packing
+ const ch = (s.channel || '').toLowerCase();
+ return ch.includes('tiktok') || ch.includes('shopee') || ch.includes('easystore') || ch.includes('web');
+ }).length;
+ }
+ } catch(e){}
+
+ // ---- 3. Own claims ----
+ let claimsTotal = 0, claimsPending = 0;
+ try {
+ if(typeof _hrcLoadClaims === 'function') {
+ const claims = _hrcLoadClaims();
+ claims.forEach(c => {
+ if(c.staff_id !== u.staff_id && c.staffId !== u.staff_id) return;
+ const ct = new Date(c.created_at || c.submitted_at || 0).getTime();
+ if(ct < startMs || ct > endMs) return;
+ if(c.status === 'pending') claimsPending++;
+ else if(c.status === 'approved') claimsTotal += Number(c.amount || 0);
+ });
+ }
+ } catch(e){}
+
+ // ---- 4. Manual notes ----
+ const manualKey = 'reportManual_' + u.staff_id + '_' + (window.__rpPeriod || 'mtd');
+ const manualText = localStorage.getItem(manualKey) || '';
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+ // ---- Role tag (Chief Inventory vs Inventory Assistance) ----
+ const isChief = (u.dept || '').toLowerCase().includes('chief');
+ const roleBadge = isChief
+ ? '<span style="display:inline-block; padding:2px 8px; background:#FEF3C7; color:#92400E; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">CHIEF</span>'
+ : '<span style="display:inline-block; padding:2px 8px; background:#E0F2FE; color:#075985; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">ASSISTANT</span>';
+
+ body.innerHTML = `
+ <div class="rp-section" style="border-left:4px solid #3B82F6; background:rgba(59,130,246,.04);">
+ <h3 class="rp-section__title" style="color:#1E40AF;"><i data-lucide="warehouse" style="width:14px;height:14px;"></i> Pasukan Inventory ${roleBadge}</h3>
+ <p class="rp-section__help" style="margin:0;">KPI bawah ni adalah <strong>team-wide</strong> (Kael + Fahmi shared work). Individual contribution diukur via Roadmap section + Catatan Manual.</p>
+ </div>
+
+ <!-- 1. Fulfilment KPI Grid -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="package-check" style="width:14px;height:14px;"></i> Prestasi Fulfilment</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="package" style="width:12px;height:12px;"></i> Dipack</div>
+ <div class="rp-kpi__val">${packed}</div>
+ <div class="rp-kpi__sub">pesanan diselesaikan</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="truck" style="width:12px;height:12px;"></i> Dihantar</div>
+ <div class="rp-kpi__val">${shipped}</div>
+ <div class="rp-kpi__sub">tracking dikemaskini</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl"><i data-lucide="timer" style="width:12px;height:12px;"></i> Purata Masa Pack</div>
+ <div class="rp-kpi__val">${avgPackMin.toFixed(0)}<span style="font-size:14px;">min</span></div>
+ <div class="rp-kpi__sub">dari order → pack</div>
+ </div>
+ <div class="rp-kpi" style="${pendingPack > 5 ? 'border:2px solid #D97706;' : ''}">
+ <div class="rp-kpi__lbl"><i data-lucide="clock" style="width:12px;height:12px;"></i> Backlog</div>
+ <div class="rp-kpi__val" style="color:${pendingPack > 5 ? '#D97706' : '#10B981'};">${pendingPack}</div>
+ <div class="rp-kpi__sub">pesanan belum pack (current)</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 2. Top SKUs moved -->
+ ${topSkus.length > 0 ? `
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="boxes" style="width:14px;height:14px;"></i> Top 5 SKU Bergerak (Dipack)</h3>
+ <table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th>SKU</th>
+ <th>Nama Produk</th>
+ <th style="text-align:right;">Unit Keluar</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${topSkus.map(s => `
+ <tr>
+ <td><strong>${escAttr(s.sku)}</strong></td>
+ <td style="font-size:12px; color:#6B7280;">${escAttr(s.name)}</td>
+ <td style="text-align:right;">${s.qty}</td>
+ </tr>`).join('')}
+ </tbody>
+ </table>
+ </div>` : ''}
+
+ <!-- 3. Tugas tambahan (placeholder Phase 2) -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="list-checks" style="width:14px;height:14px;"></i> Tugas Tambahan Phase 2</h3>
+ <p class="rp-section__help">KPI tambahan yang akan masuk Phase 2 bila data source verified:</p>
+ <ul style="margin:6px 0 0 18px; font-size:12.5px; color:#6B7280; line-height:1.7;">
+ <li>PO diterima (purchase_orders table)</li>
+ <li>Stock take accuracy % (stock_take_sessions)</li>
+ <li>Bin location updates (manual tracking)</li>
+ <li>Damage/returns handling count</li>
+ </ul>
+ </div>
+
+ <!-- 4. My Claims -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="receipt" style="width:14px;height:14px;"></i> Tuntutan Saya</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Diluluskan</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${fmtRM(claimsTotal)}</div>
+ <div class="rp-kpi__sub">bulan ni</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Menunggu</div>
+ <div class="rp-kpi__val" style="color:${claimsPending > 0 ? '#D97706' : '#9CA3AF'};">${claimsPending}</div>
+ <div class="rp-kpi__sub">claims pending</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 5. Manual notes -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> <span data-i18n="rp_manual_title">Catatan Manual</span></h3>
+ <p class="rp-section__help">Tulis pencapaian individu, masalah stock, cadangan layout warehouse, dll. Sebab KPI atas team-wide, sini tempat individual contribution.</p>
+ <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Reorganize shelf brand BLACKDOG, settle 3 damaged item return, terima PO NATUREHIKE batch baharu, dll">${escAttr(manualText)}</textarea>
  <div class="rp-manual-foot">
  <span class="rp-manual-status" id="rpManualStatus"></span>
  <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> <span data-i18n="rp_manual_save">Simpan Catatan</span></button>

@@ -52,3 +52,9 @@
   to = "/.netlify/functions/shopee-oauth"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/shopee-debug"
+  to = "/.netlify/functions/shopee-debug"
+  status = 200
+  force = true

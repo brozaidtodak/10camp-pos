@@ -1466,6 +1466,92 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
+// p1_111 — Price History Report
+window.__phRows = [];
+
+window.renderPriceHistory = async function() {
+ const wrap = document.getElementById('phTableWrap');
+ if(!wrap) return;
+ wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>';
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const period = document.getElementById('phPeriod').value || '30d';
+ let sinceDate = null;
+ const now = new Date();
+ if(period === '7d') sinceDate = new Date(now.getTime() - 7 * 86400000);
+ else if(period === '30d') sinceDate = new Date(now.getTime() - 30 * 86400000);
+ else if(period === '90d') sinceDate = new Date(now.getTime() - 90 * 86400000);
+ else if(period === 'ytd') sinceDate = new Date(now.getFullYear(), 0, 1);
+ // else 'all' → null
+ let q = db.from('product_price_history').select('*').order('changed_at', { ascending: false }).limit(500);
+ if(sinceDate) q = q.gte('changed_at', sinceDate.toISOString());
+ const { data, error } = await q;
+ if(error) throw error;
+ window.__phRows = data || [];
+ window.__phApplyFilter();
+ } catch(e) {
+ wrap.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__phApplyFilter = function() {
+ const search = (document.getElementById('phSearchSku').value || '').toUpperCase().trim();
+ const typeFilter = document.getElementById('phChangeType').value || 'all';
+ let rows = window.__phRows.slice();
+ if(search) rows = rows.filter(r => (r.sku || '').toUpperCase().includes(search) || (r.product_name || '').toUpperCase().includes(search));
+ if(typeFilter === 'increase') rows = rows.filter(r => Number(r.delta || 0) > 0);
+ if(typeFilter === 'decrease') rows = rows.filter(r => Number(r.delta || 0) < 0);
+
+ // KPI
+ const total = rows.length;
+ const inc = rows.filter(r => Number(r.delta || 0) > 0).length;
+ const dec = rows.filter(r => Number(r.delta || 0) < 0).length;
+ const avgDelta = total > 0
+ ? (rows.reduce((s, r) => s + (Number(r.delta_pct) || 0), 0) / total).toFixed(1)
+ : '0.0';
+ document.getElementById('phTotalChanges').textContent = total;
+ document.getElementById('phIncreases').textContent = inc;
+ document.getElementById('phDecreases').textContent = dec;
+ document.getElementById('phAvgDelta').textContent = avgDelta + '%';
+
+ const wrap = document.getElementById('phTableWrap');
+ if(!rows.length) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Tiada perubahan harga padan filter.</p>'; return; }
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => (n == null || isNaN(Number(n))) ? '—' : 'RM ' + Number(n).toFixed(2);
+ wrap.innerHTML = `<table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th>Tarikh</th>
+ <th>SKU</th>
+ <th>Nama</th>
+ <th style="text-align:right;">Harga Lama</th>
+ <th style="text-align:right;">Harga Baru</th>
+ <th style="text-align:right;">Δ RM</th>
+ <th style="text-align:right;">Δ %</th>
+ <th>Oleh</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${rows.slice(0, 100).map(r => {
+ const delta = Number(r.delta || 0);
+ const deltaColor = delta > 0 ? '#EF4444' : (delta < 0 ? '#10B981' : '#6B7280');
+ const deltaSign = delta > 0 ? '+' : '';
+ return `<tr>
+ <td style="font-size:11px; color:#6B7280;">${new Date(r.changed_at).toLocaleString('en-MY', { dateStyle: 'short', timeStyle: 'short' })}</td>
+ <td><strong>${escAttr(r.sku)}</strong></td>
+ <td style="font-size:12px;">${escAttr(r.product_name || '')}</td>
+ <td style="text-align:right;">${fmtRM(r.old_price)}</td>
+ <td style="text-align:right;"><strong>${fmtRM(r.new_price)}</strong></td>
+ <td style="text-align:right; color:${deltaColor}; font-weight:700;">${deltaSign}${fmtRM(delta).replace('RM ','')}</td>
+ <td style="text-align:right; color:${deltaColor}; font-weight:700;">${deltaSign}${(r.delta_pct == null) ? '—' : Number(r.delta_pct).toFixed(1) + '%'}</td>
+ <td style="font-size:11px; color:#6B7280;">${escAttr(r.changed_by || '—')}</td>
+ </tr>`;
+ }).join('')}
+ </tbody>
+ </table>
+ ${rows.length > 100 ? `<p style="font-size:11px; color:#9CA3AF; text-align:center; margin-top:10px;">Papar 100 pertama dari ${rows.length} rows. Narrow filter untuk lihat selebihnya.</p>` : ''}`;
+};
+
 // p1_110 — Stock Check Reports workflow (Kael→Zack→Bos)
 window.__scFilter = 'all';
 window.__scReports = [];
@@ -1844,7 +1930,7 @@ window.__tabToRail = function(tab) {
  if(tab === 'roadmap') return 'roadmap';
  if(tab.startsWith('sales_')) return 'sales';
  if(tab.startsWith('customers_')) return 'customers';
- if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck') return 'inv';
+ if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_pricehistory') return 'inv';
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
@@ -16118,6 +16204,7 @@ window.I18N = {
  sb_barcode_labels: { bm: 'Label Barcode', en: 'Barcode Labels' },
  sb_floor_price: { bm: 'Floor Price', en: 'Floor Price' },
  sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
+ sb_price_history: { bm: 'Sejarah Harga', en: 'Price History' },
  sb_all_customers: { bm: 'Semua Pelanggan', en: 'All Customers' },
  sb_b2b_accounts: { bm: 'Akaun B2B', en: 'B2B Accounts' },
  sb_cuti: { bm: 'Cuti', en: 'Leave' },

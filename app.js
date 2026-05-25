@@ -2213,8 +2213,8 @@ window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
-// Save BizDev pipeline form data
-window.__rpSaveBizdev = function(bizKey) {
+// Save BizDev pipeline form data — localStorage + Supabase sync
+window.__rpSaveBizdev = async function(bizKey) {
  const data = {};
  document.querySelectorAll('[data-biz-field]').forEach(input => {
  const field = input.getAttribute('data-biz-field');
@@ -2224,7 +2224,27 @@ window.__rpSaveBizdev = function(bizKey) {
  data.__updated_at = new Date().toISOString();
  localStorage.setItem(bizKey, JSON.stringify(data));
  const status = document.getElementById('rpBizStatus');
- if(status) { status.textContent = 'Pipeline data disimpan ' + new Date().toLocaleTimeString('en-MY'); setTimeout(() => { status.textContent = ''; }, 2500); }
+ if(status) status.textContent = 'Pipeline data disimpan ' + new Date().toLocaleTimeString('en-MY');
+
+ // p1_114 — sync to Supabase
+ try {
+ if(typeof db !== 'undefined' && db) {
+ const u = window.currentUser || {};
+ const parts = bizKey.split('_');
+ const period = parts[parts.length - 1];
+ await db.from('staff_report_submissions').upsert({
+ staff_id: u.staff_id || 'unknown',
+ staff_name: u.name || 'Unknown',
+ submission_type: 'bizdev_pipeline',
+ period_key: period,
+ payload: data,
+ submitted_at: new Date().toISOString(),
+ bos_read_at: null
+ }, { onConflict: 'staff_id,submission_type,period_key' });
+ }
+ } catch(e) { console.warn('bizdev sync failed:', e.message); }
+
+ if(status) setTimeout(() => { status.textContent = ''; }, 2500);
  if(typeof showToast === 'function') showToast('Pipeline data saved.', 'success');
 };
 
@@ -2247,35 +2267,174 @@ window.__rpSaveComm = function(staffId) {
  const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
  if(typeof showToast === 'function') showToast(T('rp_comm_saved','Komisen disimpan untuk approval Bos.'), 'success');
 };
-// Manual notes save
-window.__rpSaveManual = function(manualKey) {
+// Manual notes save — localStorage + Supabase sync for Bos inbox
+window.__rpSaveManual = async function(manualKey) {
  const el = document.getElementById('rpManualText');
  if(!el) return;
  localStorage.setItem(manualKey, el.value);
  const status = document.getElementById('rpManualStatus');
  const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
- if(status) { status.textContent = T('rp_manual_saved','Catatan disimpan'); setTimeout(() => { status.textContent = ''; }, 2500); }
+ if(status) status.textContent = T('rp_manual_saved','Catatan disimpan');
+
+ // p1_114 — sync to Supabase for Bos inbox visibility
+ try {
+ if(typeof db !== 'undefined' && db) {
+ const u = window.currentUser || {};
+ // manualKey format: reportManual_<staff_id>_<period>
+ const parts = manualKey.split('_');
+ const period = parts[parts.length - 1];
+ await db.from('staff_report_submissions').upsert({
+ staff_id: u.staff_id || 'unknown',
+ staff_name: u.name || 'Unknown',
+ submission_type: 'manual_notes',
+ period_key: period,
+ payload: { text: el.value },
+ submitted_at: new Date().toISOString(),
+ bos_read_at: null
+ }, { onConflict: 'staff_id,submission_type,period_key' });
+ }
+ } catch(e) {
+ console.warn('staff_report_submissions sync failed:', e.message);
+ }
+
+ if(status) setTimeout(() => { status.textContent = ''; }, 2500);
 };
 
-// Team reports (Bos drill-down — Phase 1A placeholder)
-window.renderTeamReports = function() {
+// p1_114 — Bos Posted Reports inbox: list staff submissions, click to expand, mark read
+window.__teamFilter = 'all'; // 'all' | 'unread' | 'manual_notes' | 'bizdev_pipeline'
+
+window.renderTeamReports = async function() {
  const grid = document.getElementById('rpTeamGrid');
  if(!grid) return;
- const staffList = (typeof authUsers !== 'undefined' && Array.isArray(authUsers))
- ? authUsers.filter(s => s.staff_id !== 'TST001' && (!window.isBoss || !window.isBoss(s)))
- : [];
- grid.innerHTML = staffList.map(s => {
- const initials = (s.name||'').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
- return `<div class="rp-team-card" data-staff-id="${s.staff_id}">
- <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
- <span class="rp-staff-avatar" style="width:36px; height:36px; font-size:13px;">${initials}</span>
- <div class="rp-staff-info"><strong style="font-size:13.5px;">${s.name}</strong><span>${s.staff_id} · ${s.dept || s.role}</span></div>
+ grid.innerHTML = '<p style="color:#9CA3AF; padding:30px; text-align:center;">Memuatkan submissions…</p>';
+
+ // Replace placeholder banner
+ const ph = document.querySelector('#reportsTeamSection .rp-wrap p[data-i18n="rp_team_coming"]');
+ if(ph) ph.remove();
+
+ const filter = window.__teamFilter;
+ let rows = [];
+ try {
+ if(typeof db !== 'undefined' && db) {
+ let q = db.from('staff_report_submissions').select('*').order('submitted_at', { ascending: false }).limit(100);
+ if(filter === 'unread') q = q.is('bos_read_at', null);
+ else if(filter === 'manual_notes' || filter === 'bizdev_pipeline') q = q.eq('submission_type', filter);
+ const { data, error } = await q;
+ if(error) throw error;
+ rows = data || [];
+ }
+ } catch(e) {
+ grid.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ return;
+ }
+
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const tagBadge = (type) => {
+ const cfg = {
+ manual_notes: { bg:'#DBEAFE', fg:'#1E40AF', label:'Catatan' },
+ bizdev_pipeline: { bg:'#EDE9FE', fg:'#6D28D9', label:'BizDev Pipeline' },
+ commission_draft: { bg:'#D1FAE5', fg:'#065F46', label:'Komisen' }
+ }[type] || { bg:'#E5E7EB', fg:'#374151', label:type };
+ return `<span style="display:inline-block; padding:2px 8px; border-radius:50px; background:${cfg.bg}; color:${cfg.fg}; font-size:10px; font-weight:700;">${cfg.label}</span>`;
+ };
+
+ // Filter buttons
+ const filterBar = `
+ <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+ <button class="sy-btn ${filter === 'all' ? '' : 'secondary'}" onclick="window.__teamFilter='all'; window.renderTeamReports()">Semua</button>
+ <button class="sy-btn ${filter === 'unread' ? '' : 'secondary'}" onclick="window.__teamFilter='unread'; window.renderTeamReports()">Belum Dibaca</button>
+ <button class="sy-btn ${filter === 'manual_notes' ? '' : 'secondary'}" onclick="window.__teamFilter='manual_notes'; window.renderTeamReports()">Catatan</button>
+ <button class="sy-btn ${filter === 'bizdev_pipeline' ? '' : 'secondary'}" onclick="window.__teamFilter='bizdev_pipeline'; window.renderTeamReports()">BizDev Pipeline</button>
+ <button class="sy-btn secondary" style="margin-left:auto;" onclick="window.__teamMarkAllRead()"><i data-lucide="check-check" style="width:13px;height:13px;"></i> Mark Semua Read</button>
+ </div>`;
+
+ if(!rows.length) {
+ grid.innerHTML = filterBar + '<p style="color:#9CA3AF; padding:30px; text-align:center;">Tiada submission dengan filter ni.</p>';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ return;
+ }
+
+ grid.innerHTML = filterBar + rows.map(r => {
+ const unread = !r.bos_read_at;
+ const initials = (r.staff_name || '').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+ const payload = r.payload || {};
+ let preview = '';
+ if(r.submission_type === 'manual_notes') preview = (payload.text || '').slice(0, 200);
+ else if(r.submission_type === 'bizdev_pipeline') {
+ const parts = [];
+ if(payload.leads_contacted) parts.push(`${payload.leads_contacted} leads`);
+ if(payload.followups) parts.push(`${payload.followups} followups`);
+ if(payload.pipeline_rm) parts.push(`Pipeline RM ${Number(payload.pipeline_rm).toLocaleString()}`);
+ if(payload.meetings) parts.push(`${payload.meetings} meetings`);
+ if(payload.partnerships) parts.push(`${payload.partnerships} partnerships`);
+ if(payload.events) parts.push(`${payload.events} events`);
+ preview = parts.join(' · ') || '(no data)';
+ }
+ const ago = (() => {
+ const ms = Date.now() - new Date(r.submitted_at).getTime();
+ const min = Math.floor(ms / 60000);
+ if(min < 1) return 'baru tadi';
+ if(min < 60) return min + ' min lepas';
+ const hr = Math.floor(min / 60);
+ if(hr < 24) return hr + ' jam lepas';
+ return Math.floor(hr / 24) + ' hari lepas';
+ })();
+
+ return `<div class="rp-section" style="cursor:pointer; ${unread ? 'border-left:4px solid #D97706; background:rgba(254,243,199,.2);' : ''}" onclick="window.__teamOpenSubmission(${r.id})">
+ <div style="display:flex; align-items:flex-start; gap:12px;">
+ <span class="rp-staff-avatar" style="width:36px; height:36px; font-size:13px; flex-shrink:0;">${escAttr(initials)}</span>
+ <div style="flex:1; min-width:0;">
+ <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+ <div style="display:flex; align-items:center; gap:8px;">
+ <strong style="font-size:13.5px;">${escAttr(r.staff_name)}</strong>
+ ${tagBadge(r.submission_type)}
+ ${unread ? '<span style="background:#D97706; color:#FFF; padding:1px 7px; border-radius:50px; font-size:10px; font-weight:700;">BARU</span>' : ''}
  </div>
- <p style="font-size:11px; color:#9CA3AF; margin:6px 0 0;">Drill-down report coming Phase 1B.</p>
+ <span style="font-size:11px; color:#6B7280;">${ago} · ${r.period_key}</span>
+ </div>
+ <p style="font-size:12.5px; color:#374151; margin:0; line-height:1.5; white-space:pre-wrap;">${escAttr(preview)}${preview.length >= 200 ? '…' : ''}</p>
+ </div>
+ </div>
  </div>`;
  }).join('');
+
  if(window.lucide && lucide.createIcons) lucide.createIcons();
- if(typeof window.applyI18N === 'function') window.applyI18N();
+};
+
+window.__teamOpenSubmission = async function(id) {
+ // Mark as read + show full content via alert/modal-lite
+ try {
+ if(typeof db !== 'undefined' && db) {
+ const { data } = await db.from('staff_report_submissions').select('*').eq('id', id).single();
+ if(!data) return;
+ const payload = data.payload || {};
+ let body = '';
+ if(data.submission_type === 'manual_notes') body = payload.text || '(empty)';
+ else if(data.submission_type === 'bizdev_pipeline') {
+ body = Object.entries(payload).filter(([k]) => !k.startsWith('__')).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join('\n');
+ }
+ // Mark read
+ await db.from('staff_report_submissions').update({ bos_read_at: new Date().toISOString(), bos_action: 'acknowledged' }).eq('id', id);
+ // Show inline expanded — use prompt-like alert for now (Phase 2 boleh build modal)
+ alert(`${data.staff_name} · ${data.period_key} · ${data.submission_type}\n\n${body}`);
+ setTimeout(() => window.renderTeamReports(), 200);
+ }
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Error: ' + e.message, 'error');
+ }
+};
+
+window.__teamMarkAllRead = async function() {
+ if(!confirm('Mark semua submissions sebagai read?')) return;
+ try {
+ if(typeof db !== 'undefined' && db) {
+ await db.from('staff_report_submissions').update({ bos_read_at: new Date().toISOString(), bos_action: 'bulk_read' }).is('bos_read_at', null);
+ if(typeof showToast === 'function') showToast('Semua marked as read.', 'success');
+ setTimeout(() => window.renderTeamReports(), 200);
+ }
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Error: ' + e.message, 'error');
+ }
 };
 
 // Map data-tab → which rail it belongs to (used for auto-sync rail with current section)

@@ -1466,6 +1466,198 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
+// p1_110 — Stock Check Reports workflow (Kael→Zack→Bos)
+window.__scFilter = 'all';
+window.__scReports = [];
+window.__scActiveId = null;
+
+window.renderStockCheck = async function() {
+ const list = document.getElementById('stockCheckList');
+ if(!list) return;
+ list.innerHTML = '<p style="color:#9CA3AF; padding:40px; text-align:center;">Memuatkan…</p>';
+ try {
+ if(typeof db === 'undefined' || !db) { list.innerHTML = '<p style="color:#EF4444; padding:20px;">DB tak available.</p>'; return; }
+ const { data, error } = await db.from('stock_check_reports').select('*').order('submitted_at', { ascending: false }).limit(50);
+ if(error) throw error;
+ window.__scReports = data || [];
+ window.__scRenderList();
+ window.__scRefreshCounts();
+ } catch(e) {
+ list.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__scRenderList = function() {
+ const list = document.getElementById('stockCheckList');
+ if(!list) return;
+ const filter = window.__scFilter || 'all';
+ const rows = window.__scReports.filter(r => filter === 'all' || r.status === filter);
+ if(!rows.length) {
+ list.innerHTML = '<p style="color:#9CA3AF; padding:40px; text-align:center;">Tiada report dengan filter ni.</p>';
+ return;
+ }
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const u = window.currentUser || {};
+ const isBoss = typeof window.isBoss === 'function' && window.isBoss(u);
+ const isReviewer = u.staff_id === 'CMP005' || u.staff_id === 'CMP011' || isBoss; // Zack + Kael + Bos
+ const statusBadge = (s) => {
+ const cfg = {
+ submitted: { bg:'#FEF3C7', fg:'#92400E', label:'Menunggu Review' },
+ reviewed: { bg:'#DBEAFE', fg:'#1E40AF', label:'Direview · Pending Bos' },
+ approved: { bg:'#D1FAE5', fg:'#065F46', label:'Bos Acknowledged' },
+ rejected: { bg:'#FEE2E2', fg:'#991B1B', label:'Rejected' }
+ }[s] || { bg:'#E5E7EB', fg:'#374151', label:s };
+ return `<span style="display:inline-block; padding:2px 10px; border-radius:50px; background:${cfg.bg}; color:${cfg.fg}; font-size:10.5px; font-weight:700;">${cfg.label}</span>`;
+ };
+ list.innerHTML = rows.map(r => `
+ <div class="rp-section" style="cursor:${isReviewer ? 'pointer' : 'default'};" ${isReviewer ? `onclick="window.__scOpenReview(${r.id})"` : ''}>
+ <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
+ <div style="flex:1; min-width:200px;">
+ <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+ <strong style="font-size:14px;">${r.period_start} → ${r.period_end}</strong>
+ ${statusBadge(r.status)}
+ </div>
+ <p style="font-size:12px; color:#6B7280; margin:0 0 6px;">By <strong>${escAttr(r.submitted_by_name)}</strong> · ${new Date(r.submitted_at).toLocaleString('en-MY')}</p>
+ <div style="display:flex; gap:14px; font-size:12px; color:#374151;">
+ <span><i data-lucide="package" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.items_checked} checked</span>
+ <span style="${r.items_variance > 0 ? 'color:#D97706;' : ''}"><i data-lucide="alert-triangle" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.items_variance} variance</span>
+ <span style="${r.rm_variance < 0 ? 'color:#EF4444;' : ''}"><i data-lucide="dollar-sign" style="width:11px;height:11px;vertical-align:-1px;"></i> RM ${Number(r.rm_variance || 0).toFixed(2)}</span>
+ </div>
+ </div>
+ </div>
+ ${r.summary_text ? `<p style="margin:8px 0 0; padding:8px; background:#F9FAFB; border-radius:6px; font-size:12px; line-height:1.5; color:#374151; white-space:pre-wrap;">${escAttr(r.summary_text).slice(0, 300)}${r.summary_text.length > 300 ? '…' : ''}</p>` : ''}
+ ${r.review_notes && r.status !== 'submitted' ? `<div style="margin-top:8px; padding:8px 10px; background:#EFF6FF; border-left:3px solid #3B82F6; border-radius:4px; font-size:11.5px;"><strong>${escAttr(r.reviewer_name || 'Zack')}:</strong> ${escAttr(r.review_notes)}</div>` : ''}
+ ${isBoss && r.status === 'reviewed' ? `<div style="margin-top:10px; display:flex; gap:6px;"><button class="sy-btn fin-btn--gold" onclick="event.stopPropagation(); window.__scBosAck(${r.id})"><i data-lucide="check-circle" style="width:13px;height:13px;"></i> Acknowledge</button></div>` : ''}
+ </div>`).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.__scRefreshCounts = function() {
+ const pending = window.__scReports.filter(r => r.status === 'submitted').length;
+ const el = document.getElementById('scCountSubmitted');
+ if(el) el.textContent = pending;
+ // Sidebar badge (visible to Zack + Bos)
+ const u = window.currentUser || {};
+ const showBadge = u.staff_id === 'CMP005' || (typeof window.isBoss === 'function' && window.isBoss(u));
+ const badge = document.getElementById('stockCheckBadge');
+ if(badge) {
+ if(showBadge && pending > 0) { badge.style.display = ''; badge.textContent = pending; }
+ else badge.style.display = 'none';
+ }
+};
+
+window.__scSetFilter = function(s, btn) {
+ window.__scFilter = s;
+ document.querySelectorAll('[data-sc-status]').forEach(b => b.classList.toggle('sc-tab--active', b === btn));
+ window.__scRenderList();
+};
+
+window.__scOpenSubmit = function() {
+ const today = new Date();
+ const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+ document.getElementById('scPeriodStart').value = firstOfMonth.toISOString().slice(0, 10);
+ document.getElementById('scPeriodEnd').value = today.toISOString().slice(0, 10);
+ document.getElementById('scItemsChecked').value = '0';
+ document.getElementById('scItemsVariance').value = '0';
+ document.getElementById('scRmVariance').value = '0';
+ document.getElementById('scSummary').value = '';
+ document.getElementById('scAttachment').value = '';
+ document.getElementById('scSubmitOverlay').style.display = 'flex';
+};
+window.__scCloseSubmit = function() {
+ document.getElementById('scSubmitOverlay').style.display = 'none';
+};
+window.__scSubmit = async function() {
+ const u = window.currentUser || {};
+ const payload = {
+ period_start: document.getElementById('scPeriodStart').value,
+ period_end: document.getElementById('scPeriodEnd').value,
+ submitted_by_id: u.staff_id || 'unknown',
+ submitted_by_name: u.name || 'Unknown',
+ items_checked: parseInt(document.getElementById('scItemsChecked').value || '0', 10),
+ items_variance: parseInt(document.getElementById('scItemsVariance').value || '0', 10),
+ rm_variance: parseFloat(document.getElementById('scRmVariance').value || '0'),
+ summary_text: document.getElementById('scSummary').value.trim(),
+ attachments: { url: document.getElementById('scAttachment').value.trim() || null },
+ status: 'submitted'
+ };
+ if(!payload.period_start || !payload.period_end || !payload.summary_text) {
+ if(typeof showToast === 'function') showToast('Period + Summary wajib.', 'warn');
+ return;
+ }
+ try {
+ const { error } = await db.from('stock_check_reports').insert([payload]);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast('Stock check report submitted. Tunggu Zack review.', 'success');
+ window.__scCloseSubmit();
+ setTimeout(() => window.renderStockCheck(), 200);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Submit failed: ' + e.message, 'error');
+ }
+};
+
+window.__scOpenReview = function(id) {
+ const r = window.__scReports.find(x => x.id === id);
+ if(!r) return;
+ // Only Zack/Bos can review submitted; Bos can ack reviewed
+ const u = window.currentUser || {};
+ const isReviewer = u.staff_id === 'CMP005' || (typeof window.isBoss === 'function' && window.isBoss(u));
+ if(!isReviewer || (r.status !== 'submitted' && r.status !== 'reviewed')) return;
+ window.__scActiveId = id;
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ document.getElementById('scReviewBody').innerHTML = `
+ <p style="margin:0 0 6px;"><strong>${r.period_start} → ${r.period_end}</strong> · oleh ${escAttr(r.submitted_by_name)}</p>
+ <p style="font-size:11px; color:#6B7280; margin:0 0 8px;">Submitted: ${new Date(r.submitted_at).toLocaleString('en-MY')}</p>
+ <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+ <div style="background:#FFF; padding:6px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:11px;"><strong>Checked:</strong> ${r.items_checked}</div>
+ <div style="background:#FFF; padding:6px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:11px;"><strong>Variance:</strong> ${r.items_variance}</div>
+ <div style="background:#FFF; padding:6px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:11px;"><strong>RM:</strong> ${Number(r.rm_variance || 0).toFixed(2)}</div>
+ </div>
+ <div style="background:#FFF; padding:8px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:12px; white-space:pre-wrap;">${escAttr(r.summary_text || '')}</div>
+ ${r.attachments && r.attachments.url ? `<p style="margin:6px 0 0; font-size:11px;"><a href="${escAttr(r.attachments.url)}" target="_blank" rel="noopener">📎 Attachment →</a></p>` : ''}`;
+ document.getElementById('scReviewNotes').value = r.review_notes || '';
+ document.getElementById('scReviewOverlay').style.display = 'flex';
+};
+window.__scCloseReview = function() {
+ document.getElementById('scReviewOverlay').style.display = 'none';
+ window.__scActiveId = null;
+};
+window.__scAction = async function(newStatus) {
+ if(!window.__scActiveId) return;
+ const u = window.currentUser || {};
+ const payload = {
+ status: newStatus,
+ reviewer_id: u.staff_id || 'unknown',
+ reviewer_name: u.name || 'Unknown',
+ reviewed_at: new Date().toISOString(),
+ review_notes: document.getElementById('scReviewNotes').value.trim()
+ };
+ try {
+ const { error } = await db.from('stock_check_reports').update(payload).eq('id', window.__scActiveId);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast(newStatus === 'reviewed' ? 'Forwarded to Bos.' : 'Report rejected.', 'success');
+ window.__scCloseReview();
+ setTimeout(() => window.renderStockCheck(), 200);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Action failed: ' + e.message, 'error');
+ }
+};
+
+window.__scBosAck = async function(id) {
+ try {
+ const { error } = await db.from('stock_check_reports').update({
+ status: 'approved',
+ bos_seen_at: new Date().toISOString(),
+ bos_action: 'acknowledged'
+ }).eq('id', id);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast('Acknowledged.', 'success');
+ setTimeout(() => window.renderStockCheck(), 200);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Action failed: ' + e.message, 'error');
+ }
+};
+
 // p1_109 — Floor Price Calculator handlers
 window.renderFloorPrice = function() {
  // Populate datalist SKU options (reuse movementSkuList)
@@ -1652,7 +1844,7 @@ window.__tabToRail = function(tab) {
  if(tab === 'roadmap') return 'roadmap';
  if(tab.startsWith('sales_')) return 'sales';
  if(tab.startsWith('customers_')) return 'customers';
- if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice') return 'inv';
+ if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck') return 'inv';
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
@@ -15925,6 +16117,7 @@ window.I18N = {
  sb_smart_picking: { bm: 'Picking Pintar', en: 'Smart Picking' },
  sb_barcode_labels: { bm: 'Label Barcode', en: 'Barcode Labels' },
  sb_floor_price: { bm: 'Floor Price', en: 'Floor Price' },
+ sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
  sb_all_customers: { bm: 'Semua Pelanggan', en: 'All Customers' },
  sb_b2b_accounts: { bm: 'Akaun B2B', en: 'B2B Accounts' },
  sb_cuti: { bm: 'Cuti', en: 'Leave' },

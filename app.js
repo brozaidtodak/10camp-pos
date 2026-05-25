@@ -698,6 +698,8 @@ window.renderMyReport = function() {
  window.__rpRenderInventoryTemplate(body, u, range);
  } else if(tpl === 'bizdev') {
  window.__rpRenderBizdevTemplate(body, u, range);
+ } else if(tpl === 'sysmgmt') {
+ window.__rpRenderSysmgmtTemplate(body, u, range);
  } else if(tpl) {
  // Other templates — placeholder coming soon
  body.innerHTML = '<div class="rp-section"><div class="rp-empty">Template untuk role ni akan datang Phase 1B.</div></div>';
@@ -1855,6 +1857,203 @@ window.__fpSave = async function() {
  } catch(e) {
  if(typeof showToast === 'function') showToast('Save failed: ' + e.message, 'error');
  }
+};
+
+// p1_112 — SysMgmt template renderer (Zack CMP005)
+// Focus: review queues + system health + admin oversight
+window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
+ const T = (k, fb) => (typeof window.t === 'function' ? window.t(k) : fb) || fb;
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+ // Quick render skeleton first
+ body.innerHTML = `
+ <div class="rp-section" style="border-left:4px solid #0EA5E9; background:rgba(14,165,233,.04);">
+ <h3 class="rp-section__title" style="color:#0369A1;"><i data-lucide="cog" style="width:14px;height:14px;"></i> System Management</h3>
+ <p class="rp-section__help" style="margin:0;">Dashboard untuk Zack — review queues + system health + price/sync oversight. Auto-data dari shopee_sync_log, tiktok_sync_log, stock_check_reports, product_price_history.</p>
+ </div>
+ <div id="sysmgmtBody"><p style="color:#9CA3AF; padding:30px; text-align:center;">Memuatkan data system…</p></div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+
+ // Fetch all data parallel
+ const fetches = [];
+ if(typeof db !== 'undefined' && db) {
+ fetches.push(db.from('stock_check_reports').select('*').eq('status', 'submitted').order('submitted_at', { ascending: false }).limit(10).then(r => ({ key: 'pendingChecks', data: r.data || [] })).catch(() => ({ key: 'pendingChecks', data: [] })));
+ fetches.push(db.from('product_price_history').select('*').gte('changed_at', new Date(startMs).toISOString()).order('changed_at', { ascending: false }).limit(100).then(r => ({ key: 'priceChanges', data: r.data || [] })).catch(() => ({ key: 'priceChanges', data: [] })));
+ fetches.push(db.from('shopee_sync_log').select('*').gte('ran_at', new Date(startMs).toISOString()).order('ran_at', { ascending: false }).limit(50).then(r => ({ key: 'shopeeLog', data: r.data || [] })).catch(() => ({ key: 'shopeeLog', data: [] })));
+ fetches.push(db.from('tiktok_sync_log').select('*').gte('ran_at', new Date(startMs).toISOString()).order('ran_at', { ascending: false }).limit(50).then(r => ({ key: 'tiktokLog', data: r.data || [] })).catch(() => ({ key: 'tiktokLog', data: [] })));
+ fetches.push(db.from('audit_logs').select('*').gte('created_at', new Date(startMs).toISOString()).ilike('action_type', '%mode_access%').order('created_at', { ascending: false }).limit(20).then(r => ({ key: 'permChanges', data: r.data || [] })).catch(() => ({ key: 'permChanges', data: [] })));
+ }
+ const results = await Promise.all(fetches);
+ const dataMap = {};
+ results.forEach(r => dataMap[r.key] = r.data);
+
+ const pendingChecks = dataMap.pendingChecks || [];
+ const priceChanges = dataMap.priceChanges || [];
+ const shopeeLog = dataMap.shopeeLog || [];
+ const tiktokLog = dataMap.tiktokLog || [];
+ const permChanges = dataMap.permChanges || [];
+
+ // Aggregate
+ const priceIncreases = priceChanges.filter(p => Number(p.delta || 0) > 0).length;
+ const priceDecreases = priceChanges.filter(p => Number(p.delta || 0) < 0).length;
+ const shopeeErrors = shopeeLog.filter(l => l.error_message).length;
+ const tiktokErrors = tiktokLog.filter(l => l.error_message).length;
+ const shopeeRuns = shopeeLog.length;
+ const tiktokRuns = tiktokLog.length;
+
+ // Own claims
+ let claimsTotal = 0, claimsPending = 0;
+ try {
+ if(typeof _hrcLoadClaims === 'function') {
+ const claims = _hrcLoadClaims();
+ claims.forEach(c => {
+ if(c.staff_id !== u.staff_id && c.staffId !== u.staff_id) return;
+ const ct = new Date(c.created_at || c.submitted_at || 0).getTime();
+ if(ct < startMs || ct > endMs) return;
+ if(c.status === 'pending') claimsPending++;
+ else if(c.status === 'approved') claimsTotal += Number(c.amount || 0);
+ });
+ }
+ } catch(e){}
+
+ // Manual notes
+ const manualKey = 'reportManual_' + u.staff_id + '_' + (window.__rpPeriod || 'mtd');
+ const manualText = localStorage.getItem(manualKey) || '';
+
+ // Render full template
+ const bodyEl = document.getElementById('sysmgmtBody');
+ bodyEl.innerHTML = `
+ <!-- Stock Check Queue -->
+ <div class="rp-section" style="${pendingChecks.length > 0 ? 'border-left:4px solid #D97706;' : ''}">
+ <h3 class="rp-section__title"><i data-lucide="inbox" style="width:14px;height:14px;"></i> Antrian Review Stock Check ${pendingChecks.length > 0 ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:50px; font-size:11px; margin-left:6px;">${pendingChecks.length} pending</span>` : ''}</h3>
+ ${pendingChecks.length === 0 ? '<p style="font-size:12px; color:#10B981; padding:8px 0;">Tiada report menunggu — tip-top.</p>' : `
+ <table class="rp-comm-table">
+ <thead><tr><th>Period</th><th>Submitted By</th><th style="text-align:right;">Variance</th><th>Aksi</th></tr></thead>
+ <tbody>
+ ${pendingChecks.map(r => `
+ <tr>
+ <td style="font-size:12px;"><strong>${r.period_start} → ${r.period_end}</strong></td>
+ <td style="font-size:12px;">${escAttr(r.submitted_by_name)}</td>
+ <td style="text-align:right; font-size:12px;">${r.items_variance} items / ${fmtRM(r.rm_variance)}</td>
+ <td><button class="sy-btn fin-btn--gold" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=inv_stockcheck]')?.click()">Review →</button></td>
+ </tr>`).join('')}
+ </tbody>
+ </table>
+ `}
+ </div>
+
+ <!-- Price Changes Summary -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="trending-up" style="width:14px;height:14px;"></i> Sejarah Harga (period)</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Jumlah Perubahan</div>
+ <div class="rp-kpi__val">${priceChanges.length}</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Naik</div>
+ <div class="rp-kpi__val" style="color:#EF4444;">${priceIncreases}</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Turun</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${priceDecreases}</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Tindakan</div>
+ <div class="rp-kpi__val" style="font-size:13px;"><button class="sy-btn secondary" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=inv_pricehistory]')?.click()">Buka Report →</button></div>
+ </div>
+ </div>
+ ${priceChanges.length > 0 ? `
+ <p style="font-size:11px; color:#6B7280; margin-top:10px;">Top 5 perubahan terkini:</p>
+ <table class="rp-comm-table">
+ <thead><tr><th>SKU</th><th>Δ RM</th><th>Δ %</th><th>Bila</th></tr></thead>
+ <tbody>
+ ${priceChanges.slice(0, 5).map(p => {
+ const d = Number(p.delta || 0);
+ const c = d > 0 ? '#EF4444' : '#10B981';
+ return `<tr><td><strong>${escAttr(p.sku)}</strong></td><td style="color:${c};">${d > 0 ? '+' : ''}${fmtRM(d).replace('RM ','')}</td><td style="color:${c};">${p.delta_pct == null ? '—' : (d > 0 ? '+' : '') + Number(p.delta_pct).toFixed(1) + '%'}</td><td style="font-size:11px; color:#6B7280;">${new Date(p.changed_at).toLocaleDateString('en-MY')}</td></tr>`;
+ }).join('')}
+ </tbody>
+ </table>
+ ` : ''}
+ </div>
+
+ <!-- System Health (Marketplace sync) -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="activity" style="width:14px;height:14px;"></i> Kesihatan Sistem (Marketplace Sync)</h3>
+ <div class="rp-approval-grid">
+ <div class="rp-approval-card">
+ <h4 class="rp-approval-card__title" style="color:#EE4D2D;"><i data-lucide="shopping-bag" style="width:13px;height:13px;"></i> Shopee</h4>
+ <div class="rp-appr-row"><span>Total runs</span><strong>${shopeeRuns}</strong></div>
+ <div class="rp-appr-row"><span>Berjaya</span><strong style="color:#10B981;">${shopeeRuns - shopeeErrors}</strong></div>
+ <div class="rp-appr-row"><span>Errors</span><strong class="${shopeeErrors > 0 ? 'rp-danger' : ''}">${shopeeErrors}</strong></div>
+ </div>
+ <div class="rp-approval-card">
+ <h4 class="rp-approval-card__title"><i data-lucide="music" style="width:13px;height:13px;"></i> TikTok Shop</h4>
+ <div class="rp-appr-row"><span>Total runs</span><strong>${tiktokRuns}</strong></div>
+ <div class="rp-appr-row"><span>Berjaya</span><strong style="color:#10B981;">${tiktokRuns - tiktokErrors}</strong></div>
+ <div class="rp-appr-row"><span>Errors</span><strong class="${tiktokErrors > 0 ? 'rp-danger' : ''}">${tiktokErrors}</strong></div>
+ </div>
+ </div>
+ ${(shopeeErrors + tiktokErrors > 0) ? `
+ <p style="font-size:12px; color:#D97706; margin-top:10px; padding:8px 10px; background:#FEF3C7; border-radius:6px;"><i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:-1px;"></i> ${shopeeErrors + tiktokErrors} error(s) total — investigate dalam Settings → Sync.</p>
+ ` : '<p style="font-size:12px; color:#10B981; margin-top:8px;">All systems green.</p>'}
+ </div>
+
+ <!-- Permission Changes Audit -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="key" style="width:14px;height:14px;"></i> Perubahan Permission (period)</h3>
+ ${permChanges.length === 0 ? '<p style="font-size:12px; color:#9CA3AF;">Tiada perubahan permission dalam period ni.</p>' : `
+ <table class="rp-comm-table">
+ <thead><tr><th>Tarikh</th><th>Actor</th><th>Target</th><th style="font-size:11px;">Detail</th></tr></thead>
+ <tbody>
+ ${permChanges.slice(0, 10).map(p => `
+ <tr>
+ <td style="font-size:11px; color:#6B7280;">${new Date(p.created_at).toLocaleString('en-MY', { dateStyle: 'short', timeStyle: 'short' })}</td>
+ <td style="font-size:12px;">${escAttr(p.actor_name || '—')}</td>
+ <td style="font-size:12px;">${escAttr(p.target_staff || '—')}</td>
+ <td style="font-size:11px; color:#6B7280; max-width:300px; overflow:hidden; text-overflow:ellipsis;">${escAttr(String(p.details || '').slice(0, 80))}</td>
+ </tr>`).join('')}
+ </tbody>
+ </table>`}
+ </div>
+
+ <!-- My Claims -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="receipt" style="width:14px;height:14px;"></i> Tuntutan Saya</h3>
+ <div class="rp-kpi-grid">
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Diluluskan</div>
+ <div class="rp-kpi__val" style="color:#10B981;">${fmtRM(claimsTotal)}</div>
+ <div class="rp-kpi__sub">bulan ni</div>
+ </div>
+ <div class="rp-kpi">
+ <div class="rp-kpi__lbl">Menunggu</div>
+ <div class="rp-kpi__val" style="color:${claimsPending > 0 ? '#D97706' : '#9CA3AF'};">${claimsPending}</div>
+ <div class="rp-kpi__sub">claims pending</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Manual notes -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> Catatan Sistem</h3>
+ <p class="rp-section__help">Tulis: bug yang ditangani, system improvement cadangan, vendor liaison notes, dll.</p>
+ <textarea id="rpManualText" class="rp-manual-input" placeholder="Cth: Patch RLS issue pada sales_history, troubleshoot Netlify deploy fail, vendor liaison Shopee untuk Live mode application" style="min-height:120px;">${escAttr(manualText)}</textarea>
+ <div class="rp-manual-foot">
+ <span class="rp-manual-status" id="rpManualStatus"></span>
+ <button class="rp-manual-save" onclick="window.__rpSaveManual('${escAttr(manualKey)}')"><i data-lucide="save" style="width:13px;height:13px;"></i> Simpan Catatan</button>
+ </div>
+ </div>
+ `;
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
 // Save BizDev pipeline form data

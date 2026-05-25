@@ -18654,3 +18654,39 @@ window.shopeeSyncOrders = async function(mode) {
  }
 };
 
+// p1_100 — Push Shopee stock from POS inventory_batches
+window.shopeeStockSync = async function(mode) {
+ const result = document.getElementById('shopeeStockResult');
+ const setMsg = (txt, color) => {
+ if(!result) return;
+ result.style.display = '';
+ result.style.color = color || 'var(--text-muted)';
+ result.textContent = txt;
+ };
+ const verb = mode === 'push' ? 'Push stock ke Shopee…' : (mode === 'dryrun' ? 'Compare stock…' : 'Listing items…');
+ setMsg(verb);
+ try {
+ const res = await fetch(`/api/shopee-stock-sync?mode=${encodeURIComponent(mode)}`, { cache: 'no-store' });
+ const json = await res.json();
+ if(json.error) {
+ setMsg('Error: ' + json.error, '#EF4444');
+ return;
+ }
+ const lines = [`Mode: ${json.mode} · env: ${json.env}`];
+ if(typeof json.shopee_items_total === 'number') lines.push(`Shopee items: ${json.shopee_items_total}`);
+ if(typeof json.pos_skus_total === 'number') lines.push(`POS SKUs: ${json.pos_skus_total}`);
+ if(typeof json.matched === 'number') lines.push(`Diffs jumpa: ${json.matched}`);
+ if(typeof json.pushed === 'number') {
+ lines.push(`Pushed: ${json.pushed}`);
+ if(json.errors && json.errors.length) lines.push(`Errors: ${json.errors.length}`);
+ setMsg(lines.join(' · '), json.ok ? '#10B981' : '#D97706');
+ if(typeof showToast === 'function') showToast(`Shopee stock pushed: ${json.pushed} models.`, json.ok ? 'success' : 'warn');
+ } else {
+ if(json.note) lines.push(json.note);
+ setMsg(lines.join(' · '));
+ }
+ } catch(e) {
+ setMsg('Network error: ' + e.message, '#EF4444');
+ }
+};
+

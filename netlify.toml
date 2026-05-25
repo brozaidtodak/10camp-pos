@@ -64,3 +64,9 @@
   to = "/.netlify/functions/shopee-sync"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/shopee-stock-sync"
+  to = "/.netlify/functions/shopee-stock-sync"
+  status = 200
+  force = true

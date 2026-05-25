@@ -1437,6 +1437,9 @@
  <div class="menu-item" data-group="marketing" data-tab="admin_reengage" onclick="switchHub(['reengageSection'], 'Re-engage Campaign', this); if(typeof renderReengage==='function') renderReengage();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="heart-handshake" style="width:16px; height:16px;"></i> <span data-i18n="sb_reengage_campaign">Re-engage Campaign</span>
  </div>
+ <div class="menu-item mgmt-only" data-group="marketing" data-tab="admin_channelprofit" onclick="switchHub(['channelProfitSection'], 'Channel Profitability', this); if(typeof renderChannelProfit==='function') renderChannelProfit();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="pie-chart" style="width:16px; height:16px;"></i> <span data-i18n="sb_channel_profit">Channel Profitability</span>
+ </div>
 
  <!-- p1_96: REPORTS — staff self-report + Bos drill-down + posted reports inbox -->
  <div class="menu-item" data-group-toggle="reports" onclick="toggleSidebarGroup('reports')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
@@ -2832,6 +2835,49 @@
  </select>
  </div>
  <div id="rsTableWrap"><p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- p1_116 — CHANNEL PROFITABILITY -->
+ <!-- ============================================== -->
+ <div id="channelProfitSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="pie-chart" style="width:22px; height:22px; color:var(--primary);"></i> Channel Profitability</h2>
+ <p class="rp-subtitle">Revenue MINUS platform fees + COGS = real net margin. Identifies channel mana paling untung selepas fees.</p>
+ </div>
+ <button class="sy-btn secondary" onclick="window.renderChannelProfit()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh</button>
+ </div>
+
+ <!-- Period filter -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Period</h3>
+ <div style="display:flex; gap:6px; flex-wrap:wrap;">
+ <button class="sy-btn cp-period-btn cp-period-btn--active" data-cp-period="mtd" onclick="window.__cpSetPeriod('mtd', this)">Bulan Ini</button>
+ <button class="sy-btn secondary cp-period-btn" data-cp-period="lastmonth" onclick="window.__cpSetPeriod('lastmonth', this)">Bulan Lepas</button>
+ <button class="sy-btn secondary cp-period-btn" data-cp-period="30d" onclick="window.__cpSetPeriod('30d', this)">30 Hari</button>
+ <button class="sy-btn secondary cp-period-btn" data-cp-period="90d" onclick="window.__cpSetPeriod('90d', this)">90 Hari</button>
+ <button class="sy-btn secondary cp-period-btn" data-cp-period="ytd" onclick="window.__cpSetPeriod('ytd', this)">YTD</button>
+ </div>
+ </div>
+
+ <!-- Fee rates editor -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="percent" style="width:14px;height:14px;"></i> Kadar Fee per Channel</h3>
+ <p class="rp-section__help">Edit kalau Shopee/TikTok tukar commission scheme. Disimpan dalam localStorage.</p>
+ <div id="cpFeeEditor" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;"></div>
+ </div>
+
+ <!-- Per-channel cards -->
+ <div id="cpChannelGrid"></div>
+
+ <!-- Comparison table -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="table" style="width:14px;height:14px;"></i> Comparison Side-by-Side</h3>
+ <div id="cpCompareTable"></div>
  </div>
  </div>
  </div>
@@ -5418,7 +5464,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (115/115 · last 2026-05-25)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize', status:'done', goal:'Supabase migration & multi-role auth', eta:'Q2 2026 · Shipped (116/116 · last 2026-05-25)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5493,6 +5539,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_116', label:'Channel Profitability dashboard — Phase 2 feature B. Per channel revenue MINUS platform fees + COGS = real net margin. Reveal channel mana paling untung selepas fees deducted. (1) Sidebar item baharu "Channel Profitability" dalam Marketing group (selepas Re-engage Campaign, mgmt-only). pie-chart icon. __tabToRail map admin_channelprofit → marketing. i18n sb_channel_profit. (2) Default fee rates window.__cpDefaultFees per channel: Shopee 8% + 2.5% processing, TikTok Shop 5% + 2% processing, Walk-in Kedai 0% + 0.5%, Web EasyStore 0% + 2.5%, WhatsApp 0% + 0.5%. Editable via inline number inputs, override saved to localStorage cpFees_v1. (3) Period filter 5 options (Bulan Ini/Bulan Lepas/30d/90d/YTD) — pills toggle pattern, default MTD. (4) Aggregator: scan salesHistory dalam range, group by sale.channel, sum revenue + count orders. Compute COGS from items[].cost (kalau ada) atau fallback masterProducts.cost_price lookup. Per channel: platformFees = revenue × fee%, processingFees = revenue × processing%, totalFees = sum, grossProfit = revenue - cogs, netProfit = grossProfit - totalFees, netMarginPct = netProfit / revenue × 100. (5) Per-channel cards 260px min grid auto-fit. Top border colour brand (Shopee orange, TikTok hitam, Walk-in hijau, Web biru, WA hijau emerald). Sub-display: revenue big number + COGS/fees breakdown rows + Net Profit + margin% colored hijau ≥30%, amber 15-30%, red <15%. (6) Comparison table side-by-side: rows sorted by netProfit DESC. Top row highlighted hijau (best performer). Columns: Channel/Orders/Revenue/COGS/Fees/Net Profit/Margin %. (7) Use case Zaid: "Shopee buat RM 10k revenue tapi 10% fee = lepas COGS untung berapa sebenarnya vs Walk-in RM 5k tiada fee?" Dashboard answer instantly. (8) Future: integrate dengan supplier cost trend, kalau Shopee approve Live mode boleh tukar fee rates dynamic dari Shopee API. Bump app.js v236→v237. ROADMAP_DATA 115/115→116/116.', d:'done' },
  { id:'p1_115', label:'Stock Reorder Auto-Suggest — Phase 2 feature A. Algorithm-based reorder qty suggest dengan stockout risk warning. (1) Sidebar item baharu "Reorder Suggest" dalam Inventory group (selepas Price History) — repeat icon. Badge reorderBadge auto-populate kalau ada urgent SKU (< 7 days till stockout). __tabToRail map inv_reorder → inv. i18n sb_reorder. (2) Section reorderSection: Settings card 4 inputs (Velocity Window 14/30/60/90 hari default 30, Lead Time hari default 14, Safety Factor × default 1.5, Min Velocity unit/30d default 1). Formula footnote: Suggested = max(0, daily_avg × lead_time × safety - current_stock). KPI grid 4 cards (Total SKU Perlu Reorder, Urgent <7d red, Out of Stock dark red, Estimated Cost RM). Search bar + sort dropdown (Urgency/Qty/Velocity/Cost) di atas table. Main table 8 cols (SKU/Brand+Nama/Stok/Sold window/Avg/Hari/Risk days till stockout/Reorder Qty/Anggaran Cost). Row background tint red kalau urgent, dark red kalau OOS. Risk color: OUT red 991B1B, <7d red EF4444, <14d amber D97706, else green 10B981. Limit 100 rows display dengan note total. (3) Algorithm in renderReorderSuggest: scan sales_history items dalam window cutoff, tally per-SKU qty sold, compute daily_avg = total / window. Build current_stock map from inventory_batches sum + fallback masterProducts.stock. For each product: skip kalau daily_avg < min_velocity, target_stock = daily_avg × lead × safety, suggested_qty = max(0, ceil(target - current)). Skip kalau suggested 0. (4) Real-time recalculate bila tukar settings — full re-scan + KPI update + table re-render. (5) Future enhancement: per-supplier lead_time override (column tambah masterProducts), draft PO generation button, "Mark Reviewed" toggle to dismiss, supplier-grouped view. Bump app.js v235→v236. ROADMAP_DATA 114/114→115/115. Phase 2 feature B (Channel Profitability), D (Margin Watcher) etc still pending pilihan Zaid.', d:'done' },
  { id:'p1_114', label:'Posted Reports inbox (Bos) — Phase 1B last piece. Sync staff submissions ke Supabase + Bos inbox UI. (1) sql/2026-05-25_staff_report_submissions.sql — table dengan UNIQUE (staff_id, submission_type, period_key) constraint untuk upsert. Columns: staff_id/name, submission_type enum-like (manual_notes/bizdev_pipeline/commission_draft), period_key (mtd/lastmonth/30d/ytd), payload JSONB, submitted_at + updated_at + bos_read_at + bos_action. RLS auth read+upsert+update + service_role. Indexes recent (submitted_at DESC) + unread partial WHERE bos_read_at IS NULL. Trigger touch updated_at. (2) Update __rpSaveManual: keep localStorage sync (offline backup) + upsert ke staff_report_submissions with payload {text}. Parse period from manualKey suffix. (3) Update __rpSaveBizdev: same pattern, payload = collected number fields. (4) Replace renderTeamReports placeholder dengan real inbox: filter bar (Semua/Belum Dibaca/Catatan/BizDev Pipeline) + Mark Semua Read button. Fetch ke 100 rows order submitted_at DESC. Each card: avatar circle + staff name + type badge (manual=biru, bizdev=purple, commission=hijau) + BARU pill kalau unread + ago timestamp + period_key + preview 200 chars (manual_notes text, bizdev formatted "X leads · Y followups · Pipeline RM Z"). Unread cards ada amber left-border + amber tint bg. (5) Click submission → __teamOpenSubmission fetch full + mark bos_read_at + show alert dialog dengan full text (Phase 2 boleh upgrade ke proper modal). Bulk action __teamMarkAllRead. (6) Future cross-device: staff isi notes pada device sendiri (localStorage), saves auto-upsert ke Supabase, Bos baca dari mana-mana device terus see all submissions. localStorage kekal untuk speed reload offline. (7) Bump app.js v234→v235. ROADMAP_DATA 113/113→114/114. Phase 1B Reports system FULLY COMPLETE: infrastructure + 6 role templates + 2 simplified + Floor Price + Stock Check Workflow + Price History Report + Posted Reports inbox.', d:'done' },
  { id:'p1_113', label:'Simplified Reports for Ariff (CMP006) + Fahmi (CMP009). Zaid: "ariff dan fahmi adalah staff yang not capable untuk buat reporting, simplify report mereka berdua, kekalkan yang penting dan mudahkan urusan". (1) Update __rpTemplateForDept signature — accept user object instead of just dept string. Check staff_id first: CMP006 → "sales_simple", CMP009 → "inventory_simple". Fallback existing dept-based mapping kalau bukan special-case staff. Update renderMyReport caller pass `u` instead of `u.dept`. Add roleLabels entries for sales_simple + inventory_simple (reuse existing role labels). (2) Dispatcher tambah 2 branches new templates. (3) Sales Simple (Ariff): Hero card big-number "Jualan Saya — Period Ini" RM total 48px font primary color, sub "N pesanan · Top: SKU (qty unit)". Commission card kalau Aliff dah kira — green border + estimated RM big number, kalau tidak — gray "Tunggu hujung bulan" placeholder. ONE manual textarea 140px height font 14px placeholder example friendly "Customer susah, produk laku, idea". Save button. Generic Roadmap append. NO complex tables, NO top-5 SKU list, NO claims grid. (4) Inventory Simple (Fahmi): 2-column grid big numbers (Saya Dah Pack hijau border + 48px count, Tunggu Pack amber/gray dynamic based on backlog > 5 + warning emoji kalau menumpuk). Manual textarea same big-style font 14px placeholder "Item rosak, stok kurang, masalah packing". Save button. Roadmap append. NO fulfilment KPI 4-card grid, NO top SKU table, NO Phase 2 placeholder list, NO claims grid. (5) Effect: Ariff buka Laporan → tengok 1 big RM number + 1 commission card + 1 textarea = decision made dalam 10 saat. Same untuk Fahmi — 2 numbers + textarea. (6) Kael (CMP011, Chief Inventory) + Irfan (Marketing Interim) + Aliff/Farhan/Zack — kekal complex template (capable). Bump app.js v233→v234. ROADMAP_DATA 112/112→113/113. Phase 1B Reports system + simplifications COMPLETE.', d:'progress' },
@@ -9975,7 +10022,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=236"></script>
+ <script src="app.js?v=237"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

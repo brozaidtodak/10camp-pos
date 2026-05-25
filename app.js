@@ -1481,6 +1481,206 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  if(typeof window.applyI18N === 'function') window.applyI18N();
 };
 
+// p1_116 — Channel Profitability dashboard
+window.__cpPeriod = 'mtd';
+window.__cpDefaultFees = {
+ 'Shopee':         { fee: 8.0, processing: 2.5, label: 'Shopee', color: '#EE4D2D' },
+ 'TikTok Shop':    { fee: 5.0, processing: 2.0, label: 'TikTok Shop', color: '#000000' },
+ 'Walk-in Kedai':  { fee: 0.0, processing: 0.5, label: 'Walk-in Kedai', color: '#10B981' },
+ 'Web EasyStore':  { fee: 0.0, processing: 2.5, label: 'Web EasyStore', color: '#3B82F6' },
+ 'WhatsApp':       { fee: 0.0, processing: 0.5, label: 'WhatsApp', color: '#22C55E' }
+};
+
+window.__cpGetFees = function() {
+ try {
+ const stored = JSON.parse(localStorage.getItem('cpFees_v1') || 'null');
+ if(stored) return Object.assign({}, window.__cpDefaultFees, stored);
+ } catch(e){}
+ return Object.assign({}, window.__cpDefaultFees);
+};
+window.__cpSaveFees = function(fees) {
+ try { localStorage.setItem('cpFees_v1', JSON.stringify(fees)); } catch(e){}
+};
+
+window.__cpPeriodRange = function() {
+ const now = new Date();
+ const p = window.__cpPeriod;
+ if(p === 'lastmonth') {
+ const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
+ const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+ return { start, end };
+ }
+ if(p === '30d') return { start: new Date(now.getTime() - 30*86400000), end: now };
+ if(p === '90d') return { start: new Date(now.getTime() - 90*86400000), end: now };
+ if(p === 'ytd') return { start: new Date(now.getFullYear(), 0, 1), end: now };
+ return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+};
+
+window.__cpSetPeriod = function(p, btn) {
+ window.__cpPeriod = p;
+ document.querySelectorAll('[data-cp-period]').forEach(b => b.classList.toggle('cp-period-btn--active', b.dataset.cpPeriod === p));
+ document.querySelectorAll('[data-cp-period]').forEach(b => {
+ if(b === btn) b.classList.remove('secondary');
+ else b.classList.add('secondary');
+ });
+ window.renderChannelProfit();
+};
+
+window.renderChannelProfit = function() {
+ const fees = window.__cpGetFees();
+ const range = window.__cpPeriodRange();
+ const startMs = range.start.getTime();
+ const endMs = range.end.getTime();
+
+ // Build fee editor
+ const feeEditor = document.getElementById('cpFeeEditor');
+ if(feeEditor) {
+ feeEditor.innerHTML = Object.entries(fees).map(([channel, cfg]) => `
+ <div style="background:#F9FAFB; padding:12px; border-radius:8px; border:1px solid #E5E7EB;">
+ <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+ <span style="width:10px; height:10px; border-radius:50%; background:${cfg.color};"></span>
+ <strong style="font-size:12px;">${channel}</strong>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+ <div>
+ <label style="font-size:10px; color:#6B7280; display:block;">Fee %</label>
+ <input type="number" data-cp-fee="${channel}" class="rp-comm-input" style="width:100%; text-align:left; font-size:12px; padding:4px 6px;" step="0.1" min="0" max="30" value="${cfg.fee}" onchange="window.__cpUpdateFee('${channel}', 'fee', this.value)">
+ </div>
+ <div>
+ <label style="font-size:10px; color:#6B7280; display:block;">Process %</label>
+ <input type="number" data-cp-process="${channel}" class="rp-comm-input" style="width:100%; text-align:left; font-size:12px; padding:4px 6px;" step="0.1" min="0" max="10" value="${cfg.processing}" onchange="window.__cpUpdateFee('${channel}', 'processing', this.value)">
+ </div>
+ </div>
+ </div>`).join('');
+ }
+
+ // Aggregate per channel
+ const channelStats = {};
+ const costMap = {};
+ try {
+ if(typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+ masterProducts.forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ if(sku) costMap[sku] = Number(p.cost_price || 0);
+ });
+ }
+ } catch(e){}
+
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < startMs || t > endMs) return;
+ const ch = sale.channel || 'Walk-in Kedai';
+ if(!channelStats[ch]) channelStats[ch] = { revenue: 0, orders: 0, cogs: 0 };
+ const total = Number(sale.total || sale.amount || 0);
+ channelStats[ch].revenue += total;
+ channelStats[ch].orders++;
+ // COGS from items
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ const cost = it.cost != null ? Number(it.cost) : (costMap[sku] || 0);
+ channelStats[ch].cogs += cost * Number(it.qty || 0);
+ });
+ });
+ }
+
+ // Compute net per channel
+ const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ const fmtRMC = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+ const rows = [];
+ Object.entries(channelStats).forEach(([ch, st]) => {
+ const f = fees[ch] || { fee: 0, processing: 0 };
+ const platformFees = st.revenue * (f.fee / 100);
+ const processingFees = st.revenue * (f.processing / 100);
+ const totalFees = platformFees + processingFees;
+ const grossProfit = st.revenue - st.cogs;
+ const netProfit = grossProfit - totalFees;
+ const netMarginPct = st.revenue > 0 ? (netProfit / st.revenue) * 100 : 0;
+ rows.push({
+ channel: ch,
+ ...st,
+ platformFees, processingFees, totalFees,
+ grossProfit, netProfit, netMarginPct,
+ color: (fees[ch] && fees[ch].color) || '#6B7280'
+ });
+ });
+ rows.sort((a, b) => b.netProfit - a.netProfit);
+
+ // Per-channel cards
+ const grid = document.getElementById('cpChannelGrid');
+ if(grid) {
+ if(!rows.length) {
+ grid.innerHTML = '<div class="rp-section"><div class="rp-empty">Tiada sales dalam period ni.</div></div>';
+ } else {
+ grid.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-bottom:14px;">' +
+ rows.map(r => {
+ const marginColor = r.netMarginPct >= 30 ? '#10B981' : (r.netMarginPct >= 15 ? '#D97706' : '#EF4444');
+ return `<div class="rp-section" style="margin-bottom:0; border-top:4px solid ${r.color};">
+ <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+ <span style="width:10px; height:10px; border-radius:50%; background:${r.color};"></span>
+ <h3 style="margin:0; font-size:15px; font-weight:800;">${r.channel}</h3>
+ </div>
+ <div style="font-size:11px; color:#6B7280; margin-bottom:4px;">Revenue (${r.orders} orders)</div>
+ <div style="font-size:24px; font-weight:800; color:#111;">${fmtRMC(r.revenue)}</div>
+ <div style="margin-top:10px; padding-top:10px; border-top:1px solid #F3F4F6;">
+ <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#6B7280; padding:3px 0;"><span>COGS</span><span>−${fmtRMC(r.cogs)}</span></div>
+ <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#6B7280; padding:3px 0;"><span>Platform fee</span><span>−${fmtRMC(r.platformFees)}</span></div>
+ <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#6B7280; padding:3px 0;"><span>Processing</span><span>−${fmtRMC(r.processingFees)}</span></div>
+ </div>
+ <div style="margin-top:10px; padding-top:10px; border-top:2px solid ${marginColor};">
+ <div style="font-size:11px; color:#6B7280;">Net Profit · ${r.netMarginPct.toFixed(1)}% margin</div>
+ <div style="font-size:22px; font-weight:800; color:${marginColor};">${fmtRM(r.netProfit)}</div>
+ </div>
+ </div>`;
+ }).join('') + '</div>';
+ }
+ }
+
+ // Comparison table
+ const cmpTable = document.getElementById('cpCompareTable');
+ if(cmpTable) {
+ if(!rows.length) cmpTable.innerHTML = '';
+ else cmpTable.innerHTML = `<table class="rp-comm-table">
+ <thead>
+ <tr>
+ <th>Channel</th>
+ <th style="text-align:right;">Orders</th>
+ <th style="text-align:right;">Revenue</th>
+ <th style="text-align:right;">COGS</th>
+ <th style="text-align:right;">Total Fees</th>
+ <th style="text-align:right;">Net Profit</th>
+ <th style="text-align:right;">Margin %</th>
+ </tr>
+ </thead>
+ <tbody>
+ ${rows.map((r, i) => {
+ const marginColor = r.netMarginPct >= 30 ? '#10B981' : (r.netMarginPct >= 15 ? '#D97706' : '#EF4444');
+ return `<tr ${i === 0 ? 'style="background:rgba(16,185,129,.06);"' : ''}>
+ <td><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${r.color}; margin-right:6px;"></span><strong>${r.channel}</strong></td>
+ <td style="text-align:right;">${r.orders}</td>
+ <td style="text-align:right;">${fmtRMC(r.revenue)}</td>
+ <td style="text-align:right; color:#6B7280;">${fmtRMC(r.cogs)}</td>
+ <td style="text-align:right; color:#6B7280;">${fmtRMC(r.totalFees)}</td>
+ <td style="text-align:right; font-weight:700; color:${marginColor};">${fmtRMC(r.netProfit)}</td>
+ <td style="text-align:right; font-weight:700; color:${marginColor};">${r.netMarginPct.toFixed(1)}%</td>
+ </tr>`;
+ }).join('')}
+ </tbody>
+ </table>`;
+ }
+
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.__cpUpdateFee = function(channel, field, value) {
+ const fees = window.__cpGetFees();
+ if(!fees[channel]) return;
+ fees[channel][field] = parseFloat(value) || 0;
+ window.__cpSaveFees(fees);
+ window.renderChannelProfit();
+};
+
 // p1_115 — Stock Reorder Auto-Suggest
 window.__rsAllRows = [];
 
@@ -2599,7 +2799,7 @@ window.__tabToRail = function(tab) {
  if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_pricehistory' || tab === 'inv_reorder') return 'inv';
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
- if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage') return 'marketing';
+ if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage' || tab === 'admin_channelprofit') return 'marketing';
  if(tab === 'report_my' || tab === 'report_team') return 'reports';
  if(tab === 'settings_hub' || tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
  return null;
@@ -16872,6 +17072,7 @@ window.I18N = {
  sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
  sb_price_history: { bm: 'Sejarah Harga', en: 'Price History' },
  sb_reorder: { bm: 'Reorder Suggest', en: 'Reorder Suggest' },
+ sb_channel_profit: { bm: 'Channel Profitability', en: 'Channel Profitability' },
  sb_all_customers: { bm: 'Semua Pelanggan', en: 'All Customers' },
  sb_b2b_accounts: { bm: 'Akaun B2B', en: 'B2B Accounts' },
  sb_cuti: { bm: 'Cuti', en: 'Leave' },

@@ -18690,3 +18690,37 @@ window.shopeeStockSync = async function(mode) {
  }
 };
 
+// p1_98 Fasa 2D — Refresh cron status panel
+window.shopeeRefreshCronStatus = async function() {
+ const el = document.getElementById('shopeeCronStatus');
+ if(!el) return;
+ el.textContent = 'checking…';
+ try {
+ const res = await fetch('/api/shopee-sync-status', { cache: 'no-store' });
+ const json = await res.json();
+ if(json.error) { el.textContent = 'Error: ' + json.error; el.style.color = '#EF4444'; return; }
+ if(!json.last_run) {
+ el.textContent = 'Belum pernah jalan (cron baru deploy, tunggu max 15 min).';
+ el.style.color = 'var(--text-muted)';
+ return;
+ }
+ const lr = json.last_run;
+ const t = json.today || {};
+ const ago = (() => {
+ const ms = Date.now() - new Date(lr.ran_at).getTime();
+ const min = Math.floor(ms / 60000);
+ if(min < 1) return 'baru sekejap tadi';
+ if(min < 60) return min + ' min lepas';
+ const hr = Math.floor(min / 60);
+ if(hr < 24) return hr + ' jam lepas';
+ return Math.floor(hr / 24) + ' hari lepas';
+ })();
+ const errPart = lr.error_message ? ` · ERROR: ${lr.error_message.slice(0, 60)}` : '';
+ el.textContent = `Last: ${ago} · ${lr.orders_inserted || 0} new · Hari ni: ${t.runs || 0} runs, ${t.inserted || 0} inserted, ${t.errors || 0} errors${errPart}`;
+ el.style.color = lr.error_message ? '#D97706' : 'var(--success)';
+ } catch(e) {
+ el.textContent = 'Network error';
+ el.style.color = '#EF4444';
+ }
+};
+

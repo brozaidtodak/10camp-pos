@@ -70,3 +70,13 @@
   to = "/.netlify/functions/shopee-stock-sync"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/shopee-sync-status"
+  to = "/.netlify/functions/shopee-sync-status"
+  status = 200
+  force = true
+
+# p1_98 Fasa 2D — Cron auto-sync every 15 min
+[functions."shopee-sync-cron"]
+  schedule = "*/15 * * * *"

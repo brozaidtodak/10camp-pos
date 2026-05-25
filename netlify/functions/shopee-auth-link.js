@@ -23,9 +23,12 @@ const PARTNER_ID  = process.env.SHOPEE_PARTNER_ID || '';
 const PARTNER_KEY = process.env.SHOPEE_PARTNER_KEY || '';
 const ENV         = (process.env.SHOPEE_ENV || 'sandbox').toLowerCase();
 
+// Shopee MY hosts (verified via API Test Tool 2026-05-25):
+//   Sandbox: openplatform.sandbox.test-stable.shopee.sg
+//   Live:    partner.shopeemobile.com (MY production)
 const HOST = ENV === 'live'
     ? 'https://partner.shopeemobile.com'
-    : 'https://partner.test-stable.shopeemobile.com';
+    : 'https://openplatform.sandbox.test-stable.shopee.sg';
 
 const PATH = '/api/v2/shop/auth_partner';
 const REDIRECT = 'https://pos.10camp.com/api/shopee-oauth';

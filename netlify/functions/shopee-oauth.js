@@ -27,9 +27,12 @@ const ENV         = (process.env.SHOPEE_ENV || 'sandbox').toLowerCase();
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
 
+// Shopee MY hosts (verified via API Test Tool 2026-05-25):
+//   Sandbox: openplatform.sandbox.test-stable.shopee.sg
+//   Live:    partner.shopeemobile.com (MY production)
 const HOST = ENV === 'live'
     ? 'https://partner.shopeemobile.com'
-    : 'https://partner.test-stable.shopeemobile.com';
+    : 'https://openplatform.sandbox.test-stable.shopee.sg';
 
 const TOKEN_PATH = '/api/v2/auth/token/get';
 

@@ -89,6 +89,17 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/tiktok-sync-status"
+  to = "/.netlify/functions/tiktok-sync-status"
+  status = 200
+  force = true
+
+# p1_104 — TikTok cron disabled by default sebab orders masih sync via EasyStore.
+# Activate bila ready cutover ke direct API (uncomment block bawah).
+# [functions."tiktok-sync-cron"]
+#   schedule = "*/15 * * * *"
+
 # p1_98 Fasa 2D — Cron auto-sync every 15 min
 [functions."shopee-sync-cron"]
   schedule = "*/15 * * * *"

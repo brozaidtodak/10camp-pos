@@ -231,6 +231,13 @@ exports.handler = async (event) => {
         // Cutover floor — never import orders created before the EasyStore→direct
         // cutover, otherwise they double-up with EasyStore-sourced TikTok orders.
         const cutoverMs = tok.direct_sync_cutover ? Date.parse(tok.direct_sync_cutover) : 0;
+        // p1_104 safety guard — refuse import bila cutover belum di-set.
+        // Otherwise cron + EasyStore akan double-pull orders. Force ke dryrun mode.
+        if (mode === 'import' && !cutoverMs) {
+            out.refused = true;
+            out.note = 'Import refused — direct_sync_cutover belum di-set dalam tiktok_tokens. Orders TikTok sekarang sync via EasyStore. Set cutover dulu untuk activate direct-API import.';
+            return json(200, out);
+        }
         const effectiveSinceMs = Math.max(sinceMs, cutoverMs || 0);
         const createGe = Math.floor(effectiveSinceMs / 1000);
         out.since = new Date(effectiveSinceMs).toISOString();

@@ -18565,10 +18565,11 @@ document.addEventListener('DOMContentLoaded', () => {
  window.renderSyncSection = function() {
  const r = orig.apply(this, arguments);
  setTimeout(() => window.esSyncRefresh(), 50);
- // p1_98 Fasa 3B — auto-load Shopee cron status + connection info
+ // p1_98 Fasa 3B + p1_104 — auto-load Shopee + TikTok status
  setTimeout(() => {
  if(typeof window.shopeeRefreshCronStatus === 'function') window.shopeeRefreshCronStatus();
  if(typeof window.shopeeRefreshConnInfo === 'function') window.shopeeRefreshConnInfo();
+ if(typeof window.__refreshTiktokConnStatus === 'function') window.__refreshTiktokConnStatus();
  }, 100);
  if(window.__esSyncTimer) clearInterval(window.__esSyncTimer);
  window.__esSyncTimer = setInterval(() => {
@@ -18618,9 +18619,70 @@ window.connectShopee = async function() {
  }
 };
 
-window.__refreshTiktokConnStatus = function() {
- const el = document.getElementById('tiktokConnStatus');
- if(el) { el.textContent = 'Sila check Partner Center'; el.style.background = 'rgba(0,0,0,.06)'; el.style.color = 'var(--text-muted)'; }
+// p1_104 — TikTok parity: status check + pull orders mirror Shopee pattern
+window.__refreshTiktokConnStatus = async function() {
+ const pill = document.getElementById('tiktokConnStatus');
+ const info = document.getElementById('tiktokConnInfo');
+ if(!pill) return;
+ try {
+ const res = await fetch('/api/tiktok-sync-status', { cache: 'no-store' });
+ const json = await res.json();
+ if(json.error) { pill.textContent = 'ERROR'; pill.style.color = '#EF4444'; return; }
+ if(!json.connected) {
+ pill.textContent = 'NOT CONNECTED';
+ pill.style.background = 'rgba(0,0,0,.06)'; pill.style.color = 'var(--text-muted)';
+ if(info) info.style.display = 'none';
+ return;
+ }
+ const c = json.connected;
+ const hasCutover = !!c.direct_sync_cutover;
+ pill.textContent = hasCutover ? 'CONNECTED (direct)' : 'CONNECTED (dryrun)';
+ pill.style.background = hasCutover ? 'rgba(16,185,129,.12)' : 'rgba(245,158,11,.12)';
+ pill.style.color = hasCutover ? '#10B981' : '#D97706';
+ const expIn = new Date(c.access_token_expire_at).getTime() - Date.now();
+ const expHr = Math.max(0, Math.floor(expIn / 3600000));
+ if(info) {
+ info.style.display = '';
+ const lr = json.last_run;
+ const t = json.today || {};
+ const lastStr = lr ? `Last sync: ${Math.floor((Date.now()-new Date(lr.ran_at).getTime())/60000)} min lepas (${lr.orders_inserted || 0} new)` : 'Belum ada sync log';
+ info.textContent = `${c.seller_name || c.open_id} · Token ${expHr}h · ${lastStr} · Hari ni: ${t.runs || 0} runs, ${t.inserted || 0} inserted, ${t.errors || 0} errors`;
+ }
+ } catch(e) {
+ pill.textContent = 'ERROR';
+ pill.style.color = '#EF4444';
+ }
+};
+
+window.tiktokSyncOrders = async function(mode) {
+ const result = document.getElementById('tiktokSyncResult');
+ const setMsg = (txt, color) => {
+ if(!result) return;
+ result.style.display = '';
+ result.style.color = color || 'var(--text-muted)';
+ result.textContent = txt;
+ };
+ setMsg(mode === 'import' ? 'Tarik orders…' : 'Preview orders…');
+ try {
+ const res = await fetch(`/api/tiktok-sync?mode=${encodeURIComponent(mode)}`, { cache: 'no-store' });
+ const json = await res.json();
+ if(json.error) { setMsg('Error: ' + json.error, '#EF4444'); return; }
+ if(json.refused) {
+ setMsg(json.note || 'Import refused (cutover not set)', '#D97706');
+ return;
+ }
+ const lines = [`Mode: ${json.mode}`];
+ if(typeof json.orders_found === 'number') lines.push(`Orders dijumpai: ${json.orders_found}`);
+ if(typeof json.mapped === 'number') lines.push(`Mapped: ${json.mapped} · Baharu: ${json.new || 0}`);
+ if(typeof json.inserted === 'number') {
+ lines.push(`Inserted: ${json.inserted}`);
+ setMsg(lines.join(' · '), '#10B981');
+ if(typeof showToast === 'function') showToast(`TikTok: ${json.inserted} order baharu disimpan.`, 'success');
+ } else {
+ if(json.note) lines.push(json.note);
+ setMsg(lines.join(' · '));
+ }
+ } catch(e) { setMsg('Network error: ' + e.message, '#EF4444'); }
 };
 
 // p1_98 Fasa 2 — Pull Shopee orders into sales_history

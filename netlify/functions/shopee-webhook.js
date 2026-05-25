@@ -200,7 +200,41 @@ exports.handler = async (event) => {
             });
             return { statusCode: 200, body: 'no token, ack' };
         }
-        const tok = tokenRows[0];
+        let tok = tokenRows[0];
+
+        // p1_104 — Check token expiry; refresh if <1 hour remaining.
+        // Webhook can fire any time, so token might be stale even if cron just ran.
+        const expiresInMs = new Date(tok.access_token_expire_at).getTime() - Date.now();
+        if (expiresInMs < 60 * 60 * 1000) {
+            try {
+                const path = '/api/v2/auth/access_token/get';
+                const ts = Math.floor(Date.now() / 1000);
+                const refreshSign = crypto.createHmac('sha256', PARTNER_KEY).update(`${PARTNER_ID}${path}${ts}`).digest('hex');
+                const refreshUrl = `${HOST}${path}?partner_id=${PARTNER_ID}&timestamp=${ts}&sign=${refreshSign}`;
+                const rRes = await fetch(refreshUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        refresh_token: tok.refresh_token,
+                        shop_id: Number(tok.shop_id),
+                        partner_id: Number(PARTNER_ID)
+                    })
+                });
+                const rJson = await rRes.json();
+                if (rJson.access_token) {
+                    const nowMs = Date.now();
+                    const patch = {
+                        access_token: rJson.access_token,
+                        access_token_expire_at: new Date(nowMs + (Number(rJson.expire_in || 14400) * 1000)).toISOString(),
+                        refresh_token: rJson.refresh_token || tok.refresh_token,
+                        refresh_token_expire_at: new Date(nowMs + (30 * 24 * 3600 * 1000)).toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                    await sb('PATCH', `/shopee_tokens?shop_id=eq.${tok.shop_id}`, patch, { Prefer: 'return=minimal' });
+                    tok = Object.assign(tok, patch);
+                }
+            } catch (e) { /* if refresh fails, still try with current token */ }
+        }
 
         // 5. Fetch order detail
         const detailFields = 'buyer_user_id,buyer_username,recipient_address,item_list,total_amount,currency,order_status,payment_method,shipping_carrier,create_time,update_time';

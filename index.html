@@ -2151,6 +2151,12 @@
  </div>
  <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:#10B981; font-size:16px; padding:18px; margin:0; border-radius:12px; box-shadow:0 4px 15px rgba(16,185,129,0.3); transition:0.2s;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9">BAYAR SEKARANG</button>
  <button onclick="window.posConfirmClearCart()" class="login-btn" style="background:#fff; color:#EF4444; border:1px solid #fee2e2; margin-top:10px; box-shadow:none; padding:12px; border-radius:12px;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
+ <!-- p1_131 — Keyboard shortcut hints visible -->
+ <div style="display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:10px; color:#9CA3AF;">
+ <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F9</kbd> Bayar</span>
+ <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F10</kbd> Clear</span>
+ <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">/</kbd> Search</span>
+ </div>
  </div>
  </section>
  
@@ -2162,14 +2168,25 @@
  </div>
  <button onclick="window.togglePosLayoutMode()" class="btn-secondary" id="btnPosLayoutToggle" style="margin:0; flex-shrink:0; border-radius:30px; padding:14px 20px;" data-i18n="cs_small_screen">Skrin Kecil</button>
  </div>
+ <!-- p1_130 — Quick-Sell pills (top 5-8 most-sold last 30d) -->
+ <div id="quickSellWrap" style="display:none; margin-bottom:12px;">
+ <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+ <i data-lucide="zap" style="width:13px; height:13px; color:var(--primary);"></i>
+ <span style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Quick-Sell · Top Laku 30 Hari</span>
+ </div>
+ <div id="quickSellPills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+ </div>
  <div id="productsList" class="products-grid" style="max-height:calc(100vh - 160px); overflow-y:auto; padding-right:15px;"><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div><div class="pos-skel-card"></div></div>
  </section>
  </div>
  
  <!-- Mobile Floating Cart Bar -->
- <div id="mobileCartFloatingBar" onclick="toggleMobileCartSheet()" style="display:none;">
+ <div id="mobileCartFloatingBar" style="display:none;">
+ <div onclick="toggleMobileCartSheet()" style="flex:1; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px;">
  <span><span id="mobileCartItemCount">0</span> <span data-i18n="cs_items">item</span></span>
  <span style="font-weight:700;"><span data-i18n="cs_view_cart">Lihat Troli</span> • RM <span id="mobileCartTotal">0.00</span></span>
+ </div>
+ <button onclick="event.stopPropagation(); window.openPaymentModal();" style="background:#10B981; color:#FFF; border:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:10px;">Bayar →</button>
  </div>
  </div>
 
@@ -5848,7 +5865,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (128/128 · last 2026-05-26) — Reports system (6 templates + workflows) + Phase 2 analytics dashboards + Stock Take + Roster audits',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (131/131 · last 2026-05-26) — Reports system (6 templates + workflows) + Phase 2 analytics dashboards + Stock Take + Roster + Cashier audits',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5923,6 +5940,9 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_131', label:'Cashier UX polish (P3) — Better empty cart state dengan shopping-cart icon + secondary text + inline keyboard shortcut hint "/" focus. Visible kbd chips bawah Bayar button: F9 Bayar / F10 Clear / / Search (smaller font #9CA3AF, font-mono kbd styling). Mobile floating cart bar — added inline "Bayar →" button (green #10B981) yang event.stopPropagation supaya tap "Bayar" tidak buka sheet dulu, terus checkout. Touch-friendly.', d:'done' },
+ { id:'p1_130', label:'Quick-Sell pills (P2 speed) — top 5-6 most-sold SKUs last 30d papar sebagai outline pills atas search bar dalam Cashier. zap icon + "Quick-Sell · Top Laku 30 Hari" label. Klik pill → addToCart(sku) qty +1 instant — buang need to search. Hover effect: outline jadi solid (primary bg + white text). __qsRenderPills aggregator scan salesHistory dalam window 30d, tally per-SKU, top 6. Cache via __qsRendered flag supaya tak re-render setiap renderPOS call (only first time). Hidden kalau tiada data.', d:'done' },
+ { id:'p1_129', label:'Cashier Floor Price guard (P1 critical — loss prevention). Build SKU→floor_price map dari masterProducts. Cart line items dengan price < floor: add red left-border + rgba red bg tint + "BAWAH FLOOR (RM X.XX)" pill warning. openPaymentModal hijacked dengan check: scan all cart items vs floor map, collect violators array. Kalau ada, show confirm dialog dengan list "SKU: RM X (floor Y) — loss RM Z" + total loss + ask proceed/cancel. Builds on p1_109 Floor Price + p1_117 Margin Watcher. Prevent cashier accidentally jual bawah floor.', d:'done' },
  { id:'p1_128', label:'Roster polish (P3) — "Show My Row Only" toggle for staff yang nak fokus row diri je (wraps renderStaffSchedule auto-apply post-render). Print Jadual button (#0EA5E9 biru, opens new tab dengan inline CSS print stylesheet, auto window.print 300ms later). MC upload note added clarify "filename direkod sahaja, storage upload TBD".', d:'done' },
  { id:'p1_127', label:'Roster workflow integration (P2) — Confirm dialog untuk leave types AL/MC/EL/PH sebelum submit ("Sahkan permohonan Cuti Tahunan pada YYYY-MM-DD?"). Inline cuti balance hint #reqBalanceHint amber bg yang auto-show bila pilih AL/MC/EL/PH: papar baki AL hari + pending review count tahun ni, MC papar reminder sertakan sijil, kalau quota habis show red warning. __rsToggleBalanceHint reads staff_profiles.leave_balance + scans pendingSchedules untuk per-staff per-year per-shift count. Wired ke onchange dropdown shift selector.', d:'done' },
  { id:'p1_126', label:'Roster critical bugs (P1) — Hardcoded year dropdown 2025/2026/2027 (stale after 2027) → dynamic populated via JS pada openRoster (current ±2 years). Shift code mismatch fixed — legend ada Shift A (11am-9pm) tapi form dropdown takda. Added "Syif A (11:00 AM - 9:00 PM)" option to reqScheduleShift dropdown. Bump app.js v245→v246. ROADMAP_DATA 125→128.', d:'done' },
@@ -10419,7 +10439,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=246"></script>
+ <script src="app.js?v=247"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

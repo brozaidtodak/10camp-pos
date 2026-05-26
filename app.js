@@ -5312,11 +5312,56 @@ document.getElementById("exportExcelBtn").onclick = function() {
 // ===================================
 // POS CASHIER FRONTEND
 // ===================================
+// p1_130 — Quick-Sell pills (top 5 most-sold SKUs last 30d)
+window.__qsRenderPills = function() {
+ const wrap = document.getElementById('quickSellWrap');
+ const pillsEl = document.getElementById('quickSellPills');
+ if(!wrap || !pillsEl) return;
+ const cutoff = Date.now() - 30 * 86400000;
+ const tally = {};
+ try {
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(sale => {
+ const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
+ if(t < cutoff) return;
+ const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
+ (Array.isArray(items) ? items : []).forEach(it => {
+ const sku = (it.sku || '').toUpperCase();
+ if(!sku) return;
+ if(!tally[sku]) tally[sku] = { sku, name: it.name || sku, qty: 0 };
+ tally[sku].qty += Number(it.qty || 0);
+ });
+ });
+ }
+ } catch(e){}
+ const top = Object.values(tally).sort((a, b) => b.qty - a.qty).slice(0, 6);
+ if(!top.length) { wrap.style.display = 'none'; return; }
+ wrap.style.display = '';
+ // Resolve product price + stock from masterProducts
+ const pmap = {};
+ try {
+ if(typeof masterProducts !== 'undefined') masterProducts.forEach(p => { pmap[(p.sku || '').toUpperCase()] = p; });
+ } catch(e){}
+ pillsEl.innerHTML = top.map(t => {
+ const p = pmap[t.sku];
+ const price = p ? Number(p.price || p.selling_price || 0) : 0;
+ const displayName = (p ? (p.name || t.sku) : t.sku).slice(0, 22);
+ return `<button class="qs-pill" onclick="window.addToCart('${t.sku}')" style="background:#FFF; border:1.5px solid var(--primary); color:var(--primary); padding:6px 12px; border-radius:50px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:0.15s;" onmouseover="this.style.background='var(--primary)';this.style.color='#FFF';" onmouseout="this.style.background='#FFF';this.style.color='var(--primary)';" title="${t.qty} unit dijual 30d · RM ${price.toFixed(2)}">+ ${t.sku} <span style="font-weight:500; opacity:.7;">${displayName}</span></button>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
 function renderPOS(searchTerm = "") {
  const list = document.getElementById("productsList");
  if(!list) return;
  let htmlBuf = "";
- 
+
+ // p1_130 — Auto-populate Quick-Sell pills on first render (cached after that)
+ if(typeof window.__qsRenderPills === 'function' && !window.__qsRendered) {
+ window.__qsRenderPills();
+ window.__qsRendered = true;
+ }
+
  // Reset page if searching
  if(searchTerm !== lastPosSearchTerm) {
  lastPosSearchTerm = searchTerm;
@@ -5604,21 +5649,46 @@ function renderCart() {
  if(iEl) iEl.textContent = i.toString();
  };
 
- if(cart.length === 0) { 
- container.innerHTML = "<p class='empty-cart-message'>Tiada barang di-scan.</p>"; 
+ if(cart.length === 0) {
+ // p1_131 — Better empty cart state
+ container.innerHTML = `<div style="padding:24px 12px; text-align:center; color:#9CA3AF;">
+ <i data-lucide="shopping-cart" style="width:48px; height:48px; opacity:0.3;"></i>
+ <p style="margin:10px 0 4px; font-size:13px; font-weight:600; color:#6B7280;">Troli kosong</p>
+ <p style="margin:0; font-size:11.5px; line-height:1.5;">Imbas barcode atau klik produk dari katalog kanan. Tekan <kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">/</kbd> untuk focus search.</p>
+ </div>`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  label.textContent = "0.00";
  if(subLabel) subLabel.textContent = "0.00";
  if(btnPay) btnPay.disabled = true;
  updateMobileBar(0, 0);
- return; 
+ return;
  }
+
+ // p1_129 — Floor Price guard: build SKU→floor map for cart items
+ const floorMap = {};
+ try {
+ if(typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+ masterProducts.forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ const fp = Number(p.floor_price || 0);
+ if(sku && fp > 0) floorMap[sku] = fp;
+ });
+ }
+ } catch(e){}
 
  cart.forEach(item => {
  total = round2(total + item.price * item.quantity);
  totalItems += item.quantity;
+ // p1_129: floor warning per line
+ const skuU = (item.sku || '').toUpperCase();
+ const floor = floorMap[skuU];
+ const belowFloor = floor && item.price < floor;
+ const floorBadge = belowFloor
+ ? `<span style="display:inline-block; margin-top:2px; padding:1px 6px; background:#FEE2E2; color:#991B1B; border-radius:50px; font-size:9px; font-weight:700; letter-spacing:0.3px;">BAWAH FLOOR (RM ${floor.toFixed(2)})</span>`
+ : '';
  container.innerHTML += `
- <div class="cart-item">
- <div style="flex:1;"><strong style="font-size:13px; color:#111;">[${item.sku}] ${item.name}</strong><br><small style="color:#666;">RM${item.price.toFixed(2)} x ${item.quantity}</small></div>
+ <div class="cart-item" style="${belowFloor ? 'border-left:3px solid #EF4444; background:rgba(254,226,226,.15);' : ''}">
+ <div style="flex:1;"><strong style="font-size:13px; color:#111;">[${item.sku}] ${item.name}</strong><br><small style="color:#666;">RM${item.price.toFixed(2)} x ${item.quantity}</small> ${floorBadge}</div>
  <div style="display:flex; gap:8px; align-items:center;">
  <button onclick="decreaseQuantity('${item.sku}')" style="background:#eee; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold;">-</button>
  <span style="font-weight:bold;">${item.quantity}</span>
@@ -17343,6 +17413,30 @@ window.cpReceiptEmail = function() {
 // Hijack openPaymentModal → openCheckoutPanel (the new flow becomes default)
 window.__originalOpenPaymentModal = window.openPaymentModal;
 window.openPaymentModal = function() {
+ // p1_129 — Floor Price guard: block / warn checkout kalau ada item below floor
+ try {
+ const violators = [];
+ const floorMap = {};
+ if(typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+ masterProducts.forEach(p => {
+ const sku = (p.sku || '').toUpperCase();
+ const fp = Number(p.floor_price || 0);
+ if(sku && fp > 0) floorMap[sku] = fp;
+ });
+ }
+ if(typeof cart !== 'undefined' && Array.isArray(cart)) {
+ cart.forEach(item => {
+ const skuU = (item.sku || '').toUpperCase();
+ const floor = floorMap[skuU];
+ if(floor && item.price < floor) violators.push({ sku: item.sku, price: item.price, floor, loss: (floor - item.price) * item.quantity });
+ });
+ }
+ if(violators.length > 0) {
+ const lines = violators.map(v => `• ${v.sku}: RM ${v.price.toFixed(2)} (floor RM ${v.floor.toFixed(2)}) — loss RM ${v.loss.toFixed(2)}`).join('\n');
+ const totalLoss = violators.reduce((s, v) => s + v.loss, 0);
+ if(!confirm(`AMARAN — ${violators.length} item dijual bawah floor price:\n\n${lines}\n\nTotal loss: RM ${totalLoss.toFixed(2)}\n\nProceed dengan checkout?`)) return;
+ }
+ } catch(e){}
  return window.openCheckoutPanel();
 };
 

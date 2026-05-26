@@ -8771,6 +8771,12 @@ document.getElementById("reqScheduleBtn")?.addEventListener('click', async () =>
  return;
  }
 
+ // p1_127 — Confirm dialog for sensitive leave types
+ if(['AL','MC','EL','PH'].includes(shift)) {
+ const labels = { AL:'Cuti Tahunan', MC:'Cuti Sakit', EL:'Kecemasan', PH:'Cuti Umum' };
+ if(!confirm(`Sahkan permohonan ${labels[shift]} pada ${dateStrInput}?\n\nLepas hantar, tunggu kelulusan Aliff/Bos.`)) return;
+ }
+
  let mcNameStr = "";
  if(shift === 'MC' && fileInput && fileInput.files.length> 0) {
  mcNameStr = fileInput.files[0].name;
@@ -8787,12 +8793,106 @@ document.getElementById("reqScheduleBtn")?.addEventListener('click', async () =>
  };
  pendingSchedules.push(newReq);
  await db.from('pending_requests').insert([newReq]);
- 
+
  alert(`Permohonan ${shift} pada ${dateStrInput} dihantar! Sila tunggu kelulusan bos.`);
  document.getElementById("reqScheduleDate").value = '';
  renderPendingSchedules();
  if (window.refreshRosterBadge) window.refreshRosterBadge();
 });
+
+// p1_128 — Show My Row Only filter (post-render scan)
+window.__rsApplyMyRowFilter = function() {
+ const tbody = document.getElementById('publicRosterTbody');
+ if(!tbody) return;
+ const toggle = document.getElementById('rsMyRowOnly');
+ const myName = (window.currentUser && window.currentUser.name) || '';
+ const enabled = toggle && toggle.checked && myName;
+ Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+ if(!enabled) { tr.style.display = ''; return; }
+ const firstCell = tr.querySelector('td:first-child');
+ const text = firstCell ? (firstCell.textContent || '').trim() : '';
+ tr.style.display = text.includes(myName) ? '' : 'none';
+ });
+};
+
+// p1_128 — Wrap renderStaffSchedule supaya my-row filter auto-apply selepas re-render
+(function(){
+ const orig = window.renderStaffSchedule;
+ if(typeof orig === 'function' && !orig.__rsWrapped) {
+ window.renderStaffSchedule = function() {
+ const r = orig.apply(this, arguments);
+ setTimeout(() => window.__rsApplyMyRowFilter && window.__rsApplyMyRowFilter(), 80);
+ return r;
+ };
+ window.renderStaffSchedule.__rsWrapped = true;
+ }
+})();
+
+// p1_128 — Print weekly schedule (current calendar view)
+window.__rsPrintSchedule = function() {
+ const table = document.getElementById('publicRosterTable');
+ if(!table) { if(typeof showToast === 'function') showToast('Jadual belum dimuat.', 'warn'); return; }
+ const myOnly = document.getElementById('rsMyRowOnly');
+ const myName = (window.currentUser && window.currentUser.name) || '';
+ const title = '10 CAMP — Jadual Syif · ' + (document.getElementById('publicRosterYear')?.value || new Date().getFullYear());
+ const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+ body{font-family:-apple-system,Helvetica,Arial,sans-serif; padding:20px; color:#111;}
+ h1{font-size:18px; margin:0 0 8px;}
+ p{font-size:11px; color:#666; margin:0 0 14px;}
+ table{border-collapse:collapse; font-size:11px; width:100%;}
+ th,td{border:1px solid #ddd; padding:5px 8px; text-align:center;}
+ th{background:#0F1419; color:#fff; font-weight:700;}
+ td:first-child,th:first-child{text-align:left; font-weight:600;}
+ @media print{ body{padding:10px;} button{display:none;} }
+</style></head><body>
+<h1>${title}</h1>
+<p>Dicetak: ${new Date().toLocaleString('en-MY')} · ${myOnly && myOnly.checked ? 'Filter: ' + myName : 'All staff'}</p>
+${table.outerHTML}
+</body></html>`;
+ const w = window.open('', '_blank');
+ if(!w) { if(typeof showToast === 'function') showToast('Popup blocked — benarkan popup untuk print.', 'warn'); return; }
+ w.document.write(html);
+ w.document.close();
+ setTimeout(() => { w.print(); }, 300);
+};
+
+// p1_127 — Toggle cuti balance hint when AL/MC/EL/PH selected
+window.__rsToggleBalanceHint = function(shift) {
+ const hint = document.getElementById('reqBalanceHint');
+ if(!hint) return;
+ if(!['AL','MC','EL','PH'].includes(shift)) { hint.style.display = 'none'; return; }
+ const u = window.currentUser || {};
+ // Lookup leave_balance dari staff_profiles fallback
+ let bal = 0;
+ try {
+ if(typeof staff_profiles !== 'undefined' && Array.isArray(staff_profiles)) {
+ const profile = staff_profiles.find(p => p.name === u.name);
+ if(profile) bal = profile.leave_balance || 0;
+ }
+ } catch(e){}
+ // Count this year's approved + pending AL usage
+ let used = 0, pending = 0;
+ try {
+ if(typeof pendingSchedules !== 'undefined' && Array.isArray(pendingSchedules)) {
+ const yr = new Date().getFullYear();
+ pendingSchedules.forEach(r => {
+ if(r.staff_name !== u.name) return;
+ if(new Date(r.date).getFullYear() !== yr) return;
+ if(r.shift === shift) pending++;
+ });
+ }
+ } catch(e){}
+ const labels = { AL:'Cuti Tahunan', MC:'Cuti Sakit', EL:'Kecemasan', PH:'Cuti Umum' };
+ hint.style.display = '';
+ if(shift === 'AL') {
+ hint.innerHTML = `<strong>Baki ${labels[shift]}:</strong> ${bal} hari · <strong>Pending review:</strong> ${pending} permohonan. ${bal <= 0 ? '<span style="color:#991B1B;">Quota dah habis tahun ni.</span>' : ''}`;
+ } else if(shift === 'MC') {
+ hint.innerHTML = `<strong>${labels[shift]}:</strong> Sertakan sijil MC sebagai lampiran. ${pending > 0 ? `<strong>Pending:</strong> ${pending} permohonan` : ''}`;
+ } else {
+ hint.innerHTML = `<strong>${labels[shift]}:</strong> ${pending > 0 ? pending + ' permohonan pending review tahun ni' : 'No pending'}`;
+ }
+};
 
 // p1_68: Roster routing + admin-gate (Bos + Aliff only access admin grid; only Bos approves).
 window.__rosterIsAdmin = function(u) {
@@ -8803,6 +8903,20 @@ window.openRoster = function(btn) {
  if (typeof switchHub === 'function') switchHub(['rosterSection'], 'Jadual Operasi 10 CAMP', btn);
  const adminBtn = document.getElementById('btnOpenAdminRoster');
  if (adminBtn) adminBtn.style.display = window.__rosterIsAdmin() ? 'inline-flex' : 'none';
+
+ // p1_126 — Populate year dropdown dynamically (current ±2 years)
+ try {
+ const yrEl = document.getElementById('publicRosterYear');
+ if(yrEl && !yrEl.dataset.populated) {
+ const cur = new Date().getFullYear();
+ const yrs = [];
+ for(let y = cur - 1; y <= cur + 2; y++) yrs.push(y);
+ yrEl.innerHTML = yrs.map(y => `<option value="${y}"${y === cur ? ' selected' : ''}>${y}</option>`).join('');
+ yrEl.dataset.populated = '1';
+ if(typeof window.setRosterYear === 'function') window.setRosterYear(cur);
+ }
+ } catch(e){}
+
  if (typeof renderStaffSchedule === 'function') renderStaffSchedule();
  if (window.refreshRosterBadge) window.refreshRosterBadge();
  if (window.lucide && lucide.createIcons) lucide.createIcons();

@@ -1813,9 +1813,15 @@
  <h2 style="margin:0; color:var(--primary);">Jadual Syif Bulanan Staf</h2>
  <p style="font-size:13px; color:#888; margin:6px 0 0;">Rujukan jadual waktu bekerja untuk semua kakitangan. Permohonan tukar syif / cuti melalui borang di bawah.</p>
  </div>
+ <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+ <label style="font-size:11px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="rsMyRowOnly" onchange="window.__rsApplyMyRowFilter && window.__rsApplyMyRowFilter()"> Show My Row Only</label>
+ <button onclick="window.__rsPrintSchedule()" style="background:#0EA5E9; color:#fff; border:none; padding:9px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+ <i data-lucide="printer" style="width:14px; height:14px;"></i> Print Jadual
+ </button>
  <button id="btnOpenAdminRoster" onclick="window.openAdminRoster()" style="display:none; background:#6b21a8; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; align-items:center; gap:6px;">
  <i data-lucide="shield" style="width:14px; height:14px;"></i> Mod Pengurusan Roster
  </button>
+ </div>
  </div>
  
  <!-- PUBLIC ROSTER PERMOHONAN FORM -->
@@ -1829,7 +1835,8 @@
  </div>
  <div style="flex:1; min-width:180px;">
  <label class="small-lbl">Syif/Cuti Diminta</label>
- <select id="reqScheduleShift" class="login-input" style="margin:0;" onchange="toggleReqMcUpload(this.value)">
+ <select id="reqScheduleShift" class="login-input" style="margin:0;" onchange="toggleReqMcUpload(this.value); window.__rsToggleBalanceHint && window.__rsToggleBalanceHint(this.value);">
+ <option value="A">Syif A (11:00 AM - 9:00 PM)</option>
  <option value="B">Syif B (2:00 PM - 8:00 PM)</option>
  <option value="C">Syif C (11:00 AM - 8:00 PM)</option>
  <option value="OFF">Cuti Mingguan (OFF)</option>
@@ -1842,20 +1849,20 @@
  <div id="reqMcBox" style="flex:1; min-width:160px; display:none;">
  <label class="small-lbl">Lampiran Sijil MC</label>
  <input type="file" id="reqMcFile" class="login-input" style="margin:0; padding:10px;" accept="image/*,application/pdf">
+ <p style="font-size:10px; color:#6B7280; margin:3px 0 0;">Note: filename direkod sahaja (storage upload TBD)</p>
  </div>
  <div style="flex:1; min-width:120px;">
  <button class="btn-primary" id="reqScheduleBtn" style="margin:0; width:100%; height:44px; background:#0ea5e9;">Hantar Permohonan</button>
  </div>
  </div>
+ <!-- p1_127 — Cuti balance hint (shown when AL/MC/EL selected) -->
+ <div id="reqBalanceHint" style="display:none; margin-top:10px; padding:8px 12px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; font-size:12px; color:#78350F;"></div>
  </div>
 
  <!-- KALENDAR NAVIGATOR (PUBLIC/STAFF) -->
  <div style="background:#fff; border:1px solid #ddd; padding:10px; border-radius:8px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
- <select id="publicRosterYear" class="login-input" style="margin:0; width:90px; padding:6px; font-weight:bold; background:#fafafa;" onchange="setRosterYear(this.value)">
- <option value="2025">2025</option>
- <option value="2026" selected="">2026</option>
- <option value="2027">2027</option>
- </select>
+ <!-- p1_126: dynamic year range, populated by JS supaya tak basi -->
+ <select id="publicRosterYear" class="login-input" style="margin:0; width:90px; padding:6px; font-weight:bold; background:#fafafa;" onchange="setRosterYear(this.value)"></select>
  <div id="publicMonthBtns" style="display:flex; flex-wrap:wrap; gap:5px; flex:1;">
  <!-- Butang Bulan Dijana Automatik Pihak JS -->
  </div>
@@ -5841,7 +5848,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (125/125 · last 2026-05-26) — Reports system (6 templates + workflows) + Phase 2 analytics dashboards (Reorder/Channel/Brand/Supplier/Returns/Margin/Digest) + Stock Take audit fixes',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (128/128 · last 2026-05-26) — Reports system (6 templates + workflows) + Phase 2 analytics dashboards + Stock Take + Roster audits',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5916,6 +5923,9 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_128', label:'Roster polish (P3) — "Show My Row Only" toggle for staff yang nak fokus row diri je (wraps renderStaffSchedule auto-apply post-render). Print Jadual button (#0EA5E9 biru, opens new tab dengan inline CSS print stylesheet, auto window.print 300ms later). MC upload note added clarify "filename direkod sahaja, storage upload TBD".', d:'done' },
+ { id:'p1_127', label:'Roster workflow integration (P2) — Confirm dialog untuk leave types AL/MC/EL/PH sebelum submit ("Sahkan permohonan Cuti Tahunan pada YYYY-MM-DD?"). Inline cuti balance hint #reqBalanceHint amber bg yang auto-show bila pilih AL/MC/EL/PH: papar baki AL hari + pending review count tahun ni, MC papar reminder sertakan sijil, kalau quota habis show red warning. __rsToggleBalanceHint reads staff_profiles.leave_balance + scans pendingSchedules untuk per-staff per-year per-shift count. Wired ke onchange dropdown shift selector.', d:'done' },
+ { id:'p1_126', label:'Roster critical bugs (P1) — Hardcoded year dropdown 2025/2026/2027 (stale after 2027) → dynamic populated via JS pada openRoster (current ±2 years). Shift code mismatch fixed — legend ada Shift A (11am-9pm) tapi form dropdown takda. Added "Syif A (11:00 AM - 9:00 PM)" option to reqScheduleShift dropdown. Bump app.js v245→v246. ROADMAP_DATA 125→128.', d:'done' },
  { id:'p1_125', label:'Stock Take audit polish (P3) — replace via.placeholder.com external image dengan inline SVG fallback (data URI no network dependency). Audit stamp pill upgraded: papar "Disemak X hari lepas" dalam green pill with age-based color (≤7d hijau, 7-30d gray, >30d amber). Remove mock modelNo display, replace dengan real Brand field. Real scan code (p.barcode || p.sku) used in tally scan input bukan random "884..." anymore. Cache bump v244→v245.', d:'done' },
  { id:'p1_124', label:'Stock Take workflow integration (P2) — connect Stock Take section dengan Stock Check Workflow (p1_110) + Reorder Suggest. Tambah 3 butang header: "Submit All Drafts" (bulk submit semua kiraan drafted sekaligus, confirm dialog dulu), "Submit Session ke Zack" (auto-populate stock_check_reports form dengan aggregated items_checked + variance count + rm_variance from drafts, pre-fill summary text). Audit filter baharu: dropdown "Penapis Audit" — Semua / Belum Pernah / Stale >30d / Recent <7d. Filter logic compute age dari auditTimestamps[sku] timestamp. Updated st_filter_label clarify "Velocity 30d" terminology. ROADMAP_DATA 123→124.', d:'done' },
  { id:'p1_123', label:'Stock Take critical bug fixes (P1) — Zaid pilih audit Stock Take section. Issues: (1) erpBarcode random `Math.random()*10` setiap render — fixed dengan p.barcode || p.sku real. (2) Fast/Dead classification wrong logic — guna current stock >10 sebagai velocity proxy. Fixed: build velocity map from salesHistory last 30d (per-SKU sum qty sold), classify Fast >5/30d, Slow 1-5/30d, Dead 0/30d. (3) Mock modelNo "p.sku + -X" removed, replaced dengan real p.brand display + "Sold 30d: N unit" badge color-coded. Bump v244→v245. ROADMAP_DATA 122→123.', d:'done' },
@@ -10409,7 +10419,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=245"></script>
+ <script src="app.js?v=246"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

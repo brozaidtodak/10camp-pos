@@ -5736,7 +5736,12 @@
  <div id="roadmapSection" class="tab-section" style="display:none;">
  <style>
 .roadmap-wrap { padding: 8px 4px 60px; max-width: 1100px; margin: 0 auto; }
-.roadmap-toolbar { display:flex; gap:8px; justify-content:flex-end; margin-bottom:14px; flex-wrap:wrap; }
+.roadmap-toolbar { display:flex; gap:8px; justify-content:flex-end; margin-bottom:14px; flex-wrap:wrap;
+ /* p1_137 — sticky atas page supaya search + filter stay visible bila scroll */
+ position:sticky; top:0; z-index:5; background:var(--bg-color); padding:10px 4px; border-bottom:1px solid var(--border-color); }
+/* p1_137 — flash highlight bila deep-link arrive */
+.deliverable.rm-flash { animation: rmFlash 1.8s ease-out; }
+@keyframes rmFlash { 0% { box-shadow:0 0 0 4px rgba(205,124,50,.5); transform:translateX(0); } 50% { box-shadow:0 0 0 8px rgba(205,124,50,.25); } 100% { box-shadow:0 0 0 0 rgba(205,124,50,0); } }
 .roadmap-toolbar button {
  background:#fff; border:1px solid var(--border-color);
  color:var(--text-main); padding:7px 14px;
@@ -5746,6 +5751,17 @@
  transition:all.15s;
  }
 .roadmap-toolbar button:hover { border-color:var(--primary); color:var(--primary); }
+/* p1_136 — filter pills */
+.rm-pill { background:#fff; border:1px solid var(--border-color); color:var(--text-muted); padding:6px 12px; border-radius:50px; cursor:pointer; font-size:11px; font-weight:700; letter-spacing:.3px; transition:all .15s; }
+.rm-pill:hover { border-color:var(--primary); color:var(--primary); }
+.rm-pill--active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.rm-pill--active:hover { color:#fff; }
+.phase-counts { display:inline-flex; gap:8px; font-size:10.5px; font-weight:700; letter-spacing:.3px; }
+.phase-counts span { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:50px; }
+.phase-counts .pc-done { background:rgba(16,185,129,.12); color:var(--success); }
+.phase-counts .pc-prog { background:rgba(245,158,11,.15); color:var(--warning); }
+.phase-counts .pc-todo { background:var(--border-color); color:var(--text-muted); }
+.rm-empty-phase { padding:18px; text-align:center; color:var(--text-muted); font-size:12px; font-style:italic; }
 .roadmap-overall {
  background:linear-gradient(135deg, #fff 0%, #FBEFE2 100%);
  border:1px solid var(--border-color);
@@ -5754,20 +5770,21 @@
  display:grid; grid-template-columns:160px 1fr; gap:28px;
  align-items:center;
  }
+/* p1_135 — fix compound-class selectors (were never matching: HTML has .ring-bg/.dot/etc as CHILDREN of parent, not same element) */
 .roadmap-ring { position:relative; width:140px; height:140px; }
 .roadmap-ring svg { transform:rotate(-90deg); width:100%; height:100%; }
-.roadmap-ring.ring-bg { fill:none; stroke:var(--border-color); stroke-width:12; }
-.roadmap-ring.ring-fill { fill:none; stroke:var(--primary); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset.6s ease; }
-.roadmap-ring.ring-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.roadmap-ring.ring-num { font-size:32px; font-weight:800; color:var(--primary); letter-spacing:-1px; line-height:1; }
-.roadmap-ring.ring-lbl { font-size:10px; color:var(--text-muted); font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+.roadmap-ring .ring-bg { fill:none; stroke:var(--border-color); stroke-width:12; }
+.roadmap-ring .ring-fill { fill:none; stroke:var(--primary); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset.6s ease; }
+.roadmap-ring .ring-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.roadmap-ring .ring-num { font-size:32px; font-weight:800; color:var(--primary); letter-spacing:-1px; line-height:1; }
+.roadmap-ring .ring-lbl { font-size:10px; color:var(--text-muted); font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
 .roadmap-overall-info h2 { font-size:22px; margin:0 0 6px; letter-spacing:-.5px; }
-.roadmap-overall-info.sub { color:var(--text-muted); font-size:13.5px; margin-bottom:14px; line-height:1.5; }
+.roadmap-overall-info .sub { color:var(--text-muted); font-size:13.5px; margin-bottom:14px; line-height:1.5; }
 .roadmap-stats { display:flex; gap:24px; flex-wrap:wrap; }
-.roadmap-stat.num { font-size:20px; font-weight:800; color:var(--text-main); line-height:1; }
-.roadmap-stat.lbl { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
-.roadmap-stat.done.num { color:var(--success); }
-.roadmap-stat.progress.num { color:var(--warning); }
+.roadmap-stat .num { font-size:20px; font-weight:800; color:var(--text-main); line-height:1; }
+.roadmap-stat .lbl { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+.roadmap-stat.done .num { color:var(--success); }
+.roadmap-stat.progress .num { color:var(--warning); }
 
 .phase-card {
  background:#fff; border:1px solid var(--border-color);
@@ -5784,24 +5801,22 @@
  font-size:10px; font-weight:800; background:var(--primary); color:#fff;
  padding:5px 11px; border-radius:50px; letter-spacing:.8px; white-space:nowrap;
  }
-.phase-card[data-status="done"].phase-num-badge { background:var(--success); }
-.phase-card[data-status="future"].phase-num-badge { background:#9CA3AF; }
+/* p1_135 — descendant combinators (compound was matching nothing) */
+.phase-card[data-status="done"] .phase-num-badge { background:var(--success); }
 .phase-name { font-size:16px; font-weight:700; letter-spacing:-.3px; }
-.phase-name.goal { color:var(--text-muted); font-size:13px; font-weight:500; margin-left:6px; }
+.phase-name .goal { color:var(--text-muted); font-size:13px; font-weight:500; margin-left:6px; }
 .phase-pct {
  font-size:24px; font-weight:800; color:var(--primary);
  letter-spacing:-.5px; min-width:70px; text-align:right; line-height:1;
  }
-.phase-card[data-status="done"].phase-pct { color:var(--success); }
-.phase-card[data-status="future"].phase-pct { color:#9CA3AF; }
+.phase-card[data-status="done"] .phase-pct { color:var(--success); }
 .phase-chevron { transition:transform.25s; color:var(--text-muted); display:inline-flex; align-items:center; }
-.phase-card.expanded.phase-chevron { transform:rotate(180deg); }
+.phase-card.expanded .phase-chevron { transform:rotate(180deg); }
 .phase-bar { height:4px; background:var(--border-color); position:relative; }
 .phase-bar-fill { position:absolute; left:0; top:0; bottom:0; background:var(--primary); transition:width.5s ease; }
-.phase-card[data-status="done"].phase-bar-fill { background:var(--success); }
-.phase-card[data-status="future"].phase-bar-fill { background:#9CA3AF; }
+.phase-card[data-status="done"] .phase-bar-fill { background:var(--success); }
 .phase-body { display:none; padding:6px 22px 20px; border-top:1px solid var(--border-color); }
-.phase-card.expanded.phase-body { display:block; }
+.phase-card.expanded .phase-body { display:block; }
 .phase-meta { display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--text-muted); padding:14px 0 8px; }
 .phase-meta b { color:var(--text-main); font-weight:700; }
 .phase-desc { color:var(--text-muted); font-size:13.5px; margin-bottom:16px; line-height:1.5; }
@@ -5813,26 +5828,27 @@
  cursor:pointer; transition:all.15s; user-select:none;
  }
 .deliverable:hover { border-color:var(--primary); transform:translateX(2px); }
-.deliverable.dot {
+/* p1_135 — descendant combinators (dot/label/state-badge are child spans, not same element) */
+.deliverable .dot {
  width:20px; height:20px; border-radius:50%;
  border:2px solid var(--border-color);
  display:flex; align-items:center; justify-content:center;
  font-size:12px; font-weight:800; color:#fff;
  flex-shrink:0; transition:all.15s; background:#fff;
  }
-.deliverable[data-state="progress"].dot { background:var(--warning); border-color:var(--warning); }
-.deliverable[data-state="progress"].dot::after { content:""; width:8px; height:8px; border-radius:50%; background:#fff; }
-.deliverable[data-state="done"].dot { background:var(--success); border-color:var(--success); }
-.deliverable[data-state="done"].dot::after { content:""; }
-.deliverable.label { font-size:13.5px; flex:1; line-height:1.4; }
-.deliverable[data-state="done"].label { color:var(--text-muted); text-decoration:line-through; }
-.deliverable.state-badge {
+.deliverable[data-state="progress"] .dot { background:var(--warning); border-color:var(--warning); }
+.deliverable[data-state="progress"] .dot::after { content:""; width:8px; height:8px; border-radius:50%; background:#fff; }
+.deliverable[data-state="done"] .dot { background:var(--success); border-color:var(--success); }
+.deliverable[data-state="done"] .dot::after { content:""; }
+.deliverable .label { font-size:13.5px; flex:1; line-height:1.4; }
+.deliverable[data-state="done"] .label { color:var(--text-muted); text-decoration:line-through; }
+.deliverable .state-badge {
  font-size:10px; padding:3px 9px; border-radius:50px;
  font-weight:700; letter-spacing:.3px; text-transform:uppercase; white-space:nowrap;
  }
-.deliverable[data-state="todo"].state-badge { background:var(--border-color); color:var(--text-muted); }
-.deliverable[data-state="progress"].state-badge { background:rgba(245,158,11,.15); color:var(--warning); }
-.deliverable[data-state="done"].state-badge { background:rgba(16,185,129,.15); color:var(--success); }
+.deliverable[data-state="todo"] .state-badge { background:var(--border-color); color:var(--text-muted); }
+.deliverable[data-state="progress"] .state-badge { background:rgba(245,158,11,.15); color:var(--warning); }
+.deliverable[data-state="done"] .state-badge { background:rgba(16,185,129,.15); color:var(--success); }
 
  @media (max-width: 700px) {
 .roadmap-overall { grid-template-columns:1fr; text-align:center; padding:20px; }
@@ -5840,18 +5856,35 @@
 .roadmap-stats { justify-content:center; }
 .phase-head { grid-template-columns:auto 1fr auto; gap:10px; padding:14px 16px; }
 .phase-name { grid-column:1 / -1; order:3; font-size:14px; }
-.phase-name.goal { display:block; margin-left:0; margin-top:2px; }
+.phase-name .goal { display:block; margin-left:0; margin-top:2px; }
 .phase-chevron { display:none; }
  }
  </style>
  <div class="roadmap-wrap">
- <div class="roadmap-toolbar">
+ <!-- p1_136 — search + status filter pills -->
+ <div class="roadmap-toolbar" style="justify-content:space-between; align-items:center;">
+ <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+ <div style="position:relative;">
+ <i data-lucide="search" style="width:13px; height:13px; position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+ <input id="rmSearchInput" type="search" placeholder="Cari deliverable…" oninput="window.__rmSetSearch(this.value)" style="padding:7px 12px 7px 32px; border:1px solid var(--border-color); border-radius:8px; font-size:12px; min-width:240px;">
+ </div>
+ <button class="rm-pill rm-pill--active" data-rm-state="all" onclick="window.__rmSetFilter('all', this)">Semua</button>
+ <button class="rm-pill" data-rm-state="todo" onclick="window.__rmSetFilter('todo', this)">Pending</button>
+ <button class="rm-pill" data-rm-state="progress" onclick="window.__rmSetFilter('progress', this)">In Progress</button>
+ <button class="rm-pill" data-rm-state="done" onclick="window.__rmSetFilter('done', this)">Done</button>
+ </div>
+ <div style="display:flex; gap:8px;">
  <button onclick="window.resetRoadmapProgress()" title="Reset all progress to defaults">
  <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i> Reset
+ </button>
+ <!-- p1_137 — CSV export untuk spreadsheet review -->
+ <button onclick="window.exportRoadmapCSV()" title="Export progress as CSV (Excel/Sheets)">
+ <i data-lucide="table" style="width:13px;height:13px;"></i> Export CSV
  </button>
  <button onclick="window.exportRoadmapState()" title="Export progress as JSON">
  <i data-lucide="download" style="width:13px;height:13px;"></i> Export JSON
  </button>
+ </div>
  </div>
  <div id="roadmapContainer"></div>
  </div>
@@ -5869,7 +5902,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (134/134 · last 2026-06-03) — Reports system (6 templates + workflows) + Phase 2 analytics dashboards + Stock Take + Roster + Cashier + Reports audits',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (137/137 · last 2026-06-03) — Reports + Roadmap audits added; CSS selector bug fixed; search/filter + CSV export + deep-link',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5944,6 +5977,9 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_137', label:'Roadmap UX polish (P3) — (1) Toolbar position:sticky top:0 z-index:5 supaya search + filter pills + export buttons kekal visible bila scroll panjang melalui 137 entries dalam 9 phases (bg matches roadmap-wrap untuk seamless feel). (2) CSV export baharu (table icon, between Reset and JSON) — output 6-col rows (Phase ID / Phase Name / Phase ETA / Deliverable ID / State / Label) dengan UTF-8 BOM (﻿) untuk Excel kenal Malay text properly, CSV-escape values yang ada comma/quote/newline, filename roadmap-progress-YYYY-MM-DD.csv. Bos boleh import ke Google Sheets / Excel untuk weekly review tanpa code. (3) Deep-link URL hash — `pos.10camp.com/#p1_120` auto-expand parent phase + clear filters + scrollIntoView smooth + flash highlight 1.8s (rmFlash keyframes box-shadow pulse primary color). Listen hashchange event untuk SPA navigation. DOMContentLoaded checks initial hash. Useful bila Bos share link ke specific deliverable dengan staff. (4) Animation rmFlash: 0% box-shadow 4px primary 50% alpha, 50% 8px 25%, 100% 0px 0% (fade-out highlight). Bump app.js v248→v249. ROADMAP_DATA 136→137. Phase 1 = 137/137.', d:'done' },
+ { id:'p1_136', label:'Roadmap P2 integration — (1) Search box (search icon left, 240px min-width, placeholder "Cari deliverable…") — filter deliverables case-insensitive by label OR id, debounced via oninput. (2) Status filter pills: Semua / Pending / In Progress / Done — clicking pill mutates window.__rmStateFilter + re-render. Active pill primary bg white text. Combined dengan search query (AND logic). (3) Per-phase status counts pill triple — inline dalam phase head: "120 done · 3 progress · 11 pending" colored hijau/amber/gray, hidden kalau count 0. Memberi Bos visibility instant berapa banyak yang done vs outstanding tanpa expand phase. (4) Filter auto-expand: bila search atau state filter aktif, semua phases dengan matching deliverables auto-expand supaya results visible terus. Phases dengan zero matches sembunyi (skip render). Phase meta gain " · N match filter" hint bila active. (5) Empty-phase state — kalau phase ada deliverables tapi none match current filter, render italic "Tiada deliverable padan filter dalam phase ini" dalam grid spot. (6) State helpers: calcPhaseCounts(p) returns {done, prog, todo, total}; matchesFilters(d) check state + search query. ROADMAP_DATA 135→136.', d:'done' },
+ { id:'p1_135', label:'Roadmap CSS selector bug fix (P1 critical) — discovery: ~30 CSS selectors dalam roadmap <style> block guna compound class syntax (`.roadmap-ring.ring-bg`, `.deliverable.dot`, `.phase-card[data-status="done"].phase-pct`, etc) instead of descendant combinator (`.roadmap-ring .ring-bg`, etc). HTML structure puts .ring-bg/.dot/.label/.phase-pct as CHILDREN of parent, jadi compound selectors match NOTHING — entire visual state styling never applied. Effect sebelum fix: progress ring tiada stroke color (default fill), deliverable dots tak fill bila done/progress (kekal hollow white), state badges tak ada pill colors (default gray), done items tak strikethrough, phase num badge tak hijau bila done, phase-pct tak hijau bila done, phase-chevron tak rotate bila expanded, phase-body tak show bila expanded (kena pakai .expanded compound match yang tak wujud). Fixed all 30 selectors: (a) .roadmap-ring descendants (ring-bg, ring-fill, ring-text, ring-num, ring-lbl), (b) .roadmap-overall-info descendants (.sub), (c) .roadmap-stat descendants (.num, .lbl) + state combinators (.roadmap-stat.done .num, .roadmap-stat.progress .num), (d) .phase-card[data-status] descendants (.phase-num-badge, .phase-pct, .phase-bar-fill), (e) .phase-name descendant (.goal) including media query @max-width:700px, (f) .phase-card.expanded descendants (.phase-chevron, .phase-body), (g) .deliverable descendants (.dot, .label, .state-badge) + state combinators (data-state="progress|done|todo"). Removed dead [data-status="future"] rules (no phase uses "future" status). Roadmap section sekarang fully styled per design intent: ring fills with primary color, dots fill green/amber when done/progress, badges pill-shaped colored, done items strikethrough, expanded phase chevron rotates + body opens. ROADMAP_DATA 134→135.', d:'done' },
  { id:'p1_134', label:'Reports UX polish (P3) — (1) Posted Reports inbox: alert() prompt diganti dengan proper modal overlay (rgba backdrop, 14px rounded card, max 560px, header staff+type badge+timestamp, body styled per submission type, close on backdrop/X/button). BizDev pipeline render sebagai 2-col grid big-number stats. Commission draft papar Kadar % + Amaun RM in 2 hero cards + prepared-by footer. Manual notes preserve whitespace pre-wrap. (2) Period bar tambah "Hari Ini" (today midnight → now) + "7 Hari" (rolling 7d) untuk Bos/Aliff daily-standup view — total 6 pill options (Hari Ini / 7 Hari / Bulan Ini / Bulan Lepas / 30 Hari / YTD). __rpPeriodRange extended dengan dua branch baharu. (3) Print button (printer icon) dalam period bar — open new tab dengan inline print-friendly stylesheet (kpi grid + tables visible, buttons + textarea controls hidden, page-break-inside avoid per section), auto window.print 400ms delay. Header papar staff name + dept + period + dicetak stamp. Bos boleh print snapshot weekly review.', d:'done' },
  { id:'p1_133', label:'Reports P2 integration — wire dengan Phase 2 features. (1) Admin Risk Watch section baharu (3 KPI cards selepas KPI grid utama): Bawah Floor (compute sync dari masterProducts floor_price vs salesHistory in period, count distinct violator SKUs, hijau kalau 0 / merah kalau >0), Pulang/Rosak (async fetch returns_log qty sum in period), Anggaran Loss (async sum cost_impact RM). Aliff one-screen risk view. (2) Inventory template (Kael+Fahmi) tambah Returns/Damages KPI card pada Prestasi Fulfilment grid (async returns_log fetch period-filtered, subtitle papar loss RM kalau >0, border amber kalau ada returns). (3) Sales template (Ariff/Irfan) tambah Channel Saya Jual section — tally per-channel orders+revenue dalam aggregation loop, sort by revenue, papar table dengan badge TOP pada channel paling tinggi, % mix column. Bantu Aliff plan kadar komisen channel-specific. (4) Posted Reports inbox: tambah filter button "Komisen Draf" + handle submission_type=commission_draft dalam preview formatter (papar "Komisen RM X.XX · Y% · disediakan Z"). (5) refreshRailBadges wire railBadgeReportEscalation — count unread staff_report_submissions (bos_read_at IS NULL), visible Bos/mgmt sahaja, fetch ke Supabase head:true count.', d:'done' },
  { id:'p1_132', label:'Reports P1 critical bug fixes — (1) Admin KPI "B2B Touched" sebelum ni count SEMUA b2b customers tanpa filter period — KPI label cakap "akaun baharu + kemaskini" tapi data total semua-masa. Fixed: filter customersData.created_at || updated_at antara startMs..endMs. (2) Memos period filter missing endMs bound — only `>= startMs` open-ended, boleh count future memos. Fixed: add `<= endMs` upper bound. (3) Cuti approval workflow rows "Diluluskan Bulan Ini / Ditolak / Eskalasi" hardcoded `—` since p1_96 (placeholder Phase 1B never wired). Fixed: assign IDs rpCutiApproved/rpCutiRejected + async Promise.all fetch audit_logs LULUS+TOLAK count dengan period range, populate strong elements lepas first render. Eskalasi kekal 0 sebab current setup only Bos approves (no escalation chain). (4) Emoji `⚠` dalam Inventory Simple template (Fahmi backlog warning text) — violates [[no_emojis]] rule. Replaced dengan Lucide alert-triangle icon (#D97706). (5) Commission draft `__rpSaveComm` previously localStorage-only (Ariff staff tak boleh tengok pre-pareds via different device, Bos pun tak nampak). Fixed: convert ke async function + upsert ke staff_report_submissions dengan submission_type=commission_draft, payload {rate, amount, prepared_by, prepared_by_name}, period_key sama dengan __rpPeriod. Bos sekarang nampak commission drafts dalam Posted Reports inbox. Bump app.js v247→v248.', d:'done' },
@@ -6119,6 +6155,31 @@
  const sum = p.deliverables.reduce((a,d)=>a+WEIGHT[getDState(d.id)],0);
  return Math.round((sum/p.deliverables.length)*100);
  }
+ // p1_136 — per-phase status counts (Done/Progress/Todo)
+ function calcPhaseCounts(p){
+ let done=0, prog=0, todo=0;
+ p.deliverables.forEach(d=>{
+ const s = getDState(d.id);
+ if(s==='done') done++; else if(s==='progress') prog++; else todo++;
+ });
+ return { done, prog, todo, total: p.deliverables.length };
+ }
+ // p1_136 — search + state filter
+ window.__rmSearch = '';
+ window.__rmStateFilter = 'all'; // 'all' | 'todo' | 'progress' | 'done'
+ window.__rmSetSearch = function(v){ window.__rmSearch = (v||'').toLowerCase().trim(); renderRoadmap(); };
+ window.__rmSetFilter = function(s, btn){
+ window.__rmStateFilter = s;
+ document.querySelectorAll('[data-rm-state]').forEach(b => b.classList.toggle('rm-pill--active', b.dataset.rmState === s));
+ renderRoadmap();
+ };
+ function matchesFilters(d){
+ const state = getDState(d.id);
+ if(window.__rmStateFilter !== 'all' && state !== window.__rmStateFilter) return false;
+ const q = window.__rmSearch;
+ if(q && !(d.label.toLowerCase().includes(q) || d.id.toLowerCase().includes(q))) return false;
+ return true;
+ }
  function calcOverall(){
  let sum=0,total=0,done=0,prog=0,pend=0;
  ROADMAP_DATA.phases.forEach(p=>p.deliverables.forEach(d=>{
@@ -6154,23 +6215,38 @@
  + '</div></div></div>';
  ROADMAP_DATA.phases.forEach(p=>{
  const pct = calcPhasePct(p);
- const exp = !!expanded[p.id];
+ const counts = calcPhaseCounts(p);
+ // p1_136 — filter deliverables by search + state
+ const filteredDeliverables = p.deliverables.filter(matchesFilters);
+ // Skip phase entirely kalau search aktif + no matches
+ const filterActive = window.__rmSearch || window.__rmStateFilter !== 'all';
+ if(filterActive && filteredDeliverables.length === 0) return;
+ // Auto-expand kalau filtering supaya results visible
+ const exp = filterActive ? true : !!expanded[p.id];
  let st = p.status;
  if (pct===100) st='done';
  else if (pct>0) st='active';
  html += '<div class="phase-card '+(exp?'expanded':'')+'" data-status="'+st+'" data-phase="'+p.id+'">'
  + '<div class="phase-head" onclick="window.__togglePhase(\''+p.id+'\')">'
  + '<div class="phase-num-badge">'+p.num+'</div>'
- + '<div class="phase-name">'+escapeHtml(p.name)+' <span class="goal">— '+escapeHtml(p.goal)+'</span></div>'
+ + '<div class="phase-name">'+escapeHtml(p.name)+' <span class="goal">— '+escapeHtml(p.goal)+'</span>'
+ + ' <span class="phase-counts">'
+ + (counts.done > 0 ? '<span class="pc-done">'+counts.done+' done</span>' : '')
+ + (counts.prog > 0 ? '<span class="pc-prog">'+counts.prog+' progress</span>' : '')
+ + (counts.todo > 0 ? '<span class="pc-todo">'+counts.todo+' todo</span>' : '')
+ + '</span></div>'
  + '<div class="phase-pct">'+pct+'%</div>'
  + '<span class="phase-chevron"><i data-lucide="chevron-down" style="width:18px;height:18px;"></i></span>'
  + '</div>'
  + '<div class="phase-bar"><div class="phase-bar-fill" style="width:'+pct+'%"></div></div>'
  + '<div class="phase-body">'
- + '<div class="phase-meta"><span> <b>'+escapeHtml(p.eta)+'</b></span><span> <b>'+p.deliverables.length+'</b> deliverables</span></div>'
+ + '<div class="phase-meta"><span> <b>'+escapeHtml(p.eta)+'</b></span><span> <b>'+p.deliverables.length+'</b> deliverables'+(filterActive ? ' · <b>'+filteredDeliverables.length+'</b> match filter' : '')+'</span></div>'
  + '<p class="phase-desc">'+escapeHtml(p.desc)+'</p>'
  + '<div class="deliverables-grid">';
- p.deliverables.forEach(d=>{
+ if(filteredDeliverables.length === 0) {
+ html += '<div class="rm-empty-phase">Tiada deliverable padan filter dalam phase ini.</div>';
+ } else {
+ filteredDeliverables.forEach(d=>{
  const s = getDState(d.id);
  html += '<div class="deliverable" data-state="'+s+'" onclick="window.__cycleDeliverable(\''+d.id+'\')">'
  + '<span class="dot"></span>'
@@ -6178,6 +6254,7 @@
  + '<span class="state-badge">'+STATE_LABELS[s]+'</span>'
  + '</div>';
  });
+ }
  html += '</div></div></div>';
  });
  c.innerHTML = html;
@@ -6214,8 +6291,60 @@
  a.click();
  URL.revokeObjectURL(url);
  };
+ // p1_137 — CSV export for spreadsheet review
+ window.exportRoadmapCSV = function(){
+ const rows = [['Phase ID','Phase Name','Phase ETA','Deliverable ID','State','Label']];
+ const csvEscape = v => { const s = String(v == null ? '' : v); return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+ ROADMAP_DATA.phases.forEach(p => {
+ p.deliverables.forEach(d => {
+ rows.push([p.id, p.name, p.eta, d.id, getDState(d.id), d.label]);
+ });
+ });
+ const csv = '﻿' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+ const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = 'roadmap-progress-'+new Date().toISOString().slice(0,10)+'.csv';
+ a.click();
+ URL.revokeObjectURL(url);
+ };
+ // p1_137 — deep-link: #p1_120 → expand parent phase + scroll + flash highlight
+ window.__rmFocusDeliverable = function(deliverableId){
+ if(!deliverableId) return;
+ // Find parent phase
+ const phase = ROADMAP_DATA.phases.find(p => p.deliverables.some(d => d.id === deliverableId));
+ if(!phase) return;
+ // Force expand parent phase
+ const exp = loadExpanded(); exp[phase.id] = true; saveExpanded(exp);
+ // Clear filters supaya target visible
+ window.__rmSearch = ''; window.__rmStateFilter = 'all';
+ const searchEl = document.getElementById('rmSearchInput');
+ if(searchEl) searchEl.value = '';
+ document.querySelectorAll('[data-rm-state]').forEach(b => b.classList.toggle('rm-pill--active', b.dataset.rmState === 'all'));
+ renderRoadmap();
+ // Wait next tick supaya DOM ready
+ setTimeout(() => {
+ const card = document.querySelector('.deliverable[onclick*="'+deliverableId+'"]');
+ if(card) {
+ card.scrollIntoView({behavior:'smooth', block:'center'});
+ card.classList.add('rm-flash');
+ setTimeout(() => card.classList.remove('rm-flash'), 1900);
+ }
+ }, 100);
+ };
+ // Listen for hash changes
+ window.addEventListener('hashchange', () => {
+ const hash = (location.hash || '').replace(/^#/, '');
+ if(/^p\d+_\d+$/.test(hash)) window.__rmFocusDeliverable(hash);
+ });
  window.renderRoadmap = renderRoadmap;
- document.addEventListener('DOMContentLoaded', renderRoadmap);
+ document.addEventListener('DOMContentLoaded', () => {
+ renderRoadmap();
+ // p1_137 — auto-focus deliverable kalau load dengan hash
+ const hash = (location.hash || '').replace(/^#/, '');
+ if(/^p\d+_\d+$/.test(hash)) setTimeout(() => window.__rmFocusDeliverable(hash), 200);
+ });
  })();
  </script>
 
@@ -10446,7 +10575,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=248"></script>
+ <script src="app.js?v=249"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

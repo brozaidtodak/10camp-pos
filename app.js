@@ -5187,6 +5187,63 @@ window.renderAuditCards = function() {
 // Global variable to keep track of audit timestamps per SKU
 let auditTimestamps = {};
 
+// p1_152 — Express Mode: persist toggle in localStorage (default: express ON for staff speed).
+window.__stExpress = (function(){
+ try {
+ const stored = localStorage.getItem('stExpressMode_v1');
+ if(stored === null) return true; // default ON for new users
+ return stored === '1';
+ } catch(e) { return true; }
+})();
+window.__stToggleExpress = function() {
+ window.__stExpress = !window.__stExpress;
+ try { localStorage.setItem('stExpressMode_v1', window.__stExpress ? '1' : '0'); } catch(e){}
+ const lbl = document.getElementById('stExpressLabel');
+ if(lbl) lbl.textContent = window.__stExpress ? 'Express Mode' : 'Penuh (Detail)';
+ const btn = document.getElementById('stExpressToggle');
+ if(btn) btn.style.background = window.__stExpress ? '#F59E0B' : '#6B7280';
+ if(typeof renderStockTake === 'function') renderStockTake();
+};
+
+// p1_152 — Toggle note/location collapse (Express Mode)
+window.__stToggleNote = function(sku) {
+ const el = document.getElementById('st-note-' + sku);
+ if(!el) return;
+ el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+// p1_153 — auto-focus next card's qty input after submit
+window.__stFocusNext = function(currentSku) {
+ // Use rAF to wait for re-render after submit
+ setTimeout(() => {
+ const inputs = Array.from(document.querySelectorAll('[data-st-qty]'));
+ if(!inputs.length) return;
+ // Find next input without value (i.e. not yet counted)
+ const currentIdx = inputs.findIndex(i => i.getAttribute('data-st-qty') === currentSku);
+ const after = inputs.slice(currentIdx + 1);
+ const next = after.find(i => !i.value) || inputs.find(i => !i.value && i.getAttribute('data-st-qty') !== currentSku);
+ if(next) {
+ next.focus();
+ next.scrollIntoView({ behavior:'smooth', block:'center' });
+ }
+ }, 250);
+};
+
+// p1_154 — Progress counter: total products vs audited today
+window.__stUpdateProgress = function() {
+ const el = document.getElementById('stProgressCounter');
+ if(!el || typeof masterProducts === 'undefined') return;
+ const total = masterProducts.length;
+ const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+ const auditedToday = Object.entries(auditTimestamps || {}).filter(([sku, iso]) => {
+ const t = Date.parse(iso || 0);
+ return t >= todayStart.getTime();
+ }).length;
+ el.innerHTML = `<i data-lucide="clipboard-check" style="width:12px; height:12px; vertical-align:-1px;"></i> ${auditedToday} / ${total} hari ni`;
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
 // p1_123 — Build SKU velocity map (units sold last 30 days) — single pass
 function __stBuildVelocity() {
  const cutoff = Date.now() - 30 * 86400000;
@@ -5287,9 +5344,59 @@ function renderStockTake() {
  const currentStatus = p.stock_status || statusStok;
  const currentStatusColor = currentStatus.includes("Fast") ? "var(--success)" : currentStatus.includes("Dead") ? "var(--danger)" : "#6B7280";
 
+ // p1_152 — Express Mode: hide Status/Location/Tally/Komen for speed
+ // p1_153/154 — Enter-to-submit + auto-collapse handled via class hooks
+ const express = !!window.__stExpress;
+ if(express) {
  html += `
- <div class="admin-card" style="padding:15px; border-left:5px solid var(--primary); margin-bottom:0px; background:#fff; display:flex; gap:15px; flex-wrap:wrap;">
- 
+ <div class="st-card admin-card" data-st-sku="${p.sku}" style="padding:14px; border-left:5px solid var(--primary); background:#fff; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+ <img src="${imgUrl}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color); flex-shrink:0;">
+ <div style="flex:1; min-width:160px;">
+ <strong style="color:var(--primary); font-size:15px;">${p.sku}</strong>
+ <p style="font-size:13px; font-weight:600; margin:2px 0 4px;">${p.name}</p>
+ <p style="font-size:11px; color:${sold30 > 5 ? '#10B981' : (sold30 > 0 ? '#D97706' : '#9CA3AF')}; margin:0; font-weight:600;">Sold 30d: ${sold30} unit</p>
+ ${stampHtml}
+ </div>
+ <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+ <div style="text-align:center;">
+ <p class="small-lbl" style="margin:0; font-size:10px;">Sistem</p>
+ <span style="font-size:22px; font-weight:900;" id="sysQty-${p.sku}">${totalStock}</span>
+ </div>
+ <div style="text-align:center;">
+ <p class="small-lbl" style="margin:0; font-size:10px; color:var(--primary);">Kiraan Fizikal</p>
+ <input type="number" id="fizikalQty-${p.sku}" inputmode="numeric" data-st-qty="${p.sku}"
+ onkeyup="calculateVariance('${p.sku}')"
+ onkeydown="if(event.key==='Enter') { event.preventDefault(); submitAuditSingle('${p.sku}'); window.__stFocusNext('${p.sku}'); }"
+ oninput="window.stDraft && window.stDraft.save('${p.sku}', this.value, '')"
+ class="login-input" style="width:90px; text-align:center; margin:0; padding:10px; border-color:var(--primary); font-size:18px; font-weight:700;" placeholder="Qty">
+ </div>
+ <div style="text-align:center; min-width:50px;">
+ <p class="small-lbl" style="margin:0; font-size:10px;">+/-</p>
+ <span style="font-size:16px; font-weight:bold;" id="varianceQty-${p.sku}">0</span>
+ </div>
+ <button onclick="submitAuditSingle('${p.sku}'); window.__stFocusNext('${p.sku}');" class="btn-primary" style="margin:0; padding:10px 18px;"><i data-lucide="check" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit</button>
+ <button onclick="window.__stToggleNote('${p.sku}')" title="Catatan / Lokasi" style="background:#F3F4F6; border:1px solid #E5E7EB; padding:8px; border-radius:6px; cursor:pointer; color:#6B7280;"><i data-lucide="more-horizontal" style="width:14px; height:14px;"></i></button>
+ </div>
+ <!-- Collapsible note row -->
+ <div id="st-note-${p.sku}" style="display:none; width:100%; padding-top:10px; border-top:1px dashed var(--border-color);">
+ <input type="text" id="auditKomen-${p.sku}" oninput="window.stDraft && window.stDraft.save('${p.sku}', (document.getElementById('fizikalQty-${p.sku}')||{}).value || '', this.value)" class="login-input" style="margin:0; padding:8px; font-size:12px;" placeholder="Tulis catatan (Cth: 2 item rosak, lokasi A-3-5, dll)...">
+ <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+ <button onclick="openLocModal('${p.sku}')" style="background:none; border:1px solid var(--border-color); cursor:pointer; font-size:11px; color:var(--primary); padding:6px 10px; border-radius:6px;"><i data-lucide="map-pin" style="width:11px; height:11px; vertical-align:-1px;"></i> Lokasi: ${p.location_bin || p.loc_level || 'belum set'}</button>
+ <select id="statusSelect-${p.sku}" onchange="updateStockStatus('${p.sku}', this.value)" style="font-size:11px; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#fff;">
+ <option value="Fast-Moving (Laku)" ${currentStatus.includes('Fast') ? 'selected' : ''}>Fast-Moving</option>
+ <option value="Dead Stock (Perlahan)" ${currentStatus.includes('Dead') ? 'selected' : ''}>Dead Stock</option>
+ <option value="Normal / Baru" ${(!currentStatus.includes('Fast') && !currentStatus.includes('Dead')) ? 'selected' : ''}>Normal</option>
+ </select>
+ </div>
+ </div>
+ </div>`;
+ return; // skip detailed render
+ }
+
+ // ---- DETAILED MODE (existing full 3-column layout) ----
+ html += `
+ <div class="st-card admin-card" data-st-sku="${p.sku}" style="padding:15px; border-left:5px solid var(--primary); margin-bottom:0px; background:#fff; display:flex; gap:15px; flex-wrap:wrap;">
+
  <!-- Product Image & Basic Info (Left) -->
  <div style="flex:1; min-width:200px; display:flex; gap:10px;">
  <img src="${imgUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color);">
@@ -5311,7 +5418,7 @@ function renderStockTake() {
  <div id="locDisplay-${p.sku}" style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
  <span style="font-family:monospace; font-size:11px; font-weight:bold; background:#E0F2FE; padding:3px 8px; border-radius:4px; border:1px solid #BAE6FD;">${p.location_bin || p.loc_level || 'Belum Ditetapkan'}</span>
  </div>
- 
+
  <p class="small-lbl" style="margin:0; margin-bottom:3px;">Status Stok</p>
  <select id="statusSelect-${p.sku}" onchange="updateStockStatus('${p.sku}', this.value)" style="font-size:11px; padding:3px; border-radius:4px; border:1px solid #ccc; font-weight:bold; background-color:${currentStatusColor}; color:white; width:100%; max-width:160px; cursor:pointer;">
  <option value="Fast-Moving (Laku)" style="background:white; color:black;" ${currentStatus.includes('Fast') ? 'selected' : ''}>Fast-Moving (Laku)</option>
@@ -5329,21 +5436,21 @@ function renderStockTake() {
  </div>
  <div style="text-align:center;">
  <p class="small-lbl" style="margin:0; color:var(--primary);">Kiraan Fizikal</p>
- <input type="number" id="fizikalQty-${p.sku}" onkeyup="calculateVariance('${p.sku}')" oninput="window.stDraft && window.stDraft.save('${p.sku}', this.value, (document.getElementById('auditKomen-${p.sku}')||{}).value || '')" class="login-input" style="width:80px; text-align:center; margin:0; padding:8px; border-color:var(--primary);" placeholder="Qty">
+ <input type="number" id="fizikalQty-${p.sku}" data-st-qty="${p.sku}" onkeyup="calculateVariance('${p.sku}')" onkeydown="if(event.key==='Enter') { event.preventDefault(); submitAuditSingle('${p.sku}'); window.__stFocusNext('${p.sku}'); }" oninput="window.stDraft && window.stDraft.save('${p.sku}', this.value, (document.getElementById('auditKomen-${p.sku}')||{}).value || '')" class="login-input" style="width:80px; text-align:center; margin:0; padding:8px; border-color:var(--primary);" placeholder="Qty">
  </div>
  <div style="text-align:center;">
  <p class="small-lbl" style="margin:0;">Selisih (+/-)</p>
  <span style="font-size:16px; font-weight:bold;" id="varianceQty-${p.sku}">0</span>
  </div>
  </div>
- 
+
  <div style="background:#e0f2fe; border:1px dashed #bae6fd; padding:10px; border-radius:6px; margin-bottom:10px; text-align:center;">
  <label style="font-size:11px; font-weight:bold; color:#0369a1; display:block; margin-bottom:5px;"> Tally Scan Fizikal (+1)</label>
  <input type="text" onkeyup="handleTallyScan(event, '${p.sku}', '${scanCode}')" class="login-input" style="width:100%; text-align:center; padding:6px; margin:0; border-color:#0ea5e9; font-size:12px;" placeholder="Tumpu di sini & scan barcode...">
  </div>
 
  <input type="text" id="auditKomen-${p.sku}" oninput="window.stDraft && window.stDraft.save('${p.sku}', (document.getElementById('fizikalQty-${p.sku}')||{}).value || '', this.value)" class="login-input" style="margin:0; padding:8px; font-size:12px; margin-bottom:10px;" placeholder="Tulis catatan (Cth: 2 item rosak)...">
- 
+
  <button onclick="submitAuditSingle('${p.sku}')" class="btn-primary" style="width:100%; margin:0; padding:10px;">SUBMIT KIRAAN ITEM</button>
  <div id="stampWrapper-${p.sku}">${stampHtml}</div>
  </div>
@@ -5371,6 +5478,14 @@ function renderStockTake() {
  window.stDraft.renderCounter();
  }
  if(window.lucide && lucide.createIcons) lucide.createIcons();
+ // p1_152/154 — sync header toggle label + progress counter
+ try {
+ const lbl = document.getElementById('stExpressLabel');
+ if(lbl) lbl.textContent = window.__stExpress ? 'Express Mode' : 'Penuh (Detail)';
+ const btn = document.getElementById('stExpressToggle');
+ if(btn) btn.style.background = window.__stExpress ? '#F59E0B' : '#6B7280';
+ if(typeof window.__stUpdateProgress === 'function') window.__stUpdateProgress();
+ } catch(e){}
 }
 
 // p1_124 — Bulk submit all drafted Kiraan Fizikal

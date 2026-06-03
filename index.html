@@ -1464,6 +1464,16 @@
  <div class="menu-item mgmt-only" data-group="reports" data-tab="report_team" onclick="switchHub(['reportsTeamSection'], 'Lihat Staf', this); if(typeof renderTeamReports==='function') renderTeamReports();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="users" style="width:16px; height:16px;"></i> <span data-i18n="sb_report_team">Lihat Staf</span>
  </div>
+ <!-- p1_146: Staff feedback / aduan & cadangan — all staff -->
+ <div class="menu-item" data-group="reports" data-tab="staff_feedback" onclick="switchHub(['feedbackSection'], 'Aduan & Cadangan', this); if(typeof renderFeedbackSection==='function') renderFeedbackSection();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="message-square-warning" style="width:16px; height:16px;"></i> Aduan & Cadangan
+ <span class="rail-badge" id="sidebarFeedbackBadge" style="display:none;">0</span>
+ </div>
+ <!-- p1_147: Bos-only inbox -->
+ <div class="menu-item mgmt-only" data-group="reports" data-tab="feedback_inbox" onclick="switchHub(['feedbackInboxSection'], 'Inbox Aduan', this); if(typeof renderFeedbackInbox==='function') renderFeedbackInbox();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="inbox" style="width:16px; height:16px;"></i> Inbox Aduan
+ <span class="rail-badge" id="sidebarFeedbackInboxBadge" style="display:none;">0</span>
+ </div>
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->
  <div class="menu-item hq-only" data-group-toggle="finance" onclick="toggleSidebarGroup('finance')" style="background:none; font-weight:900; color:var(--primary); text-transform:uppercase; font-size:11px; margin-top:15px; margin-bottom:5px;">
@@ -3717,6 +3727,92 @@
  </div>
 
  <!-- ============================================== -->
+ <!-- p1_146 — STAFF FEEDBACK (Aduan & Cadangan) — all staff -->
+ <!-- ============================================== -->
+ <div id="feedbackSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="message-square-warning" style="width:22px; height:22px; color:var(--primary);"></i> Aduan & Cadangan</h2>
+ <p class="rp-subtitle">Hantar aduan bug, cadangan tambah baik, atau request training. Bos akan baca + reply.</p>
+ </div>
+ </div>
+ <!-- Submit form -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="send" style="width:14px;height:14px;"></i> Hantar Aduan Baharu</h3>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+ <div>
+ <label style="font-size:11px; color:#6B7280; font-weight:700; text-transform:uppercase;">Kategori</label>
+ <select id="fbCategory" class="rp-manual-input" style="margin-top:4px; padding:8px;">
+ <option value="bug">Bug (sistem rosak / error)</option>
+ <option value="improvement" selected>Cadangan Tambah Baik</option>
+ <option value="training">Perlu Training</option>
+ <option value="hardware">Hardware (printer/scanner/dll)</option>
+ <option value="other">Lain-lain</option>
+ </select>
+ </div>
+ <div>
+ <label style="font-size:11px; color:#6B7280; font-weight:700; text-transform:uppercase;">Kepentingan</label>
+ <select id="fbSeverity" class="rp-manual-input" style="margin-top:4px; padding:8px;">
+ <option value="low">Rendah (boleh tunggu)</option>
+ <option value="medium" selected>Sederhana</option>
+ <option value="high">Tinggi (ganggu kerja)</option>
+ <option value="critical">Critical (kerja stop)</option>
+ </select>
+ </div>
+ </div>
+ <label style="font-size:11px; color:#6B7280; font-weight:700; text-transform:uppercase; margin-top:6px; display:block;">Tajuk Pendek</label>
+ <input id="fbTitle" type="text" class="rp-manual-input" placeholder="Cth: Print receipt selalu cut-off bahagian bawah" maxlength="120" style="margin-top:4px;">
+ <label style="font-size:11px; color:#6B7280; font-weight:700; text-transform:uppercase; margin-top:10px; display:block;">Penerangan Lanjut</label>
+ <textarea id="fbBody" class="rp-manual-input" rows="5" placeholder="Cth: Bila print receipt selepas customer bayar, baris paling bawah (line 'Terima Kasih') tak masuk. Mungkin sebab thermal printer setting. Tolong check..." maxlength="2000" style="margin-top:4px;"></textarea>
+ <div class="rp-manual-foot" style="margin-top:10px;">
+ <span class="rp-manual-status" id="fbSubmitStatus"></span>
+ <button class="rp-manual-save" onclick="window.submitFeedback()">
+ <i data-lucide="send" style="width:13px;height:13px;"></i> Hantar
+ </button>
+ </div>
+ </div>
+ <!-- My submissions list -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="list" style="width:14px;height:14px;"></i> Aduan Saya</h3>
+ <p class="rp-section__help">Status terkini dan reply dari Bos.</p>
+ <div id="fbMyList">
+ <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- p1_147 — BOS FEEDBACK INBOX — mgmt-only -->
+ <!-- ============================================== -->
+ <div id="feedbackInboxSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="inbox" style="width:22px; height:22px; color:var(--primary);"></i> Inbox Aduan</h2>
+ <p class="rp-subtitle">Aduan & cadangan semua staff. Triage, reply, mark resolved.</p>
+ </div>
+ </div>
+ <!-- Filters + stats -->
+ <div class="rp-section">
+ <div id="fbInboxStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:12px;"></div>
+ <div style="display:flex; gap:6px; flex-wrap:wrap;">
+ <button class="rm-pill rm-pill--active" data-fbi-filter="all" onclick="window.__fbiSetFilter('all', this)">Semua</button>
+ <button class="rm-pill" data-fbi-filter="new" onclick="window.__fbiSetFilter('new', this)">Baru</button>
+ <button class="rm-pill" data-fbi-filter="triaged" onclick="window.__fbiSetFilter('triaged', this)">Triaged</button>
+ <button class="rm-pill" data-fbi-filter="in_progress" onclick="window.__fbiSetFilter('in_progress', this)">Dalam Progress</button>
+ <button class="rm-pill" data-fbi-filter="resolved" onclick="window.__fbiSetFilter('resolved', this)">Resolved</button>
+ <button class="rm-pill" data-fbi-filter="critical" onclick="window.__fbiSetFilter('critical', this)" style="color:#991B1B; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="alert-triangle" style="width:11px; height:11px;"></i> Critical</button>
+ </div>
+ </div>
+ <div id="fbInboxList">
+ <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
  <!-- SETTINGS HUB (p1_92) — EasyStore-style landing -->
  <!-- ============================================== -->
  <div id="settingsHubSection" class="tab-section" style="display:none;">
@@ -5914,7 +6010,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (144/144 · last 2026-06-03) — Pre-staff-launch P0 blockers fixed: audit_logs RLS, memos Supabase sync, staff_profiles persistence',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (147/147 · last 2026-06-03) — Staff Feedback (Aduan & Cadangan) workflow + Pre-launch P0 fixes',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -5989,6 +6085,9 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_147', label:'Bos Aduan Inbox + workflow (p3/3 feedback). Sidebar entry mgmt-only "Inbox Aduan" dalam Laporan group dengan inbox icon + badge (open count: status IN new/triaged/in_progress). Section feedbackInboxSection: (1) Stats grid 5 cards (Total / Baru / Critical Open / Dalam Progress / Resolved) dengan colored bg + dynamic count. (2) Filter pills 6 options (Semua / Baru / Triaged / In Progress / Resolved / Critical — critical filter shows severity=critical AND status NOT resolved/wontfix). Lucide alert-triangle icon untuk Critical button (no_emojis). (3) Each feedback card: avatar + staff name + staff_id + ago timestamp, category/status/severity badges in row, title bold + body whitespace-pre-wrap, workflow controls bottom: Status dropdown (5 options new→triaged→in_progress→resolved/wontfix), Tindakan Singkat input (200 char max), Reply Bos textarea (1000 char max), Simpan button. (4) __fbiSave UPDATE staff_feedback row dengan status + bos_action + bos_reply + updated_at + auto-set triaged_at (status=triaged) atau resolved_at (status=resolved|wontfix). Toast "Updated" + re-render + refresh badges. (5) refreshRailBadges wired: sidebarFeedbackInboxBadge = count(status IN new,triaged,in_progress) for Bos/mgmt sahaja. (6) Workflow pattern: Bos triage (status=triaged dengan tindakan brief), then in_progress (dalam process fix), then resolved (siap) atau wontfix (declined). Staff dapat see bos_reply + tindakan via own Aduan Saya list. ROADMAP_DATA 146→147.', d:'done' },
+ { id:'p1_146', label:'Staff Aduan & Cadangan section + submit form (p2/3 feedback). Critical pre-staff-launch feature — Zaid: 10 CAMP stop selling sampai POS siap, staff perlu channel rasmi report bug + cadangan + training need. Build: (1) Sidebar entry "Aduan & Cadangan" dalam Laporan group (semua staff) + Bos-only "Inbox Aduan" — message-square-warning icon + inbox icon. (2) Section feedbackSection: Submit form 2-col grid (Kategori dropdown 5 options bug/improvement/training/hardware/other + Kepentingan low/medium/high/critical), Tajuk Pendek input (5-120 char min/max), Penerangan Lanjut textarea (10-2000 char). Submit button + status pill flash. (3) submitFeedback validator + INSERT to staff_feedback dengan staff_id/staff_name/category/severity/title/body/status=new. Auto-render section + refresh badges. (4) Aduan Saya list section: fetch own posts last 50 ORDER BY posted_at DESC. Card per post: severity left-border color, category+status badges, title bold + body pre-wrap, ago timestamp, kalau ada bos_reply ATAU bos_action papar green-border reply box dengan reply text + Tindakan. (5) FB_CAT + FB_SEV + FB_STATUS constants centralized untuk consistent styling antara staff view dan inbox view. (6) sidebarFeedbackBadge wired: count own posts dengan bos_reply NOT NULL AND status IN new/triaged/in_progress (means Bos replied tapi staff belum tengok/acknowledge). ROADMAP_DATA 145→146.', d:'done' },
+ { id:'p1_145', label:'Staff feedback schema (p1/3 feedback). Critical pre-staff-launch — Zaid memerlukan channel rasmi untuk staff aduan + cadangan supaya POS boleh improve before bagi full access. sql/2026-06-03_staff_feedback.sql — table dengan id BIGSERIAL PK + staff_id/staff_name + category TEXT (bug/improvement/training/hardware/other) + severity TEXT (low/medium/high/critical) + title + body + status TEXT (new/triaged/in_progress/resolved/wontfix) + bos_reply + bos_action + posted_at + updated_at + triaged_at + resolved_at. RLS authenticated SELECT all (visible cross-staff for transparency) + INSERT + UPDATE (Bos updates status/reply), service_role full. Indexes: status+posted_at DESC (inbox queue), staff_id+posted_at DESC (Aduan Saya), severity+status (filter critical open), partial index on unread (bos_reply IS NULL) untuk fast unread queries. Run via Management API immediate. ROADMAP_DATA 144→145.', d:'done' },
  { id:'p1_144', label:'Pre-staff-launch P0 (3/3): staff_profiles hardcoded array → Supabase persistence. Sebelum ni `let staffProfiles` literal 7 entries dengan leave_balance hardcoded (Aliff 14, Farhan 14, Zack 12, Ariff 10, Irfan 10, Tarmizi 8, Fahmi 8) — bila staff apply cuti + Bos approve, balance turun memori sahaja. Browser refresh → balance reset ke hardcoded values, approval LOST. Critical bug untuk production. Fix: (1) sql/2026-06-03_staff_profiles.sql — table dengan name PRIMARY KEY + leave_balance INT + created_at + updated_at. RLS authenticated read+write+update + service_role full. Seed initial 7 staff dengan ON CONFLICT DO NOTHING (idempotent). (2) JS — window.staffProfileSync(profile) async helper upsert single row to staff_profiles table after every mutation. window.staffProfilesHydrate boot-time fetch merge Supabase values into staffProfiles array (remote overrides local defaults). setTimeout 2000ms hydrate after auth/db settle. (3) Wire 4 mutation points: requestNewSchedule AL deduct + AL refund on overwrite, approveRequest deduct + refund on overwrite, auto-add new profile dari staffSchedules + pendingSchedules. Setiap mutation panggil staffProfileSync. (4) Effect: Bos approve AL dari laptop, balance turun 14→13, persisted Supabase. Staff buka phone, balance 13 confirmed. Cross-device accuracy. ROADMAP_DATA 143→144.', d:'done' },
  { id:'p1_143', label:'Pre-staff-launch P0 (2/3): Memos localStorage → Supabase cross-device persistence. Sebelum ni Memo Board guna localStorage `memos_v1` key — Bos post memo dari laptop, staff buka phone tak nampak. Cross-device sync GAGAL. Critical untuk announcement workflow. Fix: (1) sql/2026-06-03_memos.sql — table memos dengan id TEXT PK + department + title + body + pinned BOOL + status + posted_by_id/name + posted_at + approved_by_name + approved_at + reject_reason + timestamps. RLS auth full CRUD + service_role. Indexes status+posted_at DESC, dept+status, pinned partial WHERE pinned=true. (2) JS hybrid pattern (mirror p1_114 staff_report_submissions) — localStorage stays primary for speed/offline, Supabase source-of-truth on boot + cross-device sync. window.memoUpsertRemote(memo) upsert single, memoDeleteRemote(id) delete, memoHydrateFromRemote() boot pull last 200 + merge (remote wins collision). setTimeout 2500ms hydrate. (3) Wire 4 mutation points: memoSubmit (new + auto-approve Bos), memoApprove, memoConfirmReject, memoDelete. Setiap satu update local + sync remote. (4) Effect: Bos post pinned memo "Cuti Raya 26-30 May" → instant appear semua staff device pakai POS. Reject reason juga sync. Migration retains localStorage fallback for offline use. ROADMAP_DATA 142→143.', d:'done' },
  { id:'p1_142', label:'Pre-staff-launch P0 (1/3): audit_logs RLS allow authenticated role. Diagnostic — audit_logs table ada 2 rows je sejak 2026-05-08 walaupun ada staff activity (permission changes, cuti approvals). Root cause: existing RLS policies hanya wujud untuk `anon` role (read + insert). Bila staff login via email = `authenticated` role context, INSERT terus reject "row violates row-level security policy". 26 days audit silence. Critical untuk accountability + production rollout. Fix: ALTER added 3 policies — "Allow authenticated insert audit_logs" (FOR INSERT TO authenticated WITH CHECK true), "Allow authenticated read audit_logs" (FOR SELECT TO authenticated USING true), "service_role_all_audit" (FOR ALL TO service_role). Test insert as authenticated returned id 5 + timestamp → confirm flow restored. Implication: setiap staff action sekarang properly logged (cuti approve/reject, permission grants, memo approvals, etc). ROADMAP_DATA 141→142.', d:'done' },
@@ -10594,7 +10693,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=252"></script>
+ <script src="app.js?v=253"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

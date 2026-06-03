@@ -3742,6 +3742,228 @@ window.__teamMarkAllRead = async function() {
  }
 };
 
+// p1_146/147 — Staff Feedback (Aduan & Cadangan) ====================================
+
+const FB_CAT = {
+ bug: { label: 'Bug', bg: '#FEE2E2', fg: '#991B1B', icon: 'bug' },
+ improvement: { label: 'Cadangan', bg: '#DBEAFE', fg: '#1E40AF', icon: 'lightbulb' },
+ training: { label: 'Training', bg: '#FAE8FF', fg: '#86198F', icon: 'graduation-cap' },
+ hardware: { label: 'Hardware', bg: '#FEF3C7', fg: '#92400E', icon: 'wrench' },
+ other: { label: 'Lain-lain', bg: '#E5E7EB', fg: '#374151', icon: 'help-circle' }
+};
+const FB_SEV = {
+ low: { label: 'Rendah', color: '#9CA3AF' },
+ medium: { label: 'Sederhana', color: '#0EA5E9' },
+ high: { label: 'Tinggi', color: '#D97706' },
+ critical: { label: 'CRITICAL', color: '#DC2626' }
+};
+const FB_STATUS = {
+ new: { label: 'Baru', bg: '#FEF3C7', fg: '#92400E' },
+ triaged: { label: 'Triaged', bg: '#DBEAFE', fg: '#1E40AF' },
+ in_progress: { label: 'Dalam Progress', bg: '#FAE8FF', fg: '#86198F' },
+ resolved: { label: 'Resolved', bg: '#D1FAE5', fg: '#065F46' },
+ wontfix: { label: 'Wontfix', bg: '#E5E7EB', fg: '#6B7280' }
+};
+
+window.submitFeedback = async function() {
+ const cat = document.getElementById('fbCategory').value;
+ const sev = document.getElementById('fbSeverity').value;
+ const title = (document.getElementById('fbTitle').value || '').trim();
+ const body = (document.getElementById('fbBody').value || '').trim();
+ const statusEl = document.getElementById('fbSubmitStatus');
+ const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+ if(!u) { if(typeof showToast === 'function') showToast('Login dulu', 'warn'); return; }
+ if(!title || title.length < 5) { if(statusEl) statusEl.textContent = 'Tajuk perlu sekurang-kurangnya 5 huruf.'; if(typeof showToast === 'function') showToast('Tajuk pendek sangat', 'warn'); return; }
+ if(!body || body.length < 10) { if(statusEl) statusEl.textContent = 'Penerangan perlu sekurang-kurangnya 10 huruf.'; if(typeof showToast === 'function') showToast('Tulis penerangan lanjut', 'warn'); return; }
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { error } = await db.from('staff_feedback').insert([{
+ staff_id: u.staff_id || 'unknown',
+ staff_name: u.name || 'Unknown',
+ category: cat,
+ severity: sev,
+ title,
+ body,
+ status: 'new'
+ }]);
+ if(error) throw error;
+ if(statusEl) { statusEl.textContent = 'Dihantar. Bos akan baca + reply.'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+ document.getElementById('fbTitle').value = '';
+ document.getElementById('fbBody').value = '';
+ if(typeof showToast === 'function') showToast('Aduan dihantar. Terima kasih.', 'success');
+ window.renderFeedbackSection();
+ if(typeof window.refreshRailBadges === 'function') window.refreshRailBadges();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Hantar gagal: ' + e.message, 'error');
+ }
+};
+
+window.renderFeedbackSection = async function() {
+ const wrap = document.getElementById('fbMyList');
+ if(!wrap) return;
+ const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+ if(!u) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Login dulu.</p>'; return; }
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('staff_feedback').select('*').eq('staff_id', u.staff_id).order('posted_at', { ascending: false }).limit(50);
+ if(error) throw error;
+ const rows = data || [];
+ if(!rows.length) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:30px; text-align:center;">Belum hantar apa-apa aduan. Borang atas — start tulis.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ const ago = (iso) => {
+ const ms = Date.now() - new Date(iso).getTime();
+ const min = Math.floor(ms / 60000);
+ if(min < 1) return 'baru tadi';
+ if(min < 60) return min + ' min lepas';
+ const hr = Math.floor(min / 60);
+ if(hr < 24) return hr + ' jam lepas';
+ return Math.floor(hr / 24) + ' hari lepas';
+ };
+ wrap.innerHTML = rows.map(r => {
+ const cat = FB_CAT[r.category] || FB_CAT.other;
+ const sev = FB_SEV[r.severity] || FB_SEV.medium;
+ const st = FB_STATUS[r.status] || FB_STATUS.new;
+ const hasReply = !!(r.bos_reply || r.bos_action);
+ return `<div style="padding:14px; border:1px solid var(--border-color); border-left:4px solid ${sev.color}; border-radius:10px; margin-bottom:10px; background:#fff;">
+ <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+ <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+ <span style="padding:2px 8px; border-radius:50px; background:${cat.bg}; color:${cat.fg}; font-size:10px; font-weight:700;">${cat.label}</span>
+ <span style="padding:2px 8px; border-radius:50px; background:${st.bg}; color:${st.fg}; font-size:10px; font-weight:700;">${st.label}</span>
+ ${r.severity === 'critical' ? '<span style="padding:2px 8px; border-radius:50px; background:#DC2626; color:#FFF; font-size:10px; font-weight:800;">CRITICAL</span>' : ''}
+ </div>
+ <span style="font-size:11px; color:#6B7280;">${ago(r.posted_at)}</span>
+ </div>
+ <div style="font-weight:700; font-size:13.5px; color:#111; margin-bottom:4px;">${escHtml(r.title)}</div>
+ <div style="font-size:12.5px; color:#374151; line-height:1.5; margin-bottom:8px; white-space:pre-wrap;">${escHtml(r.body)}</div>
+ ${hasReply ? `<div style="margin-top:8px; padding:10px; background:rgba(16,185,129,.06); border-left:3px solid #10B981; border-radius:6px;">
+ <div style="font-size:10px; color:#065F46; font-weight:700; text-transform:uppercase; margin-bottom:4px;"><i data-lucide="reply" style="width:11px; height:11px; vertical-align:middle;"></i> Reply Bos</div>
+ ${r.bos_reply ? `<div style="font-size:12.5px; color:#111; white-space:pre-wrap;">${escHtml(r.bos_reply)}</div>` : ''}
+ ${r.bos_action ? `<div style="font-size:11px; color:#065F46; margin-top:4px;"><strong>Tindakan:</strong> ${escHtml(r.bos_action)}</div>` : ''}
+ </div>` : ''}
+ </div>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) {
+ wrap.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__fbiFilter = 'all';
+window.__fbiSetFilter = function(s, btn) {
+ window.__fbiFilter = s;
+ document.querySelectorAll('[data-fbi-filter]').forEach(b => b.classList.toggle('rm-pill--active', b.dataset.fbiFilter === s));
+ window.renderFeedbackInbox();
+};
+
+window.renderFeedbackInbox = async function() {
+ const wrap = document.getElementById('fbInboxList');
+ const statsEl = document.getElementById('fbInboxStats');
+ if(!wrap) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('staff_feedback').select('*').order('posted_at', { ascending: false }).limit(200);
+ if(error) throw error;
+ let rows = data || [];
+ // Stats (always all rows)
+ if(statsEl) {
+ const all = rows;
+ const counts = {
+ total: all.length,
+ new: all.filter(r => r.status === 'new').length,
+ critical: all.filter(r => r.severity === 'critical' && r.status !== 'resolved' && r.status !== 'wontfix').length,
+ in_progress: all.filter(r => r.status === 'in_progress').length,
+ resolved: all.filter(r => r.status === 'resolved').length
+ };
+ statsEl.innerHTML = `
+ <div style="background:#F3F4F6; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B7280;">Total</div><div style="font-size:18px; font-weight:bold;">${counts.total}</div></div>
+ <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Baru</div><div style="font-size:18px; font-weight:bold;">${counts.new}</div></div>
+ <div style="background:${counts.critical > 0 ? '#FEE2E2' : '#F3F4F6'}; padding:10px; border-radius:6px;"><div style="font-size:10px; color:${counts.critical > 0 ? '#991B1B' : '#6B7280'};">Critical Open</div><div style="font-size:18px; font-weight:bold; color:${counts.critical > 0 ? '#DC2626' : '#111'};">${counts.critical}</div></div>
+ <div style="background:#FAE8FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#86198F;">Dalam Progress</div><div style="font-size:18px; font-weight:bold;">${counts.in_progress}</div></div>
+ <div style="background:#D1FAE5; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#065F46;">Resolved</div><div style="font-size:18px; font-weight:bold;">${counts.resolved}</div></div>
+ `;
+ }
+ // Filter
+ const filter = window.__fbiFilter;
+ if(filter === 'critical') rows = rows.filter(r => r.severity === 'critical' && r.status !== 'resolved' && r.status !== 'wontfix');
+ else if(filter !== 'all') rows = rows.filter(r => r.status === filter);
+ if(!rows.length) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:30px; text-align:center;">Tiada aduan dengan filter ni.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/'/g,"&#39;");
+ const ago = (iso) => {
+ const ms = Date.now() - new Date(iso).getTime();
+ const min = Math.floor(ms / 60000);
+ if(min < 1) return 'baru tadi';
+ if(min < 60) return min + ' min lepas';
+ const hr = Math.floor(min / 60);
+ if(hr < 24) return hr + ' jam lepas';
+ return Math.floor(hr / 24) + ' hari lepas';
+ };
+ wrap.innerHTML = rows.map(r => {
+ const cat = FB_CAT[r.category] || FB_CAT.other;
+ const sev = FB_SEV[r.severity] || FB_SEV.medium;
+ const st = FB_STATUS[r.status] || FB_STATUS.new;
+ const initials = (r.staff_name || '').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+ return `<div style="padding:16px; border:1px solid var(--border-color); border-left:4px solid ${sev.color}; border-radius:10px; margin-bottom:10px; background:#fff;">
+ <div style="display:flex; justify-content:space-between; gap:10px; align-items:start; margin-bottom:8px; flex-wrap:wrap;">
+ <div style="display:flex; gap:10px; align-items:center;">
+ <span class="rp-staff-avatar" style="width:34px; height:34px; font-size:12px;">${escHtml(initials)}</span>
+ <div>
+ <div style="font-weight:700; font-size:13px;">${escHtml(r.staff_name)}</div>
+ <div style="font-size:11px; color:#6B7280;">${escHtml(r.staff_id || '')} · ${ago(r.posted_at)}</div>
+ </div>
+ </div>
+ <div style="display:flex; gap:6px; flex-wrap:wrap;">
+ <span style="padding:2px 8px; border-radius:50px; background:${cat.bg}; color:${cat.fg}; font-size:10px; font-weight:700;">${cat.label}</span>
+ <span style="padding:2px 8px; border-radius:50px; background:${st.bg}; color:${st.fg}; font-size:10px; font-weight:700;">${st.label}</span>
+ <span style="padding:2px 8px; border-radius:50px; background:${sev.color}; color:#FFF; font-size:10px; font-weight:700;">${sev.label}</span>
+ </div>
+ </div>
+ <div style="font-weight:700; font-size:14px; color:#111; margin-bottom:6px;">${escHtml(r.title)}</div>
+ <div style="font-size:12.5px; color:#374151; line-height:1.55; white-space:pre-wrap; margin-bottom:12px;">${escHtml(r.body)}</div>
+ <!-- Workflow controls -->
+ <div style="background:#F9FAFB; padding:10px; border-radius:6px;">
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+ <div>
+ <label style="font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase;">Status</label>
+ <select id="fbi-status-${r.id}" class="rp-manual-input" style="padding:6px; font-size:12px; margin-top:2px;">
+ ${Object.entries(FB_STATUS).map(([k, v]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${v.label}</option>`).join('')}
+ </select>
+ </div>
+ <div>
+ <label style="font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase;">Tindakan Singkat</label>
+ <input id="fbi-action-${r.id}" type="text" class="rp-manual-input" placeholder="Cth: Tukar setting printer" value="${escAttr(r.bos_action || '')}" maxlength="200" style="padding:6px; font-size:12px; margin-top:2px;">
+ </div>
+ </div>
+ <label style="font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase;">Reply Bos (visible ke staff)</label>
+ <textarea id="fbi-reply-${r.id}" class="rp-manual-input" rows="2" placeholder="Cth: Terima kasih, akan check thermal printer setting esok pagi" maxlength="1000" style="padding:6px; font-size:12px; margin-top:2px;">${escHtml(r.bos_reply || '')}</textarea>
+ <div style="display:flex; gap:6px; margin-top:8px; justify-content:flex-end;">
+ <button class="rp-manual-save" onclick="window.__fbiSave(${r.id})" style="font-size:11px; padding:6px 12px;"><i data-lucide="save" style="width:11px; height:11px;"></i> Simpan</button>
+ </div>
+ </div>
+ </div>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) {
+ wrap.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__fbiSave = async function(id) {
+ try {
+ const status = document.getElementById('fbi-status-' + id).value;
+ const action = (document.getElementById('fbi-action-' + id).value || '').trim();
+ const reply = (document.getElementById('fbi-reply-' + id).value || '').trim();
+ const payload = { status, bos_action: action || null, bos_reply: reply || null, updated_at: new Date().toISOString() };
+ if(status === 'triaged') payload.triaged_at = new Date().toISOString();
+ if(status === 'resolved' || status === 'wontfix') payload.resolved_at = new Date().toISOString();
+ const { error } = await db.from('staff_feedback').update(payload).eq('id', id);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast('Updated.', 'success');
+ window.renderFeedbackInbox();
+ if(typeof window.refreshRailBadges === 'function') window.refreshRailBadges();
+ } catch(e) { if(typeof showToast === 'function') showToast('Save gagal: ' + e.message, 'error'); }
+};
+
 // Map data-tab → which rail it belongs to (used for auto-sync rail with current section)
 window.__tabToRail = function(tab) {
  if(!tab) return null;
@@ -3754,7 +3976,7 @@ window.__tabToRail = function(tab) {
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage' || tab === 'admin_channelprofit' || tab === 'admin_brandperf' || tab === 'admin_mktweekly') return 'marketing';
- if(tab === 'report_my' || tab === 'report_team') return 'reports';
+ if(tab === 'report_my' || tab === 'report_team' || tab === 'staff_feedback' || tab === 'feedback_inbox') return 'reports';
  if(tab === 'settings_hub' || tab.startsWith('finance_') || tab.startsWith('admin_settings') || tab === 'admin_payments' || tab === 'admin_sync' || tab === 'admin_test_guide' || tab === 'hq_permissions') return 'hq_setup';
  return null;
 };
@@ -3797,11 +4019,29 @@ window.refreshRailBadges = function() {
  try {
  const u = window.currentUser;
  const canSee = u && ((typeof window.isBoss === 'function' && window.isBoss(u)) || u.role === 'mgmt');
- if(!canSee) { setBadge('railBadgeReportEscalation', 0); return; }
- if(typeof db === 'undefined' || !db) return;
+ if(!canSee) setBadge('railBadgeReportEscalation', 0);
+ else if(typeof db !== 'undefined' && db) {
  db.from('staff_report_submissions').select('id', { count: 'exact', head: true }).is('bos_read_at', null)
  .then(({ count }) => setBadge('railBadgeReportEscalation', count || 0))
  .catch(() => {});
+ }
+ } catch(e){}
+ // p1_146/147 — Feedback badges
+ try {
+ const u = window.currentUser;
+ if(!u || typeof db === 'undefined' || !db) return;
+ // Staff side: count own unread Bos replies (posts dengan bos_reply tapi staff belum tengok)
+ // For simplicity: count own posts in 'new' status that have bos_reply (means Bos replied since)
+ db.from('staff_feedback').select('id', { count: 'exact', head: true }).eq('staff_id', u.staff_id).not('bos_reply', 'is', null).in('status', ['new','triaged','in_progress'])
+ .then(({ count }) => setBadge('sidebarFeedbackBadge', count || 0))
+ .catch(() => {});
+ // Bos side: count new feedback (status=new) + critical open
+ const isMgmt = (typeof window.isBoss === 'function' && window.isBoss(u)) || u.role === 'mgmt';
+ if(isMgmt) {
+ db.from('staff_feedback').select('id', { count: 'exact', head: true }).in('status', ['new','triaged','in_progress'])
+ .then(({ count }) => setBadge('sidebarFeedbackInboxBadge', count || 0))
+ .catch(() => {});
+ } else setBadge('sidebarFeedbackInboxBadge', 0);
  } catch(e){}
 };
 

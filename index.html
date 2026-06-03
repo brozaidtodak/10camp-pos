@@ -1358,6 +1358,10 @@
  <i data-lucide="file-check" style="width:16px; height:16px;"></i> <span data-i18n="sb_stock_check">Stock Check Reports</span>
  <span class="sidebar-badge" id="stockCheckBadge" style="display:none;">0</span>
  </div>
+ <!-- p1_156 — Stock Check History dashboard (Zack request) -->
+ <div class="menu-item mgmt-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_check_history" onclick="switchHub(['stockCheckHistorySection'], 'Stock Check History', this); if(typeof renderStockCheckHistory==='function') renderStockCheckHistory();">
+ <i data-lucide="history" style="width:16px; height:16px;"></i> Stock Check History
+ </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_pricehistory" onclick="switchHub(['priceHistorySection'], 'Price History', this); if(typeof renderPriceHistory==='function') renderPriceHistory();">
  <i data-lucide="line-chart" style="width:16px; height:16px;"></i> <span data-i18n="sb_price_history">Price History</span>
  </div>
@@ -2758,6 +2762,47 @@
  <button class="fin-btn fin-btn--ghost" onclick="window.__scCloseReview()">Batal</button>
  <button class="fin-btn" style="background:#EF4444; color:#FFF;" onclick="window.__scAction('rejected')">Reject</button>
  <button class="fin-btn fin-btn--gold" onclick="window.__scAction('reviewed')"><i data-lucide="check" style="width:13px;height:13px;"></i> Forward to Bos</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- p1_156 — STOCK CHECK HISTORY (Zack dashboard) -->
+ <!-- ============================================== -->
+ <div id="stockCheckHistorySection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="history" style="width:22px; height:22px; color:var(--primary);"></i> Stock Check History</h2>
+ <p class="rp-subtitle">Audit coverage tracker — bila SKU last dikira, mana stale, mana ada variance. Zack (SysMgr) + Bos oversight.</p>
+ </div>
+ <button class="rp-manual-save" onclick="window.renderStockCheckHistory()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh</button>
+ </div>
+ <!-- 4 KPI cards -->
+ <div id="schStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:18px;"></div>
+ <!-- Recent audit days timeline -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="calendar-days" style="width:14px;height:14px;"></i> Aktiviti Audit Terkini</h3>
+ <p class="rp-section__help">Group by tarikh — siapa audit berapa SKU bila.</p>
+ <div id="schTimeline" style="font-size:12.5px;">
+ <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
+ </div>
+ </div>
+ <!-- Top stale SKUs -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> Top 20 SKU Paling Lama Tak Audit</h3>
+ <p class="rp-section__help">Prioritize Kael untuk audit kerana stale paling lama.</p>
+ <div id="schStaleList" style="font-size:12px;">
+ <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
+ </div>
+ </div>
+ <!-- Variance items -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="diff" style="width:14px;height:14px;"></i> Variance Detected</h3>
+ <p class="rp-section__help">SKU dengan kiraan fizikal beza dari stok sistem. Investigate.</p>
+ <div id="schVarianceList" style="font-size:12px;">
+ <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
+ </div>
  </div>
  </div>
  </div>
@@ -6014,7 +6059,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (155/155 · last 2026-06-03) — Historical stock check import (607 SKUs from Jan 2026 Fahmi 2nd check) + audit_timestamps Supabase persistence',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (156/156 · last 2026-06-03) — Stock Check History dashboard for Zack oversight',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6089,6 +6134,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_156', label:'Stock Check History dashboard untuk Zack oversight (Zaid: "zack pun perlukan report tu bro"). Setelah p1_155 import 607 historical audit data, Zack (SysMgr CMP005) perlu dashboard view audit coverage tracker. Build: (1) Sidebar entry baharu dalam Inventory group selepas Stock Check Reports — class mgmt-only (Bos+Aliff+Farhan+Zack visible), history Lucide icon, data-tab="inv_check_history". __tabToRail map ke inv. (2) Section stockCheckHistorySection: Refresh button kanan atas + 4 KPI cards (Total SKU / Audited 30 hari + coverage % / Stale >30 hari amber kalau >0 / Variance count red kalau >0). (3) Aktiviti Audit Terkini table — group products_master.last_audited_at by date+auditor, sort DESC, limit 12 rows. Columns: Tarikh (formatted en-MY) / Auditor / SKU Diaudit count / Variance count colored / Age (hari/bulan/tahun lepas). (4) Top 20 SKU Paling Lama Tak Audit table — sort by last_audited_at ASC dengan NULLS LAST (NULL = paling stale, papar "BELUM PERNAH"). Columns: SKU / Name truncated 60 char / Last Audit age coloured amber / Auditor. (5) Variance Detected table — filter rows WHERE last_audited_qty != last_audited_system_qty, sort by abs(variance) DESC, limit 30. Columns: SKU / Name / Sistem / Fizikal / Selisih color + sign / Audited age. Background red kalau abs(diff) >= 5 (big variance). Hijau "Tiada variance dilaporkan" message kalau zero. (6) Single fetch products_master 5000 rows untuk performance. Synchronous compute all 4 sections from same dataset. (7) Use case Zack daily oversight: buka History → tengok coverage % weekly trend → flag stale SKUs ke Kael utk re-audit → review variance items utk investigate (mungkin shrinkage / receiving error / sale mis-record). Bump app.js v259→v260. ROADMAP_DATA 155→156.', d:'done' },
  { id:'p1_155', label:'Stock Take historical audit import + Supabase persistence (Zaid sheet "WEEKLY 2026 Checkform List" 12 Jan Week 3 Fahmi 2nd check). Sebelum ni `auditTimestamps = {}` in-memory only — refresh page hilang semua "Disemak X hari lepas" stamps. Build: (1) ALTER products_master ADD last_audited_at TIMESTAMPTZ + last_audited_by TEXT + last_audited_qty INT + last_audited_system_qty INT + index on last_audited_at DESC NULLS LAST. (2) Google Drive sheet fetch via rclone backend copyid pakai tencc: remote (drive-export-formats csv). 698-line CSV parsed via Python csv module — handles multi-line product names properly. Header found at row 3, columns NO. SKU (idx 1), QUANTITY Check (idx 10), SYSTEM (idx 11). Filtered ke 607 valid records dengan SKU + QC value. (3) Bulk UPDATE via SQL FROM VALUES pattern — 607 rows seeded dengan last_audited_at = 2026-01-12 08:00 MYT + last_audited_by = "Fahmi (2nd check, imported)" + actual qty values. Verify: COUNT=607, earliest=latest=2026-01-12. SKU overlap 607/607 match products_master. (4) JS — __hydrateAuditTimestamps boot fetch products_master.last_audited_at NOT NULL limit 5000, populate auditTimestamps map. setTimeout 3000ms after auth/db settle. Re-render renderStockTake kalau Stock Take section currently visible. (5) submitAuditSingle updated: timestamp ISO format (was localized string yang tak parse properly for age compute), plus persist update ke Supabase products_master (last_audited_at + by + qty + system_qty) — sehingga staff submit kiraan baharu, all device + refresh nampak stamp updated. (6) Effect: Kael buka Stock Take page → terus nampak 607 items dengan "Disemak 142 hari lepas" stamp (orange sebab >30d stale per p1_125 color logic). Filter "Stale (>30 hari)" sekarang functional dengan data sebenar. Bump app.js v258→v259. ROADMAP_DATA 154→155.', d:'done' },
  { id:'p1_154', label:'Stock Take progress counter dalam header (Zaid: nak mudahkan staff). Header tambah pill "X / Y hari ni" — auditedToday count via auditTimestamps filter today-start, total = masterProducts.length. __stUpdateProgress dipanggil at end of renderStockTake supaya counter auto-update lepas submit. Bantu Kael/Fahmi tahu progress instant tanpa scroll list. clipboard-check Lucide icon. ROADMAP_DATA 153→154.', d:'done' },
  { id:'p1_153', label:'Stock Take Enter-to-submit + auto-advance (Zaid: nak mudahkan staff). (1) Kiraan Fizikal input onkeydown listen Enter key — prevent default + submitAuditSingle(sku) + __stFocusNext(sku). (2) __stFocusNext finds next [data-st-qty] input without value (i.e. belum dikira), focus + smooth scrollIntoView center. Fallback ke first empty input kalau current already last. (3) 250ms setTimeout supaya wait re-render lepas submit. (4) Express + Detail mode both supported. Effect: staff buat 50 items stock check — type qty → Enter → cursor auto-jump next card. Keyboard-only flow tanpa mouse. ROADMAP_DATA 152→153.', d:'done' },
@@ -10705,7 +10751,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=259"></script>
+ <script src="app.js?v=260"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

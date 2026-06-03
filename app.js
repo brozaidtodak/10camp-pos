@@ -4002,7 +4002,7 @@ window.__tabToRail = function(tab) {
  if(tab === 'roadmap') return 'roadmap';
  if(tab.startsWith('sales_')) return 'sales';
  if(tab.startsWith('customers_')) return 'customers';
- if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_pricehistory' || tab === 'inv_reorder' || tab === 'inv_supplier' || tab === 'inv_returns') return 'inv';
+ if(tab.startsWith('inv_') || tab === 'hr_roster' || tab === 'inv_floorprice' || tab === 'inv_stockcheck' || tab === 'inv_check_history' || tab === 'inv_pricehistory' || tab === 'inv_reorder' || tab === 'inv_supplier' || tab === 'inv_returns') return 'inv';
  if(tab.startsWith('hr_')) return 'hr';
  if(tab === 'admin_audit_alerts' || tab === 'admin_dashboard' || tab === 'admin_invoice' || tab === 'admin_bulk_ops') return 'admin';
  if(tab === 'admin_promotions' || tab === 'admin_wa_broadcast' || tab === 'admin_reengage' || tab === 'admin_channelprofit' || tab === 'admin_brandperf' || tab === 'admin_mktweekly') return 'marketing';
@@ -5201,6 +5201,96 @@ window.__hydrateAuditTimestamps = async function() {
  } catch(e) { /* silent */ }
 };
 setTimeout(() => { if(typeof window.__hydrateAuditTimestamps === 'function') window.__hydrateAuditTimestamps(); }, 3000);
+
+// p1_156 — Stock Check History dashboard (Zack request — audit coverage tracker)
+window.renderStockCheckHistory = async function() {
+ const statsEl = document.getElementById('schStats');
+ const timelineEl = document.getElementById('schTimeline');
+ const staleEl = document.getElementById('schStaleList');
+ const varianceEl = document.getElementById('schVarianceList');
+ if(!statsEl) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ // Single fetch — all products dengan audit fields
+ const { data, error } = await db.from('products_master').select('sku,name,last_audited_at,last_audited_by,last_audited_qty,last_audited_system_qty').limit(5000);
+ if(error) throw error;
+ const rows = data || [];
+ const now = Date.now();
+ const ms30 = 30 * 86400000;
+ // KPI compute
+ const total = rows.length;
+ const audited = rows.filter(r => r.last_audited_at).length;
+ const audited30 = rows.filter(r => r.last_audited_at && (now - Date.parse(r.last_audited_at)) <= ms30).length;
+ const stale30 = total - audited30;
+ const withVariance = rows.filter(r => r.last_audited_qty != null && r.last_audited_system_qty != null && r.last_audited_qty !== r.last_audited_system_qty).length;
+ const coverPct = total > 0 ? Math.round((audited30 / total) * 100) : 0;
+ // KPI cards
+ statsEl.innerHTML = `
+ <div style="background:#EFF6FF; padding:14px; border-radius:8px;"><div style="font-size:10px; color:#1E40AF; font-weight:700; text-transform:uppercase;">Total SKU</div><div style="font-size:22px; font-weight:900;">${total}</div><div style="font-size:11px; color:#6B7280;">products_master</div></div>
+ <div style="background:#F0FDF4; padding:14px; border-radius:8px; border-left:4px solid #10B981;"><div style="font-size:10px; color:#065F46; font-weight:700; text-transform:uppercase;">Audited 30 hari</div><div style="font-size:22px; font-weight:900; color:#10B981;">${audited30}</div><div style="font-size:11px; color:#6B7280;">${coverPct}% coverage</div></div>
+ <div style="background:${stale30 > 0 ? '#FEF3C7' : '#F3F4F6'}; padding:14px; border-radius:8px; border-left:4px solid ${stale30 > 0 ? '#D97706' : '#9CA3AF'};"><div style="font-size:10px; color:#92400E; font-weight:700; text-transform:uppercase;">Stale > 30 hari</div><div style="font-size:22px; font-weight:900; color:${stale30 > 0 ? '#D97706' : '#9CA3AF'};">${stale30}</div><div style="font-size:11px; color:#6B7280;">perlu audit balik</div></div>
+ <div style="background:${withVariance > 0 ? '#FEE2E2' : '#F0FDF4'}; padding:14px; border-radius:8px; border-left:4px solid ${withVariance > 0 ? '#EF4444' : '#10B981'};"><div style="font-size:10px; color:${withVariance > 0 ? '#991B1B' : '#065F46'}; font-weight:700; text-transform:uppercase;">Variance</div><div style="font-size:22px; font-weight:900; color:${withVariance > 0 ? '#EF4444' : '#10B981'};">${withVariance}</div><div style="font-size:11px; color:#6B7280;">QC ≠ Sistem</div></div>
+ `;
+
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
+ const fmtAge = (iso) => {
+ const ms = now - Date.parse(iso);
+ const d = Math.floor(ms / 86400000);
+ if(d === 0) return 'hari ini';
+ if(d === 1) return 'semalam';
+ if(d < 30) return d + ' hari lepas';
+ if(d < 365) return Math.floor(d/30) + ' bulan lepas';
+ return Math.floor(d/365) + ' tahun lepas';
+ };
+
+ // Timeline — group by audit date + auditor
+ const audByGroup = {};
+ rows.filter(r => r.last_audited_at).forEach(r => {
+ const day = r.last_audited_at.slice(0, 10);
+ const by = r.last_audited_by || 'Unknown';
+ const key = day + '|' + by;
+ if(!audByGroup[key]) audByGroup[key] = { date: day, by, count: 0, variance: 0 };
+ audByGroup[key].count++;
+ if(r.last_audited_qty != null && r.last_audited_system_qty != null && r.last_audited_qty !== r.last_audited_system_qty) audByGroup[key].variance++;
+ });
+ const timeline = Object.values(audByGroup).sort((a,b) => b.date.localeCompare(a.date)).slice(0, 12);
+ if(timeline.length === 0) {
+ timelineEl.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Tiada audit dilakukan setakat ini.</p>';
+ } else {
+ timelineEl.innerHTML = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:8px;">Tarikh</th><th style="text-align:left; padding:8px;">Auditor</th><th style="text-align:right; padding:8px;">SKU Diaudit</th><th style="text-align:right; padding:8px;">Variance</th><th style="text-align:left; padding:8px;">Age</th></tr></thead><tbody>` +
+ timeline.map(t => `<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:8px;"><strong>${fmtDate(t.date)}</strong></td><td style="padding:8px;">${escHtml(t.by)}</td><td style="text-align:right; padding:8px; font-weight:700;">${t.count}</td><td style="text-align:right; padding:8px; color:${t.variance > 0 ? '#EF4444' : '#10B981'}; font-weight:700;">${t.variance}</td><td style="padding:8px; color:#6B7280; font-size:11px;">${fmtAge(t.date + 'T08:00:00+08:00')}</td></tr>`).join('') + '</tbody></table>';
+ }
+
+ // Top 20 stale (sort by last_audited_at ASC, then nulls last — but for "stale", nulls are MOST stale)
+ const staleSorted = rows.slice().sort((a, b) => {
+ if(!a.last_audited_at && !b.last_audited_at) return 0;
+ if(!a.last_audited_at) return -1; // nulls = most stale
+ if(!b.last_audited_at) return 1;
+ return a.last_audited_at.localeCompare(b.last_audited_at);
+ }).slice(0, 20);
+ staleEl.innerHTML = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:8px;">SKU</th><th style="text-align:left; padding:8px;">Nama</th><th style="text-align:left; padding:8px;">Last Audit</th><th style="text-align:left; padding:8px;">Auditor</th></tr></thead><tbody>` +
+ staleSorted.map(r => `<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:8px;"><strong>${escHtml(r.sku)}</strong></td><td style="padding:8px; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml((r.name || '').slice(0, 60))}</td><td style="padding:8px; color:${r.last_audited_at ? '#D97706' : '#9CA3AF'};">${r.last_audited_at ? fmtAge(r.last_audited_at) : 'BELUM PERNAH'}</td><td style="padding:8px; font-size:11px; color:#6B7280;">${escHtml(r.last_audited_by || '-')}</td></tr>`).join('') + '</tbody></table>';
+
+ // Variance items (top 30 with variance)
+ const varianceRows = rows.filter(r => r.last_audited_qty != null && r.last_audited_system_qty != null && r.last_audited_qty !== r.last_audited_system_qty)
+ .sort((a, b) => Math.abs(b.last_audited_qty - b.last_audited_system_qty) - Math.abs(a.last_audited_qty - a.last_audited_system_qty))
+ .slice(0, 30);
+ if(varianceRows.length === 0) {
+ varianceEl.innerHTML = '<p style="color:#10B981; padding:20px; text-align:center; font-weight:600;"><i data-lucide="check-circle" style="width:14px; height:14px; vertical-align:-2px;"></i> Tiada variance dilaporkan. Semua kiraan matched.</p>';
+ } else {
+ varianceEl.innerHTML = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:8px;">SKU</th><th style="text-align:left; padding:8px;">Nama</th><th style="text-align:right; padding:8px;">Sistem</th><th style="text-align:right; padding:8px;">Fizikal</th><th style="text-align:right; padding:8px;">Selisih</th><th style="text-align:left; padding:8px;">Audited</th></tr></thead><tbody>` +
+ varianceRows.map(r => {
+ const diff = r.last_audited_qty - r.last_audited_system_qty;
+ const diffColor = diff < 0 ? '#EF4444' : '#10B981';
+ return `<tr style="border-bottom:1px solid #F3F4F6; background:${Math.abs(diff) >= 5 ? '#FEF2F2' : 'transparent'};"><td style="padding:8px;"><strong>${escHtml(r.sku)}</strong></td><td style="padding:8px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml((r.name || '').slice(0, 50))}</td><td style="text-align:right; padding:8px;">${r.last_audited_system_qty}</td><td style="text-align:right; padding:8px; font-weight:700;">${r.last_audited_qty}</td><td style="text-align:right; padding:8px; color:${diffColor}; font-weight:800;">${diff > 0 ? '+' : ''}${diff}</td><td style="padding:8px; font-size:11px; color:#6B7280;">${r.last_audited_at ? fmtAge(r.last_audited_at) : '-'}</td></tr>`;
+ }).join('') + '</tbody></table>';
+ }
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) {
+ statsEl.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
 
 // p1_152 — Express Mode: persist toggle in localStorage (default: express ON for staff speed).
 window.__stExpress = (function(){

@@ -61,9 +61,11 @@ body { background: var(--bg-color); color: var(--text-main); }
 .product-card .price { font-size: 17px; color: var(--primary); font-weight: 800; margin: 0 0 4px; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
 /* p1_151 — Shopee-style cut price (Cashier — mirror landing page p1_149) */
 .product-card .price--has-sale { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.product-card .price__sale { color: #EF4444; font-size: 17px; font-weight: 900; letter-spacing: -0.3px; }
-.product-card .price__was { color: #9CA3AF; font-size: 11.5px; font-weight: 500; text-decoration: line-through; }
-.product-card .price__off { background: #FEE2E2; color: #B91C1C; font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.3px; }
+/* p1_166 — Editorial pricing psychology: dark premium price + green savings (positive psychology) */
+.product-card .price__sale { color: #0F172A; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+.product-card .price__was { color: #94A3B8; font-size: 11.5px; font-weight: 400; text-decoration: line-through; text-decoration-thickness: 1px; }
+.product-card .price__off { color: #059669; font-size: 10.5px; font-weight: 700; padding: 0; background: none; letter-spacing: 0.2px; }
+.product-card .price__off::before { content: 'Jimat '; font-weight: 500; opacity: 0.7; }
 .product-card__stock { font-size: 11px; color: #6B7280; margin: 0 0 10px; font-weight: 500; }
 .product-card .stock { font-size: 12px; background: var(--bg-color); padding: 4px; margin-bottom: 10px; border-radius: 4px;}
 .product-card button { background: var(--primary); color: white; border: none; padding: 10px 14px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: 0.2px; margin-top: auto; transition: 0.15s; }

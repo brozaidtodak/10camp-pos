@@ -6377,7 +6377,7 @@ function renderPOS(searchTerm = "") {
  const offPct = isOnSale ? Math.round(((compareAtNum - priceNum) / compareAtNum) * 100) : 0;
  const fmtPrice = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
  const priceHtml = isOnSale
- ? `<p class="price price--has-sale"><span class="price__sale">${fmtPrice(priceNum)}</span><span class="price__was">${fmtPrice(compareAtNum)}</span><span class="price__off">-${offPct}%</span></p>`
+ ? `<p class="price price--has-sale"><span class="price__sale">${fmtPrice(priceNum)}</span><span class="price__was">${fmtPrice(compareAtNum)}</span><span class="price__off">${fmtPrice(compareAtNum - priceNum)}</span></p>`
  : `<p class="price">${fmtPrice(priceNum)}</p>`;
 
  htmlBuf += `
@@ -6386,7 +6386,7 @@ function renderPOS(searchTerm = "") {
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
- ${isOnSale ? `<span class="cat-badge" style="background:#FEE2E2; color:#B91C1C;">-${offPct}%</span>` : ''}
+ ${isOnSale ? `<span class="cat-badge" style="background:#0F172A; color:#FFFFFF;">-${offPct}%</span>` : ''}
  </div>
  <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
@@ -8309,7 +8309,7 @@ window.lpSelectVariant = function(cardId, sku, btn) {
     if (priceEl) {
         // p1_149 — Shopee-style cut price display (Irfan cadangan): sale price red+bold, strikethrough was-price, discount % badge
         priceEl.innerHTML = onSale
-            ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">-${offPct}%</span>`
+            ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">${fmt(compareAt - price)}</span>`
             : fmt(price);
     }
     const parsed = window.lpParseProductName(product);
@@ -8509,7 +8509,7 @@ window.lpRenderPdp = function() {
             <h2 class="lp-pdp__title" id="lpPdpTitle">${escHtml(parsed.title)}</h2>
             <div class="lp-pdp__price-row">
                 <span class="lp-pdp__price">${fmt(price)}</span>
-                ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span><span class="lp-pdp__discount">-${off}%</span>` : ''}
+                ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span><span class="lp-pdp__discount">${fmt(compareAt - price)}</span>` : ''}
             </div>
             ${stockBadge}
             ${quickHtml}
@@ -8735,7 +8735,7 @@ function renderPublicStorefront() {
                     <div class="lp-product-card__meta">${brandPill}${catPill}</div>
                     <h3 class="lp-product-card__name" onclick="window.lpOpenProductDetail('${skuEsc}')">${parsed.title}</h3>
                     <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
-                    <p class="lp-product-card__price" data-role="price">${onSale ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">-${off}%</span>` : fmt(price)}</p>
+                    <p class="lp-product-card__price" data-role="price">${onSale ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">${fmt(compareAt - price)}</span>` : fmt(price)}</p>
                     ${chipsHtml}
                     <!-- p1_165 — Editorial text links (competitor reference). No buttons, no boxes. -->
                     ${totalStock <= 0

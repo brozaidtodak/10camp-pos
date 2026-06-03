@@ -5728,6 +5728,62 @@ window.__stToggleNote = function(sku) {
  if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
+// p1_170 — Quick flag: "Tak Jumpa" sets qty=0 + flag=not_found + auto-note + submits + advances.
+window.__stMarkNotFound = async function(sku) {
+ const fizDom = document.getElementById('fizikalQty-' + sku);
+ const komenDom = document.getElementById('auditKomen-' + sku);
+ const u = window.currentUser || {};
+ const stamp = new Date().toLocaleString('en-MY', { day:'numeric', month:'short', hour:'numeric', minute:'numeric', hour12:true });
+ // Find product location for note
+ let loc = '';
+ try { const p = (masterProducts || []).find(x => x.sku === sku); loc = p ? (p.location_bin || '') : ''; } catch(e){}
+ const noteText = `Tak jumpa${loc ? ' di ' + loc : ''} · ${u.name || '?'} · ${stamp}`;
+ if(fizDom) fizDom.value = '0';
+ if(komenDom) komenDom.value = noteText;
+ // Trigger save + variance
+ if(typeof calculateVariance === 'function') calculateVariance(sku);
+ // Submit (writes to products_master + session_items via existing submitAuditSingle)
+ if(typeof submitAuditSingle === 'function') submitAuditSingle(sku);
+ // Set flag on session item (separate update — submitAuditSingle doesn't carry flag)
+ try {
+ if(window.__stSessionData && typeof db !== 'undefined' && db) {
+ await db.from('stock_check_session_items').update({ flag: 'not_found', note: noteText }).eq('session_id', window.__stSessionData.id).eq('sku', sku);
+ }
+ } catch(e){}
+ if(typeof showToast === 'function') showToast(`${sku} — Tandai TAK JUMPA`, 'warn');
+ // Auto-advance
+ if(typeof window.__stFocusNext === 'function') window.__stFocusNext(sku);
+};
+
+// p1_170 — Quick flag: "Rosak" prompts damaged qty, sets fizikal qty (sistem minus damaged) + flag=damaged + note.
+window.__stMarkDamaged = async function(sku) {
+ const u = window.currentUser || {};
+ const sysQtyEl = document.getElementById('sysQty-' + sku);
+ const sysQty = sysQtyEl ? parseInt(sysQtyEl.textContent, 10) : 0;
+ const damagedStr = prompt(`Berapa unit rosak untuk ${sku}? (sistem: ${sysQty})`, '1');
+ if(damagedStr === null) return;
+ const damaged = parseInt(damagedStr, 10);
+ if(isNaN(damaged) || damaged < 0) { if(typeof showToast === 'function') showToast('Qty rosak tak valid.', 'warn'); return; }
+ const goodQty = Math.max(0, sysQty - damaged);
+ const fizDom = document.getElementById('fizikalQty-' + sku);
+ const komenDom = document.getElementById('auditKomen-' + sku);
+ const stamp = new Date().toLocaleString('en-MY', { day:'numeric', month:'short', hour:'numeric', minute:'numeric', hour12:true });
+ let loc = '';
+ try { const p = (masterProducts || []).find(x => x.sku === sku); loc = p ? (p.location_bin || '') : ''; } catch(e){}
+ const noteText = `${damaged} unit ROSAK${loc ? ' (' + loc + ')' : ''} · baki good ${goodQty} · ${u.name || '?'} · ${stamp}`;
+ if(fizDom) fizDom.value = String(goodQty);
+ if(komenDom) komenDom.value = noteText;
+ if(typeof calculateVariance === 'function') calculateVariance(sku);
+ if(typeof submitAuditSingle === 'function') submitAuditSingle(sku);
+ try {
+ if(window.__stSessionData && typeof db !== 'undefined' && db) {
+ await db.from('stock_check_session_items').update({ flag: 'damaged', note: noteText }).eq('session_id', window.__stSessionData.id).eq('sku', sku);
+ }
+ } catch(e){}
+ if(typeof showToast === 'function') showToast(`${sku} — ${damaged} ROSAK · ${goodQty} good`, 'warn');
+ if(typeof window.__stFocusNext === 'function') window.__stFocusNext(sku);
+};
+
 // p1_153 — auto-focus next card's qty input after submit
 window.__stFocusNext = function(currentSku) {
  // Use rAF to wait for re-render after submit
@@ -5952,6 +6008,9 @@ function renderStockTake() {
  <span style="font-size:16px; font-weight:bold;" id="varianceQty-${p.sku}">0</span>
  </div>
  <button onclick="submitAuditSingle('${p.sku}'); window.__stFocusNext('${p.sku}');" class="btn-primary" style="margin:0; padding:10px 18px;"><i data-lucide="check" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit</button>
+ <!-- p1_170 — Quick flag actions: Tak Jumpa (qty=0, flag=not_found) + Rosak (prompt damaged qty, flag=damaged) -->
+ <button onclick="window.__stMarkNotFound('${p.sku}')" title="Item tak jumpa di lokasi" style="background:#FEE2E2; border:1px solid #FCA5A5; padding:8px 12px; border-radius:6px; cursor:pointer; color:#991B1B; font-size:11px; font-weight:700;"><i data-lucide="search-x" style="width:12px; height:12px; vertical-align:-1px;"></i> Tak Jumpa</button>
+ <button onclick="window.__stMarkDamaged('${p.sku}')" title="Item rosak / damaged" style="background:#FED7AA; border:1px solid #FB923C; padding:8px 12px; border-radius:6px; cursor:pointer; color:#9A3412; font-size:11px; font-weight:700;"><i data-lucide="alert-triangle" style="width:12px; height:12px; vertical-align:-1px;"></i> Rosak</button>
  <button onclick="window.__stToggleNote('${p.sku}')" title="Catatan / Lokasi" style="background:#F3F4F6; border:1px solid #E5E7EB; padding:8px; border-radius:6px; cursor:pointer; color:#6B7280;"><i data-lucide="more-horizontal" style="width:14px; height:14px;"></i></button>
  </div>
  <!-- Collapsible note row -->
@@ -6029,6 +6088,11 @@ function renderStockTake() {
  <input type="text" id="auditKomen-${p.sku}" oninput="window.stDraft && window.stDraft.save('${p.sku}', (document.getElementById('fizikalQty-${p.sku}')||{}).value || '', this.value)" class="login-input" style="margin:0; padding:8px; font-size:12px; margin-bottom:10px;" placeholder="Tulis catatan (Cth: 2 item rosak)...">
 
  <button onclick="submitAuditSingle('${p.sku}')" class="btn-primary" style="width:100%; margin:0; padding:10px;">SUBMIT KIRAAN ITEM</button>
+ <!-- p1_170 — Quick flag actions in Detail mode -->
+ <div style="display:flex; gap:6px; margin-top:6px;">
+ <button onclick="window.__stMarkNotFound('${p.sku}')" style="flex:1; background:#FEE2E2; border:1px solid #FCA5A5; padding:8px; border-radius:6px; cursor:pointer; color:#991B1B; font-size:11px; font-weight:700;"><i data-lucide="search-x" style="width:11px; height:11px; vertical-align:-1px;"></i> Tak Jumpa</button>
+ <button onclick="window.__stMarkDamaged('${p.sku}')" style="flex:1; background:#FED7AA; border:1px solid #FB923C; padding:8px; border-radius:6px; cursor:pointer; color:#9A3412; font-size:11px; font-weight:700;"><i data-lucide="alert-triangle" style="width:11px; height:11px; vertical-align:-1px;"></i> Rosak</button>
+ </div>
  <div id="stampWrapper-${p.sku}">${stampHtml}</div>
  </div>
  </div>

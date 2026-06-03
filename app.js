@@ -6011,15 +6011,26 @@ function renderPOS(searchTerm = "") {
  }
  const safeName = cleanName.replace(/"/g, '&quot;');
 
+ // p1_151 — Shopee-style cut price in Cashier (mirror landing page p1_149)
+ const priceNum = parseFloat(p.price || 0);
+ const compareAtNum = parseFloat(p.compare_at_price || 0);
+ const isOnSale = compareAtNum > priceNum && priceNum > 0;
+ const offPct = isOnSale ? Math.round(((compareAtNum - priceNum) / compareAtNum) * 100) : 0;
+ const fmtPrice = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+ const priceHtml = isOnSale
+ ? `<p class="price price--has-sale"><span class="price__sale">${fmtPrice(priceNum)}</span><span class="price__was">${fmtPrice(compareAtNum)}</span><span class="price__off">-${offPct}%</span></p>`
+ : `<p class="price">${fmtPrice(priceNum)}</p>`;
+
  htmlBuf += `
  <div class="product-card">
  <img src="${thumb}" class="pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail">
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
+ ${isOnSale ? `<span class="cat-badge" style="background:#FEE2E2; color:#B91C1C;">-${offPct}%</span>` : ''}
  </div>
  <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="${safeName}">${cleanName}</h3>
- <p class="price">RM ${parseFloat(p.price).toFixed(2)}</p>
+ ${priceHtml}
  <p class="product-card__stock">${totalStock <= 0 ? 'Out of stock' : `${totalStock} ${p.unit||'pcs'} in stock`}</p>
  <button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? 'Out of Stock' : 'Add to Cart'}</button>
  </div>

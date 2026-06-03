@@ -3264,35 +3264,41 @@ window.__psListFilter = function() {
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
  const MAX = 300;
  const slice = rows.slice(0, MAX);
- // Single-quote SVG fallback (double quotes broke HTML attr). Set on window for re-use in onerror.
- if(!window.__psNoImg) window.__psNoImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><rect width='160' height='160' fill='%23F9FAFB'/><text x='80' y='86' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='13'>No Image</text></svg>";
- const cards = slice.map(p => {
+ // Single-quote SVG fallback (window.__psNoImg) — safe in onerror without escaping
+ if(!window.__psNoImg) window.__psNoImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F9FAFB'/><text x='40' y='44' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='10'>No Img</text></svg>";
+ const body = slice.map(p => {
  const price = Number(p.price || 0);
  const cost = Number(p.cost_rmb || 0);
  const stock = Number(p.stock || 0);
  let badge = '';
- let badgeBg = '#fff';
- if(price > 0 && cost > 0) { badge = 'Set'; badgeBg = '#D1FAE5'; }
- else if(price > 0) { badge = 'No Cost'; badgeBg = '#FEF3C7'; }
- else { badge = 'Belum Set'; badgeBg = '#FEE2E2'; }
+ if(price > 0 && cost > 0) badge = '<span style="background:#D1FAE5; color:#065F46; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">Set</span>';
+ else if(price > 0) badge = '<span style="background:#FEF3C7; color:#92400E; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">No Cost</span>';
+ else badge = '<span style="background:#FEE2E2; color:#991B1B; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">Belum Set</span>';
  const skuRaw = p.sku || '';
  const skuSafe = escHtml(skuRaw);
  const skuArg = skuRaw.replace(/'/g, "\\'");
  const imgSrc = (p.images && p.images[0]) ? p.images[0] : window.__psNoImg;
- const badgeColor = badge === 'Set' ? '#065F46' : (badge === 'No Cost' ? '#92400E' : '#991B1B');
- return `<div class="ps-list-card" onclick="window.__psLoadFromList('${skuArg}')">`
- + `<div class="ps-list-card__img-wrap"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" alt=""><span class="ps-list-card__badge" style="background:${badgeBg}; color:${badgeColor};">${badge}</span></div>`
- + `<div class="ps-list-card__body">`
- + `<div class="ps-list-card__sku">${skuSafe}</div>`
- + `<div class="ps-list-card__name">${escHtml((p.name || '').slice(0, 80))}</div>`
- + `<div class="ps-list-card__meta">${escHtml(p.brand || '—')} · Stok: <strong style="color:${stock <= 0 ? '#EF4444' : '#111'};">${stock}</strong></div>`
- + `<div class="ps-list-card__prices">`
- + `<span class="ps-list-card__price" style="color:${price > 0 ? '#111' : '#9CA3AF'};">${price > 0 ? 'RM ' + price.toFixed(2) : '—'}</span>`
- + `<span class="ps-list-card__cost" style="color:${cost > 0 ? '#6B7280' : '#D1D5DB'};">${cost > 0 ? '¥' + cost.toFixed(2) : '—'}</span>`
- + `</div>`
- + `</div></div>`;
+ return `<tr class="ps-list-row" onclick="window.__psLoadFromList('${skuArg}')">`
+ + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
+ + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono', Menlo, ui-monospace, monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; line-height:1.4;">${escHtml((p.name || '').slice(0, 80))}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; text-align:right; font-weight:${price > 0 ? '700' : '400'}; color:${price > 0 ? '#111827' : '#9CA3AF'};">${price > 0 ? 'RM ' + price.toFixed(2) : '—'}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${cost > 0 ? '#111827' : '#9CA3AF'};">${cost > 0 ? '¥ ' + cost.toFixed(2) : '—'}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'}; font-weight:600;">${stock}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; text-align:center;">${badge}</td></tr>`;
  }).join('');
- const html = `<div class="ps-list-grid">${cards}</div>`
+ const html = '<table class="ps-list-table">'
+ + '<thead><tr>'
+ + '<th style="width:96px;"></th>'
+ + '<th style="text-align:left;">SKU</th>'
+ + '<th style="text-align:left;">Nama</th>'
+ + '<th style="text-align:left;">Brand</th>'
+ + '<th style="text-align:right;">Harga Skrg</th>'
+ + '<th style="text-align:right;">Cost RMB</th>'
+ + '<th style="text-align:right;">Stok</th>'
+ + '<th style="text-align:center;">Status</th>'
+ + '</tr></thead><tbody>' + body + '</tbody></table>'
  + (rows.length > MAX ? `<p style="padding:12px; text-align:center; color:#9CA3AF; font-size:11.5px; border-top:1px solid var(--border-color);">Tunjuk ${MAX} pertama daripada ${rows.length}. Tapis lebih halus untuk lihat selebihnya.</p>` : '');
  wrap.innerHTML = html;
 };

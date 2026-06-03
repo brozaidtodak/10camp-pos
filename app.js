@@ -8291,16 +8291,18 @@ window.lpSelectVariant = function(cardId, sku, btn) {
         if (oldBuyRow) oldBuyRow.outerHTML = `<button class="lp-product-card__btn" data-role="add-btn" disabled>${soldOutLbl}</button>`;
     } else if (buyRow) {
         const waMsg = encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || sku) + ' (SKU ' + sku + ')');
-        buyRow.innerHTML = `<a href="https://shopee.com.my/10camp.os" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee">Shopee</a>
-            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok">TikTok</a>
-            <a href="https://wa.me/601133109547?text=${waMsg}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa">WhatsApp</a>`;
+        const skuParam = encodeURIComponent(sku);
+        buyRow.innerHTML = `<a href="https://shopee.com.my/10camp.os?searchKeyword=${skuParam}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee" title="Cari ${sku} di Shopee 10 CAMP">Shopee</a>
+            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok" title="Buka TikTok Shop 10 CAMP (cari ${sku})">TikTok</a>
+            <a href="https://wa.me/601133109547?text=${waMsg}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa" title="Tanya kedai via WhatsApp">WhatsApp</a>`;
     } else {
         // Card didn't have buy row (e.g. previously sold-out), inject one
         const oldAddBtn = card.querySelector('[data-role="add-btn"]');
         if (oldAddBtn) {
             const waMsg = encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || sku) + ' (SKU ' + sku + ')');
+            const skuParam = encodeURIComponent(sku);
             oldAddBtn.outerHTML = `<div class="lp-product-card__buy">
-                <a href="https://shopee.com.my/10camp.os" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee">Shopee</a>
+                <a href="https://shopee.com.my/10camp.os?searchKeyword=${skuParam}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee">Shopee</a>
                 <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok">TikTok</a>
                 <a href="https://wa.me/601133109547?text=${waMsg}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa">WhatsApp</a>
             </div>`;
@@ -8472,14 +8474,14 @@ window.lpRenderPdp = function() {
             ${variantsHtml ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Options (${state.variants.length})</h4><div class="lp-pdp__variants">${variantsHtml}</div></div>` : ''}
             ${descHtml}
             ${specsHtml}
-            <!-- p1_160 — replaced single Add to Cart with marketplace funnel (no checkout on landing) -->
+            <!-- p1_161 — PDP marketplace funnel with per-SKU search URLs -->
             ${totalStock <= 0
                 ? `<div class="lp-pdp__cta-row"><button class="lp-pdp__cta" disabled>Sold Out</button></div>`
                 : `<div class="lp-pdp__buy-row">
-                    <div style="font-size:13px; color:#374151; margin-bottom:10px; font-weight:600;">Beli stok ini di:</div>
+                    <div style="font-size:13px; color:#374151; margin-bottom:10px; font-weight:600;">Beli <strong>${current.sku}</strong> di:</div>
                     <div class="lp-pdp__buy-grid">
-                        <a href="https://shopee.com.my/10camp.os" target="_blank" rel="noopener" class="lp-pdp__buy-btn lp-pdp__buy-btn--shopee"><strong>Shopee</strong><span>Free shipping</span></a>
-                        <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-pdp__buy-btn lp-pdp__buy-btn--tiktok"><strong>TikTok Shop</strong><span>Voucher promo</span></a>
+                        <a href="https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}" target="_blank" rel="noopener" class="lp-pdp__buy-btn lp-pdp__buy-btn--shopee" title="Cari ${current.sku} di Shopee 10 CAMP"><strong>Shopee</strong><span>Cari SKU</span></a>
+                        <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-pdp__buy-btn lp-pdp__buy-btn--tiktok" title="Buka TikTok Shop (cari ${current.sku})"><strong>TikTok Shop</strong><span>Voucher promo</span></a>
                         <a href="https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}" target="_blank" rel="noopener" class="lp-pdp__buy-btn lp-pdp__buy-btn--wa"><strong>WhatsApp</strong><span>Tanya kedai</span></a>
                     </div>
                     <div style="font-size:12px; color:#6B7280; margin-top:12px; padding:10px; background:#F9FAFB; border-radius:8px;"><i data-lucide="map-pin" style="width:12px; height:12px; vertical-align:-1px;"></i> Atau singgah <strong>Kedai 10 CAMP Cyberjaya</strong> · Mon-Sat 10am-9pm</div>
@@ -8694,13 +8696,13 @@ function renderPublicStorefront() {
                     <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
                     <p class="lp-product-card__price" data-role="price">${onSale ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">-${off}%</span>` : fmt(price)}</p>
                     ${chipsHtml}
-                    <!-- p1_160 — replaced "Add to Cart" (no checkout flow on landing) with marketplace funnel buttons -->
+                    <!-- p1_161 — per-SKU search URLs (Shopee shop-scoped + TikTok shop), WhatsApp SKU-aware -->
                     ${totalStock <= 0
                         ? `<button class="lp-product-card__btn" data-role="add-btn" disabled>${soldOutLabel}</button>`
                         : `<div class="lp-product-card__buy">
-                            <a href="https://shopee.com.my/10camp.os" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee">Shopee</a>
-                            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok">TikTok</a>
-                            <a href="https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || skuEsc) + ' (SKU ' + skuEsc + ')')}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa">WhatsApp</a>
+                            <a href="https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(skuEsc)}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee" title="Cari ${skuEsc} di Shopee 10 CAMP">Shopee</a>
+                            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok" title="Buka TikTok Shop 10 CAMP (cari ${skuEsc})">TikTok</a>
+                            <a href="https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || skuEsc) + ' (SKU ' + skuEsc + ')')}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa" title="Tanya kedai via WhatsApp">WhatsApp</a>
                         </div>`
                     }
                 </div>

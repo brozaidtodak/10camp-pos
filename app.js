@@ -14971,7 +14971,7 @@ window.openCustomerDetail = function(id) {
  + '<div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Pesanan / Orders</div><div style="font-size:16px; font-weight:bold;">' + (c.total_orders || 0) + '</div></div>'
  + '<div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Mata / Points</div><div style="font-size:16px; font-weight:bold;">' + (c.points || 0) + '</div></div>'
  + '</div>'
- + (c.is_member ? '<div style="background:#FEF3C7; color:#92400E; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:700; margin-bottom:12px; display:inline-block;">⭐ VIP Member</div>' : '')
+ + (c.is_member ? '<div style="background:#FEF3C7; color:#92400E; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:700; margin-bottom:12px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="star" style="width:12px; height:12px;"></i> VIP Member</div>' : '')
  + '<h3 style="font-size:13px; margin:6px 0; color:#111;">10 Pembelian Terakhir / Last 10 purchases</h3>'
  + '<table style="width:100%; font-size:12px; border-collapse:collapse;"><thead><tr style="background:#FAFAFA;"><th style="text-align:left; padding:6px;">Tarikh</th><th style="text-align:left; padding:6px;">Channel</th><th style="text-align:right; padding:6px;">Jumlah</th></tr></thead><tbody>'
  + salesRows
@@ -14981,6 +14981,8 @@ window.openCustomerDetail = function(id) {
  const tmp = document.createElement('div');
  tmp.innerHTML = html;
  document.body.appendChild(tmp.firstChild);
+ // p1_140 — render Lucide star icon for VIP (replaced ⭐ emoji)
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
 // p1_80 fix #8: "Show More" button increments shown count by current pageSize.
@@ -18095,13 +18097,32 @@ window.renderB2BCustomers = function() {
  const status = document.getElementById('b2bStatus')?.value || 'all';
  const sortMode = document.getElementById('b2bSort')?.value || 'spent_desc';
 
+ // p1_139 — build actual orders count from salesHistory as fallback when denormalized counter unreliable
+ const b2bOrderCounts = {};
+ if(typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) {
+ salesHistory.forEach(s => {
+ const phone = (s.customer_phone || '').trim();
+ const name = (s.customer_name || '').trim();
+ if(phone) b2bOrderCounts[phone] = (b2bOrderCounts[phone] || 0) + 1;
+ if(name) b2bOrderCounts[name.toLowerCase()] = (b2bOrderCounts[name.toLowerCase()] || 0) + 1;
+ });
+ }
+ const realOrders = (c) => {
+ const denorm = Number(c.total_orders || 0);
+ if(denorm > 0) return denorm;
+ const phoneMatch = (c.pic_phone || c.phone || '').trim();
+ const nameMatch = (c.company_name || c.name || '').trim().toLowerCase();
+ return (b2bOrderCounts[phoneMatch] || 0) + (b2bOrderCounts[nameMatch] || 0);
+ };
+
  let filtered = all.filter(c => {
  if(q) {
  const hay = `${c.company_name||''} ${c.name||''} ${c.phone||''} ${c.pic_phone||''} ${c.buyer_tin||''}`.toLowerCase();
  if(!hay.includes(q)) return false;
  }
- if(status === 'active' && (c.total_orders||0) === 0) return false;
- if(status === 'inactive' && (c.total_orders||0)> 0) return false;
+ // p1_139 — use realOrders() to handle denormalized total_orders drift
+ if(status === 'active' && realOrders(c) === 0) return false;
+ if(status === 'inactive' && realOrders(c) > 0) return false;
  return true;
  });
 
@@ -18117,18 +18138,22 @@ window.renderB2BCustomers = function() {
 
  if(statsEl) {
  const totalSpent = filtered.reduce((s, c) => s + (c.total_spent||0), 0);
- const totalCredit = filtered.reduce((s, c) => s + (parseFloat(c.credit_limit)||0), 0);
- const activeCount = filtered.filter(c => (c.total_orders||0)> 0).length;
+ // p1_139 — was misleadingly labelled "Credit Exposure" but only sums credit LIMITS, not outstanding balance.
+ // Relabel to accurate name. Real exposure tracking pending invoice/AR table integration.
+ const totalCreditLimit = filtered.reduce((s, c) => s + (parseFloat(c.credit_limit)||0), 0);
+ const activeCount = filtered.filter(c => realOrders(c) > 0).length;
  statsEl.innerHTML = `
  <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">B2B Total</div><div style="font-size:18px; font-weight:bold;">${filtered.length}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Active (≥1 order)</div><div style="font-size:18px; font-weight:bold;">${activeCount}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Credit Exposure</div><div style="font-size:18px; font-weight:bold;">RM ${totalCredit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Credit Limits</div><div style="font-size:18px; font-weight:bold;">RM ${totalCreditLimit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  `;
  }
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:20px;">Tiada B2B customer. Klik <strong>Tambah B2B</strong> untuk register first wholesale account.</td></tr>';
+ // p1_141 — better empty state with Lucide icon + bigger padding
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#9CA3AF; padding:36px 20px;"><div style="margin-bottom:8px;"><i data-lucide="briefcase" style="width:32px; height:32px; color:#D1D5DB;"></i></div><div style="font-size:13px; color:#6B7280;">Tiada B2B customer padan filter.</div><div style="font-size:11px; color:#9CA3AF; margin-top:4px;">Cuba clear filter atau klik <strong>+ Tambah B2B</strong> untuk register wholesale account baharu.</div></td></tr>';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
  return;
  }
 
@@ -18138,23 +18163,170 @@ window.renderB2BCustomers = function() {
  const tin = c.buyer_tin || '-';
  const terms = c.payment_terms || '-';
  const cl = c.credit_limit ? `RM ${parseFloat(c.credit_limit).toFixed(2)}` : '-';
- const spent = (c.total_spent||0).toFixed(2);
- const orders = c.total_orders || 0;
+ // p1_139 — display Total Spent: use realOrders to show actual count, threshold uses CSS var
+ const spentNum = Number(c.total_spent || 0);
+ const orders = realOrders(c);
+ const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/'/g, '&#39;');
+ // p1_140 — clicking company/PIC opens detail modal (last orders + returns)
  return `
- <tr>
- <td><strong>${company}</strong>${c.pic_phone?`<br><span style="color:#999;font-size:10px;">${c.pic_phone}</span>`:''}</td>
- <td>${pic}</td>
- <td style="font-family:monospace; font-size:11px;">${tin}</td>
- <td>${terms}</td>
- <td style="text-align:right;">${cl}</td>
- <td style="text-align:right; font-weight:bold; color:${spent>1000?'#10B981':'#111'};">RM ${spent}</td>
- <td style="text-align:right;">${orders}</td>
+ <tr style="cursor:pointer;">
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')"><strong>${company}</strong>${c.pic_phone?`<br><span style="color:#999;font-size:10px;">${c.pic_phone}</span>`:''}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')">${pic}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="font-family:monospace; font-size:11px;">${tin}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')">${terms}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="text-align:right;">${cl}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="text-align:right; font-weight:bold; color:${spentNum > 1000 ? 'var(--success)' : 'var(--text-main)'};">RM ${spentNum.toFixed(2)}</td>
+ <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="text-align:right;">${orders}</td>
  <td>
- <button class="btn btn--secondary btn--sm" onclick="window.openB2BEditModal('${c.id}')">Edit</button>
+ <button class="btn btn--secondary btn--sm" onclick="event.stopPropagation(); window.openB2BEditModal('${escAttr(c.id)}')">Edit</button>
+ <!-- p1_139 — Delete action added (was missing; staff had to use Supabase directly) -->
+ <button class="btn btn--secondary btn--sm" style="color:#991B1B;" onclick="event.stopPropagation(); window.deleteB2BCustomer('${escAttr(c.id)}', '${escAttr(company)}')" title="Padam B2B"><i data-lucide="trash-2" style="width:11px; height:11px;"></i></button>
  </td>
  </tr>
  `;
  }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+// p1_140 — B2B detail modal: KPI + last orders + returns log (was missing — no drill-down before)
+window.openB2BDetail = async function(id) {
+ if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return;
+ const c = customersData.find(x => String(x.id) === String(id));
+ if(!c) { if(typeof showToast === 'function') showToast('B2B tak dijumpai', 'warn'); return; }
+ const company = c.company_name || c.name || '(no name)';
+ const pic = c.name && c.company_name ? c.name : '';
+ const phone = c.pic_phone || c.phone || '';
+ const email = c.pic_email || c.email || '';
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+ // Sales matching by phone OR name (limit 10)
+ const sales = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory))
+ ? salesHistory.filter(s => (phone && s.customer_phone === phone) || (s.customer_name && s.customer_name.toLowerCase() === (c.company_name||c.name||'').toLowerCase())).slice(0, 10)
+ : [];
+ const realOrderCount = sales.length;
+ const realSpent = sales.reduce((s, o) => s + Number(o.total || o.amount || 0), 0);
+
+ // Channel mix
+ const channelMix = {};
+ sales.forEach(s => { const ch = s.channel || 'Walk-in'; channelMix[ch] = (channelMix[ch] || 0) + 1; });
+ const topChannel = Object.entries(channelMix).sort((a,b) => b[1]-a[1])[0];
+
+ const salesRows = sales.length
+ ? sales.map(s => `<tr><td>${s.created_at ? new Date(s.created_at).toLocaleDateString('en-MY') : (s.timestamp ? new Date(s.timestamp).toLocaleDateString('en-MY') : '-')}</td><td>${escHtml(s.channel || '-')}</td><td style="text-align:right;">RM ${Number(s.total || s.amount || 0).toFixed(2)}</td></tr>`).join('')
+ : '<tr><td colspan="3" style="text-align:center; color:#999; padding:8px;">Tiada pembelian / No purchases yet</td></tr>';
+
+ // Modal skeleton first (returns fetched async)
+ const html = `
+ <div id="b2bDetailModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3700; display:flex; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) this.remove();">
+ <div style="background:#fff; max-width:640px; width:100%; border-radius:12px; padding:24px; max-height:90vh; overflow-y:auto;">
+ <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+ <div>
+ <h2 style="margin:0; font-size:20px;">${escHtml(company)}</h2>
+ <div style="font-size:12px; color:#666; margin-top:2px;">${escHtml(pic || '(no PIC)')} · ${escHtml(phone || '-')}${email ? ' · ' + escHtml(email) : ''}</div>
+ ${c.buyer_tin ? `<div style="font-size:11px; color:#666; margin-top:4px; font-family:monospace;">TIN: ${escHtml(c.buyer_tin)}</div>` : ''}
+ </div>
+ <button onclick="document.getElementById('b2bDetailModal').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999;">×</button>
+ </div>
+ <!-- KPI 4-grid: Spent / Orders / Credit Limit / Top Channel -->
+ <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:14px;">
+ <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Belanja (real)</div><div style="font-size:16px; font-weight:bold;">RM ${realSpent.toFixed(2)}</div></div>
+ <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Pesanan (real)</div><div style="font-size:16px; font-weight:bold;">${realOrderCount}</div></div>
+ <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Credit Limit</div><div style="font-size:14px; font-weight:bold;">${c.credit_limit ? 'RM ' + parseFloat(c.credit_limit).toFixed(2) : '-'}</div></div>
+ <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Top Channel</div><div style="font-size:13px; font-weight:bold;">${topChannel ? escHtml(topChannel[0]) + ' (' + topChannel[1] + ')' : '-'}</div></div>
+ </div>
+ <h3 style="font-size:13px; margin:6px 0; color:#111;">10 Pembelian Terakhir</h3>
+ <table style="width:100%; font-size:12px; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:6px;">Tarikh</th><th style="text-align:left; padding:6px;">Channel</th><th style="text-align:right; padding:6px;">Jumlah</th></tr></thead><tbody>${salesRows}</tbody></table>
+ <h3 style="font-size:13px; margin:14px 0 6px; color:#111;">Returns / Damage Log</h3>
+ <div id="b2bDetailReturns" style="font-size:12px;">
+ <p style="color:#9CA3AF; padding:8px;">Memuatkan returns…</p>
+ </div>
+ </div>
+ </div>`;
+ const tmp = document.createElement('div');
+ tmp.innerHTML = html;
+ document.body.appendChild(tmp.firstChild);
+
+ // Async fetch returns_log for this customer (match by company name in notes/order_ref)
+ try {
+ if(typeof db !== 'undefined' && db) {
+ const { data } = await db.from('returns_log').select('reported_at,sku,qty,type,reason,cost_impact').or(`notes.ilike.%${(company||'').replace(/'/g, '')}%,order_ref.ilike.%${(company||'').replace(/'/g, '')}%`).order('reported_at', { ascending: false }).limit(5);
+ const wrap = document.getElementById('b2bDetailReturns');
+ if(!wrap) return;
+ const rows = data || [];
+ if(rows.length === 0) {
+ wrap.innerHTML = '<p style="color:#10B981; padding:8px; font-size:11px;">Tiada returns / damage berkaitan B2B ni.</p>';
+ } else {
+ wrap.innerHTML = `<table style="width:100%; font-size:11px; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:5px;">Tarikh</th><th style="text-align:left; padding:5px;">SKU</th><th style="text-align:left; padding:5px;">Type</th><th style="text-align:right; padding:5px;">Qty</th><th style="text-align:right; padding:5px;">Loss RM</th></tr></thead><tbody>` +
+ rows.map(r => `<tr><td style="padding:4px;">${r.reported_at ? new Date(r.reported_at).toLocaleDateString('en-MY') : '-'}</td><td style="padding:4px; font-family:monospace;">${escHtml(r.sku||'-')}</td><td style="padding:4px;">${escHtml(r.type||'-')}</td><td style="padding:4px; text-align:right;">${r.qty||0}</td><td style="padding:4px; text-align:right; color:#991B1B;">RM ${Number(r.cost_impact||0).toFixed(2)}</td></tr>`).join('') +
+ `</tbody></table>`;
+ }
+ }
+ } catch(e) {
+ const wrap = document.getElementById('b2bDetailReturns');
+ if(wrap) wrap.innerHTML = '<p style="color:#9CA3AF; padding:8px; font-size:11px;">Returns log tak available.</p>';
+ }
+};
+
+// p1_141 — CSV export untuk B2B list (UTF-8 BOM untuk Excel kenal Malay text)
+window.exportB2BCSV = function() {
+ if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return;
+ const b2b = customersData.filter(c => c.is_b2b === true);
+ // Apply current filters
+ const q = (document.getElementById('b2bSearch')?.value || '').trim().toLowerCase();
+ const status = document.getElementById('b2bStatus')?.value || 'all';
+ const list = b2b.filter(c => {
+ if(q) {
+ const hay = `${c.company_name||''} ${c.name||''} ${c.phone||''} ${c.pic_phone||''} ${c.buyer_tin||''}`.toLowerCase();
+ if(!hay.includes(q)) return false;
+ }
+ const orders = Number(c.total_orders || 0);
+ if(status === 'active' && orders === 0) return false;
+ if(status === 'inactive' && orders > 0) return false;
+ return true;
+ });
+ const headers = ['Company','PIC Name','PIC Phone','PIC Email','Buyer TIN','Payment Terms','Credit Limit','Total Spent','Total Orders','Address','Notes'];
+ const csvEscape = v => { const s = String(v == null ? '' : v); return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+ const rows = [headers].concat(list.map(c => [
+ c.company_name || c.name || '',
+ c.company_name && c.name ? c.name : '',
+ c.pic_phone || c.phone || '',
+ c.pic_email || c.email || '',
+ c.buyer_tin || '',
+ c.payment_terms || '',
+ c.credit_limit || '',
+ (c.total_spent || 0).toFixed(2),
+ c.total_orders || 0,
+ c.address || '',
+ c.b2b_notes || ''
+ ]));
+ const csv = '﻿' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+ const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = 'b2b-customers-' + new Date().toISOString().slice(0,10) + '.csv';
+ a.click();
+ URL.revokeObjectURL(url);
+ if(typeof showToast === 'function') showToast(`Exported ${list.length} B2B rows.`, 'success');
+};
+
+// p1_139 — Delete B2B handler (was missing entirely)
+window.deleteB2BCustomer = async function(id, name) {
+ if(!confirm(`Padam B2B customer "${name}"? Tindakan ini tak boleh undo.`)) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { error } = await db.from('customers').delete().eq('id', id);
+ if(error) throw error;
+ // Remove from in-memory array
+ if(Array.isArray(window.customersData)) {
+ window.customersData = window.customersData.filter(c => String(c.id) !== String(id));
+ }
+ if(typeof showToast === 'function') showToast(`B2B "${name}" padam.`, 'success');
+ window.renderB2BCustomers();
+ } catch(e) {
+ console.error(e);
+ if(typeof showToast === 'function') showToast('Padam gagal: ' + e.message, 'error');
+ }
 };
 
 window.openB2BAddModal = function() {

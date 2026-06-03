@@ -7852,6 +7852,44 @@ window.applyRoleCapabilities = function(allowedModes) {
  });
 };
 
+// p1_162 — Preview landing page while logged in (view as customer)
+window.previewLanding = function() {
+ const shop = document.getElementById('shopAppLayout');
+ const pos = document.getElementById('posAppLayout');
+ if(!shop || !pos) return;
+ shop.style.display = 'block';
+ pos.style.display = 'none';
+ // Inject floating "Back to POS" banner
+ let banner = document.getElementById('previewBackBanner');
+ if(!banner) {
+ banner = document.createElement('div');
+ banner.id = 'previewBackBanner';
+ banner.innerHTML = `<div style="position:fixed; top:0; left:0; right:0; z-index:99999; background:linear-gradient(135deg, var(--primary) 0%, #A05F22 100%); color:#FFF; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,.2); font-size:13px;">
+ <div style="display:flex; align-items:center; gap:8px;">
+ <i data-lucide="eye" style="width:14px; height:14px;"></i>
+ <strong>Preview Mode</strong> — Tengok landing page macam customer
+ </div>
+ <button onclick="window.backToPOS()" style="background:#FFF; color:var(--primary); border:none; padding:7px 16px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="arrow-left" style="width:12px; height:12px;"></i> Kembali ke POS</button>
+ </div>`;
+ document.body.appendChild(banner);
+ }
+ banner.style.display = 'block';
+ // Add top padding to landing so banner doesn't overlap content
+ shop.style.paddingTop = '50px';
+ window.scrollTo({ top: 0, behavior: 'smooth' });
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.backToPOS = function() {
+ const shop = document.getElementById('shopAppLayout');
+ const pos = document.getElementById('posAppLayout');
+ const banner = document.getElementById('previewBackBanner');
+ if(shop) { shop.style.display = 'none'; shop.style.paddingTop = ''; }
+ if(pos) pos.style.display = 'block';
+ if(banner) banner.style.display = 'none';
+ window.scrollTo({ top: 0 });
+};
+
 function handleLogout() {
  // p1_71: also sign out of Supabase Auth so email/password session cleared
  try { if(db && db.auth && db.auth.signOut) db.auth.signOut(); } catch(e){}

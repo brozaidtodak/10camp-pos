@@ -4551,32 +4551,150 @@ window.renderDashboard = function() {
  if (stamp) stamp.textContent = new Date().toLocaleTimeString('en-MY', { hour:'2-digit', minute:'2-digit' });
 }
 
+// p1_159 — Test/Real management state
+window.__ordHideTest = (function(){
+ try { const s = localStorage.getItem('ordHideTest_v1'); return s === null ? true : s === '1'; }
+ catch(e) { return true; }
+})();
+window.__ordSelected = window.__ordSelected || new Set();
+
 function renderHistory() {
  const el = document.getElementById("salesHistory");
  if(!el) return;
  // p1_158 — was innerHTML += in 4957-row salesHistory loop → instant crash.
- // Cap at 200 most-recent (sort by created_at DESC), build once, assign once.
- const sorted = salesHistory.slice().sort((a, b) => new Date(b.created_at||0) - new Date(a.created_at||0)).slice(0, 200);
+ // p1_159 — filter test orders by default + add per-card Mark Test/Real + checkbox bulk select.
+ const hideTest = !!window.__ordHideTest;
+ const testTotal = salesHistory.filter(s => s.is_test).length;
+ // Update test count pill
+ const cntEl = document.getElementById('ordersTestCount');
+ if(cntEl) cntEl.textContent = testTotal + ' test orders' + (hideTest && testTotal > 0 ? ' (hidden)' : '');
+ // Sync checkbox state
+ const cb = document.getElementById('ordersHideTest');
+ if(cb && cb.checked !== hideTest) cb.checked = hideTest;
+
+ // Sort + filter test + cap 200
+ const filteredList = hideTest ? salesHistory.filter(s => !s.is_test) : salesHistory;
+ const sorted = filteredList.slice().sort((a, b) => new Date(b.created_at||0) - new Date(a.created_at||0)).slice(0, 200);
  el.innerHTML = sorted.map(sale => {
  const sc = sale.channel || 'Walk-in Kedai';
  const st = sale.status || 'Completed';
  const stColor = st==='Completed'?'#000000': (st==='Unpaid'?'#6F6F6F': (st==='To Fulfil'?'#F37021':'#D80000'));
  const d = new Date(sale.created_at);
+ const isTest = !!sale.is_test;
+ const selected = window.__ordSelected.has(String(sale.id));
+ const testBadge = isTest ? '<span style="background:#F59E0B; color:#FFF; padding:2px 8px; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.4px; margin-left:6px;"><i data-lucide="flask-conical" style="width:10px; height:10px; vertical-align:-1px;"></i> TEST</span>' : '';
  return `
- <div class="history-card">
- <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
- <strong>[#${sale.id}] RM ${parseFloat(sale.total || sale.total_amount || 0).toFixed(2)}</strong>
+ <div class="history-card" style="${isTest ? 'border-left:4px solid #F59E0B; background:rgba(254,243,199,.15);' : ''}">
+ <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items:center;">
+ <div style="display:flex; align-items:center; gap:8px; flex:1;">
+ <input type="checkbox" ${selected ? 'checked' : ''} onchange="window.__ordToggleSelect('${sale.id}', this.checked)" style="cursor:pointer;" title="Pilih untuk bulk action">
+ <strong>[#${sale.id}] RM ${parseFloat(sale.total || sale.total_amount || 0).toFixed(2)}</strong>${testBadge}
+ </div>
+ <div style="display:flex; align-items:center; gap:6px;">
  <span class="badge-status" style="background:${stColor};">${st}</span>
+ <button onclick="window.__ordMarkTest('${sale.id}', ${!isTest})" class="sy-btn secondary" style="font-size:10px; padding:4px 8px;" title="${isTest ? 'Mark as Real Order' : 'Mark as Test Order'}">
+ <i data-lucide="${isTest ? 'check-circle' : 'flask-conical'}" style="width:10px; height:10px;"></i> ${isTest ? 'Mark Real' : 'Mark Test'}
+ </button>
+ </div>
  </div>
  <div style="font-size:13px; color:#666; margin-bottom:5px;">Buyer: ${sale.customer_name||'Walk-in'} • Channel: <strong>${sc}</strong> • ${sale.payment_method}</div>
  <div style="font-size:12px; color:#aaa;">${d.toLocaleDateString() + ' ' + d.toLocaleTimeString()}</div>
  </div>
  `;
  }).join('');
- if(salesHistory.length > 200) {
- el.insertAdjacentHTML('beforeend', '<p style="text-align:center; padding:14px; color:#9CA3AF; font-size:11px;">Papar 200 transaksi terkini · total ' + salesHistory.length + ' rows</p>');
+ if(filteredList.length > 200) {
+ el.insertAdjacentHTML('beforeend', '<p style="text-align:center; padding:14px; color:#9CA3AF; font-size:11px;">Papar 200 transaksi terkini · total ' + filteredList.length + (hideTest && testTotal > 0 ? ' (+' + testTotal + ' test hidden)' : '') + ' rows</p>');
  }
+ // Update bulk action buttons visibility
+ window.__ordUpdateBulkBar();
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
 }
+
+// p1_159 — Mark single sale as test/real
+window.__ordMarkTest = async function(saleId, isTest) {
+ try {
+ const u = window.currentUser || {};
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const payload = {
+ is_test: !!isTest,
+ test_marked_by: isTest ? (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')' : null,
+ test_marked_at: isTest ? new Date().toISOString() : null
+ };
+ const { error } = await db.from('sales_history').update(payload).eq('id', saleId);
+ if(error) throw error;
+ // Update in-memory array
+ const sale = salesHistory.find(s => String(s.id) === String(saleId));
+ if(sale) Object.assign(sale, payload);
+ if(typeof showToast === 'function') showToast('Sale #' + saleId + ' marked as ' + (isTest ? 'TEST' : 'REAL'), 'success');
+ renderHistory();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Mark gagal: ' + e.message, 'error');
+ }
+};
+
+// p1_159 — Toggle filter
+window.__ordToggleHideTest = function(checked) {
+ window.__ordHideTest = !!checked;
+ try { localStorage.setItem('ordHideTest_v1', checked ? '1' : '0'); } catch(e){}
+ renderHistory();
+};
+
+// p1_159 — Bulk select handlers
+window.__ordToggleSelect = function(id, checked) {
+ if(checked) window.__ordSelected.add(String(id));
+ else window.__ordSelected.delete(String(id));
+ window.__ordUpdateBulkBar();
+};
+window.__ordSelectAll = function() {
+ // select all currently rendered
+ document.querySelectorAll('#salesHistory input[type="checkbox"]').forEach(cb => {
+ const onchange = cb.getAttribute('onchange') || '';
+ const m = onchange.match(/__ordToggleSelect\('([^']+)'/);
+ if(m) { cb.checked = true; window.__ordSelected.add(m[1]); }
+ });
+ window.__ordUpdateBulkBar();
+};
+window.__ordClearSelection = function() {
+ window.__ordSelected.clear();
+ document.querySelectorAll('#salesHistory input[type="checkbox"]').forEach(cb => cb.checked = false);
+ window.__ordUpdateBulkBar();
+};
+window.__ordUpdateBulkBar = function() {
+ const n = window.__ordSelected.size;
+ const t = document.getElementById('ordersBulkMarkTest');
+ const r = document.getElementById('ordersBulkMarkReal');
+ if(t) t.style.display = n > 0 ? '' : 'none';
+ if(r) r.style.display = n > 0 ? '' : 'none';
+ if(t && n > 0) t.innerHTML = '<i data-lucide="flask-conical" style="width:11px; height:11px;"></i> Mark ' + n + ' as TEST';
+ if(r && n > 0) r.innerHTML = '<i data-lucide="check-circle" style="width:11px; height:11px;"></i> Mark ' + n + ' as REAL';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+window.__ordBulkMark = async function(isTest) {
+ const ids = Array.from(window.__ordSelected);
+ if(!ids.length) return;
+ if(!confirm('Mark ' + ids.length + ' sale(s) as ' + (isTest ? 'TEST' : 'REAL') + '?')) return;
+ try {
+ const u = window.currentUser || {};
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const payload = {
+ is_test: !!isTest,
+ test_marked_by: isTest ? (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')' : null,
+ test_marked_at: isTest ? new Date().toISOString() : null
+ };
+ const { error } = await db.from('sales_history').update(payload).in('id', ids);
+ if(error) throw error;
+ // Update in-memory
+ ids.forEach(id => {
+ const sale = salesHistory.find(s => String(s.id) === String(id));
+ if(sale) Object.assign(sale, payload);
+ });
+ window.__ordSelected.clear();
+ if(typeof showToast === 'function') showToast(ids.length + ' sales marked as ' + (isTest ? 'TEST' : 'REAL'), 'success');
+ renderHistory();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Bulk mark gagal: ' + e.message, 'error');
+ }
+};
 
 // ===================================
 // INVENTORY WMS (BACKOFFICE)

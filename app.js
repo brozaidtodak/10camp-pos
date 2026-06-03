@@ -547,7 +547,8 @@ window.staffProfilesHydrate = async function() {
  if(typeof window._hrcRender === 'function') try { window._hrcRender(); } catch(e){}
  } catch(e) { console.warn('staffProfiles hydrate failed:', e.message); }
 };
-setTimeout(() => { if(typeof window.staffProfilesHydrate === 'function') window.staffProfilesHydrate(); }, 2000);
+// p1_157 — staggered hydrates to prevent iPad Safari mass-fetch race
+setTimeout(() => { if(typeof window.staffProfilesHydrate === 'function') window.staffProfilesHydrate(); }, 3500);
 
 let inventoryBatches = [];
 
@@ -5138,7 +5139,7 @@ function renderInventoryTable(products) {
  htmlBuf3 += `
  <tr onclick="window.openPdpModal('${String(p.sku).replace(/'/g, "\\'")}')" style="cursor:pointer;">
  <td>
- <img src="${thumb}" style="width:45px; height:45px; object-fit:cover; border-radius:6px; background:#eee;"><br>
+ <img src="${thumb}" loading="lazy" decoding="async" style="width:45px; height:45px; object-fit:cover; border-radius:6px; background:#eee;"><br>
  ${sBadge}
  </td>
  <td>
@@ -5200,7 +5201,8 @@ window.__hydrateAuditTimestamps = async function() {
  }
  } catch(e) { /* silent */ }
 };
-setTimeout(() => { if(typeof window.__hydrateAuditTimestamps === 'function') window.__hydrateAuditTimestamps(); }, 3000);
+// p1_157 — staggered start prevents iPad Safari from queueing all hydrates at once on weak Wi-Fi
+setTimeout(() => { if(typeof window.__hydrateAuditTimestamps === 'function') window.__hydrateAuditTimestamps(); }, 5000);
 
 // p1_156 — Stock Check History dashboard (Zack request — audit coverage tracker)
 window.renderStockCheckHistory = async function() {
@@ -5455,7 +5457,7 @@ function renderStockTake() {
  if(express) {
  html += `
  <div class="st-card admin-card" data-st-sku="${p.sku}" style="padding:14px; border-left:5px solid var(--primary); background:#fff; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
- <img src="${imgUrl}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color); flex-shrink:0;">
+ <img src="${imgUrl}" loading="lazy" decoding="async" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color); flex-shrink:0;">
  <div style="flex:1; min-width:160px;">
  <strong style="color:var(--primary); font-size:15px;">${p.sku}</strong>
  <p style="font-size:13px; font-weight:600; margin:2px 0 4px;">${p.name}</p>
@@ -5504,7 +5506,7 @@ function renderStockTake() {
 
  <!-- Product Image & Basic Info (Left) -->
  <div style="flex:1; min-width:200px; display:flex; gap:10px;">
- <img src="${imgUrl}" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color);">
+ <img src="${imgUrl}" loading="lazy" decoding="async" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color);">
  <div>
  <strong style="color:var(--primary); font-size:16px;">${p.sku}</strong>
  <p style="font-size:14px; font-weight:bold; margin-bottom:5px;">${p.name}</p>
@@ -6258,7 +6260,7 @@ function renderPOS(searchTerm = "") {
 
  htmlBuf += `
  <div class="product-card">
- <img src="${thumb}" class="pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail">
+ <img src="${thumb}" class="pos-detail-trigger" loading="lazy" decoding="async" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail" onerror="this.src='https://placehold.co/300x200?text=No+Img'">
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
@@ -7761,7 +7763,19 @@ function handleLogout() {
 }
 
 setTimeout(() => {
- document.getElementById("searchInput")?.addEventListener('input', e => renderPOS(e.target.value));
+ // p1_157 — debounce search to prevent iPad Safari main-thread freeze on every keystroke
+ if(typeof window.__debouncedRenderPOS !== 'function') {
+ let __posT = null;
+ window.__debouncedRenderPOS = function(val) {
+ if(__posT) clearTimeout(__posT);
+ __posT = setTimeout(() => { renderPOS(val); __posT = null; }, 220);
+ };
+ }
+ const __si = document.getElementById("searchInput");
+ if(__si && !__si.__debounceBound) {
+ __si.addEventListener('input', e => window.__debouncedRenderPOS(e.target.value));
+ __si.__debounceBound = true;
+ }
  const dateObj = new Date();
  const firstDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
  document.getElementById('dashStartDate').value = firstDay.toISOString().split('T')[0];
@@ -10827,7 +10841,8 @@ window.memoHydrateFromRemote = async function() {
  } catch(e) { console.warn('memo hydrate failed:', e.message); }
 };
 // Hydrate on boot after a short delay (lets auth/db settle first)
-setTimeout(() => { if(typeof window.memoHydrateFromRemote === 'function') window.memoHydrateFromRemote(); }, 2500);
+// p1_157 — staggered 4.5s (after staffProfilesHydrate 3.5s)
+setTimeout(() => { if(typeof window.memoHydrateFromRemote === 'function') window.memoHydrateFromRemote(); }, 4500);
 window.memoCurrentUser = function() {
  return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
 };
@@ -13084,7 +13099,7 @@ window.renderMgmtInventory = function() {
  htmlBuf += `
  <tr>
  <td>
- <img src="${thumb}" style="width:45px; height:45px; object-fit:cover; border-radius:6px; background:#eee;"><br>
+ <img src="${thumb}" loading="lazy" decoding="async" style="width:45px; height:45px; object-fit:cover; border-radius:6px; background:#eee;"><br>
  ${sBadge}
  </td>
  <td>

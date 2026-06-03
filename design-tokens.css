@@ -826,31 +826,36 @@
 .lp-variant-more:hover { background: #FFEDD5; border-color: var(--primary-500); }
 /* p1_51: button always at bottom regardless of body content height */
 .lp-product-card__btn { width: 100%; padding: 10px; background: #111827; color: #FFF; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.15s; margin-top: auto; }
-/* p1_163 — Marketplace funnel buttons redesigned: outline + icon + hover fill (elegant > aggressive). */
-.lp-product-card__buy { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; padding-top: 6px; border-top: 1px solid #F3F4F6; }
-.lp-product-card__buy-btn {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px;
-    padding: 8px 4px;
-    border-radius: 10px;
-    border: 1.5px solid;
-    background: #FFFFFF;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.18s ease;
-    cursor: pointer;
-    line-height: 1.2;
+/* p1_164 — Marketplace funnel rebuild: tiny circle badges, not buttons. Less visual noise, premium feel. */
+.lp-product-card__buy {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: auto; padding-top: 10px;
+    border-top: 1px solid #F3F4F6;
 }
-.lp-product-card__buy-btn svg, .lp-product-card__buy-btn i[data-lucide] { width: 14px; height: 14px; stroke-width: 2.2; }
-.lp-product-card__buy-btn--shopee { border-color: #EE4D2D; color: #EE4D2D; }
-.lp-product-card__buy-btn--shopee:hover { background: #EE4D2D; color: #FFFFFF; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(238,77,45,0.25); }
-.lp-product-card__buy-btn--tiktok { border-color: #111827; color: #111827; }
-.lp-product-card__buy-btn--tiktok:hover { background: #111827; color: #FFFFFF; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(17,24,39,0.25); }
-.lp-product-card__buy-btn--wa { border-color: #25D366; color: #1DA851; }
-.lp-product-card__buy-btn--wa:hover { background: #25D366; color: #FFFFFF; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(37,211,102,0.25); }
+.lp-product-card__buy-label {
+    font-size: 9.5px; color: #9CA3AF; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; margin-right: auto;
+}
+.lp-product-card__buy-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+.lp-product-card__buy-btn svg, .lp-product-card__buy-btn i[data-lucide] {
+    width: 14px; height: 14px; stroke-width: 2.4;
+}
+.lp-product-card__buy-btn:hover {
+    transform: scale(1.12);
+}
+.lp-product-card__buy-btn--shopee { background: rgba(238,77,45,0.10); color: #EE4D2D; }
+.lp-product-card__buy-btn--shopee:hover { background: #EE4D2D; color: #FFFFFF; box-shadow: 0 4px 12px rgba(238,77,45,0.35); }
+.lp-product-card__buy-btn--tiktok { background: rgba(17,24,39,0.08); color: #111827; }
+.lp-product-card__buy-btn--tiktok:hover { background: #111827; color: #FFFFFF; box-shadow: 0 4px 12px rgba(17,24,39,0.30); }
+.lp-product-card__buy-btn--wa { background: rgba(37,211,102,0.12); color: #1DA851; }
+.lp-product-card__buy-btn--wa:hover { background: #25D366; color: #FFFFFF; box-shadow: 0 4px 12px rgba(37,211,102,0.32); }
 .lp-product-card__btn:hover { background: var(--primary-600); }
 .lp-product-card__btn:disabled { background: #D1D5DB; cursor: not-allowed; color: #6B7280; }
 /* p1_51: clickable card surfaces (media + name) open the customer PDP */
@@ -907,29 +912,49 @@
 .lp-pdp__qty input { width: 46px; height: 40px; border: none; text-align: center; font-size: 14px; font-weight: 700; outline: none; -moz-appearance: textfield; }
 .lp-pdp__qty input::-webkit-outer-spin-button, .lp-pdp__qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .lp-pdp__cta { flex: 1; padding: 14px; background: #111827; color: #FFF; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.15s; }
-/* p1_163 — PDP marketplace funnel redesigned: outline + icon + elegant hover-fill */
-.lp-pdp__buy-row { margin-top: auto; padding-top: 16px; border-top: 1px solid #F3F4F6; }
-.lp-pdp__buy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.lp-pdp__buy-btn {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 16px 8px;
-    border-radius: 12px;
-    border: 1.5px solid;
-    background: #FFFFFF;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    gap: 6px;
-    min-height: 88px;
+/* p1_164 — PDP marketplace rebuild: horizontal stacked channel cards (premium feel, less aggressive). */
+.lp-pdp__buy-row { margin-top: auto; padding-top: 18px; border-top: 1px solid #F3F4F6; }
+.lp-pdp__buy-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: #6B7280; margin-bottom: 10px; display: block;
 }
-.lp-pdp__buy-btn i[data-lucide], .lp-pdp__buy-btn svg { width: 22px; height: 22px; stroke-width: 2; }
-.lp-pdp__buy-btn strong { font-size: 13.5px; font-weight: 800; letter-spacing: 0.3px; line-height: 1; }
-.lp-pdp__buy-btn span { font-size: 10.5px; font-weight: 500; opacity: 0.75; letter-spacing: 0.3px; line-height: 1; }
-.lp-pdp__buy-btn--shopee { border-color: #EE4D2D; color: #EE4D2D; }
-.lp-pdp__buy-btn--shopee:hover { background: #EE4D2D; color: #FFFFFF; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(238,77,45,0.28); }
-.lp-pdp__buy-btn--tiktok { border-color: #111827; color: #111827; }
-.lp-pdp__buy-btn--tiktok:hover { background: #111827; color: #FFFFFF; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(17,24,39,0.28); }
-.lp-pdp__buy-btn--wa { border-color: #25D366; color: #1DA851; }
-.lp-pdp__buy-btn--wa:hover { background: #25D366; color: #FFFFFF; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(37,211,102,0.28); }
+.lp-pdp__buy-list { display: flex; flex-direction: column; gap: 8px; }
+.lp-pdp__buy-row-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #FAFAFA;
+    border: 1px solid #F3F4F6;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+.lp-pdp__buy-row-item:hover { transform: translateX(2px); background: #FFFFFF; border-color: #E5E7EB; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+.lp-pdp__buy-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.lp-pdp__buy-icon i[data-lucide], .lp-pdp__buy-icon svg { width: 18px; height: 18px; stroke-width: 2.2; }
+.lp-pdp__buy-text { flex: 1; min-width: 0; }
+.lp-pdp__buy-text strong { display: block; font-size: 14px; font-weight: 700; color: #111827; letter-spacing: -0.1px; line-height: 1.2; }
+.lp-pdp__buy-text span { display: block; font-size: 11.5px; color: #6B7280; margin-top: 2px; line-height: 1.3; }
+.lp-pdp__buy-chev { color: #9CA3AF; flex-shrink: 0; }
+.lp-pdp__buy-chev i[data-lucide], .lp-pdp__buy-chev svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.lp-pdp__buy-row-item:hover .lp-pdp__buy-chev { transform: translateX(2px); transition: transform 0.18s ease; }
+/* Per-brand icon-circle colors */
+.lp-pdp__buy-row-item--shopee .lp-pdp__buy-icon { background: rgba(238,77,45,0.10); color: #EE4D2D; }
+.lp-pdp__buy-row-item--shopee:hover .lp-pdp__buy-icon { background: #EE4D2D; color: #FFFFFF; }
+.lp-pdp__buy-row-item--tiktok .lp-pdp__buy-icon { background: rgba(17,24,39,0.08); color: #111827; }
+.lp-pdp__buy-row-item--tiktok:hover .lp-pdp__buy-icon { background: #111827; color: #FFFFFF; }
+.lp-pdp__buy-row-item--wa .lp-pdp__buy-icon { background: rgba(37,211,102,0.12); color: #1DA851; }
+.lp-pdp__buy-row-item--wa:hover .lp-pdp__buy-icon { background: #25D366; color: #FFFFFF; }
+.lp-pdp__buy-walk-in {
+    margin-top: 14px; padding: 12px 14px;
+    background: #FAFAFA; border-radius: 12px; border: 1px solid #F3F4F6;
+    font-size: 11.5px; color: #6B7280; display: flex; align-items: center; gap: 8px;
+}
+.lp-pdp__buy-walk-in i[data-lucide] { width: 14px; height: 14px; color: #9CA3AF; flex-shrink: 0; }
+.lp-pdp__buy-walk-in strong { color: #111827; font-weight: 700; }
 .lp-pdp__cta:hover:not(:disabled) { background: var(--primary-600); }
 .lp-pdp__cta:disabled { background: #D1D5DB; color: #6B7280; cursor: not-allowed; }
 

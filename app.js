@@ -19780,6 +19780,12 @@ window.I18N = {
  sb_shift_close: { bm: 'Tutup Syif', en: 'Shift Close' },
  sb_inv_daily_divider: { bm: '— Operasi Harian —', en: '— Daily Operations —' },
  sb_inv_stock_divider: { bm: '— Pengurusan Stok —', en: '— Stock Management —' },
+ // p1_171 — new 4-group structure dividers
+ sb_inv_check_group: { bm: '— Stock Check —', en: '— Stock Check —' },
+ sb_inv_buying_group: { bm: '— Pembelian & Bekalan —', en: '— Buying & Supply —' },
+ sb_inv_tools_group: { bm: '— Setup & Alat —', en: '— Setup & Tools —' },
+ sb_check_sessions: { bm: 'Stock Check Sessions', en: 'Stock Check Sessions' },
+ sb_check_history: { bm: 'Stock Check History', en: 'Stock Check History' },
  sb_pesanan_online: { bm: 'Pesanan Online', en: 'Online Orders' },
  sb_jadual_operasi: { bm: 'Jadual Operasi', en: 'Operations Schedule' },
  sb_browse_products: { bm: 'Senarai Produk', en: 'Browse Products' },

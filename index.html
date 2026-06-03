@@ -22,7 +22,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=39">
- <link rel="stylesheet" href="design-tokens.css?v=62">
+ <link rel="stylesheet" href="design-tokens.css?v=63">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -2719,64 +2719,61 @@
  <!-- TAB 1: Pricing Calculator (NEW p1_172) -->
  <!-- ============================================== -->
  <div id="psCalcTab" class="ps-tabpane" style="display:none;">
- <!-- Shared SKU lookup (top of all tabs) -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="search" style="width:14px;height:14px;"></i> Pilih SKU</h3>
- <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
- <div>
- <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">SKU</label>
- <input type="text" id="fpSkuInput" class="rp-comm-input" style="width:100%; text-align:left;" placeholder="Cth: BD005" list="movementSkuList" oninput="window.__fpLookup(); window.__psComputeAll();">
+ <!-- p1_177 — Compact single-panel Calculator (Zaid: padat semua dalam satu viewport) -->
+ <div class="ps-calc-panel">
+
+ <!-- Row 1: Product hero (img + meta) + current price + Apply -->
+ <div class="ps-calc-hero">
+ <img id="psProductImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'><rect width='90' height='90' fill='%23F9FAFB'/><text x='45' y='49' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='10'>No Img</text></svg>" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;">
+ <div class="ps-calc-hero__meta">
+ <div class="ps-calc-hero__sku-row">
+ <input type="text" id="fpSkuInput" placeholder="SKU (cth: BD005)" list="movementSkuList" oninput="window.__fpLookup(); window.__psComputeAll();">
+ <strong id="psProductName">—</strong>
  </div>
- <div id="psProductInfo" style="background:#F9FAFB; padding:12px; border-radius:8px; font-size:12px; line-height:1.4; display:flex; gap:12px; align-items:center;">
- <img id="psProductImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23F3F4F6'/><text x='36' y='40' text-anchor='middle' fill='%239CA3AF' font-family='sans-serif' font-size='10'>No Img</text></svg>" loading="lazy" decoding="async" style="width:72px; height:72px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color); flex-shrink:0;">
- <div style="flex:1; min-width:0;">
- <strong id="psProductName" style="color:#111;">—</strong><br>
- <span style="color:#6B7280;">Brand: <strong id="psBrand">—</strong></span><br>
- <span style="color:#6B7280;">Stock: <strong id="psStock">—</strong></span>
+ <div class="ps-calc-hero__sub">Brand <strong id="psBrand">—</strong> · Stok <strong id="psStock">—</strong></div>
  </div>
+ <div class="ps-calc-hero__nowprice">
+ <span class="ps-calc-hero__nowprice-lbl">Harga Skrg</span>
+ <span class="ps-calc-hero__nowprice-val" id="psCurrentPrice">—</span>
  </div>
+ <button class="ps-calc-hero__apply" onclick="window.__psApplySelected()">
+ <i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>
+ <span>Apply</span>
+ <span class="ps-calc-hero__apply-sub" id="psSelectedTier">pilih tier</span>
+ </button>
+ </div>
+
+ <!-- Row 2: Inline cost formula (¥ × Ex + Ship + Hand% = RM) -->
+ <div class="ps-calc-formula">
+ <div class="ps-calc-formula__cell">
+ <label>RMB ¥</label>
+ <input type="number" id="psCostRmb" step="0.01" min="0" placeholder="83.60" oninput="window.__psComputeAll()">
+ </div>
+ <span class="ps-calc-formula__op">×</span>
+ <div class="ps-calc-formula__cell">
+ <label>Ex (RM/¥)</label>
+ <input type="number" id="psExchange" step="0.0001" min="0" value="0.60" oninput="window.__psComputeAll()">
+ </div>
+ <span class="ps-calc-formula__op">+</span>
+ <div class="ps-calc-formula__cell">
+ <label>Ship (RM)</label>
+ <input type="number" id="psShipping" step="0.01" min="0" value="0" placeholder="3.58" oninput="window.__psComputeAll()">
+ </div>
+ <span class="ps-calc-formula__op">+</span>
+ <div class="ps-calc-formula__cell">
+ <label>Hand %</label>
+ <input type="number" id="psHandling" step="0.5" min="0" max="100" value="5" oninput="window.__psComputeAll()">
+ </div>
+ <span class="ps-calc-formula__op">=</span>
+ <div class="ps-calc-formula__cell ps-calc-formula__cell--final">
+ <label>Cost Bersih</label>
+ <input type="text" id="psCostFinal" readonly value="—">
  </div>
  </div>
 
- <!-- Cost Breakdown section -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="dollar-sign" style="width:14px;height:14px;"></i> Cost Breakdown (Sourcing dari China)</h3>
- <p class="rp-section__help">Input RMB cost dari supplier → exchange rate semasa → shipping per unit → handling 5%.</p>
- <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
- <div>
- <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">RMB Cost (¥)</label>
- <input type="number" id="psCostRmb" class="rp-comm-input" step="0.01" min="0" placeholder="83.60" oninput="window.__psComputeAll()" style="width:100%;">
- </div>
- <div>
- <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Exchange (RM/¥)</label>
- <input type="number" id="psExchange" class="rp-comm-input" step="0.0001" min="0" value="0.60" oninput="window.__psComputeAll()" style="width:100%;">
- </div>
- <div>
- <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Shipping (RM)</label>
- <input type="number" id="psShipping" class="rp-comm-input" step="0.01" min="0" value="0" placeholder="3.58" oninput="window.__psComputeAll()" style="width:100%;">
- </div>
- <div>
- <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Handling %</label>
- <input type="number" id="psHandling" class="rp-comm-input" step="0.5" min="0" max="100" value="5" oninput="window.__psComputeAll()" style="width:100%;">
- </div>
- <div>
- <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#0F172A;">→ Cost Bersih (RM)</label>
- <input type="text" id="psCostFinal" class="rp-comm-input" readonly style="width:100%; background:#0F172A; color:#FFF; font-weight:800; font-size:15px; text-align:center;" value="—">
- </div>
- </div>
- </div>
-
- <!-- Pricing Tiers Preview -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="layers" style="width:14px;height:14px;"></i> Pricing Tiers (auto-computed)</h3>
- <p class="rp-section__help">Pilih satu tier dengan radio → klik Apply ke products_master.price + compare_at_price.</p>
- <div id="psTiersGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px;">
- <!-- Tier cards injected by __psComputeAll -->
- </div>
- <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:8px; flex-wrap:wrap;">
- <span id="psSelectedTier" style="font-size:12px; color:#6B7280;">Pilih tier dulu</span>
- <button class="rp-manual-save" onclick="window.__psApplySelected()"><i data-lucide="save" style="width:13px;height:13px;"></i> Apply Tier Terpilih</button>
- </div>
+ <!-- Row 3: 4 tier pills (radio compact) -->
+ <div id="psTiersGrid" class="ps-tier-pills">
+ <!-- Pills injected by __psComputeAll -->
  </div>
  </div>
 
@@ -6274,7 +6271,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (176/176 · last 2026-06-04) — Pricing Setup Senarai revert grid → table (Zaid: staff scan rows lebih cepat dari klik per card). Big 80×80 thumb + halus 1px vertical+horizontal gridlines',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (177/177 · last 2026-06-04) — Pricing Setup Calculator compact single-panel (3-row stack: product hero + Apply / inline cost formula × + + = / tier pills with channel + profit + Recommended)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6349,6 +6346,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_177', label:'Pricing Setup Calculator — compact single-panel layout (Zaid: "kemas kini calculator tab" → pilih Compact summary panel via AskUserQuestion). Padat semua dalam satu viewport (no more 3 large rp-section stack scroll). Rewrite jadi 3-row stack dalam `.ps-calc-panel` wrapper (border-radius 12, white card): (a) HERO ROW — product image 84×84 + SKU input inline dengan nama produk + "Harga Skrg RM xxx" divider + besar Apply button kanan (primary, lucide check-circle-2 icon, sub-label "tier_key · RM xxx"). (b) FORMULA ROW — inline mathematical expression: RMB ¥ × Ex + Ship + Hand% = COST BERSIH. Operators × + + = besar warna kelabu antara cell. Final cell dark inverted (background:#0F172A, white text). Background formula row #FBFAF6 warm cream. (c) TIER PILLS ROW — 4 compact pills (`auto-fit minmax 170px`) ganti previous tier cards. Each pill: radio top-left + name + channel sub-label (Baseline retail / Walk-in shop / Online +comm / +5% staff comm) + besar harga + +markup% · profit RM x · delta vs harga skrg (hijau kalau naik, merah kalau turun). Z\\'s Proposal flagged "Recommended" badge top-right kuning + warm gradient background. Selected state: inset 2px primary border. __psComputeAll updates `psCurrentPrice` from p.price untuk perbandingan. __psSelectTier updates Apply button sub-label inline. design-tokens.css v62→v63, app.js v278→v279.', d:'done' },
  { id:'p1_176', label:'Pricing Setup Senarai revert grid → table (Zaid: "aku suka lagi table baris, grid ni kena tekan satu per satu, susah staf aku nanti"). Table baris lagi scannable untuk staf (semua kolum sekali pandang vs cards nak klik baru tahu detail). Kekal: window.__psNoImg fix dari p1_175 (bug double-quote SVG masih guna). Layout baru: thumbnail dibesarkan 54→80px (lagi mudah verify produk), .ps-list-table class family. Halus gridlines via .ps-list-cell + .ps-list-cell { border-left:1px solid #F3F4F6 } untuk vertical, border-bottom :1px solid #F3F4F6 di baris untuk horizontal. Header sticky #F9FAFB dengan uppercase letter-spacing. Hover row tint warm #FEF7ED (primary-adjacent). design-tokens.css v61→v62, app.js v277→v278.', d:'done' },
  { id:'p1_175', label:'Pricing Setup Senarai → grid card layout + fix SVG fallback bug. Zaid screenshot: leaked HTML "style=\\"width:54px;height:54px..." appearing as text next to thumb. Root cause: inline SVG `noImg` data URL menggunakan double quotes (xmlns=\\"...\\") yang inserted dalam onerror=\\"...\\" attribute → first inner double quote pre-maturely closes onerror, rest of SVG bocor jadi raw HTML attrs. Fix: (a) Single-quote SVG (xmlns=\\\'...\\\') + URL-encoded #, (b) Stored di `window.__psNoImg` sekali sahaja (avoid embedding huge data URL berulang dalam template), (c) onerror cuma reference `this.src=window.__psNoImg` (no string interp). Layout overhaul Zaid: "besarkan sikit gambar, tambah grid halus". Table → CSS Grid card (auto-fill minmax 180px, gap:1px on #E5E7EB bg = halus 1px dividers between cards). Each card: aspect-ratio 1 thumb top (~180px), status badge overlay top-right, body bawah dengan SKU/nama-2-lines/brand+stock/price-cost row. Hover lift + box-shadow. ps-list-* class family added to design-tokens. design-tokens.css v60→v61, app.js v276→v277.', d:'done' },
  { id:'p1_174', label:'Pricing Setup — product thumbnails (Zaid: "tolong tambahkan gambar dekat stock count/check dan pricing setup, nak mudahkan kerja diorang"). Stock Take cards confirmed dah ada image (express 64px line 6230, detail 80px line 6282) — no change needed. Pricing Setup yang missing: (a) Senarai Produk table — new first column 54×54 thumb dari p.images[0] dengan inline SVG fallback "No Img" + onerror handler defend against broken URLs. Border-radius 6, lazy load + decoding async. Column width 64px. (b) Calculator tab psProductInfo card — restructured flex row: 72×72 thumb left + name/brand/stock right. __psComputeAll now sets img src on lookup + onerror swap to SVG placeholder. Why: staff visual verification (Zack/Ariff confirm physical product matches SKU before pricing). app.js v275→v276.', d:'done' },
@@ -10986,7 +10984,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=278"></script>
+ <script src="app.js?v=279"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

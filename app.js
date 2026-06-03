@@ -3340,11 +3340,19 @@ window.__psComputeAll = function() {
  if(nameEl) nameEl.textContent = (p.name || '').slice(0, 80);
  if(brEl) brEl.textContent = p.brand || '—';
  if(stEl) stEl.textContent = p.stock != null ? p.stock : '—';
+ // p1_177 — compact hero: current price + image
+ const nowEl = document.getElementById('psCurrentPrice');
+ if(nowEl) {
+ const cur = Number(p.price || 0);
+ nowEl.textContent = cur > 0 ? 'RM ' + cur.toFixed(2) : '—';
+ nowEl.style.color = cur > 0 ? '#0F172A' : '#D1D5DB';
+ }
  const imgEl = document.getElementById('psProductImg');
  if(imgEl) {
  const url = (p.images && p.images[0]) ? p.images[0] : '';
  if(url) imgEl.src = url;
- imgEl.onerror = function() { this.onerror = null; this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23F3F4F6'/><text x='36' y='40' text-anchor='middle' fill='%239CA3AF' font-family='sans-serif' font-size='10'>No Img</text></svg>"; };
+ if(!window.__psNoImg) window.__psNoImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'><rect width='90' height='90' fill='%23F9FAFB'/><text x='45' y='49' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='10'>No Img</text></svg>";
+ imgEl.onerror = function() { this.onerror = null; this.src = window.__psNoImg; };
  }
  // Auto-fill cost inputs from saved data
  const rmbEl = document.getElementById('psCostRmb');
@@ -3356,15 +3364,16 @@ window.__psComputeAll = function() {
  if(shEl && !shEl.value && p.shipping_cost_rm) shEl.value = p.shipping_cost_rm;
  if(hEl && p.handling_pct) hEl.value = p.handling_pct;
  }
- // Compute 4 tiers
+ // p1_177 — Compute 4 tiers (compact pills with channel, profit, recommended)
  const tiers = [
- { key: 'rrp', name: 'RRP (Standard 30%)', markup: 30, discount: 0, formula: 'Cost × 1.30', note: 'Baseline recommended retail' },
- { key: 'kedai', name: 'Kedai (Walk-in)', markup: 60, discount: 20, formula: 'Cost × 1.60, then ×0.80 after diskaun', note: '20% diskaun built-in' },
- { key: 'marketplace', name: 'TT/Shopee', markup: 80, discount: 0, formula: 'Cost × 1.80', note: 'Cover ~10% commission' },
- { key: 'proposal', name: 'Z\'s Proposal', markup: 35, discount: 0, formula: 'Sell Cost × 1.35, Compare Cost × 1.44', compareMarkup: 44, note: 'Cover staff comm +5%, medsos +14%' }
+ { key: 'rrp', name: 'RRP', channel: 'Baseline retail', markup: 30, discount: 0, recommended: false },
+ { key: 'kedai', name: 'Kedai', channel: 'Walk-in shop', markup: 60, discount: 20, recommended: false },
+ { key: 'marketplace', name: 'TT / Shopee', channel: 'Online +comm', markup: 80, discount: 0, recommended: false },
+ { key: 'proposal', name: 'Z\'s Proposal', channel: '+5% staff comm', markup: 35, discount: 0, compareMarkup: 44, recommended: true }
  ];
  const grid = document.getElementById('psTiersGrid');
  if(!grid) return;
+ const curPrice = p ? Number(p.price || 0) : 0;
  grid.innerHTML = tiers.map(t => {
  const sellPrice = costFinal * (1 + t.markup / 100);
  const compareMarkup = t.compareMarkup || t.markup;
@@ -3372,15 +3381,19 @@ window.__psComputeAll = function() {
  const beforeDisc = sellPrice;
  const afterDisc = t.discount > 0 ? sellPrice * (1 - t.discount / 100) : sellPrice;
  const finalPrice = t.discount > 0 ? afterDisc : sellPrice;
+ const profit = finalPrice - costFinal;
  const selected = window.__psState.selectedTier === t.key;
- return `<label class="ps-tier-card ${selected ? 'ps-tier-card--selected' : ''}" onclick="window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
- <div class="ps-tier-card__head">
- <span class="ps-tier-card__name">${t.name}</span>
- <input type="radio" name="psTier" value="${t.key}" ${selected ? 'checked' : ''} class="ps-tier-card__radio" onclick="event.stopPropagation(); window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
- </div>
- <div class="ps-tier-card__price">RM ${finalPrice.toFixed(2)}${t.discount > 0 ? `<span class="ps-tier-card__compare">RM ${beforeDisc.toFixed(2)}</span>` : ''}</div>
- <div class="ps-tier-card__markup">+${t.markup}% markup${t.discount > 0 ? ` · -${t.discount}% diskaun` : ''}</div>
- <div class="ps-tier-card__formula">${t.formula}<br><em style="color:#9CA3AF;">${t.note}</em></div>
+ const delta = curPrice > 0 ? (finalPrice - curPrice) : 0;
+ const deltaTxt = curPrice > 0 ? (delta >= 0 ? `+RM ${delta.toFixed(2)}` : `-RM ${Math.abs(delta).toFixed(2)}`) : '';
+ const deltaColor = delta > 0 ? '#059669' : (delta < 0 ? '#DC2626' : '#9CA3AF');
+ return `<label class="ps-tier-pill ${selected ? 'ps-tier-pill--selected' : ''} ${t.recommended ? 'ps-tier-pill--rec' : ''}" onclick="window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
+ ${t.recommended ? '<span class="ps-tier-pill__rec-badge">Recommended</span>' : ''}
+ <input type="radio" name="psTier" value="${t.key}" ${selected ? 'checked' : ''} class="ps-tier-pill__radio" onclick="event.stopPropagation(); window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
+ <div class="ps-tier-pill__name">${t.name}</div>
+ <div class="ps-tier-pill__channel">${t.channel}</div>
+ <div class="ps-tier-pill__price">RM ${finalPrice.toFixed(2)}${t.discount > 0 ? `<span class="ps-tier-pill__compare">RM ${beforeDisc.toFixed(2)}</span>` : ''}</div>
+ <div class="ps-tier-pill__meta">+${t.markup}%${t.discount > 0 ? ` · -${t.discount}%` : ''} · profit RM ${profit.toFixed(2)}</div>
+ ${deltaTxt ? `<div class="ps-tier-pill__delta" style="color:${deltaColor};">${deltaTxt} vs skrg</div>` : ''}
  </label>`;
  }).join('');
  if(window.lucide && lucide.createIcons) lucide.createIcons();
@@ -3391,11 +3404,14 @@ window.__psSelectTier = function(key, finalPrice, compareAt) {
  window.__psState.finalPrice = finalPrice;
  window.__psState.compareAt = compareAt;
  const lbl = document.getElementById('psSelectedTier');
- if(lbl) lbl.textContent = `Terpilih: ${key} · RM ${Number(finalPrice).toFixed(2)} (compare-at RM ${Number(compareAt).toFixed(2)})`;
- // Update visual selected state without re-render (avoid resetting inputs)
+ if(lbl) lbl.textContent = `${key} · RM ${Number(finalPrice).toFixed(2)}`;
+ // Sync visual selected on pills (and legacy cards if any)
+ document.querySelectorAll('.ps-tier-pill').forEach(c => c.classList.remove('ps-tier-pill--selected'));
  document.querySelectorAll('.ps-tier-card').forEach(c => c.classList.remove('ps-tier-card--selected'));
- const checked = document.querySelector('.ps-tier-card__radio[value="' + key + '"]');
- if(checked) checked.closest('.ps-tier-card').classList.add('ps-tier-card--selected');
+ const checkedPill = document.querySelector('.ps-tier-pill__radio[value="' + key + '"]');
+ if(checkedPill) checkedPill.closest('.ps-tier-pill').classList.add('ps-tier-pill--selected');
+ const checkedCard = document.querySelector('.ps-tier-card__radio[value="' + key + '"]');
+ if(checkedCard) checkedCard.closest('.ps-tier-card').classList.add('ps-tier-card--selected');
 };
 
 window.__psApplySelected = async function() {

@@ -4498,14 +4498,13 @@ window.renderDashboard = function() {
  if (topArr.length === 0) {
  tbodyLines.innerHTML = '<tr><td colspan="4" style="padding:18px; text-align:center; color:var(--text-muted); font-size:12.5px;">Belum ada sales dalam range ni. Pilih range lebih luas atau buat sale pertama.</td></tr>';
  } else {
- topArr.forEach((o, i) => {
- tbodyLines.innerHTML += `<tr style="cursor:pointer;" onclick="window.__dashGoto('inv_database')">
+ // p1_158 — was innerHTML += in loop (O(n²) DOM reflow per push, crashed Safari).
+ tbodyLines.innerHTML = topArr.map((o, i) => `<tr style="cursor:pointer;" onclick="window.__dashGoto('inv_database')">
  <td style="width:24px; font-weight:bold; color:#888;">#${i+1}</td>
  <td><strong>${o.name}</strong></td>
  <td style="color:#10b981; font-weight:700;">${o.qty} sold</td>
  <td style="text-align:right; font-weight:600;">RM ${fmtMoney(o.revenue)}</td>
- </tr>`;
- });
+ </tr>`).join('');
  }
 
  // 6. Draw Chart.js (Daily Sales)
@@ -4555,14 +4554,15 @@ window.renderDashboard = function() {
 function renderHistory() {
  const el = document.getElementById("salesHistory");
  if(!el) return;
- el.innerHTML = "";
- salesHistory.forEach(sale => {
- let sc = sale.channel || 'Walk-in Kedai';
- let st = sale.status || 'Completed';
- let stColor = st==='Completed'?'#000000': (st==='Unpaid'?'#6F6F6F': (st==='To Fulfil'?'#F37021':'#D80000'));
-
+ // p1_158 — was innerHTML += in 4957-row salesHistory loop → instant crash.
+ // Cap at 200 most-recent (sort by created_at DESC), build once, assign once.
+ const sorted = salesHistory.slice().sort((a, b) => new Date(b.created_at||0) - new Date(a.created_at||0)).slice(0, 200);
+ el.innerHTML = sorted.map(sale => {
+ const sc = sale.channel || 'Walk-in Kedai';
+ const st = sale.status || 'Completed';
+ const stColor = st==='Completed'?'#000000': (st==='Unpaid'?'#6F6F6F': (st==='To Fulfil'?'#F37021':'#D80000'));
  const d = new Date(sale.created_at);
- el.innerHTML += `
+ return `
  <div class="history-card">
  <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
  <strong>[#${sale.id}] RM ${parseFloat(sale.total || sale.total_amount || 0).toFixed(2)}</strong>
@@ -4572,7 +4572,10 @@ function renderHistory() {
  <div style="font-size:12px; color:#aaa;">${d.toLocaleDateString() + ' ' + d.toLocaleTimeString()}</div>
  </div>
  `;
- });
+ }).join('');
+ if(salesHistory.length > 200) {
+ el.insertAdjacentHTML('beforeend', '<p style="text-align:center; padding:14px; color:#9CA3AF; font-size:11px;">Papar 200 transaksi terkini · total ' + salesHistory.length + ' rows</p>');
+ }
 }
 
 // ===================================
@@ -4630,8 +4633,9 @@ function renderWMS() {
  // 1) Inbound select stays (used elsewhere for batch inbound)
  const select = document.getElementById("inboundSkuSelect");
  if(select){
- select.innerHTML = '<option value="">-- Choose SKU --</option>';
- masterProducts.forEach(p => { select.innerHTML += `<option value="${p.sku}">[${p.sku}] ${p.name}</option>`; });
+ // p1_158 — was innerHTML += in 963-product loop (Safari OOM trigger). Build string, assign once.
+ select.innerHTML = '<option value="">-- Choose SKU --</option>' +
+ masterProducts.map(p => `<option value="${p.sku}">[${p.sku}] ${p.name}</option>`).join('');
  }
 
  // 2) Bail if the new browse section isn't on the page (other callers expect renderWMS without the UI)
@@ -6535,17 +6539,17 @@ function renderCart() {
  }
  } catch(e){}
 
- cart.forEach(item => {
+ // p1_158 — was innerHTML += in cart loop (Safari OOM trigger; CASHIER hot path — fires every add/remove)
+ container.innerHTML = cart.map(item => {
  total = round2(total + item.price * item.quantity);
  totalItems += item.quantity;
- // p1_129: floor warning per line
  const skuU = (item.sku || '').toUpperCase();
  const floor = floorMap[skuU];
  const belowFloor = floor && item.price < floor;
  const floorBadge = belowFloor
  ? `<span style="display:inline-block; margin-top:2px; padding:1px 6px; background:#FEE2E2; color:#991B1B; border-radius:50px; font-size:9px; font-weight:700; letter-spacing:0.3px;">BAWAH FLOOR (RM ${floor.toFixed(2)})</span>`
  : '';
- container.innerHTML += `
+ return `
  <div class="cart-item" style="${belowFloor ? 'border-left:3px solid #EF4444; background:rgba(254,226,226,.15);' : ''}">
  <div style="flex:1;"><strong style="font-size:13px; color:#111;">[${item.sku}] ${item.name}</strong><br><small style="color:#666;">RM${item.price.toFixed(2)} x ${item.quantity}</small> ${floorBadge}</div>
  <div style="display:flex; gap:8px; align-items:center;">
@@ -6555,7 +6559,7 @@ function renderCart() {
  <button onclick="removeFromCart('${item.sku}')" style="color:#EF4444; background:#fee2e2; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold; margin-left:5px;">X</button>
  </div>
  </div>`;
- });
+ }).join('');
  if(subLabel) subLabel.textContent = total.toFixed(2);
 
  // p1_79 fix #3: apply VIP discount preview if posCustomer is a member
@@ -6975,14 +6979,13 @@ function renderPromotions() {
  tbody.innerHTML = "";
  db.from('promotions').select('*').then(({data}) => {
  if(!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="4">Tiada promosi aktif.</td></tr>'; return; }
- data.forEach(p => {
- tbody.innerHTML += `<tr>
+ // p1_158 — was innerHTML += in loop (Safari OOM trigger)
+ tbody.innerHTML = data.map(p => `<tr>
  <td><strong>${p.code}</strong></td>
  <td>${p.discount_type}</td>
  <td style="font-weight:bold;">${p.discount_type === 'percent' ? p.discount_value + '%' : 'RM' + parseFloat(p.discount_value).toFixed(2)}</td>
  <td>${p.active ? '<span style="color:#10B981; font-weight:bold;">Active </span>' : '<span style="color:#EF4444;">Inactive</span>'}</td>
- </tr>`;
- });
+ </tr>`).join('');
  });
 }
 
@@ -8736,9 +8739,9 @@ function renderPublicCart() {
  
  if(publicCart.length === 0) { container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding-top:20px;">Your cart is empty.</p>'; label.textContent = "0.00"; return; }
 
- publicCart.forEach(item => {
- total = round2(total + item.price * item.quantity);
- container.innerHTML += `
+ // p1_158 — was innerHTML += in loop (Safari OOM trigger)
+ publicCart.forEach(item => { total = round2(total + item.price * item.quantity); });
+ container.innerHTML = publicCart.map(item => `
  <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #f9f9f9; padding-bottom:10px;">
  <div>
  <strong style="font-size:14px; display:block;">${item.name}</strong>
@@ -8750,8 +8753,7 @@ function renderPublicCart() {
  <button onclick="increasePublicQty('${item.sku}')" style="border:1px solid #ddd; background:#fff; width:24px; height:24px; cursor:pointer;">+</button>
  <button onclick="removePublicCart('${item.sku}')" style="color:red; background:none; border:none; cursor:pointer; margin-left:5px;">X</button>
  </div>
- </div>`;
- });
+ </div>`).join('');
  label.textContent = total.toFixed(2);
 }
 
@@ -12074,11 +12076,13 @@ window.saveAndPreviewQuotationParams = async function(docType, docTitle, isViewO
 
  subtotal = 0;
  let rowCount = 0;
- workingCart.forEach((item, index) => {
+ // p1_158 — was innerHTML += in loop (Safari OOM trigger)
+ tbody.innerHTML = workingCart.map((item, index) => {
  let line = round2(item.price * item.qty);
  subtotal = round2(subtotal + line);
  let bg = rowCount % 2 === 0 ? "#F8F8F8" : "#FFFFFF";
- tbody.innerHTML += `
+ rowCount++;
+ return `
  <tr class="editable-row" style="background-color: ${bg}; border-bottom:1px solid #f1f1f1;">
  <td style="padding:8px 10px; color:#555;">
  <div style="font-style:italic; font-weight:bold; color:#000;" contenteditable="true" spellcheck="false" class="editable-field editable-name">${item.name}</div>
@@ -12094,8 +12098,7 @@ window.saveAndPreviewQuotationParams = async function(docType, docTitle, isViewO
  </td>
  </tr>
  `;
- rowCount++;
- });
+ }).join('');
  
  if (type === "Rental") grandTotal = round2(subtotal + deposit);
  else grandTotal = round2(subtotal);
@@ -12240,14 +12243,14 @@ window.renderQuoteLogs = function() {
  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px;">Tiada rekod jumpa.</td></tr>`;
  }
 
- filteredLogs.forEach(log => {
- let isSuper = log.superseded ? `<span style="background:#EF4444; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">Lama</span>` : `<span style="background:#10B981; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">Latest</span>`;
- let custPart = (log.customer || "").split("-")[0] || "Guest";
- let dateObj = new Date(log.createdAt || log.created_at);
- let logYear = isNaN(dateObj) ? "-" : dateObj.getFullYear();
- let displayStr = isNaN(dateObj) ? "Tiada Tarikh" : dateObj.toLocaleString('ms-MY');
- 
- tbody.innerHTML += `
+ // p1_158 — was innerHTML += in quote logs loop (Safari OOM trigger)
+ tbody.innerHTML = filteredLogs.map(log => {
+ const isSuper = log.superseded ? `<span style="background:#EF4444; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">Lama</span>` : `<span style="background:#10B981; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">Latest</span>`;
+ const custPart = (log.customer || "").split("-")[0] || "Guest";
+ const dateObj = new Date(log.createdAt || log.created_at);
+ const logYear = isNaN(dateObj) ? "-" : dateObj.getFullYear();
+ const displayStr = isNaN(dateObj) ? "Tiada Tarikh" : dateObj.toLocaleString('ms-MY');
+ return `
  <tr style="background:${log.superseded ? '#f9f9f9' : '#fff'}; color:${log.superseded ? '#888' : '#000'}">
  <td><strong>${log.id}</strong><br><small style="color:#aaa;">${displayStr}</small></td>
  <td><strong>${logYear}</strong></td>
@@ -12261,7 +12264,7 @@ window.renderQuoteLogs = function() {
  </td>
  </tr>
  `;
- });
+ }).join('');
  
  document.getElementById("quoteLogsModal").style.display = "flex";
 };
@@ -12981,15 +12984,13 @@ window.openPdpModal = function(sku) {
 
 window.renderPdpMediaGallery = function(urls) {
  const container = document.getElementById('pdpMediaGallery');
- container.innerHTML = '';
- urls.forEach((url, idx) => {
- container.innerHTML += `
+ // p1_158 — was innerHTML += in loop (Safari OOM trigger)
+ container.innerHTML = urls.map((url, idx) => `
  <div style="position:relative; width:80px; height:80px; border-radius:8px; border:1px solid #e1e3e5; overflow:hidden; flex-shrink:0;">
- <img src="${url}" style="width:100%; height:100%; object-fit:cover;">
+ <img src="${url}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;">
  <button onclick="window.removePdpMedia(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,0.8); border:none; border-radius:50%; width:20px; height:20px; font-size:10px; cursor:pointer; color:red;"></button>
  </div>
- `;
- });
+ `).join('');
 };
 
 window.addPdpMedia = function() {
@@ -13013,16 +13014,14 @@ window.removePdpMedia = function(idx) {
 
 window.renderMetafields = function() {
  const container = document.getElementById('pdpMetafieldsContainer');
- container.innerHTML = '';
- for(let key in currentPdpMetafields) {
- container.innerHTML += `
+ // p1_158 — was innerHTML += in for-in loop (Safari OOM trigger)
+ container.innerHTML = Object.keys(currentPdpMetafields).map(key => `
  <div style="display:flex; gap:10px; align-items:center;">
  <input type="text" class="login-input" value="${key}" disabled style="flex:1; background:#f9fafb; margin:0;">
  <input type="text" class="login-input" value="${currentPdpMetafields[key]}" onchange="window.updateMetafield('${key}', this.value)" style="flex:2; margin:0;">
  <button onclick="window.removeMetafield('${key}')" style="background:none; border:none; color:#d82c0d; cursor:pointer; padding:5px;"></button>
  </div>
- `;
- }
+ `).join('');
 };
 
 window.addMetafieldRow = function() {

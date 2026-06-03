@@ -7855,9 +7855,13 @@ window.lpSelectVariant = function(cardId, sku, btn) {
     const price = parseFloat(product.price || 0);
     const compareAt = parseFloat(product.compare_at_price || 0);
     const onSale = compareAt > price && price > 0;
+    const offPct = onSale ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
     const priceEl = card.querySelector('[data-role="price"]');
     if (priceEl) {
-        priceEl.innerHTML = fmt(price) + (onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">' + fmt(compareAt) + '</small>' : '');
+        // p1_149 — Shopee-style cut price display (Irfan cadangan): sale price red+bold, strikethrough was-price, discount % badge
+        priceEl.innerHTML = onSale
+            ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">-${offPct}%</span>`
+            : fmt(price);
     }
     const parsed = window.lpParseProductName(product);
     const labelEl = card.querySelector('[data-role="variant-label"]');
@@ -8202,12 +8206,13 @@ function renderPublicStorefront() {
         const compareAt = parseFloat(lead.compare_at_price || 0);
         const price = parseFloat(lead.price || 0);
         const onSale = compareAt > price && price > 0;
+        // p1_149 — hoist `off` so price row inline badge can reuse (Irfan cadangan)
+        const off = onSale ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
         let badge = '';
         const soldOutLabel = (window.t ? window.t('lp_card_soldout') : 'Sold Out');
         const optionsLabel = (window.t ? window.t('lp_card_options') : 'options');
         if(groupTotalStock <= 0) badge = '<span class="lp-product-card__badge lp-product-card__badge--soldout">' + soldOutLabel + '</span>';
         else if(onSale) {
-            const off = Math.round(((compareAt - price) / compareAt) * 100);
             badge = '<span class="lp-product-card__badge">-' + off + '%</span>';
         }
         if(variants.length > 1) {
@@ -8255,7 +8260,7 @@ function renderPublicStorefront() {
                     <div class="lp-product-card__meta">${brandPill}${catPill}</div>
                     <h3 class="lp-product-card__name" onclick="window.lpOpenProductDetail('${skuEsc}')">${parsed.title}</h3>
                     <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
-                    <p class="lp-product-card__price" data-role="price">${fmt(price)}${onSale ? ' <small style="color:#9CA3AF; font-weight:500; text-decoration:line-through; font-size:11px; margin-left:6px;">' + fmt(compareAt) + '</small>' : ''}</p>
+                    <p class="lp-product-card__price" data-role="price">${onSale ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">-${off}%</span>` : fmt(price)}</p>
                     ${chipsHtml}
                     <button class="lp-product-card__btn" data-role="add-btn" data-sku="${skuEsc}" onclick="addToPublicCart(this.dataset.sku)" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? soldOutLabel : (window.t ? window.t('lp_card_add') : 'Add to Cart')}</button>
                 </div>

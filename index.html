@@ -22,7 +22,7 @@
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=39">
- <link rel="stylesheet" href="design-tokens.css?v=59">
+ <link rel="stylesheet" href="design-tokens.css?v=60">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1392,8 +1392,8 @@
 
  <!-- ========== GROUP D: Setup & Tools (config) ========== -->
  <div class="menu-item inv-only" data-group="inv" style="padding:8px 35px 4px; font-size:9px; color:var(--neutral-500); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; cursor:default; background:none;" data-i18n="sb_inv_tools_group">— Setup & Alat —</div>
- <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_floorprice" onclick="switchHub(['floorPriceSection'], 'Floor Price', this); if(typeof renderFloorPrice==='function') renderFloorPrice();">
- <i data-lucide="trending-down" style="width:16px; height:16px;"></i> <span data-i18n="sb_floor_price">Floor Price</span>
+ <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_floorprice" onclick="switchHub(['floorPriceSection'], 'Pricing Setup', this); if(typeof renderFloorPrice==='function') renderFloorPrice();">
+ <i data-lucide="calculator" style="width:16px; height:16px;"></i> <span data-i18n="sb_floor_price">Pricing Setup</span>
  </div>
  <div class="menu-item inv-only" data-group="inv" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="inv_pricehistory" onclick="switchHub(['priceHistorySection'], 'Price History', this); if(typeof renderPriceHistory==='function') renderPriceHistory();">
  <i data-lucide="line-chart" style="width:16px; height:16px;"></i> <span data-i18n="sb_price_history">Price History</span>
@@ -2670,35 +2670,103 @@
  <div class="rp-wrap">
  <div class="rp-header">
  <div>
- <h2 class="rp-title"><i data-lucide="trending-down" style="width:22px; height:22px; color:var(--primary);"></i> Floor Price Calculator</h2>
- <p class="rp-subtitle">Tetapkan harga minimum sebuah produk boleh dijual. Cashier akan dapat warning kalau jual bawah floor.</p>
+ <h2 class="rp-title"><i data-lucide="calculator" style="width:22px; height:22px; color:var(--primary);"></i> Pricing Setup</h2>
+ <p class="rp-subtitle">Kira cost RMB → exchange + shipping + handling → 4 tier prices (Kedai / Marketplace / RRP / Z's Proposal) → Apply ke products_master.</p>
  </div>
  </div>
 
- <!-- SKU lookup form -->
+ <!-- p1_172 — Tab nav -->
+ <div style="display:flex; gap:4px; border-bottom:1px solid var(--border-color); margin-bottom:18px; flex-wrap:wrap;">
+ <button class="ps-tab ps-tab--active" data-ps-tab="calc" onclick="window.__psSetTab('calc', this)">💰 Pricing Calculator</button>
+ <button class="ps-tab" data-ps-tab="floor" onclick="window.__psSetTab('floor', this)">🛡️ Floor Price Guard</button>
+ <button class="ps-tab" data-ps-tab="audit" onclick="window.__psSetTab('audit', this)">📜 Audit Log</button>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- TAB 1: Pricing Calculator (NEW p1_172) -->
+ <!-- ============================================== -->
+ <div id="psCalcTab" class="ps-tabpane">
+ <!-- Shared SKU lookup (top of all tabs) -->
  <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="search" style="width:14px;height:14px;"></i> Kira / Edit Floor Price</h3>
- <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+ <h3 class="rp-section__title"><i data-lucide="search" style="width:14px;height:14px;"></i> Pilih SKU</h3>
+ <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
  <div>
  <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">SKU</label>
- <input type="text" id="fpSkuInput" class="rp-comm-input" style="width:100%; text-align:left;" placeholder="Cth: BD130" list="movementSkuList" oninput="window.__fpLookup()">
+ <input type="text" id="fpSkuInput" class="rp-comm-input" style="width:100%; text-align:left;" placeholder="Cth: BD005" list="movementSkuList" oninput="window.__fpLookup(); window.__psComputeAll();">
+ </div>
+ <div id="psProductInfo" style="background:#F9FAFB; padding:12px; border-radius:8px; font-size:12px; line-height:1.4;">
+ <strong id="psProductName" style="color:#111;">—</strong><br>
+ <span style="color:#6B7280;">Brand: <strong id="psBrand">—</strong></span><br>
+ <span style="color:#6B7280;">Stock: <strong id="psStock">—</strong></span>
+ </div>
+ </div>
+ </div>
+
+ <!-- Cost Breakdown section -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="dollar-sign" style="width:14px;height:14px;"></i> Cost Breakdown (Sourcing dari China)</h3>
+ <p class="rp-section__help">Input RMB cost dari supplier → exchange rate semasa → shipping per unit → handling 5%.</p>
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+ <div>
+ <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">RMB Cost (¥)</label>
+ <input type="number" id="psCostRmb" class="rp-comm-input" step="0.01" min="0" placeholder="83.60" oninput="window.__psComputeAll()" style="width:100%;">
  </div>
  <div>
+ <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Exchange (RM/¥)</label>
+ <input type="number" id="psExchange" class="rp-comm-input" step="0.0001" min="0" value="0.60" oninput="window.__psComputeAll()" style="width:100%;">
+ </div>
+ <div>
+ <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Shipping (RM)</label>
+ <input type="number" id="psShipping" class="rp-comm-input" step="0.01" min="0" value="0" placeholder="3.58" oninput="window.__psComputeAll()" style="width:100%;">
+ </div>
+ <div>
+ <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#6B7280;">Handling %</label>
+ <input type="number" id="psHandling" class="rp-comm-input" step="0.5" min="0" max="100" value="5" oninput="window.__psComputeAll()" style="width:100%;">
+ </div>
+ <div>
+ <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:#0F172A;">→ Cost Bersih (RM)</label>
+ <input type="text" id="psCostFinal" class="rp-comm-input" readonly style="width:100%; background:#0F172A; color:#FFF; font-weight:800; font-size:15px; text-align:center;" value="—">
+ </div>
+ </div>
+ </div>
+
+ <!-- Pricing Tiers Preview -->
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="layers" style="width:14px;height:14px;"></i> Pricing Tiers (auto-computed)</h3>
+ <p class="rp-section__help">Pilih satu tier dengan radio → klik Apply ke products_master.price + compare_at_price.</p>
+ <div id="psTiersGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px;">
+ <!-- Tier cards injected by __psComputeAll -->
+ </div>
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:8px; flex-wrap:wrap;">
+ <span id="psSelectedTier" style="font-size:12px; color:#6B7280;">Pilih tier dulu</span>
+ <button class="rp-manual-save" onclick="window.__psApplySelected()"><i data-lucide="save" style="width:13px;height:13px;"></i> Apply Tier Terpilih</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- TAB 2: Floor Price Guard (existing p1_109) -->
+ <!-- ============================================== -->
+ <div id="psFloorTab" class="ps-tabpane" style="display:none;">
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="shield" style="width:14px;height:14px;"></i> Floor Price (harga minimum)</h3>
+ <p class="rp-section__help">Cashier akan dapat warning kalau jual bawah floor.</p>
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+ <div>
  <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">COST PRICE (RM)</label>
- <input type="number" id="fpCostInput" class="rp-comm-input" style="width:100%; text-align:left;" step="0.01" min="0" oninput="window.__fpCompute()">
+ <input type="number" id="fpCostInput" class="rp-comm-input" style="width:100%;" step="0.01" min="0" oninput="window.__fpCompute()">
  </div>
  <div>
  <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">MARGIN % (cadangan: 30-50%)</label>
- <input type="number" id="fpMarginInput" class="rp-comm-input" style="width:100%; text-align:left;" step="0.5" min="0" max="500" value="30" oninput="window.__fpCompute()">
+ <input type="number" id="fpMarginInput" class="rp-comm-input" style="width:100%;" step="0.5" min="0" max="500" value="30" oninput="window.__fpCompute()">
  </div>
  <div>
  <label style="display:block; font-size:11px; font-weight:700; color:#4B5563; margin-bottom:4px;">FLOOR PRICE (auto)</label>
- <input type="number" id="fpFloorOutput" class="rp-comm-input" style="width:100%; text-align:left; background:#F0FDF4; font-weight:700; color:#15803D;" step="0.01" readonly>
+ <input type="number" id="fpFloorOutput" class="rp-comm-input" style="width:100%; background:#F0FDF4; font-weight:700; color:#15803D;" step="0.01" readonly>
  </div>
  </div>
  <div id="fpProductInfo" style="margin-top:14px; padding:12px; background:#F9FAFB; border-radius:8px; display:none;">
  <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:12px;">
- <span><strong id="fpProductName">—</strong></span>
  <span>Current price: <strong id="fpCurrentPrice">—</strong></span>
  <span>Current floor: <strong id="fpCurrentFloor">—</strong></span>
  </div>
@@ -2710,28 +2778,27 @@
  </div>
  </div>
 
- <!-- Overview: SKUs with vs without floor price -->
  <div class="rp-section">
  <h3 class="rp-section__title"><i data-lucide="list" style="width:14px;height:14px;"></i> Status Floor Price (semua produk)</h3>
  <div class="rp-kpi-grid">
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Total Produk</div>
- <div class="rp-kpi__val" id="fpTotalProducts">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Floor Price SET</div>
- <div class="rp-kpi__val" id="fpWithFloor" style="color:#10B981;">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">BELUM SET</div>
- <div class="rp-kpi__val" id="fpWithoutFloor" style="color:#D97706;">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Below Floor (warn)</div>
- <div class="rp-kpi__val" id="fpBelowFloor" style="color:#EF4444;">—</div>
- </div>
+ <div class="rp-kpi"><div class="rp-kpi__lbl">Total Produk</div><div class="rp-kpi__val" id="fpTotalProducts">—</div></div>
+ <div class="rp-kpi"><div class="rp-kpi__lbl">Floor Price SET</div><div class="rp-kpi__val" id="fpWithFloor" style="color:#10B981;">—</div></div>
+ <div class="rp-kpi"><div class="rp-kpi__lbl">BELUM SET</div><div class="rp-kpi__val" id="fpWithoutFloor" style="color:#D97706;">—</div></div>
+ <div class="rp-kpi"><div class="rp-kpi__lbl">Below Floor (warn)</div><div class="rp-kpi__val" id="fpBelowFloor" style="color:#EF4444;">—</div></div>
  </div>
  <div id="fpBelowList" style="margin-top:14px;"></div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- TAB 3: Audit Log -->
+ <!-- ============================================== -->
+ <div id="psAuditTab" class="ps-tabpane" style="display:none;">
+ <div class="rp-section">
+ <h3 class="rp-section__title"><i data-lucide="history" style="width:14px;height:14px;"></i> Recent Price Changes</h3>
+ <p class="rp-section__help">Audit log auto-populated dari product_price_history (Postgres trigger p1_111).</p>
+ <div id="psAuditList"><p style="color:#9CA3AF; padding:20px; text-align:center;">Klik tab ini untuk muat audit log…</p></div>
+ </div>
  </div>
  </div>
  </div>
@@ -6171,7 +6238,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (171/171 · last 2026-06-04) — Inventory sidebar restructure: 4 intent-based sub-groups (Operasi Harian / Stock Check / Pembelian / Setup)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (172/172 · last 2026-06-04) — Pricing Setup section (Zack flow: RMB cost → 4 tier preview → apply selected)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6246,6 +6313,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_172', label:'Pricing Setup section — digitize Zack pricing sheet flow (Zaid: 4 screenshots showing RMB cost → tier markups → custom price → summary). Audit Zack workflow decomposed: (1) RMB cost × exchange rate + shipping + 5% handling = Cost Bersih RM. (2) RRP (Recommended Retail Price) baseline 30% markup. (3) Custom by Ariff — Price Kedai walk-in tinggi markup + 20% built-in diskaun. (4) Price TT/Shopee higher markup to cover ~10% commission. (5) Z Proposal — Sell Cost × 1.35 (cover staff comm +5%) + Compare Cost × 1.44 (cover 9% medsos +14%). Build: (a) SQL ALTER products_master ADD cost_rmb + exchange_rate (default 0.60) + shipping_cost_rm + handling_pct (default 5) + price_rrp + price_kedai + price_marketplace + markup_kedai_pct + markup_marketplace_pct + kedai_discount_pct (default 20) + price_set_by + price_set_at. Migration sql/2026-06-04_pricing_columns.sql via Management API. (b) Extend existing Floor Price section ke "Pricing Setup" dengan 3 tabs nav: 💰 Pricing Calculator / 🛡️ Floor Price Guard / 📜 Audit Log. Tab pattern .ps-tab + .ps-tabpane CSS. (c) Calculator tab: SKU lookup + product info card (name/brand/stock) + Cost Breakdown 5-col input (RMB/Exchange/Shipping/Handling/→Cost Final dark inverted output) + Pricing Tiers Grid (4 tier cards: RRP / Kedai / TT-Shopee / Z Proposal). Each tier card: brand name + radio + final RM price big (with optional compare-at strikethrough) + markup % green + formula explanation. Hover lift + selected state primary border tint. (d) __psComputeAll handler — recompute on every input keystroke, auto-fill from products_master cost_rmb/exchange_rate kalau ada. __psSelectTier toggle visual + store state. __psApplySelected confirm dialog → UPDATE products_master price + compare_at_price + cost detail columns + price_set_by + tier-specific column (price_rrp/price_kedai/price_marketplace). (e) Floor Price tab kekal existing UI (p1_109 — cost + margin + floor) untuk Cashier guard. (f) Audit tab — lazy-load product_price_history table (p1_111 Postgres trigger auto-log) dengan SKU + delta + actor. (g) Sidebar entry rename "Floor Price" → "Pricing Setup", icon swap trending-down → calculator, sb_floor_price i18n updated. Bump app.js v273→v274, design-tokens.css v59→v60. ROADMAP_DATA 171→172.', d:'done' },
  { id:'p1_171', label:'Inventory sidebar restructure (Zaid: "tak nampak flow of work dan susunan terabur"). Audit: 15 items dalam 2 sub-grup ("Operasi Harian" 3 + "Pengurusan Stok" 12 bloated). 4 entries pasal Stock Check (Take + Sessions + Reports + History) — confusing. Restructure ke 4 intent-based sub-groups: (A) "— Operasi Harian —" daily touchpoints (3 items): Pesanan Online (package-check icon + red badge) · Browse Products (package) · Returns/Damage (rotate-ccw). (B) "— Stock Check —" weekly cycle (3 items): Stock Check Sessions (layers — PRIMARY entry) · Stock Take (clipboard-check — manual count page) · Stock Check History (history, mgmt-only — admin dashboard). Old "Stock Check Reports" sidebar entry HIDDEN (deprecated by Sessions, p1_110 legacy). Section markup kekal dalam DOM untuk back-compat dengan stockCheckBadge + URL bookmarks. (C) "— Pembelian & Bekalan —" periodic admin (4 items): Purchase Orders (truck) · Warehouse Hub (warehouse) · Reorder Suggest (repeat + badge) · Supplier Performance (handshake — icon change dari truck untuk dedupe duplicate dengan PO). (D) "— Setup & Alat —" config (4 items): Floor Price (trending-down) · Price History (line-chart) · Barcode Labels (printer) · Smart Picking (route). Net: 14 visible items vs old 15 (Stock Check Reports hidden). Logical flow tracks staff mental model: morning ops → weekly check cycle → periodic buying decisions → setup tools. i18n 5 keys baharu (sb_inv_check_group, sb_inv_buying_group, sb_inv_tools_group, sb_check_sessions, sb_check_history) dengan BM/EN parallel. sb_inv_stock_divider key kekal untuk legacy. Bump app.js v272→v273. ROADMAP_DATA 170→171.', d:'done' },
  { id:'p1_170', label:'Stock Take quick-flag buttons "Tak Jumpa" + "Rosak" (Zaid request). (1) 2 button baharu setiap card (Express + Detail mode): "Tak Jumpa" (search-x icon, red #FEE2E2/#991B1B) + "Rosak" (alert-triangle, amber #FED7AA/#9A3412). Express mode: inline beside Submit + ⋯ buttons. Detail mode: flex row bawah SUBMIT KIRAAN ITEM, gap 6px. (2) __stMarkNotFound(sku) handler: auto-fill fizikalQty=0, populate auditKomen dengan "Tak jumpa di [location] · [staff name] · [timestamp]" auto-stamped. Trigger calculateVariance (papar -sistem qty selisih). Call submitAuditSingle yang sync ke products_master + session_items via existing flow. Lepas tu UPDATE session_items dengan flag="not_found" (separate query sebab submitAuditSingle takda flag param). Toast amber "SKU — Tandai TAK JUMPA". Auto-advance ke next card. (3) __stMarkDamaged(sku) handler: prompt "Berapa unit rosak untuk [SKU]? (sistem: N)" default 1. Validasi numeric. Compute goodQty = sysQty - damaged (clamp 0). Auto-fill fizikalQty=goodQty, populate komen dengan "N unit ROSAK ([location]) · baki good X · [staff] · [timestamp]". Trigger calculate + submit + UPDATE session_items flag="damaged". Toast "SKU — N ROSAK · X good". Auto-advance. (4) Use case Kael walking warehouse: scan list → bila item tak jumpa kat rak → klik Tak Jumpa → terus skip ke next. Bila found dengan damaged → klik Rosak → prompt damage qty → continue. Faster than typing manually. (5) Session-level: bila summary generated nanti, items_not_found + items_damaged akan tally. Auto-summary __scsAutoSummary already counts these flag types. Bump app.js v271→v272. ROADMAP_DATA 169→170.', d:'done' },
  { id:'p1_169', label:'Stock Check Sessions p3/3: create flow + Stock Take session integration + auto-summary. (1) Sidebar entry "Stock Check Sessions" dalam Inventory group (layers icon). New tab inv_check_sessions routed to inv rail. (2) Section: header dengan "Sesi Baharu" button + 4 stat cards (Aktif amber / Menunggu Review biru / Bos Inbox indigo / Approved hijau) + 5 filter pills + sessions list (cards dengan name + status badge + locations + assignees + progress bar gradient + variance alert kalau ada + action buttons per status: Buka & Kira / Submit ke Review / Forward ke Bos / Approve). (3) Create modal: name input + locations checkbox grid (auto-populate from distinct location_bin counts, sort by SKU count DESC) + assigned staff checkbox grid (filter authUsers role inventory/mgmt) + live Preview "X locations dipilih · Y SKU akan included". On confirm: INSERT session row + bulk INSERT items (batched 500 untuk avoid Supabase row limit) + UPDATE items_total. (4) Auto-summary generator (__scsAutoSummary): walk items by status, group by location, top 10 variance items sort by abs(variance), produce text block "Stock Check Session Summary / Total SKU / Items checked / Variance / Top variance: [list]" untuk Zack copy-paste atau forward. (5) Stock Take section gain: Location dropdown filter (auto-populated dari distinct masterProducts.location_bin) + active session banner (amber gradient bg: "SESI AKTIF" pill + name + progress "X/Y dikira" + locations + "Keluar Sesi" button). Banner detection via window.__stSessionData populated by __stHydrateActiveSession boot fetch (localStorage scsActiveSession_v1 → fetch session row). Auto-restrict masterProducts.filter ke session.locations bila active. (6) submitAuditSingle integration: bila session active, juga UPDATE stock_check_session_items dengan counted_qty + variance + counted_by + counted_at, lepas tu fetch all items + compute checked count + variance count, UPDATE session row + sync window.__stSessionData + update banner progress. (7) Pre-work: bulk-update products_master.location_bin dari CSV WEEKLY 2026 Checkform sheet (Zaid Drive) — 582 SKUs normalized (I/IR/i/Ir → "Inventory Room", 1 → "Floor 1", T → "Top Floor", B → "Basement", G → "Ground Floor", combinations preserved). Coverage: 582/963. (8) Effect esok pagi: Zack login → klik "Sesi Baharu" → name "Stock Check Week 23" + tick "Inventory Room" + "Floor 1" → assign Kael+Fahmi → "Mulakan Sesi" → 471 SKUs loaded. Kael open Stock Check Sessions → klik "Buka & Kira" → Stock Take auto-filter ke session locations + banner papar progress. Kael scroll cards, type qty, Enter advance. Bila siap, Zack klik "Submit ke Review" → auto-summary generated + status flip review. Zack review, klik "Forward ke Bos" → status forwarded + Bos sees in inbox. Bump app.js v270→v271. ROADMAP_DATA 168→169.', d:'done' },
@@ -10878,7 +10946,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=273"></script>
+ <script src="app.js?v=274"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

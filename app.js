@@ -3204,6 +3204,152 @@ window.__fpReset = function() {
  document.getElementById('fpProductInfo').style.display = 'none';
 };
 
+// p1_172 — Pricing Setup tab switcher
+window.__psSetTab = function(tab, btn) {
+ document.querySelectorAll('.ps-tab').forEach(b => b.classList.toggle('ps-tab--active', b.dataset.psTab === tab));
+ document.querySelectorAll('.ps-tabpane').forEach(p => p.style.display = 'none');
+ const pane = document.getElementById('ps' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
+ if(pane) pane.style.display = '';
+ if(tab === 'audit') window.__psLoadAudit();
+};
+
+// p1_172 — Pricing Calculator state + computation
+window.__psState = { selectedTier: null, currentSku: null };
+
+window.__psComputeAll = function() {
+ const sku = ((document.getElementById('fpSkuInput')?.value || '')).toUpperCase().trim();
+ const rmb = parseFloat(document.getElementById('psCostRmb')?.value) || 0;
+ const ex = parseFloat(document.getElementById('psExchange')?.value) || 0.60;
+ const ship = parseFloat(document.getElementById('psShipping')?.value) || 0;
+ const handPct = parseFloat(document.getElementById('psHandling')?.value) || 5;
+ const base = rmb * ex;
+ const handling = base * (handPct / 100);
+ const costFinal = base + ship + handling;
+ const costEl = document.getElementById('psCostFinal');
+ if(costEl) costEl.value = costFinal > 0 ? 'RM ' + costFinal.toFixed(2) : '—';
+ // Product info
+ const p = (typeof masterProducts !== 'undefined') ? masterProducts.find(x => (x.sku || '').toUpperCase() === sku) : null;
+ if(p) {
+ window.__psState.currentSku = p.sku;
+ const nameEl = document.getElementById('psProductName');
+ const brEl = document.getElementById('psBrand');
+ const stEl = document.getElementById('psStock');
+ if(nameEl) nameEl.textContent = (p.name || '').slice(0, 80);
+ if(brEl) brEl.textContent = p.brand || '—';
+ if(stEl) stEl.textContent = p.stock != null ? p.stock : '—';
+ // Auto-fill cost inputs from saved data
+ const rmbEl = document.getElementById('psCostRmb');
+ const exEl = document.getElementById('psExchange');
+ const shEl = document.getElementById('psShipping');
+ const hEl = document.getElementById('psHandling');
+ if(rmbEl && !rmbEl.value && p.cost_rmb) rmbEl.value = p.cost_rmb;
+ if(exEl && p.exchange_rate) exEl.value = p.exchange_rate;
+ if(shEl && !shEl.value && p.shipping_cost_rm) shEl.value = p.shipping_cost_rm;
+ if(hEl && p.handling_pct) hEl.value = p.handling_pct;
+ }
+ // Compute 4 tiers
+ const tiers = [
+ { key: 'rrp', name: 'RRP (Standard 30%)', markup: 30, discount: 0, formula: 'Cost × 1.30', note: 'Baseline recommended retail' },
+ { key: 'kedai', name: 'Kedai (Walk-in)', markup: 60, discount: 20, formula: 'Cost × 1.60, then ×0.80 after diskaun', note: '20% diskaun built-in' },
+ { key: 'marketplace', name: 'TT/Shopee', markup: 80, discount: 0, formula: 'Cost × 1.80', note: 'Cover ~10% commission' },
+ { key: 'proposal', name: 'Z\'s Proposal', markup: 35, discount: 0, formula: 'Sell Cost × 1.35, Compare Cost × 1.44', compareMarkup: 44, note: 'Cover staff comm +5%, medsos +14%' }
+ ];
+ const grid = document.getElementById('psTiersGrid');
+ if(!grid) return;
+ grid.innerHTML = tiers.map(t => {
+ const sellPrice = costFinal * (1 + t.markup / 100);
+ const compareMarkup = t.compareMarkup || t.markup;
+ const comparePrice = t.discount > 0 ? sellPrice : (costFinal * (1 + compareMarkup / 100));
+ const beforeDisc = sellPrice;
+ const afterDisc = t.discount > 0 ? sellPrice * (1 - t.discount / 100) : sellPrice;
+ const finalPrice = t.discount > 0 ? afterDisc : sellPrice;
+ const selected = window.__psState.selectedTier === t.key;
+ return `<label class="ps-tier-card ${selected ? 'ps-tier-card--selected' : ''}" onclick="window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
+ <div class="ps-tier-card__head">
+ <span class="ps-tier-card__name">${t.name}</span>
+ <input type="radio" name="psTier" value="${t.key}" ${selected ? 'checked' : ''} class="ps-tier-card__radio" onclick="event.stopPropagation(); window.__psSelectTier('${t.key}', ${finalPrice.toFixed(2)}, ${comparePrice.toFixed(2)})">
+ </div>
+ <div class="ps-tier-card__price">RM ${finalPrice.toFixed(2)}${t.discount > 0 ? `<span class="ps-tier-card__compare">RM ${beforeDisc.toFixed(2)}</span>` : ''}</div>
+ <div class="ps-tier-card__markup">+${t.markup}% markup${t.discount > 0 ? ` · -${t.discount}% diskaun` : ''}</div>
+ <div class="ps-tier-card__formula">${t.formula}<br><em style="color:#9CA3AF;">${t.note}</em></div>
+ </label>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.__psSelectTier = function(key, finalPrice, compareAt) {
+ window.__psState.selectedTier = key;
+ window.__psState.finalPrice = finalPrice;
+ window.__psState.compareAt = compareAt;
+ const lbl = document.getElementById('psSelectedTier');
+ if(lbl) lbl.textContent = `Terpilih: ${key} · RM ${Number(finalPrice).toFixed(2)} (compare-at RM ${Number(compareAt).toFixed(2)})`;
+ // Update visual selected state without re-render (avoid resetting inputs)
+ document.querySelectorAll('.ps-tier-card').forEach(c => c.classList.remove('ps-tier-card--selected'));
+ const checked = document.querySelector('.ps-tier-card__radio[value="' + key + '"]');
+ if(checked) checked.closest('.ps-tier-card').classList.add('ps-tier-card--selected');
+};
+
+window.__psApplySelected = async function() {
+ const sku = window.__psState.currentSku;
+ const tier = window.__psState.selectedTier;
+ const finalPrice = window.__psState.finalPrice;
+ const compareAt = window.__psState.compareAt;
+ if(!sku || !tier) { if(typeof showToast === 'function') showToast('Pilih SKU + tier dulu.', 'warn'); return; }
+ if(!confirm(`Apply tier ${tier} ke ${sku}?\n\nprice = RM ${Number(finalPrice).toFixed(2)}\ncompare_at_price = RM ${Number(compareAt).toFixed(2)}`)) return;
+ const u = window.currentUser || {};
+ const rmb = parseFloat(document.getElementById('psCostRmb').value) || null;
+ const ex = parseFloat(document.getElementById('psExchange').value) || null;
+ const ship = parseFloat(document.getElementById('psShipping').value) || null;
+ const hand = parseFloat(document.getElementById('psHandling').value) || null;
+ const payload = {
+ price: Number(finalPrice),
+ compare_at_price: Number(compareAt),
+ cost_rmb: rmb,
+ exchange_rate: ex,
+ shipping_cost_rm: ship,
+ handling_pct: hand,
+ price_set_by: (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')',
+ price_set_at: new Date().toISOString()
+ };
+ // Also save tier-specific column
+ if(tier === 'rrp') payload.price_rrp = Number(finalPrice);
+ else if(tier === 'kedai') payload.price_kedai = Number(finalPrice);
+ else if(tier === 'marketplace') payload.price_marketplace = Number(finalPrice);
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { error } = await db.from('products_master').update(payload).eq('sku', sku);
+ if(error) throw error;
+ // In-memory sync
+ const idx = masterProducts.findIndex(p => (p.sku || '').toUpperCase() === sku.toUpperCase());
+ if(idx >= 0) Object.assign(masterProducts[idx], payload);
+ if(typeof showToast === 'function') showToast(`${sku} updated · ${tier} tier applied (RM ${Number(finalPrice).toFixed(2)}).`, 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Apply gagal: ' + e.message, 'error');
+ }
+};
+
+window.__psLoadAudit = async function() {
+ const wrap = document.getElementById('psAuditList');
+ if(!wrap) return;
+ wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>';
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('product_price_history').select('*').order('changed_at', { ascending: false }).limit(50);
+ if(error) throw error;
+ const rows = data || [];
+ if(!rows.length) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Tiada perubahan harga setakat ini.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ wrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:8px;">Tarikh</th><th style="text-align:left; padding:8px;">SKU</th><th style="text-align:right; padding:8px;">Old</th><th style="text-align:right; padding:8px;">New</th><th style="text-align:right; padding:8px;">Δ</th><th style="text-align:left; padding:8px;">By</th></tr></thead><tbody>` +
+ rows.map(r => {
+ const delta = Number(r.delta || 0);
+ const dColor = delta > 0 ? '#EF4444' : (delta < 0 ? '#10B981' : '#9CA3AF');
+ return `<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:8px;">${new Date(r.changed_at).toLocaleString('en-MY')}</td><td style="padding:8px;"><strong>${escHtml(r.sku || '')}</strong></td><td style="text-align:right; padding:8px;">RM ${Number(r.old_price || 0).toFixed(2)}</td><td style="text-align:right; padding:8px; font-weight:700;">RM ${Number(r.new_price || 0).toFixed(2)}</td><td style="text-align:right; padding:8px; color:${dColor}; font-weight:700;">${delta > 0 ? '+' : ''}RM ${delta.toFixed(2)}</td><td style="padding:8px;">${escHtml(r.changed_by || '-')}</td></tr>`;
+ }).join('') + '</tbody></table>';
+ } catch(e) {
+ wrap.innerHTML = '<p style="color:#EF4444; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
 window.__fpSave = async function() {
  const sku = (document.getElementById('fpSkuInput').value || '').toUpperCase().trim();
  const cost = parseFloat(document.getElementById('fpCostInput').value) || 0;
@@ -19794,7 +19940,7 @@ window.I18N = {
  sb_stock_take: { bm: 'Kiraan Stok', en: 'Stock Take' },
  sb_smart_picking: { bm: 'Picking Pintar', en: 'Smart Picking' },
  sb_barcode_labels: { bm: 'Label Barcode', en: 'Barcode Labels' },
- sb_floor_price: { bm: 'Floor Price', en: 'Floor Price' },
+ sb_floor_price: { bm: 'Pricing Setup', en: 'Pricing Setup' },
  sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
  sb_price_history: { bm: 'Sejarah Harga', en: 'Price History' },
  sb_reorder: { bm: 'Reorder Suggest', en: 'Reorder Suggest' },

@@ -12,7 +12,7 @@
  *   ?mode=compare           — build mapping, compare POS price/name vs TikTok
  *                             price/title, return the diff list. No write.
  *
- * Public URL: https://pos.10camp.com/api/tiktok-product-sync
+ * Public URL: https://www.10camp.com/api/tiktok-product-sync
  * Signature: same HMAC-SHA256 scheme as the other tiktok-* functions.
  */
 

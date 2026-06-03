@@ -7,7 +7,7 @@
  *   3. This function POSTs to /api/v2/auth/token/get to exchange code → access_token + refresh_token.
  *   4. Tokens saved to Supabase public.shopee_tokens (RLS-locked, service-role only).
  *
- * Public URL: https://pos.10camp.com/api/shopee-oauth
+ * Public URL: https://www.10camp.com/api/shopee-oauth
  *
  * Env vars (Netlify):
  *   SHOPEE_PARTNER_ID    — numeric partner_id

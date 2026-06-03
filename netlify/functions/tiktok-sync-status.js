@@ -1,6 +1,6 @@
 /**
  * TikTok Sync Status — read latest sync log entries.
- * Public URL: https://pos.10camp.com/api/tiktok-sync-status
+ * Public URL: https://www.10camp.com/api/tiktok-sync-status
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';

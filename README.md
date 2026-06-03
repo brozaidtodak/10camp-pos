@@ -4,7 +4,7 @@ Custom Point of Sale system for [10 CAMP](https://10camp.com), built to replace 
 
 ## Live
 
-- App: <https://pos.10camp.com> (alias of <https://pos-system-test.netlify.app>)
+- App: <https://www.10camp.com> (alias of <https://pos-system-test.netlify.app>)
 - Demo login: PIN `8888` (Tester account, External Demo mode — safe for walkthroughs)
 
 ## What it does

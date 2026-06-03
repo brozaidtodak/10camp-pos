@@ -5,12 +5,12 @@
  * change status. Fetches the specific order detail + upserts to
  * sales_history for instant sync (no waiting for 15-min cron).
  *
- * Public URL: https://pos.10camp.com/api/shopee-webhook
+ * Public URL: https://www.10camp.com/api/shopee-webhook
  *
  * Setup steps (Zaid kena buat dalam Shopee Open Platform console):
  *   1. Buka app "10 CAMP POS Sync"
  *   2. Cari section "Push Notification" atau "Webhook URL"
- *   3. Set URL: https://pos.10camp.com/api/shopee-webhook
+ *   3. Set URL: https://www.10camp.com/api/shopee-webhook
  *   4. Subscribe events: Order Status Update (code 3)
  *
  * Signature verification:
@@ -30,7 +30,7 @@ const PUSH_KEY     = process.env.SHOPEE_PUSH_KEY || ''; // Test/Live Push Partne
 const ENV          = (process.env.SHOPEE_ENV || 'sandbox').toLowerCase();
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
-const WEBHOOK_URL  = 'https://pos.10camp.com/api/shopee-webhook';
+const WEBHOOK_URL  = 'https://www.10camp.com/api/shopee-webhook';
 
 const HOST = ENV === 'live'
     ? 'https://partner.shopeemobile.com'

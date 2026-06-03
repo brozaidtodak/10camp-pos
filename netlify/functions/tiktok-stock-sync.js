@@ -9,7 +9,7 @@
  *                             stock vs TikTok stock, return the diff plan. No push.
  *   ?mode=push              — apply the diffs via updateInventory.
  *
- * Public URL: https://pos.10camp.com/api/tiktok-stock-sync
+ * Public URL: https://www.10camp.com/api/tiktok-stock-sync
  *
  * POS stock = SUM(inventory_batches.qty_remaining) per sku.
  * TikTok mapping: seller_sku → { product_id, sku_id, warehouse_id, qty }

@@ -170,7 +170,7 @@ function buildHTML(d) {
             <tbody>${skuRows}</tbody>
         </table>` : ''}
         <div style="margin-top:30px;padding:14px;background:#F9FAFB;border-radius:8px;text-align:center;">
-            <a href="https://pos.10camp.com" style="color:#CD7C32;text-decoration:none;font-size:13px;font-weight:600;">Buka POS Dashboard →</a>
+            <a href="https://www.10camp.com" style="color:#CD7C32;text-decoration:none;font-size:13px;font-weight:600;">Buka POS Dashboard →</a>
         </div>
     </div>
     <div style="padding:14px 24px;background:#F9FAFB;border-top:1px solid #eee;color:#999;font-size:11px;text-align:center;">

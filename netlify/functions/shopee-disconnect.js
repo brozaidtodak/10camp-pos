@@ -5,7 +5,7 @@
  * disconnecting POS from the Shopee shop. After this, sync/webhook
  * cannot fetch order details anymore.
  *
- * Public URL: https://pos.10camp.com/api/shopee-disconnect
+ * Public URL: https://www.10camp.com/api/shopee-disconnect
  *
  * Methods:
  *   GET  — list current connected shops (status check)

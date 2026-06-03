@@ -9,7 +9,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || '';
-const SITE_URL     = process.env.URL || 'https://pos.10camp.com';
+const SITE_URL     = process.env.URL || 'https://www.10camp.com';
 
 async function logRun(row) {
     try {

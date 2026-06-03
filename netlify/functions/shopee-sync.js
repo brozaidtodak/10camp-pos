@@ -11,7 +11,7 @@
  *   ?since=YYYY-MM-DD       — only orders created on/after this date
  *                             (default: 7 days ago). Max 15 day window per call.
  *
- * Public URL: https://pos.10camp.com/api/shopee-sync
+ * Public URL: https://www.10camp.com/api/shopee-sync
  *
  * Sign formula (shop-scoped):
  *   base = partner_id + path + timestamp + access_token + shop_id

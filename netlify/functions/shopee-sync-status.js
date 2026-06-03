@@ -1,7 +1,7 @@
 /**
  * Shopee Sync Status — read latest sync log entries for UI display.
  *
- * Public URL: https://pos.10camp.com/api/shopee-sync-status
+ * Public URL: https://www.10camp.com/api/shopee-sync-status
  *
  * Returns: { last_run, last_5_runs, totals_today }
  */

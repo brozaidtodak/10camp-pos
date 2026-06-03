@@ -609,7 +609,7 @@ window.setActiveRail = function(railId, navigateDirect) {
 window.renderSettingsHub = function() {
  try {
  const el = document.getElementById('setHubBuild');
- if(el) el.textContent = 'pos.10camp.com';
+ if(el) el.textContent = 'www.10camp.com';
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  if(typeof window.applyI18N === 'function') window.applyI18N();
  } catch(e){}
@@ -21686,7 +21686,7 @@ window.connectShopee = async function() {
  const w = window.open(json.url, '_blank', 'noopener');
  if(!w) {
  setStatus('Popup blocked', 'err');
- if(typeof showToast === 'function') showToast('Browser block popup. Allow popup untuk pos.10camp.com lepas tu cuba lagi.', 'warn');
+ if(typeof showToast === 'function') showToast('Browser block popup. Allow popup untuk www.10camp.com lepas tu cuba lagi.', 'warn');
  return;
  }
  setStatus('Tunggu authorize…', '');

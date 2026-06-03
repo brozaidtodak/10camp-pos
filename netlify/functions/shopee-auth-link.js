@@ -9,7 +9,7 @@
  *   4. Shop owner logs in to Shopee + authorizes the app.
  *   5. Shopee redirects to /api/shopee-oauth with ?code=...&shop_id=...
  *
- * Public URL: https://pos.10camp.com/api/shopee-auth-link
+ * Public URL: https://www.10camp.com/api/shopee-auth-link
  *
  * Env vars (Netlify):
  *   SHOPEE_PARTNER_ID  — numeric partner_id from Shopee Open Platform
@@ -31,7 +31,7 @@ const HOST = ENV === 'live'
     : 'https://openplatform.sandbox.test-stable.shopee.sg';
 
 const PATH = '/api/v2/shop/auth_partner';
-const REDIRECT = 'https://pos.10camp.com/api/shopee-oauth';
+const REDIRECT = 'https://www.10camp.com/api/shopee-oauth';
 
 exports.handler = async () => {
     if (!PARTNER_ID || !PARTNER_KEY) {

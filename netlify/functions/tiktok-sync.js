@@ -11,7 +11,7 @@
  *   ?since=YYYY-MM-DD        — only orders created on/after this date
  *                             (default: 2 days ago).
  *
- * Public URL: https://pos.10camp.com/api/tiktok-sync
+ * Public URL: https://www.10camp.com/api/tiktok-sync
  *
  * TRANSITION NOTE: TikTok orders also still arrive via EasyStore Channels.
  * To avoid double-counting, disconnect the TikTok channel in EasyStore and

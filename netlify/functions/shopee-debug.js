@@ -2,7 +2,7 @@
  * Shopee Debug — diagnostic endpoint. Returns enough info to verify
  * env vars + sign generation without leaking the full partner_key.
  *
- * Public URL: https://pos.10camp.com/api/shopee-debug
+ * Public URL: https://www.10camp.com/api/shopee-debug
  *
  * Safe to expose: shows only first 4 + last 4 chars of partner_key.
  */
@@ -76,9 +76,9 @@ exports.handler = async () => {
                 sign_error: signError
             },
             test_urls: {
-                A: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signA}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`,
-                B: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signB}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`,
-                C: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signC}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`
+                A: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signA}&redirect=${encodeURIComponent('https://www.10camp.com/api/shopee-oauth')}`,
+                B: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signB}&redirect=${encodeURIComponent('https://www.10camp.com/api/shopee-oauth')}`,
+                C: `${HOST}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${signC}&redirect=${encodeURIComponent('https://www.10camp.com/api/shopee-oauth')}`
             },
             server_side_test: await (async () => {
                 const tries = { A: signA, B: signB, C: signC };
@@ -91,7 +91,7 @@ exports.handler = async () => {
                     out[hName] = {};
                     for (const [name, s] of Object.entries(tries)) {
                         if (!s) { out[hName][name] = { skipped: 'no_sign' }; continue; }
-                        const url = `${hUrl}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${s}&redirect=${encodeURIComponent('https://pos.10camp.com/api/shopee-oauth')}`;
+                        const url = `${hUrl}${PATH}?partner_id=${PARTNER_ID}&timestamp=${timestamp}&sign=${s}&redirect=${encodeURIComponent('https://www.10camp.com/api/shopee-oauth')}`;
                         try {
                             const r = await fetch(url, { method: 'GET', redirect: 'manual' });
                             const text = await r.text().catch(() => '');

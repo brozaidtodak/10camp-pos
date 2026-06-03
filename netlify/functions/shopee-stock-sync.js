@@ -11,7 +11,7 @@
  *   ?mode=push              — actually push stock updates to Shopee
  *   ?limit=N                — limit items processed (default 50, max 100)
  *
- * Public URL: https://pos.10camp.com/api/shopee-stock-sync
+ * Public URL: https://www.10camp.com/api/shopee-stock-sync
  */
 
 const crypto = require('crypto');

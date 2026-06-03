@@ -10,7 +10,7 @@
  *   4. Tokens are stored in Supabase public.tiktok_tokens (RLS-locked,
  *      service-role only).
  *
- * Public URL: https://pos.10camp.com/api/tiktok-oauth
+ * Public URL: https://www.10camp.com/api/tiktok-oauth
  *
  * Env vars (set in Netlify dashboard):
  *   TIKTOK_APP_KEY        — app key from TikTok Shop Partner Center

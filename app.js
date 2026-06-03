@@ -3159,6 +3159,8 @@ window.renderFloorPrice = function() {
  belowList.innerHTML = '<p style="font-size:12px; color:#10B981; margin-top:14px;">Tiada SKU jual bawah floor — bagus.</p>';
  }
  } catch(e){}
+ // p1_173 — auto-render product list (default tab)
+ try { if(typeof window.__psRenderList === 'function') window.__psRenderList(); } catch(e){}
  if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
@@ -3204,13 +3206,109 @@ window.__fpReset = function() {
  document.getElementById('fpProductInfo').style.display = 'none';
 };
 
-// p1_172 — Pricing Setup tab switcher
+// p1_172 — Pricing Setup tab switcher (p1_173 — list tab added)
 window.__psSetTab = function(tab, btn) {
  document.querySelectorAll('.ps-tab').forEach(b => b.classList.toggle('ps-tab--active', b.dataset.psTab === tab));
  document.querySelectorAll('.ps-tabpane').forEach(p => p.style.display = 'none');
  const pane = document.getElementById('ps' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
  if(pane) pane.style.display = '';
  if(tab === 'audit') window.__psLoadAudit();
+ if(tab === 'list') window.__psRenderList();
+};
+
+// p1_173 — Product list view
+window.__psListState = { filterText: '', filterBrand: '', filterStatus: '' };
+
+window.__psRenderList = function() {
+ const wrap = document.getElementById('psListWrap');
+ if(!wrap) return;
+ if(typeof masterProducts === 'undefined' || !Array.isArray(masterProducts) || !masterProducts.length) {
+ wrap.innerHTML = '<p style="padding:24px; text-align:center; color:#9CA3AF;">Tiada produk. Sila import dahulu.</p>';
+ return;
+ }
+ const brandSel = document.getElementById('psListBrand');
+ if(brandSel && brandSel.options.length <= 1) {
+ const brands = Array.from(new Set(masterProducts.map(p => (p.brand || '').trim()).filter(Boolean))).sort();
+ brandSel.innerHTML = '<option value="">Semua brand</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+ }
+ window.__psListFilter();
+};
+
+window.__psListFilter = function() {
+ const wrap = document.getElementById('psListWrap');
+ const sumEl = document.getElementById('psListSummary');
+ if(!wrap) return;
+ const q = ((document.getElementById('psListSearch') && document.getElementById('psListSearch').value) || '').toLowerCase().trim();
+ const brand = (document.getElementById('psListBrand') && document.getElementById('psListBrand').value) || '';
+ const status = (document.getElementById('psListStatus') && document.getElementById('psListStatus').value) || '';
+ const all = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const rows = all.filter(p => {
+ if(brand && (p.brand || '') !== brand) return false;
+ if(q) {
+ const sku = (p.sku || '').toLowerCase();
+ const nm = (p.name || '').toLowerCase();
+ if(!sku.includes(q) && !nm.includes(q)) return false;
+ }
+ const price = Number(p.price || 0);
+ const cost = Number(p.cost_rmb || 0);
+ if(status === 'set' && !(price > 0 && cost > 0)) return false;
+ if(status === 'noprice' && price > 0) return false;
+ if(status === 'nocost' && !(price > 0 && cost <= 0)) return false;
+ return true;
+ });
+ const totalSet = all.filter(p => Number(p.price || 0) > 0 && Number(p.cost_rmb || 0) > 0).length;
+ const totalNoPrice = all.filter(p => !(Number(p.price || 0) > 0)).length;
+ const totalNoCost = all.filter(p => Number(p.price || 0) > 0 && !(Number(p.cost_rmb || 0) > 0)).length;
+ if(sumEl) sumEl.innerHTML = `Tunjuk <strong>${rows.length}</strong> / ${all.length} produk · <span style="color:#10B981;">${totalSet} dah set</span> · <span style="color:#F59E0B;">${totalNoCost} tiada cost</span> · <span style="color:#EF4444;">${totalNoPrice} belum set price</span>`;
+ if(!rows.length) { wrap.innerHTML = '<p style="padding:24px; text-align:center; color:#9CA3AF;">Tiada padanan.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const MAX = 300;
+ const slice = rows.slice(0, MAX);
+ const body = slice.map(p => {
+ const price = Number(p.price || 0);
+ const cost = Number(p.cost_rmb || 0);
+ const stock = Number(p.stock || 0);
+ let badge = '';
+ if(price > 0 && cost > 0) badge = '<span style="background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:700;">Set</span>';
+ else if(price > 0) badge = '<span style="background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:700;">No Cost</span>';
+ else badge = '<span style="background:#FEE2E2; color:#991B1B; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:700;">Belum Set</span>';
+ const skuRaw = p.sku || '';
+ const skuSafe = escHtml(skuRaw);
+ const skuArg = skuRaw.replace(/'/g, "\\'");
+ return `<tr style="cursor:pointer; border-bottom:1px solid #F3F4F6;" onmouseover="this.style.background='#F9FAFB';" onmouseout="this.style.background='';" onclick="window.__psLoadFromList('${skuArg}')">`
+ + `<td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:600;">${skuSafe}</td>`
+ + `<td style="padding:8px 10px;">${escHtml((p.name || '').slice(0, 60))}</td>`
+ + `<td style="padding:8px 10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
+ + `<td style="padding:8px 10px; text-align:right; font-weight:${price > 0 ? '700' : '400'}; color:${price > 0 ? '#111827' : '#9CA3AF'};">${price > 0 ? 'RM ' + price.toFixed(2) : '—'}</td>`
+ + `<td style="padding:8px 10px; text-align:right; color:${cost > 0 ? '#111827' : '#9CA3AF'};">${cost > 0 ? '¥ ' + cost.toFixed(2) : '—'}</td>`
+ + `<td style="padding:8px 10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'};">${stock}</td>`
+ + `<td style="padding:8px 10px; text-align:center;">${badge}</td></tr>`;
+ }).join('');
+ const html = '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">'
+ + '<thead style="position:sticky; top:0; background:#F9FAFB; z-index:1;"><tr>'
+ + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">SKU</th>'
+ + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">Nama</th>'
+ + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">Brand</th>'
+ + '<th style="text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-color);">Harga Skrg</th>'
+ + '<th style="text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-color);">Cost RMB</th>'
+ + '<th style="text-align:right; padding:8px 10px; border-bottom:1px solid var(--border-color);">Stok</th>'
+ + '<th style="text-align:center; padding:8px 10px; border-bottom:1px solid var(--border-color);">Status</th>'
+ + '</tr></thead><tbody>' + body + '</tbody></table>'
+ + (rows.length > MAX ? `<p style="padding:12px; text-align:center; color:#9CA3AF; font-size:11.5px; border-top:1px solid var(--border-color);">Tunjuk ${MAX} pertama daripada ${rows.length}. Tapis lebih halus untuk lihat selebihnya.</p>` : '');
+ wrap.innerHTML = html;
+};
+
+window.__psLoadFromList = function(sku) {
+ if(!sku) return;
+ const calcBtn = document.querySelector('.ps-tab[data-ps-tab="calc"]');
+ if(calcBtn) window.__psSetTab('calc', calcBtn);
+ const skuInput = document.getElementById('fpSkuInput');
+ if(skuInput) {
+ skuInput.value = sku;
+ if(typeof window.__fpLookup === 'function') { try { window.__fpLookup(); } catch(_) {} }
+ if(typeof window.__psComputeAll === 'function') { try { window.__psComputeAll(); } catch(_) {} }
+ skuInput.focus();
+ }
 };
 
 // p1_172 — Pricing Calculator state + computation

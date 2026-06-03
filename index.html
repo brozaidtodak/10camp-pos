@@ -2675,17 +2675,50 @@
  </div>
  </div>
 
- <!-- p1_172 — Tab nav -->
+ <!-- p1_173 — Tab nav (List default; emojis swapped to Lucide per no_emojis rule) -->
  <div style="display:flex; gap:4px; border-bottom:1px solid var(--border-color); margin-bottom:18px; flex-wrap:wrap;">
- <button class="ps-tab ps-tab--active" data-ps-tab="calc" onclick="window.__psSetTab('calc', this)">💰 Pricing Calculator</button>
- <button class="ps-tab" data-ps-tab="floor" onclick="window.__psSetTab('floor', this)">🛡️ Floor Price Guard</button>
- <button class="ps-tab" data-ps-tab="audit" onclick="window.__psSetTab('audit', this)">📜 Audit Log</button>
+ <button class="ps-tab ps-tab--active" data-ps-tab="list" onclick="window.__psSetTab('list', this)"><i data-lucide="list" style="width:14px; height:14px; vertical-align:-2px;"></i> Senarai Produk</button>
+ <button class="ps-tab" data-ps-tab="calc" onclick="window.__psSetTab('calc', this)"><i data-lucide="calculator" style="width:14px; height:14px; vertical-align:-2px;"></i> Pricing Calculator</button>
+ <button class="ps-tab" data-ps-tab="floor" onclick="window.__psSetTab('floor', this)"><i data-lucide="shield" style="width:14px; height:14px; vertical-align:-2px;"></i> Floor Price Guard</button>
+ <button class="ps-tab" data-ps-tab="audit" onclick="window.__psSetTab('audit', this)"><i data-lucide="history" style="width:14px; height:14px; vertical-align:-2px;"></i> Audit Log</button>
+ </div>
+
+ <!-- ============================================== -->
+ <!-- TAB 0: Senarai Produk (NEW p1_173) — default entry -->
+ <!-- ============================================== -->
+ <div id="psListTab" class="ps-tabpane">
+ <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px;">
+ <div style="flex:2; min-width:220px;">
+ <label style="display:block; font-size:11px; color:#6B7280; margin-bottom:4px;">Cari (SKU / nama)</label>
+ <input id="psListSearch" type="text" placeholder="taip 'tent', 'BLK', 'naturehike'…" oninput="window.__psListFilter()" style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px;">
+ </div>
+ <div style="flex:1; min-width:140px;">
+ <label style="display:block; font-size:11px; color:#6B7280; margin-bottom:4px;">Brand</label>
+ <select id="psListBrand" onchange="window.__psListFilter()" style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; background:white;">
+ <option value="">Semua brand</option>
+ </select>
+ </div>
+ <div style="flex:1; min-width:140px;">
+ <label style="display:block; font-size:11px; color:#6B7280; margin-bottom:4px;">Status</label>
+ <select id="psListStatus" onchange="window.__psListFilter()" style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; background:white;">
+ <option value="">Semua status</option>
+ <option value="set">Dah set price</option>
+ <option value="noprice">Belum set price</option>
+ <option value="nocost">Ada price, tiada cost</option>
+ </select>
+ </div>
+ </div>
+ <div id="psListSummary" style="font-size:12px; color:#6B7280; margin-bottom:8px;">—</div>
+ <div id="psListWrap" style="max-height:60vh; overflow:auto; border:1px solid var(--border-color); border-radius:8px;">
+ <p style="padding:24px; text-align:center; color:#9CA3AF;">Memuatkan senarai…</p>
+ </div>
+ <p style="font-size:11px; color:#9CA3AF; margin-top:6px;">Tip: klik mana-mana row untuk buka Calculator dengan auto-fill cost + tier suggestions.</p>
  </div>
 
  <!-- ============================================== -->
  <!-- TAB 1: Pricing Calculator (NEW p1_172) -->
  <!-- ============================================== -->
- <div id="psCalcTab" class="ps-tabpane">
+ <div id="psCalcTab" class="ps-tabpane" style="display:none;">
  <!-- Shared SKU lookup (top of all tabs) -->
  <div class="rp-section">
  <h3 class="rp-section__title"><i data-lucide="search" style="width:14px;height:14px;"></i> Pilih SKU</h3>
@@ -6238,7 +6271,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (172/172 · last 2026-06-04) — Pricing Setup section (Zack flow: RMB cost → 4 tier preview → apply selected)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (173/173 · last 2026-06-04) — Pricing Setup: Senarai Produk default tab (browse all, click row → Calculator auto-fill)',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6313,6 +6346,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_173', label:'Pricing Setup — Senarai Produk default tab (Zaid: "kenapa tak visiblekan semua product, kan lebih mudah"). New first tab list-view of ALL products dengan SKU/nama/brand/harga skrg/cost RMB/stok/status badge (Set / No Cost / Belum Set). Filters: search SKU/nama (debounced via inline oninput), brand dropdown (auto-populated dari unique brands), status (set / belum set price / ada price tiada cost). Summary line nampak count by status. Click any row → switch to Calculator tab + auto-fill SKU + trigger __fpLookup + __psComputeAll (4 tier suggestions terus muncul). Render guard: top 300 of filtered (tunjuk hint "tapis lebih halus" kalau lebih). Sticky header + hover highlight. Side effect: tab labels switched from emoji (💰🛡️📜) to Lucide icons per [[no_emojis]] rule (calculator/shield/history/list). renderFloorPrice() now triggers __psRenderList() on section enter. app.js v274→v275.', d:'done' },
  { id:'p1_172', label:'Pricing Setup section — digitize Zack pricing sheet flow (Zaid: 4 screenshots showing RMB cost → tier markups → custom price → summary). Audit Zack workflow decomposed: (1) RMB cost × exchange rate + shipping + 5% handling = Cost Bersih RM. (2) RRP (Recommended Retail Price) baseline 30% markup. (3) Custom by Ariff — Price Kedai walk-in tinggi markup + 20% built-in diskaun. (4) Price TT/Shopee higher markup to cover ~10% commission. (5) Z Proposal — Sell Cost × 1.35 (cover staff comm +5%) + Compare Cost × 1.44 (cover 9% medsos +14%). Build: (a) SQL ALTER products_master ADD cost_rmb + exchange_rate (default 0.60) + shipping_cost_rm + handling_pct (default 5) + price_rrp + price_kedai + price_marketplace + markup_kedai_pct + markup_marketplace_pct + kedai_discount_pct (default 20) + price_set_by + price_set_at. Migration sql/2026-06-04_pricing_columns.sql via Management API. (b) Extend existing Floor Price section ke "Pricing Setup" dengan 3 tabs nav: 💰 Pricing Calculator / 🛡️ Floor Price Guard / 📜 Audit Log. Tab pattern .ps-tab + .ps-tabpane CSS. (c) Calculator tab: SKU lookup + product info card (name/brand/stock) + Cost Breakdown 5-col input (RMB/Exchange/Shipping/Handling/→Cost Final dark inverted output) + Pricing Tiers Grid (4 tier cards: RRP / Kedai / TT-Shopee / Z Proposal). Each tier card: brand name + radio + final RM price big (with optional compare-at strikethrough) + markup % green + formula explanation. Hover lift + selected state primary border tint. (d) __psComputeAll handler — recompute on every input keystroke, auto-fill from products_master cost_rmb/exchange_rate kalau ada. __psSelectTier toggle visual + store state. __psApplySelected confirm dialog → UPDATE products_master price + compare_at_price + cost detail columns + price_set_by + tier-specific column (price_rrp/price_kedai/price_marketplace). (e) Floor Price tab kekal existing UI (p1_109 — cost + margin + floor) untuk Cashier guard. (f) Audit tab — lazy-load product_price_history table (p1_111 Postgres trigger auto-log) dengan SKU + delta + actor. (g) Sidebar entry rename "Floor Price" → "Pricing Setup", icon swap trending-down → calculator, sb_floor_price i18n updated. Bump app.js v273→v274, design-tokens.css v59→v60. ROADMAP_DATA 171→172.', d:'done' },
  { id:'p1_171', label:'Inventory sidebar restructure (Zaid: "tak nampak flow of work dan susunan terabur"). Audit: 15 items dalam 2 sub-grup ("Operasi Harian" 3 + "Pengurusan Stok" 12 bloated). 4 entries pasal Stock Check (Take + Sessions + Reports + History) — confusing. Restructure ke 4 intent-based sub-groups: (A) "— Operasi Harian —" daily touchpoints (3 items): Pesanan Online (package-check icon + red badge) · Browse Products (package) · Returns/Damage (rotate-ccw). (B) "— Stock Check —" weekly cycle (3 items): Stock Check Sessions (layers — PRIMARY entry) · Stock Take (clipboard-check — manual count page) · Stock Check History (history, mgmt-only — admin dashboard). Old "Stock Check Reports" sidebar entry HIDDEN (deprecated by Sessions, p1_110 legacy). Section markup kekal dalam DOM untuk back-compat dengan stockCheckBadge + URL bookmarks. (C) "— Pembelian & Bekalan —" periodic admin (4 items): Purchase Orders (truck) · Warehouse Hub (warehouse) · Reorder Suggest (repeat + badge) · Supplier Performance (handshake — icon change dari truck untuk dedupe duplicate dengan PO). (D) "— Setup & Alat —" config (4 items): Floor Price (trending-down) · Price History (line-chart) · Barcode Labels (printer) · Smart Picking (route). Net: 14 visible items vs old 15 (Stock Check Reports hidden). Logical flow tracks staff mental model: morning ops → weekly check cycle → periodic buying decisions → setup tools. i18n 5 keys baharu (sb_inv_check_group, sb_inv_buying_group, sb_inv_tools_group, sb_check_sessions, sb_check_history) dengan BM/EN parallel. sb_inv_stock_divider key kekal untuk legacy. Bump app.js v272→v273. ROADMAP_DATA 170→171.', d:'done' },
  { id:'p1_170', label:'Stock Take quick-flag buttons "Tak Jumpa" + "Rosak" (Zaid request). (1) 2 button baharu setiap card (Express + Detail mode): "Tak Jumpa" (search-x icon, red #FEE2E2/#991B1B) + "Rosak" (alert-triangle, amber #FED7AA/#9A3412). Express mode: inline beside Submit + ⋯ buttons. Detail mode: flex row bawah SUBMIT KIRAAN ITEM, gap 6px. (2) __stMarkNotFound(sku) handler: auto-fill fizikalQty=0, populate auditKomen dengan "Tak jumpa di [location] · [staff name] · [timestamp]" auto-stamped. Trigger calculateVariance (papar -sistem qty selisih). Call submitAuditSingle yang sync ke products_master + session_items via existing flow. Lepas tu UPDATE session_items dengan flag="not_found" (separate query sebab submitAuditSingle takda flag param). Toast amber "SKU — Tandai TAK JUMPA". Auto-advance ke next card. (3) __stMarkDamaged(sku) handler: prompt "Berapa unit rosak untuk [SKU]? (sistem: N)" default 1. Validasi numeric. Compute goodQty = sysQty - damaged (clamp 0). Auto-fill fizikalQty=goodQty, populate komen dengan "N unit ROSAK ([location]) · baki good X · [staff] · [timestamp]". Trigger calculate + submit + UPDATE session_items flag="damaged". Toast "SKU — N ROSAK · X good". Auto-advance. (4) Use case Kael walking warehouse: scan list → bila item tak jumpa kat rak → klik Tak Jumpa → terus skip ke next. Bila found dengan damaged → klik Rosak → prompt damage qty → continue. Faster than typing manually. (5) Session-level: bila summary generated nanti, items_not_found + items_damaged akan tally. Auto-summary __scsAutoSummary already counts these flag types. Bump app.js v271→v272. ROADMAP_DATA 169→170.', d:'done' },
@@ -10946,7 +10980,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=274"></script>
+ <script src="app.js?v=275"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

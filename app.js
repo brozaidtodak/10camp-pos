@@ -3264,6 +3264,7 @@ window.__psListFilter = function() {
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
  const MAX = 300;
  const slice = rows.slice(0, MAX);
+ const noImg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><rect width="60" height="60" fill="%23F3F4F6"/><text x="30" y="34" text-anchor="middle" fill="%239CA3AF" font-family="sans-serif" font-size="9">No Img</text></svg>';
  const body = slice.map(p => {
  const price = Number(p.price || 0);
  const cost = Number(p.cost_rmb || 0);
@@ -3275,7 +3276,9 @@ window.__psListFilter = function() {
  const skuRaw = p.sku || '';
  const skuSafe = escHtml(skuRaw);
  const skuArg = skuRaw.replace(/'/g, "\\'");
+ const imgSrc = (p.images && p.images[0]) ? p.images[0] : noImg;
  return `<tr style="cursor:pointer; border-bottom:1px solid #F3F4F6;" onmouseover="this.style.background='#F9FAFB';" onmouseout="this.style.background='';" onclick="window.__psLoadFromList('${skuArg}')">`
+ + `<td style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${noImg}';" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color); display:block;"></td>`
  + `<td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:600;">${skuSafe}</td>`
  + `<td style="padding:8px 10px;">${escHtml((p.name || '').slice(0, 60))}</td>`
  + `<td style="padding:8px 10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
@@ -3286,6 +3289,7 @@ window.__psListFilter = function() {
  }).join('');
  const html = '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">'
  + '<thead style="position:sticky; top:0; background:#F9FAFB; z-index:1;"><tr>'
+ + '<th style="width:64px; padding:8px 10px; border-bottom:1px solid var(--border-color);"></th>'
  + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">SKU</th>'
  + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">Nama</th>'
  + '<th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color);">Brand</th>'
@@ -3335,6 +3339,12 @@ window.__psComputeAll = function() {
  if(nameEl) nameEl.textContent = (p.name || '').slice(0, 80);
  if(brEl) brEl.textContent = p.brand || '—';
  if(stEl) stEl.textContent = p.stock != null ? p.stock : '—';
+ const imgEl = document.getElementById('psProductImg');
+ if(imgEl) {
+ const url = (p.images && p.images[0]) ? p.images[0] : '';
+ if(url) imgEl.src = url;
+ imgEl.onerror = function() { this.onerror = null; this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><rect width='72' height='72' fill='%23F3F4F6'/><text x='36' y='40' text-anchor='middle' fill='%239CA3AF' font-family='sans-serif' font-size='10'>No Img</text></svg>"; };
+ }
  // Auto-fill cost inputs from saved data
  const rmbEl = document.getElementById('psCostRmb');
  const exEl = document.getElementById('psExchange');

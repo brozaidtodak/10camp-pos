@@ -20150,9 +20150,10 @@ window.openCheckoutPanel = function() {
  document.getElementById('cpDiscountLine').style.display = 'none';
 
  // Reset form
- ['cpCustName','cpCustPhone','cpCustEmail','cpBuyerTin','cpEwalletRef'].forEach(id => {
+ ['cpCustName','cpCustPhone','cpCustEmail','cpBuyerTin','cpEwalletRef','cpDiscAmt','cpDiscReason'].forEach(id => {
  const el = document.getElementById(id); if(el) el.value = '';
  });
+ const dType = document.getElementById('cpDiscType'); if(dType) dType.value = 'rm';
  document.getElementById('cpChannel').value = 'Walk-in Kedai';
  document.getElementById('cpStatus').value = 'Completed';
  cpSetPayment('Cash');
@@ -20215,21 +20216,32 @@ window.cpRecomputeTotal = function() {
  });
  raw = round2(raw);
  let final = raw;
- let discount = 0;
+ // p1_204 — Custom manual discount FIRST (cp* inputs in active checkout panel)
+ const cdType = (document.getElementById('cpDiscType') || {}).value || 'rm';
+ const cdAmtIn = parseFloat((document.getElementById('cpDiscAmt') || {}).value) || 0;
+ let customDiscount = 0;
+ if(cdAmtIn > 0) customDiscount = cdType === 'pct' ? round2(raw * cdAmtIn / 100) : round2(cdAmtIn);
+ if(customDiscount > raw) customDiscount = raw;
+ const afterCustom = round2(raw - customDiscount);
+ // VIP discount applied on top of custom-discounted amount
+ let vipDiscount = 0;
  if(window.__currentCheckoutVip && window.__currentCheckoutVip.discount_pct) {
- discount = round2(raw * window.__currentCheckoutVip.discount_pct / 100);
- final = round2(raw - discount);
+ vipDiscount = round2(afterCustom * window.__currentCheckoutVip.discount_pct / 100);
  }
+ final = round2(afterCustom - vipDiscount);
+ const totalDiscount = customDiscount + vipDiscount;
  document.getElementById('cpTotalDisplay').textContent = final.toFixed(2);
  document.getElementById('cpConfirmAmount').textContent = final.toFixed(2);
  const discLine = document.getElementById('cpDiscountLine');
- if(discount> 0 && window.__currentCheckoutVip) {
+ if(totalDiscount > 0) {
  discLine.style.display = 'block';
- discLine.innerHTML = `${window.__currentCheckoutVip.tier} discount −RM ${discount.toFixed(2)} (subtotal RM ${raw.toFixed(2)})`;
+ const parts = [];
+ if(customDiscount > 0) parts.push('Diskaun custom −RM ' + customDiscount.toFixed(2));
+ if(vipDiscount > 0) parts.push((window.__currentCheckoutVip.tier || 'VIP') + ' −RM ' + vipDiscount.toFixed(2));
+ discLine.innerHTML = parts.join(' · ') + ' (subtotal RM ' + raw.toFixed(2) + ')';
  } else {
  discLine.style.display = 'none';
  }
- // Also keep legacy modal display in sync (in case modal opened too)
  const legacy = document.getElementById('paymentTotalDisplay');
  if(legacy) legacy.textContent = final.toFixed(2);
 };
@@ -20399,6 +20411,10 @@ window.cpConfirmSale = async function() {
  sync('cpPaymentMethod', 'paymentMethod');
  sync('cpEwalletProvider', 'ewalletProvider');
  sync('cpEwalletRef', 'ewalletRef');
+ // p1_204 — sync custom discount fields to legacy IDs so processNewCheckout reads them
+ sync('cpDiscType', 'checkoutDiscType');
+ sync('cpDiscAmt', 'checkoutDiscAmt');
+ sync('cpDiscReason', 'checkoutDiscReason');
 
  // Disable button while processing
  const btn = document.getElementById('cpConfirmBtn');

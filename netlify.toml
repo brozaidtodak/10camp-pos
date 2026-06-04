@@ -112,3 +112,10 @@
 # p1_118 — Daily Bos Digest 8am MYT (00:00 UTC)
 [functions."daily-bos-digest"]
   schedule = "0 0 * * *"
+
+# p1_237 — Receipt email sender (on-demand)
+[[redirects]]
+  from = "/api/send-receipt-email"
+  to = "/.netlify/functions/send-receipt-email"
+  status = 200
+  force = true

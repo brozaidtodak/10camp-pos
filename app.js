@@ -4239,7 +4239,8 @@ window.renderPaymentProofs = async function() {
  <button onclick="window.__sendReceiptPdfWhatsApp(${r.id})" title="Hantar resit PDF via WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="message-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> WhatsApp</button>
  <button onclick="window.__sendReceiptPdfEmail(${r.id})" title="Hantar resit PDF via Email" style="background:#E0E7FF; border:1px solid #A5B4FC; color:#3730A3; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="mail" style="width:11px;height:11px;vertical-align:-1px;"></i> Email</button>
  <button onclick="window.__ppUploadFor(${r.id})" title="Upload bukti bayar dari customer" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button>
- <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#DBEAFE; border:1px solid #93C5FD; color:#1E3A8A; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
  </td>
  </tr>`;
  }).join('');
@@ -4752,6 +4753,29 @@ table.items-table .col-total { text-align: right; width: 22%; font-weight: 600; 
 };
 
 // Late-upload (or replace) proof for an existing sale from Reports
+// p1_237 — Resend / Send receipt email manual dari Reports
+window.__ppResendEmail = async function(saleId) {
+ if(!confirm('Hantar email receipt untuk sale #' + saleId + '?\n\nKalau dah pernah hantar, akan force-send semula.')) return;
+ try {
+ const res = await fetch('/api/send-receipt-email', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ sale_id: saleId, force: true })
+ });
+ const data = await res.json();
+ if(data.success) {
+ if(typeof showToast === 'function') showToast(`Email hantar ke ${data.to}.`, 'success');
+ } else if(data.skipped) {
+ if(typeof showToast === 'function') showToast(`Skipped: ${data.reason}`, 'warn');
+ } else {
+ if(typeof showToast === 'function') showToast(`Gagal: ${data.error || 'Unknown'}`, 'error');
+ }
+ if(typeof window.renderPaymentProofs === 'function') window.renderPaymentProofs();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Network error: ' + e.message, 'error');
+ }
+};
+
 // p1_233 — Edit sale row from Payment Proofs (customer/method/channel/amount/status)
 window.__ppEditSale = async function(saleId) {
  if(typeof db === 'undefined' || !db) return;
@@ -9894,6 +9918,21 @@ window.processNewCheckout = async function() {
  const invId = "INV-10C-" + Math.floor(1000 + Math.random() * 9000);
  const email = document.getElementById("customerEmail").value.trim();
  showReceiptModal(invId, custNameText, email, totalVal, [...cart]);
+
+ // p1_237 — Auto-send branded HTML receipt via Resend (fire-and-forget, non-blocking)
+ // Skip kalau no email atau sale ID missing. Function handles all logic (env check, sale lookup, Resend POST, status update).
+ if(insertedSaleId && email) {
+ try {
+ fetch('/api/send-receipt-email', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ sale_id: insertedSaleId })
+ }).then(r => r.json()).then(d => {
+ if(d.success) console.log('[receipt-email] sent to', d.to, 'resend_id:', d.resend_id);
+ else console.log('[receipt-email] skipped/failed:', d);
+ }).catch(e => console.warn('[receipt-email] fetch error:', e));
+ } catch(e) { console.warn('[receipt-email] trigger error:', e); }
+ }
 
  // p1_199 — Auto-send PDF receipt after checkout. Fire-and-forget; runs in
  // background while staff sees the standard receipt modal. If customer has

@@ -8741,7 +8741,7 @@ function renderPOS(searchTerm = "") {
  <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
  <p class="product-card__stock">${totalStock <= 0 ? 'Out of stock' : `${totalStock} ${p.unit||'pcs'} in stock`}</p>
- <button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? 'disabled' : ''}>${totalStock <= 0 ? 'Out of Stock' : 'Add to Cart'}</button>
+ <button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? 'style="background:#FED7AA; color:#9A3412; border:1px solid #FB923C;" title="Stok 0 dalam sistem — jual sebagai backorder"' : ''}>${totalStock <= 0 ? 'Jual (Backorder)' : 'Add to Cart'}</button>
  </div>
  `;
  });
@@ -8891,11 +8891,18 @@ window.posOpenProductDetail = function(sku) {
     // Qty + Add button
     document.getElementById('pdQtyInput').value = '1';
     const addBtn = document.getElementById('pdAddBtn');
+    // p1_229 — Allow sell on OOS (backorder mode); orange styling
     if(totalStock <= 0) {
-        addBtn.disabled = true;
-        addBtn.innerHTML = '<span>Out of Stock</span>';
+        addBtn.disabled = false;
+        addBtn.style.background = '#FED7AA';
+        addBtn.style.color = '#9A3412';
+        addBtn.title = 'Stok 0 dalam sistem — jual sebagai backorder';
+        addBtn.innerHTML = '<i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;"></i><span>Jual (Backorder)</span>';
     } else {
         addBtn.disabled = false;
+        addBtn.style.background = '';
+        addBtn.style.color = '';
+        addBtn.title = '';
         addBtn.innerHTML = '<i data-lucide="shopping-cart" style="width:16px;height:16px;flex-shrink:0;"></i><span>Add to Cart</span>';
     }
     // p1_202 — Reset discount inputs + preview on PDP open
@@ -9050,11 +9057,21 @@ document.addEventListener('keydown', function(e) {
 
 window.addToCart = function(sku) {
  const p = masterProducts.find(x => x.sku === sku);
+ if(!p) return;
  const totalAvail = inventoryBatches.filter(b => b.sku === sku && b.qty_remaining> 0).reduce((s, b) => s + b.qty_remaining, 0);
  const cartItem = cart.find(c => c.sku === sku);
- 
- if(cartItem) { if (cartItem.quantity < totalAvail) cartItem.quantity++; else (typeof showToast==='function'?showToast('Stok tak cukup','warning'):alert('Limits reached!')); }
- else { if (totalAvail> 0) cart.push({ sku: sku, name: p.name, price: parseFloat(p.price), quantity: 1 }); }
+ // p1_229 — Allow sell even when OOS (Zaid: stok 0 sistem tapi staff masih boleh jual). Warn via toast je.
+ if(cartItem) {
+ cartItem.quantity++;
+ if(cartItem.quantity > totalAvail) {
+ if(typeof showToast === 'function') showToast(`AMARAN: ${sku} stok sistem ${totalAvail}, dah jual ${cartItem.quantity} unit. Backorder.`, 'warn');
+ }
+ } else {
+ cart.push({ sku, name: p.name, price: parseFloat(p.price) || 0, quantity: 1 });
+ if(totalAvail <= 0) {
+ if(typeof showToast === 'function') showToast(`AMARAN: ${sku} stok sistem = 0. Jual sebagai backorder.`, 'warn');
+ }
+ }
  renderCart();
 }
 
@@ -9428,33 +9445,107 @@ document.addEventListener('keydown', function(e) {
  } catch(err) { /* fail silent */ }
 });
 
+// p1_229 — Replaced prompt-based picker with proper modal (existing search + new customer registration)
 window.posAttachCustomer = function() {
- const T = (k, f) => (typeof window.t === 'function') ? (window.t(k) || f) : f;
+ const modal = document.getElementById('customerPickerModal');
+ if(!modal) return alert('Customer picker unavailable.');
+ // Reset state
+ const s = document.getElementById('cpkSearch'); if(s) s.value = '';
+ const res = document.getElementById('cpkResults');
+ if(res) res.innerHTML = '<p style="color:#9CA3AF; font-size:13px; padding:12px; text-align:center; margin:0;">Taip untuk cari pelanggan...</p>';
+ ['cpkNewName','cpkNewPhone','cpkNewEmail'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+ const mEl = document.getElementById('cpkNewIsMember'); if(mEl) mEl.checked = false;
+ modal.style.display = 'flex';
+ setTimeout(() => { const sf = document.getElementById('cpkSearch'); if(sf) sf.focus(); }, 100);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_229 — Filter customer list as Zaid types in picker
+window.cpkFilterCustomers = function(q) {
+ const res = document.getElementById('cpkResults');
+ if(!res) return;
  const list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
- if(!list.length) { alert(T('cs_customer_not_found', 'No customer database loaded.')); return; }
- const q = (prompt(T('cs_search_customer_prompt', 'Search customer (phone or name):'), '') || '').trim().toLowerCase();
- if(!q) return;
+ const query = (q || '').trim().toLowerCase();
+ if(!query) { res.innerHTML = '<p style="color:#9CA3AF; font-size:13px; padding:12px; text-align:center; margin:0;">Taip untuk cari pelanggan...</p>'; return; }
  const matches = list.filter(c => {
  const ph = (c.phone || '').toLowerCase();
  const nm = (c.name || '').toLowerCase();
- return ph.includes(q) || nm.includes(q);
- });
- if(matches.length === 0) {
- if(typeof showToast === 'function') showToast(T('cs_customer_not_found', 'Customer not found.'), 'warn');
- else alert(T('cs_customer_not_found', 'Customer not found.'));
- return;
+ return ph.includes(query) || nm.includes(query);
+ }).slice(0, 30);
+ if(!matches.length) { res.innerHTML = `<p style="color:#EF4444; font-size:13px; padding:12px; text-align:center; margin:0;">Tiada match untuk "${query}". Daftar baru di bawah.</p>`; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ res.innerHTML = matches.map(c => {
+ const pts = parseInt(c.points || 0);
+ const badge = c.is_member ? '<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-left:6px;">VIP</span>' : '';
+ return `<div onclick="window.cpkPickCustomer(${c.id})" style="padding:10px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background=''">
+ <div>
+ <div style="font-size:13.5px; font-weight:700; color:#111;">${escHtml(c.name || '(no name)')}${badge}</div>
+ <div style="font-size:11.5px; color:#6B7280; margin-top:2px;">${escHtml(c.phone || '-')} · ${pts} pts · RM ${Number(c.total_spent || 0).toFixed(2)} spent</div>
+ </div>
+ <i data-lucide="chevron-right" style="width:14px; height:14px; color:#9CA3AF;"></i>
+ </div>`;
+ }).join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+window.cpkPickCustomer = function(id) {
+ const list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
+ const c = list.find(x => x.id === id);
+ if(!c) return;
+ window.posSetCustomer(c);
+ document.getElementById('customerPickerModal').style.display = 'none';
+ if(typeof showToast === 'function') showToast(`Customer attached: ${c.name || c.phone || '-'}`, 'success');
+};
+
+window.cpkAddNewCustomer = async function() {
+ const name = (document.getElementById('cpkNewName')?.value || '').trim();
+ const phone = (document.getElementById('cpkNewPhone')?.value || '').trim();
+ const email = (document.getElementById('cpkNewEmail')?.value || '').trim();
+ const isMember = !!document.getElementById('cpkNewIsMember')?.checked;
+ if(!name && !phone) { if(typeof showToast === 'function') showToast('Sila isi sekurang-kurangnya Nama atau Phone.', 'warn'); return; }
+ try {
+ const payload = { name: name || null, phone: phone || null, email: email || null, is_member: isMember, points: 0, total_spent: 0, total_orders: 0 };
+ // Strip nulls
+ Object.keys(payload).forEach(k => { if(payload[k] === null) delete payload[k]; });
+ const { data, error } = await db.from('customers').insert([payload]).select().single();
+ if(error) throw error;
+ // Sync in-memory cache
+ if(typeof customersData !== 'undefined' && Array.isArray(customersData)) customersData.push(data);
+ window.posSetCustomer(data);
+ document.getElementById('customerPickerModal').style.display = 'none';
+ if(typeof showToast === 'function') showToast(`Customer baru "${data.name || data.phone}" attached.`, 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Daftar gagal: ' + e.message, 'error');
  }
- let picked = matches[0];
- if(matches.length > 1) {
- // Show numbered prompt for multi-match (cap 5)
- const top = matches.slice(0, 5);
- const lines = top.map((c, i) => (i+1) + '. ' + (c.name || '?') + ' · ' + (c.phone || '-')).join('\n');
- const choice = parseInt(prompt(T('cs_customer_multi', 'Multiple matches:') + '\n' + lines, '1'));
- if(isNaN(choice) || choice < 1 || choice > top.length) return;
- picked = top[choice - 1];
- }
- window.posSetCustomer(picked);
- if(typeof showToast === 'function') showToast(T('cs_customer_attached_toast', 'Customer attached') + ': ' + (picked.name || picked.phone || '-'), 'success');
+};
+
+// p1_229 — Custom Sale: open modal
+window.openCustomSaleModal = function() {
+ const m = document.getElementById('customSaleModal');
+ if(!m) return;
+ ['csItemName','csItemPrice','csItemNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+ const qty = document.getElementById('csItemQty'); if(qty) qty.value = '1';
+ m.style.display = 'flex';
+ setTimeout(() => { const el = document.getElementById('csItemName'); if(el) el.focus(); }, 100);
+};
+
+// p1_229 — Custom Sale: push to cart
+window.confirmCustomSale = function() {
+ const name = (document.getElementById('csItemName')?.value || '').trim();
+ const priceRaw = document.getElementById('csItemPrice')?.value || '';
+ const qtyRaw = document.getElementById('csItemQty')?.value || '1';
+ const note = (document.getElementById('csItemNote')?.value || '').trim();
+ const price = parseFloat(priceRaw);
+ const qty = parseInt(qtyRaw, 10);
+ if(!name) { if(typeof showToast === 'function') showToast('Isi nama item.', 'warn'); return; }
+ if(isNaN(price) || price < 0) { if(typeof showToast === 'function') showToast('Harga tak valid.', 'warn'); return; }
+ if(isNaN(qty) || qty < 1) { if(typeof showToast === 'function') showToast('Qty min 1.', 'warn'); return; }
+ // Generate unique SKU prefix CUSTOM-{timestamp}
+ const sku = 'CUSTOM-' + Date.now();
+ cart.push({ sku, name: name + (note ? ' (' + note + ')' : ''), price, quantity: qty, isCustom: true });
+ if(typeof renderCart === 'function') renderCart();
+ document.getElementById('customSaleModal').style.display = 'none';
+ if(typeof showToast === 'function') showToast(`Custom item "${name}" × ${qty} ditambah.`, 'success');
 };
 
 window.processNewCheckout = async function() {
@@ -9598,7 +9689,8 @@ window.processNewCheckout = async function() {
  totalVal = finalTotal;
  // p1_29: Push inventory deduction to EasyStore (best-effort, async, non-blocking)
  if(typeof window.easystorePushSale === 'function') {
-   const pushItems = cart.map(c => ({ sku: c.sku, qty: parseInt(c.quantity) || 0 })).filter(x => x.qty > 0);
+   // p1_229 — skip CUSTOM-* (ad-hoc sales, no EasyStore product mapping)
+   const pushItems = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-'))).map(c => ({ sku: c.sku, qty: parseInt(c.quantity) || 0 })).filter(x => x.qty > 0);
    if(pushItems.length) window.easystorePushSale(pushItems, 'subtract');
  }
 

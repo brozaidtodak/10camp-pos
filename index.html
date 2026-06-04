@@ -296,6 +296,54 @@
  </div>
  </div>
 
+ <!-- p1_229 — Custom Sale Modal -->
+ <div id="customSaleModal" class="login-overlay" style="display:none; z-index:3100; align-items:center;">
+ <div class="login-box" style="max-width:420px; text-align:left; padding:24px 28px;">
+ <button onclick="document.getElementById('customSaleModal').style.display='none'" style="float:right; border:none; background:none; font-size:24px; cursor:pointer; color:#9CA3AF;">×</button>
+ <h2 style="font-weight:800; font-size:20px; margin-bottom:5px;">Custom Sale</h2>
+ <p style="font-size:12px; color:#6B7280; margin-bottom:16px;">Untuk item bukan dari Master (service charge, repair, deposit, custom order).</p>
+ <label class="small-lbl">Nama Item <span style="color:#dc2626;">*</span></label>
+ <input type="text" id="csItemName" class="login-input" placeholder="e.g. Repair Tent, Service Charge, Deposit" style="margin-bottom:12px;">
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+ <div>
+ <label class="small-lbl">Harga (RM) <span style="color:#dc2626;">*</span></label>
+ <input type="number" id="csItemPrice" class="login-input" step="0.01" min="0" placeholder="0.00" style="margin:0;">
+ </div>
+ <div>
+ <label class="small-lbl">Quantity</label>
+ <input type="number" id="csItemQty" class="login-input" min="1" value="1" style="margin:0;">
+ </div>
+ </div>
+ <label class="small-lbl">Nota (pilihan)</label>
+ <input type="text" id="csItemNote" class="login-input" placeholder="e.g. Repair tent waterproof seam" style="margin-bottom:16px;">
+ <button onclick="window.confirmCustomSale()" class="login-btn" style="background:#10B981; padding:14px; font-size:14px;">Tambah ke Troli</button>
+ </div>
+ </div>
+
+ <!-- p1_229 — Customer Picker Modal (existing + add new) -->
+ <div id="customerPickerModal" class="login-overlay" style="display:none; z-index:3100; align-items:flex-start; padding:30px 0; overflow-y:auto;">
+ <div class="login-box" style="max-width:520px; text-align:left; padding:22px 26px; margin:auto;">
+ <button onclick="document.getElementById('customerPickerModal').style.display='none'" style="float:right; border:none; background:none; font-size:24px; cursor:pointer; color:#9CA3AF;">×</button>
+ <h2 style="font-weight:800; font-size:20px; margin-bottom:10px;">Pilih Pelanggan</h2>
+ <input type="text" id="cpkSearch" class="login-input" placeholder="Cari nama atau no. telefon..." oninput="window.cpkFilterCustomers(this.value)" style="margin-bottom:10px;">
+ <div id="cpkResults" style="max-height:280px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px; margin-bottom:12px;">
+ <p style="color:#9CA3AF; font-size:13px; padding:12px; text-align:center; margin:0;">Taip untuk cari pelanggan...</p>
+ </div>
+ <div style="border-top:1px dashed var(--border-color); padding-top:14px;">
+ <p style="font-size:12px; color:#6B7280; margin:0 0 8px;">Pelanggan baru? Daftar terus:</p>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+ <input type="text" id="cpkNewName" class="login-input" placeholder="Nama" style="margin:0;">
+ <input type="tel" id="cpkNewPhone" class="login-input" placeholder="No. Telefon" style="margin:0;">
+ </div>
+ <input type="email" id="cpkNewEmail" class="login-input" placeholder="Email (pilihan)" style="margin-bottom:8px;">
+ <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:10px; cursor:pointer;">
+ <input type="checkbox" id="cpkNewIsMember" style="width:16px; height:16px;"> Tandai sebagai VIP / Member
+ </label>
+ <button onclick="window.cpkAddNewCustomer()" class="login-btn" style="background:#10B981; padding:12px; font-size:13px;"><i data-lucide="user-plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Daftar &amp; Attach</button>
+ </div>
+ </div>
+ </div>
+
  <!-- 0.15 NEW PAYMENT MODAL — p1_203: max-height + overflow-y so all sections visible on smaller viewports -->
  <div id="checkoutPaymentModal" class="login-overlay" style="display:none; z-index:3000; align-items:flex-start; overflow-y:auto; padding:20px 0;">
  <div class="login-box" style="max-width:450px; text-align:left; padding:24px 30px; animation: popIn 0.3s ease; max-height:none; margin:auto;">
@@ -2273,6 +2321,8 @@
  <!-- p1_209 — Clear (X) button shown when search/brand active -->
  <button type="button" id="posSearchClear" onclick="window.__posResetSearch && window.__posResetSearch()" title="Reset semua filter (ESC)" style="display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); background:#F3F4F6; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer; align-items:center; justify-content:center; color:#6B7280;"><i data-lucide="x" style="width:14px; height:14px;"></i></button>
  </div>
+ <!-- p1_229 — Custom Sales button (ad-hoc/service item bukan dari master) -->
+ <button onclick="window.openCustomSaleModal()" class="btn-secondary" id="btnCustomSale" style="margin:0; flex-shrink:0; border-radius:30px; padding:14px 18px; background:#fff7ed; border:1.5px solid #fb923c; color:#9a3412; font-weight:700;" title="Tambah item custom (service charge, repair, deposit, etc.)"><i data-lucide="plus-circle" style="width:14px;height:14px;vertical-align:-2px;"></i> Custom Sale</button>
  <button onclick="window.togglePosLayoutMode()" class="btn-secondary" id="btnPosLayoutToggle" style="margin:0; flex-shrink:0; border-radius:30px; padding:14px 20px;" data-i18n="cs_small_screen">Skrin Kecil</button>
  </div>
  <!-- p1_130 — Quick-Sell pills (top 5-8 most-sold last 30d) -->
@@ -6546,7 +6596,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (228/228 · last 2026-06-04) — PDP Modal (Product Master detail Shopify-style yang Zaid actual maksudkan) — tambah SKU readonly, Description card dgn Clean HTML, Adjust Stock, Variants card (color/size/barcode + Custom Options + Add Option button), Variant Setting, Organization card (Vendor/Collection/Tags/Notes), SEO card (title/desc/slug), Danger Zone delete. Save handler upsert ke products_master + metadata JSONB merge (preserve easystore_*).',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (229/229 · last 2026-06-04) — Cashier 3-in-1: (1) Custom Sale button orange dalam search bar — buka modal name/price/qty/note untuk service charge/repair/deposit. (2) Customer picker modal — live search existing customers + form daftar baru (name/phone/email/VIP toggle). (3) OOS allow — addToCart tak block lagi bila stok 0, button tukar "Jual (Backorder)" orange + toast amaran.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6621,6 +6671,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_229', label:'Cashier 3-in-1 upgrade (Zaid: "fokus cashier, buatkan button atau ruangan custom sales. then ruangan customer tu boleh ambik existing atau add new customer. btw kalau product tu out of stock dalam system, staff masih boleh jual"). (1) CUSTOM SALE — orange button "Custom Sale" dalam search bar kanan (di sebelah Skrin Kecil button). Klik buka #customSaleModal: Nama Item (required), Harga RM (required), Quantity (default 1), Nota (optional). confirmCustomSale push ke cart dengan sku=CUSTOM-{Date.now()} + isCustom:true flag. Skip EasyStore stock push untuk item ni (sebab tiada mapping). sales_history.items[] JSONB store as-is. Total + points calculation include semua. (2) CUSTOMER PICKER MODAL — replace prompt() picker dengan #customerPickerModal. Top: search input live filter (cpkFilterCustomers — typing oninput, max 30 results, card style dengan name/phone/points/total_spent/VIP badge, click row attach). Bottom: form daftar baru — name + phone + email + VIP checkbox + "Daftar & Attach" button (cpkAddNewCustomer — db.insert customers + push to in-memory + posSetCustomer). (3) OOS ALLOW — addToCart dulu silently drop bila stok 0 (cart.push only kalau totalAvail > 0). Sekarang push regardless, toast "AMARAN: {sku} stok sistem = 0. Jual sebagai backorder." Cart increment juga tak block — kalau over-stock, toast amaran je. Button "Add to Cart" pada product card OOS dulu disabled + "Out of Stock"; sekarang clickable + orange "Jual (Backorder)" + title tooltip. Sama pada PDP Add button. EasyStore push filter out isCustom + CUSTOM-* sku. app.js v329→v330.', d:'done' },
  { id:'p1_228', label:'PDP Modal MAJOR UPGRADE — yang Product Master Shopify-style sebenar (Zaid: screenshot 1 Product Master grid card view 821 products, screenshot 2 detail page dgn Title/Type/Vendor/Brand/Price/Cost/Metafields/Inventory. "lepastu bila pilih product, detail tu semua nak isi dalam ni"). p1_226 + p1_227 sebelum ni salah target — pi tambah ke form Daftar di Warehouse (Group A-F). Form Warehouse tu kekal je. Sekarang PDP Modal (window.openPdpModal entry — dipanggil dari grid card + table click, modal #pdpModal di index.html line ~11314) extend dgn cards baru: (a) Basic Info Card — SKU readonly grey (sebab PK) + Vendor pisah dari Brand. (b) Description Card — textarea 5 row + button orange Clean HTML kanan (DOMParser strip, sama algo macam p1_227). (c) Inventory Card — "Adjust Stock" link buka prompt qty delta + reason, insert inventory_batches baru (append-only audit trail). (d) Variants Card — Warna/Saiz/Barcode 3 input atas + Custom Options textarea + Add Option button + Has Variants toggle + Default Variant SKU. (e) Organization Card — Collection (datalist), Tags (comma-sep), Notes textarea. (f) SEO Card — Meta Title, Meta Description 160-char, URL Slug. (g) Danger Zone Card — Delete Product button (red, kanan) — FK error suggest Draft soft-delete. openPdpModal populate semua via metadata JSONB. savePdpData merge metadata (preserve easystore_* keys). refreshPdpDatalists populate brand/category/vendor/collection. BONUS FIX: dulu save guna column `metafields` yang tak wujud dalam schema — tukar ke metadata.metafields. app.js v328→v329.', d:'done' },
  { id:'p1_227', label:'Clean HTML button kanan label Description (Zaid: "tambah button clean html untuk description"). Existing EasyStore products macam BD005 ada description full of nested <p><ul><li><span data-sheets-userformat="..." data-sheets-value="..."> Google Sheets paste artifacts — total ribu lines unreadable HTML soup. Button orange (warna sparkles icon) di kanan label. Click → confirm → strip via DOMParser (browser-safe, handle entities + nested tags). Convert <li> ke "• " bullet, <p>/<h*>/<div>/<br> ke newline preserve structure. Strip [EASYSTORE-ID:xxx] prefix marker. Collapse: nbsp→space, multiple spaces→one, blank lines>2→2, trim leading whitespace per line. Toast tunjuk before/after char count. Boleh undo dengan klik Reset + Load semula sebab raw DB tak tukar sampai Daftar dipijak. app.js v327→v328.', d:'done' },
  { id:'p1_226', label:'Master Product form major enhancement (Zaid: "dekat product master, aku dah pilih product, now tambah description, tambah delete product button, lepastu tambah quantity, tambah sku column, tambah variant (ada button edit add new option), variant setting, tambah seo, tambah category/collection, brand, vendor, tags dan notes"). Form sebelum: register-only, no edit, basic fields. Sekarang restructure jadi: (a) Toolbar atas — search SKU + Load button (jadi edit mode, lock SKU field, badge EDIT MODE), Reset button, Delete Product button (red, with safety check — kalau ada FK reference, suggest soft-delete via is_published=false ganti hard delete). (b) Group B tambah Initial Quantity field — after save NEW product, auto-insert ke inventory_batches. (c) Group C tambah Custom Options textarea (format "Nama: v1, v2, v3" per line) + Tambah Option button yang inject placeholder line. (d) Group C2 baru: Variant Setting — has_variants toggle + Default Variant SKU. (e) Group E (Maklumat Tambahan) extend: Vendor (datalist), Collection (datalist), Tags (comma-sep), Notes textarea. (f) Group G baru: SEO — Meta Title, Meta Description (160 char max), URL Slug. Schema: NO migration — semua field baru pack ke products_master.metadata JSONB (`vendor, collection, tags[], notes, seo:{title,description,slug}, variants:[{name,values[]}], has_variants, default_variant_sku`). saveMasterProduct: detect existing SKU → UPDATE; new → INSERT + initial batch. loadMasterProductForEdit reads metadata back into form. refreshMpDatalists juga populate vendor/collection/SKU. Audit logs differentiate create/update/delete actions. app.js v326→v327.', d:'done' },
@@ -11310,7 +11361,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=329"></script>
+ <script src="app.js?v=330"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

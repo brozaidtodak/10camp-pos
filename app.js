@@ -4588,6 +4588,113 @@ function switchHub(sectionIds, title, btnElement) {
  }
 }
 
+// p1_196 — Reusable image zoom modal. Click any thumbnail with class "zoom-hotspot"
+// → opens fullscreen zoom modal with wheel/pinch/drag/+/- controls.
+window.__imgZoomState = { scale: 1, tx: 0, ty: 0 };
+
+window.__imgZoomApply = function() {
+ const img = document.getElementById('imgZoomImg');
+ if(!img) return;
+ const s = window.__imgZoomState;
+ img.style.transform = 'translate(' + s.tx + 'px,' + s.ty + 'px) scale(' + s.scale + ')';
+ const scaleLbl = document.getElementById('imgZoomScale');
+ if(scaleLbl) scaleLbl.textContent = Math.round(s.scale * 100) + '%';
+};
+
+window.__imgZoomAdj = function(factor) {
+ const s = window.__imgZoomState;
+ s.scale = Math.max(0.5, Math.min(8, s.scale * factor));
+ window.__imgZoomApply();
+};
+
+window.__imgZoomReset = function() {
+ window.__imgZoomState = { scale: 1, tx: 0, ty: 0 };
+ window.__imgZoomApply();
+};
+
+window.__imgZoomClose = function() {
+ const modal = document.getElementById('imgZoomModal');
+ if(modal) modal.style.display = 'none';
+};
+
+window.__imgZoom = function(src, alt) {
+ if(!src) return;
+ let modal = document.getElementById('imgZoomModal');
+ if(!modal) {
+ modal = document.createElement('div');
+ modal.id = 'imgZoomModal';
+ modal.className = 'img-zoom-modal';
+ modal.innerHTML = `
+ <button class="img-zoom-close" aria-label="Close" onclick="window.__imgZoomClose()">×</button>
+ <div class="img-zoom-controls">
+ <button class="img-zoom-btn" onclick="window.__imgZoomAdj(0.8)" aria-label="Zoom out">−</button>
+ <span class="img-zoom-scale" id="imgZoomScale">100%</span>
+ <button class="img-zoom-btn" onclick="window.__imgZoomAdj(1.25)" aria-label="Zoom in">+</button>
+ <button class="img-zoom-btn" onclick="window.__imgZoomReset()" style="min-width:auto; padding:6px 12px;">Reset</button>
+ </div>
+ <div class="img-zoom-stage" id="imgZoomStage">
+ <img id="imgZoomImg" alt="" draggable="false">
+ </div>`;
+ document.body.appendChild(modal);
+ // Wheel zoom
+ modal.addEventListener('wheel', (e) => {
+ e.preventDefault();
+ window.__imgZoomAdj(e.deltaY < 0 ? 1.1 : 0.9);
+ }, { passive: false });
+ // Click outside image to close
+ modal.addEventListener('click', (e) => {
+ if(e.target === modal || e.target.id === 'imgZoomStage') window.__imgZoomClose();
+ });
+ // ESC to close
+ document.addEventListener('keydown', (e) => {
+ if(e.key === 'Escape' && modal.style.display === 'flex') window.__imgZoomClose();
+ });
+ // Drag pan
+ const stageImg = modal.querySelector('#imgZoomImg');
+ let dragging = false, sx = 0, sy = 0;
+ stageImg.addEventListener('pointerdown', (e) => {
+ dragging = true;
+ sx = e.clientX - window.__imgZoomState.tx;
+ sy = e.clientY - window.__imgZoomState.ty;
+ try { stageImg.setPointerCapture(e.pointerId); } catch(_) {}
+ });
+ stageImg.addEventListener('pointermove', (e) => {
+ if(!dragging) return;
+ window.__imgZoomState.tx = e.clientX - sx;
+ window.__imgZoomState.ty = e.clientY - sy;
+ window.__imgZoomApply();
+ });
+ stageImg.addEventListener('pointerup', () => { dragging = false; });
+ stageImg.addEventListener('pointercancel', () => { dragging = false; });
+ // Double-click toggle 1x ↔ 2x
+ stageImg.addEventListener('dblclick', () => {
+ if(window.__imgZoomState.scale > 1.1) window.__imgZoomReset();
+ else window.__imgZoomAdj(2);
+ });
+ // Pinch zoom (basic 2-pointer)
+ const activePointers = new Map();
+ let lastPinchDist = 0;
+ stageImg.addEventListener('pointerdown', (e) => activePointers.set(e.pointerId, e));
+ stageImg.addEventListener('pointermove', (e) => {
+ if(activePointers.size === 2) {
+ const pts = Array.from(activePointers.values());
+ const dx = pts[0].clientX - pts[1].clientX;
+ const dy = pts[0].clientY - pts[1].clientY;
+ const dist = Math.hypot(dx, dy);
+ if(lastPinchDist > 0) window.__imgZoomAdj(dist / lastPinchDist);
+ lastPinchDist = dist;
+ }
+ });
+ stageImg.addEventListener('pointerup', (e) => { activePointers.delete(e.pointerId); if(activePointers.size < 2) lastPinchDist = 0; });
+ }
+ window.__imgZoomState = { scale: 1, tx: 0, ty: 0 };
+ const img = document.getElementById('imgZoomImg');
+ img.src = src;
+ img.alt = alt || '';
+ modal.style.display = 'flex';
+ window.__imgZoomApply();
+};
+
 // p1_194 — Boot cleanup: remove any stale beacon/banner left over from earlier
 // debug code. Safe no-op if elements don't exist.
 document.addEventListener('DOMContentLoaded', () => {
@@ -9854,6 +9961,7 @@ function renderPublicStorefront() {
                 <div class="lp-product-card__media" onclick="window.lpOpenProductDetail('${skuEsc}')">
                     ${badge}
                     <img class="lp-product-card__img" src="${thumb}" alt="${parsed.title.replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
+                    <button type="button" class="zoom-hotspot" aria-label="Zoom image" title="Zoom image" onclick="event.stopPropagation(); window.__imgZoom(this.previousElementSibling.src, this.previousElementSibling.alt);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>
                 </div>
                 <div class="lp-product-card__body">
                     <div class="lp-product-card__meta">${brandPill}${catPill}</div>
@@ -20045,7 +20153,7 @@ window.renderProductDatabase = function() {
  <span class="pd-card__stock-pill ${stockClass}">${stockLabel}</span>
  <div class="pd-card__image-wrap">
  ${img
- ? `<img class="pd-card__image" src="${img}" alt="${(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.style.display='none';this.parentNode.innerHTML+='<span class=&quot;pd-card__image-placeholder&quot;></span>'">`
+ ? `<img class="pd-card__image" src="${img}" alt="${(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.style.display='none';this.parentNode.innerHTML+='<span class=&quot;pd-card__image-placeholder&quot;></span>'"><button type="button" class="zoom-hotspot" aria-label="Zoom image" title="Zoom image" onclick="event.stopPropagation(); window.__imgZoom(this.previousElementSibling.src, this.previousElementSibling.alt);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>`
  : `<span class="pd-card__image-placeholder"></span>`}
  </div>
  <div class="pd-card__body">

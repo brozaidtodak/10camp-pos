@@ -18,19 +18,22 @@
 body { background: var(--bg-color); color: var(--text-main); }
 
 /* LOGIN UI */
-.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);}
+/* p1_242 — Login overlay padding-top + padding-bottom safe area (Dynamic Island + home indicator) */
+.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
 .login-box { background: #FFFFFF; padding: 40px; border-radius: var(--radius-md); text-align: center; max-width: 380px; width: 90%; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
 .login-input { width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 20px; background: #FAFAFA; font-size: 14px; }
 .login-btn { background: var(--primary); color: white; width: 100%; padding: 14px; border: none; border-radius: var(--radius-pill); cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
 .login-btn:hover { background: #222222; }
 
-.app-header { background: var(--secondary); padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 40; }
+/* p1_242 — app-header padding-top + Dynamic Island / notch safe area inset */
+.app-header { background: var(--secondary); padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 40; }
 .hamburger-btn { background: none; border: none; font-size: 26px; cursor: pointer; color: #FFF; }
 .app-header h1 { font-size: 22px; color: #FFF; font-weight: 700; letter-spacing: -0.5px; }
 
 .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; opacity: 0; pointer-events: none; transition: 0.3s; }
 .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
-.sidebar { position: fixed; top: 0; bottom: 0; left: -280px; width: 260px; background: var(--secondary); z-index: 100; transition: 0.3s; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
+/* p1_242 — sidebar padding-top safe area (Dynamic Island) + padding-bottom home indicator */
+.sidebar { position: fixed; top: 0; bottom: 0; left: -280px; width: 260px; background: var(--secondary); z-index: 100; transition: 0.3s; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 .sidebar.open { left: 0; }
 .sidebar-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
 .store-name { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; color: var(--primary); }
@@ -139,15 +142,16 @@ body.pos-mobile-mode .mobile-cart-header {
     display: flex !important;
 }
 /* p1_239 — Mobile floating cart bar restructure: GREEN BAYAR SEKARANG atas, ORANGE Lihat Troli bawah (stacked vertical).
-   Sebelum ni 1 row pill dengan green button kanan kecik — staff susah tap. Sekarang dua row separate, BAYAR penuh selebar. */
+   Sebelum ni 1 row pill dengan green button kanan kecik — staff susah tap. Sekarang dua row separate, BAYAR penuh selebar.
+   p1_242 — bottom + horizontal safe-area-inset untuk iPhone home indicator + Dynamic Island landscape */
 body.pos-mobile-mode #mobileCartFloatingBar {
     display: flex !important;
     flex-direction: column;
     gap: 8px;
     position: fixed;
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: calc(16px + env(safe-area-inset-left));
+    right: calc(16px + env(safe-area-inset-right));
     background: transparent;
     padding: 0;
     z-index: 4999;
@@ -168,14 +172,15 @@ body.pos-mobile-mode #posCartDrawer.drawer-open ~ #mobileCartFloatingBar {
     display: none !important;
 }
 
-/* p1_238 — BAYAR SEKARANG sticky bottom-of-drawer supaya selalu visible (tak scroll out) */
+/* p1_238 — BAYAR SEKARANG sticky bottom-of-drawer supaya selalu visible (tak scroll out)
+   p1_242 — padding-bottom include safe-area-inset-bottom untuk iPhone home indicator */
 body.pos-mobile-mode .cart-section > div:last-child {
     position: sticky;
     bottom: 0;
     background: #FAFAFA;
     margin: 0 -20px -50px;
     padding: 20px;
-    padding-bottom: 30px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom));
     border-top: 1px solid #E5E7EB;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.04);
 }

@@ -1954,8 +1954,10 @@
 }
 .checkout-panel.is-open { transform: translateX(0); }
 
+/* p1_242 — header padding-top include safe-area (Dynamic Island intrude) */
 .checkout-panel__header {
  padding: var(--space-4) var(--space-5);
+ padding-top: calc(var(--space-4) + env(safe-area-inset-top));
  border-bottom: 1px solid var(--neutral-200);
  display: flex; justify-content: space-between; align-items: center;
 }
@@ -1983,8 +1985,10 @@
  display: flex; flex-direction: column; gap: var(--space-4);
 }
 
+/* p1_242 — footer padding-bottom include safe-area (home indicator on iPhone) */
 .checkout-panel__footer {
  padding: var(--space-4) var(--space-5);
+ padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
  border-top: 1px solid var(--neutral-200);
  background: var(--neutral-50);
 }

@@ -9576,6 +9576,8 @@ window.cpkPickCustomer = function(id) {
  const c = list.find(x => x.id === id);
  if(!c) return;
  window.posSetCustomer(c);
+ // p1_234 — kalau checkout panel terbuka, sync ke cpCustName/Phone/Email terus
+ if(typeof window.cpSyncCustomerFromPos === 'function') window.cpSyncCustomerFromPos();
  document.getElementById('customerPickerModal').style.display = 'none';
  if(typeof showToast === 'function') showToast(`Customer attached: ${c.name || c.phone || '-'}`, 'success');
 };
@@ -9595,6 +9597,8 @@ window.cpkAddNewCustomer = async function() {
  // Sync in-memory cache
  if(typeof customersData !== 'undefined' && Array.isArray(customersData)) customersData.push(data);
  window.posSetCustomer(data);
+ // p1_234 — sync ke checkout panel kalau open
+ if(typeof window.cpSyncCustomerFromPos === 'function') window.cpSyncCustomerFromPos();
  document.getElementById('customerPickerModal').style.display = 'none';
  if(typeof showToast === 'function') showToast(`Customer baru "${data.name || data.phone}" attached.`, 'success');
  } catch(e) {
@@ -21655,6 +21659,26 @@ window.cpSetPayment = function(method) {
  // p1_230 — Refresh cpFormView proof badge (Snap/Pilih buttons manual)
  if(method !== 'Cash' && typeof window.cpRefreshProofBadge === 'function') window.cpRefreshProofBadge();
  else { const badge = document.getElementById('cpProofStatusBadge'); if(badge) badge.style.display = 'none'; }
+};
+
+// p1_234 — Sync window.posCustomer ke cpCustName/Phone/Email (call lepas pick/register)
+window.cpSyncCustomerFromPos = function() {
+ const panel = document.getElementById('checkoutPanel');
+ if(!panel || !panel.classList.contains('is-open')) return; // panel tutup, tak perlu sync
+ const c = window.posCustomer;
+ const setIf = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : String(v)); };
+ if(c) {
+ setIf('cpCustName', c.name);
+ setIf('cpCustPhone', c.phone);
+ setIf('cpCustEmail', c.email);
+ // Trigger VIP lookup so banner refreshes
+ if(typeof window.cpVipLookup === 'function') try { window.cpVipLookup(); } catch(e){}
+ if(typeof window.cpRecomputeTotal === 'function') try { window.cpRecomputeTotal(); } catch(e){}
+ } else {
+ setIf('cpCustName', '');
+ setIf('cpCustPhone', '');
+ setIf('cpCustEmail', '');
+ }
 };
 
 // p1_230 — Resit status badge dalam cpFormView (sebab cpFormView takde proof section)

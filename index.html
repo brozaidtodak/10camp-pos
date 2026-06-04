@@ -6546,7 +6546,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (227/227 · last 2026-06-04) — Clean HTML button kanan label Description. Strip EasyStore HTML soup → plain text dengan bullet preserve untuk <li>, line break untuk <p>/<br>, collapse blank lines. Confirm dialog sebelum strip.',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (228/228 · last 2026-06-04) — PDP Modal (Product Master detail Shopify-style yang Zaid actual maksudkan) — tambah SKU readonly, Description card dgn Clean HTML, Adjust Stock, Variants card (color/size/barcode + Custom Options + Add Option button), Variant Setting, Organization card (Vendor/Collection/Tags/Notes), SEO card (title/desc/slug), Danger Zone delete. Save handler upsert ke products_master + metadata JSONB merge (preserve easystore_*).',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6621,6 +6621,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_228', label:'PDP Modal MAJOR UPGRADE — yang Product Master Shopify-style sebenar (Zaid: screenshot 1 Product Master grid card view 821 products, screenshot 2 detail page dgn Title/Type/Vendor/Brand/Price/Cost/Metafields/Inventory. "lepastu bila pilih product, detail tu semua nak isi dalam ni"). p1_226 + p1_227 sebelum ni salah target — pi tambah ke form Daftar di Warehouse (Group A-F). Form Warehouse tu kekal je. Sekarang PDP Modal (window.openPdpModal entry — dipanggil dari grid card + table click, modal #pdpModal di index.html line ~11314) extend dgn cards baru: (a) Basic Info Card — SKU readonly grey (sebab PK) + Vendor pisah dari Brand. (b) Description Card — textarea 5 row + button orange Clean HTML kanan (DOMParser strip, sama algo macam p1_227). (c) Inventory Card — "Adjust Stock" link buka prompt qty delta + reason, insert inventory_batches baru (append-only audit trail). (d) Variants Card — Warna/Saiz/Barcode 3 input atas + Custom Options textarea + Add Option button + Has Variants toggle + Default Variant SKU. (e) Organization Card — Collection (datalist), Tags (comma-sep), Notes textarea. (f) SEO Card — Meta Title, Meta Description 160-char, URL Slug. (g) Danger Zone Card — Delete Product button (red, kanan) — FK error suggest Draft soft-delete. openPdpModal populate semua via metadata JSONB. savePdpData merge metadata (preserve easystore_* keys). refreshPdpDatalists populate brand/category/vendor/collection. BONUS FIX: dulu save guna column `metafields` yang tak wujud dalam schema — tukar ke metadata.metafields. app.js v328→v329.', d:'done' },
  { id:'p1_227', label:'Clean HTML button kanan label Description (Zaid: "tambah button clean html untuk description"). Existing EasyStore products macam BD005 ada description full of nested <p><ul><li><span data-sheets-userformat="..." data-sheets-value="..."> Google Sheets paste artifacts — total ribu lines unreadable HTML soup. Button orange (warna sparkles icon) di kanan label. Click → confirm → strip via DOMParser (browser-safe, handle entities + nested tags). Convert <li> ke "• " bullet, <p>/<h*>/<div>/<br> ke newline preserve structure. Strip [EASYSTORE-ID:xxx] prefix marker. Collapse: nbsp→space, multiple spaces→one, blank lines>2→2, trim leading whitespace per line. Toast tunjuk before/after char count. Boleh undo dengan klik Reset + Load semula sebab raw DB tak tukar sampai Daftar dipijak. app.js v327→v328.', d:'done' },
  { id:'p1_226', label:'Master Product form major enhancement (Zaid: "dekat product master, aku dah pilih product, now tambah description, tambah delete product button, lepastu tambah quantity, tambah sku column, tambah variant (ada button edit add new option), variant setting, tambah seo, tambah category/collection, brand, vendor, tags dan notes"). Form sebelum: register-only, no edit, basic fields. Sekarang restructure jadi: (a) Toolbar atas — search SKU + Load button (jadi edit mode, lock SKU field, badge EDIT MODE), Reset button, Delete Product button (red, with safety check — kalau ada FK reference, suggest soft-delete via is_published=false ganti hard delete). (b) Group B tambah Initial Quantity field — after save NEW product, auto-insert ke inventory_batches. (c) Group C tambah Custom Options textarea (format "Nama: v1, v2, v3" per line) + Tambah Option button yang inject placeholder line. (d) Group C2 baru: Variant Setting — has_variants toggle + Default Variant SKU. (e) Group E (Maklumat Tambahan) extend: Vendor (datalist), Collection (datalist), Tags (comma-sep), Notes textarea. (f) Group G baru: SEO — Meta Title, Meta Description (160 char max), URL Slug. Schema: NO migration — semua field baru pack ke products_master.metadata JSONB (`vendor, collection, tags[], notes, seo:{title,description,slug}, variants:[{name,values[]}], has_variants, default_variant_sku`). saveMasterProduct: detect existing SKU → UPDATE; new → INSERT + initial batch. loadMasterProductForEdit reads metadata back into form. refreshMpDatalists juga populate vendor/collection/SKU. Audit logs differentiate create/update/delete actions. app.js v326→v327.', d:'done' },
  { id:'p1_225', label:'Thumbnail 40x40 (~1cm) tiap row Senarai SKU untuk elakkan staff salah barang (Zaid: "tambah gambar 1cmx1cm, elakkan staff salah barang ketika mengira. buat bila zack create session sahaja"). 1cm ~38px di 96 DPI; pakai 40px untuk safety + clarity. Snapshot at create-time (denormalized) — bukan join live ke products_master setiap render — sebab (a) faster (no JOIN), (b) session history kekal tunjuk image valid masa sesi run (kalau master image tukar lepas tu, history tak rosak). New column `image_url TEXT` dalam stock_check_session_items via SQL migration 2026-06-04_session_items_image.sql. Create flow + Edit/Tambah SKU flow copy `(p.images[0])` ke session_items.image_url. Render table: column GAMBAR sebagai column pertama, 48px wide. img onclick → window.open() new tab utk full view. Placeholder svg image-off untuk rows tanpa image. BONUS FIX: render dulu baca `i.name` tapi DB column `product_name` — sebab tu NAMA column blank dalam Zaid screenshot. Fix: `i.product_name || i.name`. Existing session "Stock Check Week 2026-06 #1" akan blank gambar (created sebelum migration); boleh backfill via UPDATE join SQL kalau Zaid mahu. app.js v325→v326.', d:'done' },
@@ -11309,7 +11310,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=328"></script>
+ <script src="app.js?v=329"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -11354,14 +11355,28 @@
  <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Title</label>
  <input type="text" id="pdpName" class="login-input">
  </div>
+ <!-- p1_228 — SKU readonly + Brand split from Vendor -->
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">SKU</label>
+ <input type="text" id="pdpSku" class="login-input" readonly style="background:#f4f6f8; color:#6d7175;">
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Brand</label>
+ <input type="text" id="pdpBrand" class="login-input" list="pdpBrandList">
+ <datalist id="pdpBrandList"></datalist>
+ </div>
+ </div>
  <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
  <div>
  <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Type / Category</label>
- <input type="text" id="pdpCategory" class="login-input">
+ <input type="text" id="pdpCategory" class="login-input" list="pdpCategoryList">
+ <datalist id="pdpCategoryList"></datalist>
  </div>
  <div>
- <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Vendor / Brand</label>
- <input type="text" id="pdpBrand" class="login-input">
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Vendor / Pembekal</label>
+ <input type="text" id="pdpVendor" class="login-input" list="pdpVendorList" placeholder="e.g. China Direct">
+ <datalist id="pdpVendorList"></datalist>
  </div>
  </div>
  <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
@@ -11374,6 +11389,15 @@
  <input type="number" id="pdpCost" class="login-input" step="0.01">
  </div>
  </div>
+ </div>
+
+ <!-- p1_228 Card: Description -->
+ <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+ <strong style="color:#202223;">Description / Penerangan</strong>
+ <button type="button" onclick="window.pdpCleanDescriptionHtml()" title="Strip HTML tags + EasyStore sheets data → plain text" style="background:#F59E0B; color:#fff; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="sparkles" style="width:11px;height:11px;vertical-align:-1px;"></i> Clean HTML</button>
+ </div>
+ <textarea id="pdpDescription" class="login-input" rows="5" placeholder="Penerangan produk untuk customer + staff..." style="resize:vertical;"></textarea>
  </div>
 
  <!-- Card: Metafields -->
@@ -11389,10 +11413,95 @@
 
  <!-- Card: Inventory -->
  <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
- <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
  <strong style="color:#202223;">Inventory</strong>
+ <button type="button" onclick="window.pdpAdjustStock()" style="background:none; border:none; color:#2c6ecb; cursor:pointer; font-size:13px;"><i data-lucide="plus-circle" style="width:13px;height:13px;vertical-align:-2px;"></i> Adjust Stock</button>
  </div>
  <div style="color:#202223; font-size:14px;"><span id="pdpStockAvailable" style="font-weight:bold;">0</span> available</div>
+ <p style="font-size:11px; color:#6d7175; margin-top:6px;">Adjust Stock → insert inventory batch baru (append-only, audit trail kekal).</p>
+ </div>
+
+ <!-- p1_228 Card: Variants -->
+ <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+ <strong style="color:#202223;">Variants</strong>
+ <button type="button" onclick="window.pdpAddVariantOption()" style="background:#2c6ecb; color:#fff; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="plus" style="width:11px;height:11px;vertical-align:-1px;"></i> Add Option</button>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Warna</label>
+ <input type="text" id="pdpVariantColor" class="login-input" placeholder="Khaki">
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Saiz</label>
+ <input type="text" id="pdpVariantSize" class="login-input" placeholder="L / XL">
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Barcode</label>
+ <input type="text" id="pdpErpBarcode" class="login-input" placeholder="EAN/UPC">
+ </div>
+ </div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Custom Options (format: <code style="background:#f4f6f8; padding:1px 4px; border-radius:3px;">Nama: v1, v2, v3</code> per line)</label>
+ <textarea id="pdpVariantOptions" class="login-input" rows="3" placeholder="Material: Cotton, Polyester&#10;Length: Short, Long"></textarea>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Has Variants</label>
+ <select id="pdpHasVariants" class="login-input">
+ <option value="false">Standalone (tiada variant)</option>
+ <option value="true">Multi-variant</option>
+ </select>
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Default Variant SKU</label>
+ <input type="text" id="pdpDefaultVariantSku" class="login-input" placeholder="kosongkan kalau standalone">
+ </div>
+ </div>
+ </div>
+
+ <!-- p1_228 Card: Organization (Collection / Tags / Notes) -->
+ <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <strong style="color:#202223; display:block; margin-bottom:12px;">Organization</strong>
+ <div style="margin-bottom:12px;">
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Collection</label>
+ <input type="text" id="pdpCollection" class="login-input" list="pdpCollectionList" placeholder="e.g. Camping Essentials, Pet Outdoor">
+ <datalist id="pdpCollectionList"></datalist>
+ </div>
+ <div style="margin-bottom:12px;">
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Tags (pisahkan dengan koma)</label>
+ <input type="text" id="pdpTags" class="login-input" placeholder="hiking, 2-person, lightweight">
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Notes (internal — staff/Zack reference)</label>
+ <textarea id="pdpNotes" class="login-input" rows="2" placeholder="e.g. Slow mover, last shipment Mar 2026..."></textarea>
+ </div>
+ </div>
+
+ <!-- p1_228 Card: SEO -->
+ <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <strong style="color:#202223; display:block; margin-bottom:12px;">SEO (untuk website / Shopify / EasyStore)</strong>
+ <div style="margin-bottom:12px;">
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Meta Title</label>
+ <input type="text" id="pdpSeoTitle" class="login-input" placeholder="Naturehike Cloud Up 2 Tent — Lightweight Hiking">
+ </div>
+ <div style="margin-bottom:12px;">
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">Meta Description (max 160 char)</label>
+ <textarea id="pdpSeoDescription" class="login-input" rows="2" maxlength="160" placeholder="Tent ringan untuk hiking 2 orang..."></textarea>
+ </div>
+ <div>
+ <label style="display:block; font-size:13px; color:#6d7175; margin-bottom:5px;">URL Slug</label>
+ <input type="text" id="pdpSeoSlug" class="login-input" placeholder="naturehike-cloud-up-2-tent">
+ </div>
+ </div>
+
+ <!-- p1_228 Card: Danger Zone — Delete -->
+ <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border-left:4px solid #d82c0d;">
+ <div style="display:flex; justify-content:space-between; align-items:center;">
+ <div>
+ <strong style="color:#d82c0d; display:block;">Danger Zone</strong>
+ <p style="font-size:12px; color:#6d7175; margin:4px 0 0;">Padam produk dari Master. Kalau ada batch / sales / session reference, system tolak — guna Draft status sebagai gantian.</p>
+ </div>
+ <button type="button" onclick="window.pdpDeleteProduct()" style="background:#d82c0d; color:#fff; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; font-weight:700; font-size:13px; white-space:nowrap;"><i data-lucide="trash-2" style="width:13px;height:13px;vertical-align:-2px;"></i> Delete Product</button>
+ </div>
  </div>
 
  </div>

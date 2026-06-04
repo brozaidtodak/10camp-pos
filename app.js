@@ -16142,35 +16142,170 @@ window.openPdpModal = function(sku) {
  const prod = masterProducts.find(p => p.sku === sku);
  if(!prod) return alert("Product not found");
 
- document.getElementById('pdpOriginalSku').value = prod.sku;
+ const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : String(v)); };
+ set('pdpOriginalSku', prod.sku);
  document.getElementById('pdpHeaderTitle').innerText = `${prod.sku} | ${prod.name}`;
- document.getElementById('pdpStatus').value = isPublished(prod) ? "true" : "false";
- document.getElementById('pdpName').value = prod.name || '';
- document.getElementById('pdpCategory').value = prod.category || '';
- document.getElementById('pdpBrand').value = prod.brand || '';
- document.getElementById('pdpPrice').value = prod.price || 0;
- document.getElementById('pdpCost').value = prod.cost_price || 0;
+ set('pdpStatus', isPublished(prod) ? 'true' : 'false');
+ set('pdpName', prod.name);
+ set('pdpSku', prod.sku);
+ set('pdpCategory', prod.category);
+ set('pdpBrand', prod.brand);
+ set('pdpPrice', prod.price || 0);
+ set('pdpCost', prod.cost_price || 0);
 
  // Media
  let imgs = prod.images || [];
  document.getElementById('pdpMediaUrls').value = imgs.join(',');
  renderPdpMediaGallery(imgs);
 
+ // p1_228 — Description
+ set('pdpDescription', prod.description);
+
  // Inventory
  const myBatches = inventoryBatches.filter(b => b.sku === sku && b.qty_remaining> 0);
  const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
  document.getElementById('pdpStockAvailable').innerText = totalStock;
 
- // Metafields
+ // p1_228 — Variants (simple inputs + metadata)
+ set('pdpVariantColor', prod.variant_color);
+ set('pdpVariantSize', prod.variant_size);
+ set('pdpErpBarcode', prod.erp_barcode);
+
+ // Metadata-backed fields (Vendor, Collection, Tags, Notes, SEO, Variants)
+ const m = (prod.metadata && typeof prod.metadata === 'object') ? prod.metadata : {};
+ set('pdpVendor', m.vendor);
+ set('pdpCollection', m.collection);
+ set('pdpTags', Array.isArray(m.tags) ? m.tags.join(', ') : '');
+ set('pdpNotes', m.notes);
+ set('pdpSeoTitle', m.seo?.title);
+ set('pdpSeoDescription', m.seo?.description);
+ set('pdpSeoSlug', m.seo?.slug);
+ set('pdpVariantOptions', (window.__mpStringifyVariantOptions || (a => ''))(m.variants));
+ set('pdpHasVariants', m.has_variants ? 'true' : 'false');
+ set('pdpDefaultVariantSku', m.default_variant_sku);
+
+ // Metafields (key-value extension) — read from prod.metadata.metafields (new) or legacy prod.metafields
  currentPdpMetafields = {};
- if(prod.metafields) {
- try {
- currentPdpMetafields = typeof prod.metafields === 'string' ? JSON.parse(prod.metafields) : prod.metafields;
- } catch(e) {}
+ const mfSrc = m.metafields || prod.metafields;
+ if(mfSrc) {
+ try { currentPdpMetafields = typeof mfSrc === 'string' ? JSON.parse(mfSrc) : mfSrc; } catch(e) {}
  }
  renderMetafields();
 
+ // Populate datalists
+ if(typeof refreshPdpDatalists === 'function') refreshPdpDatalists();
+
  document.getElementById('pdpModal').style.display = 'block';
+ if(window.lucide && lucide.createIcons) setTimeout(() => lucide.createIcons(), 50);
+};
+
+// p1_228 — Datalist refresh for PDP brand/category/vendor/collection
+window.refreshPdpDatalists = function() {
+ if(typeof masterProducts === 'undefined') return;
+ const fill = (id, vals) => { const el = document.getElementById(id); if(el) el.innerHTML = vals.map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">`).join(''); };
+ fill('pdpBrandList', [...new Set(masterProducts.map(p => p.brand).filter(Boolean))].sort());
+ fill('pdpCategoryList', [...new Set(masterProducts.map(p => p.category).filter(Boolean))].sort());
+ const metas = masterProducts.map(p => (p.metadata && typeof p.metadata === 'object') ? p.metadata : {});
+ fill('pdpVendorList', [...new Set(metas.map(m => m.vendor).filter(Boolean))].sort());
+ fill('pdpCollectionList', [...new Set(metas.map(m => m.collection).filter(Boolean))].sort());
+};
+
+// p1_228 — Clean HTML for PDP description (same algo as warehouse form)
+window.pdpCleanDescriptionHtml = function() {
+ const ta = document.getElementById('pdpDescription');
+ if(!ta) return;
+ const raw = ta.value || '';
+ if(!raw.trim()) { if(typeof showToast === 'function') showToast('Description kosong.', 'warn'); else alert('Description kosong.'); return; }
+ if(!confirm('Strip semua HTML tags + EasyStore sheets data?\n\nTeks plain je akan tinggal. Boleh undo dengan tutup modal + buka semula sebelum Save.')) return;
+ try {
+ let s = raw.replace(/\[EASYSTORE-ID:[^\]]*\]\s*/g, '');
+ const doc = new DOMParser().parseFromString(s, 'text/html');
+ doc.querySelectorAll('li').forEach(li => li.insertAdjacentText('beforebegin', '\n• '));
+ doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, div').forEach(p => p.insertAdjacentText('afterend', '\n'));
+ doc.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+ let text = doc.body.textContent || '';
+ text = text.replace(/ /g, ' ').replace(/[ \t]+/g, ' ').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+ if(!text) { if(typeof showToast === 'function') showToast('Lepas clean, kosong. Original kekal.', 'warn'); return; }
+ ta.value = text;
+ if(typeof showToast === 'function') showToast(`Clean HTML — ${raw.length} → ${text.length} char.`, 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Clean gagal: ' + e.message, 'error');
+ }
+};
+
+// p1_228 — Add variant option placeholder line
+window.pdpAddVariantOption = function() {
+ const ta = document.getElementById('pdpVariantOptions');
+ if(!ta) return;
+ const placeholder = 'Option Name: nilai1, nilai2';
+ ta.value = (ta.value && !ta.value.endsWith('\n')) ? ta.value + '\n' + placeholder : ta.value + placeholder;
+ ta.focus();
+ const start = ta.value.length - placeholder.length;
+ ta.setSelectionRange(start, ta.value.length);
+};
+
+// p1_228 — Adjust stock (append-only inventory batch)
+window.pdpAdjustStock = async function() {
+ const sku = document.getElementById('pdpOriginalSku').value;
+ if(!sku) return;
+ const raw = prompt(`Tambah / kurang stok untuk ${sku}.\n\nMasuk nombor (positif = tambah, negatif = kurang):`, '0');
+ if(raw === null) return;
+ const delta = parseInt(String(raw).trim(), 10);
+ if(isNaN(delta) || delta === 0) { if(typeof showToast === 'function') showToast('Qty mesti nombor bukan-sifar.', 'warn'); return; }
+ const note = prompt('Sebab adjustment? (contoh: "Damaged units", "Stock count correction", "Internal use")', '') || '';
+ try {
+ const u = window.currentUser || {};
+ // Append batch row with delta (qty_received + qty_remaining = delta; for negative, treat as write-off batch)
+ const { error } = await db.from('inventory_batches').insert([{
+ sku, qty_received: delta, qty_remaining: delta,
+ unit_cost_rm: 0,
+ received_at: new Date().toISOString(),
+ received_by: u.name || 'System',
+ note: 'Manual adjustment' + (note ? ': ' + note : '')
+ }]);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast(`Stock adjusted ${delta > 0 ? '+' : ''}${delta} untuk ${sku}.`, 'success');
+ // Refresh inventory display
+ if(typeof initApp === 'function') await initApp();
+ // Re-open modal
+ setTimeout(() => window.openPdpModal(sku), 200);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Adjust gagal: ' + e.message, 'error');
+ }
+};
+
+// p1_228 — Delete from PDP modal
+window.pdpDeleteProduct = async function() {
+ const sku = document.getElementById('pdpOriginalSku').value;
+ if(!sku) return;
+ const prod = masterProducts.find(x => x.sku === sku);
+ if(!prod) return;
+ if(!confirm(`AMARAN: Padam SKU "${sku}" (${prod.name}) dari Master?\n\nTak boleh undo. Kalau ada inventory/sales/session reference, Supabase tolak DELETE.\n\nTeruskan?`)) return;
+ try {
+ const { error } = await db.from('products_master').delete().eq('sku', sku);
+ if(error) {
+ if(error.code === '23503' || /foreign key/i.test(error.message)) {
+ return (typeof showToast === 'function' ? showToast : alert)(`Tak boleh delete — ada reference (batch/sales/session). Soft-delete je: tukar Status ke Draft + Save.`, 'error');
+ }
+ throw error;
+ }
+ const idx = masterProducts.findIndex(x => x.sku === sku);
+ if(idx >= 0) masterProducts.splice(idx, 1);
+ try {
+ await db.from('audit_logs').insert([{
+ action_type: 'master_product_delete',
+ actor_name: (window.currentUser || {}).name || 'System',
+ details: JSON.stringify({ sku, name: prod.name }),
+ created_at: new Date().toISOString()
+ }]);
+ } catch(_){}
+ if(typeof showToast === 'function') showToast(`SKU "${sku}" dah padam.`, 'success');
+ document.getElementById('pdpModal').style.display = 'none';
+ if(typeof initApp === 'function') await initApp();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Delete gagal: ' + e.message, 'error');
+ else alert('Delete gagal: ' + e.message);
+ }
 };
 
 window.renderPdpMediaGallery = function(urls) {
@@ -16234,14 +16369,41 @@ window.removeMetafield = function(key) {
 
 window.savePdpData = async function() {
  const sku = document.getElementById('pdpOriginalSku').value;
+ const get = (id) => (document.getElementById(id)?.value || '').trim();
+ // p1_228 — merge metadata (preserve any existing keys like easystore_*)
+ const prevProd = masterProducts.find(p => p.sku === sku) || {};
+ const prevMeta = (prevProd.metadata && typeof prevProd.metadata === 'object') ? prevProd.metadata : {};
+ const tagsArr = get('pdpTags').split(',').map(t => t.trim()).filter(Boolean);
+ const parseVariants = window.__mpParseVariantOptions || (raw => []);
+ const metadata = {
+ ...prevMeta,
+ vendor: get('pdpVendor') || null,
+ collection: get('pdpCollection') || null,
+ tags: tagsArr.length ? tagsArr : null,
+ notes: get('pdpNotes') || null,
+ seo: {
+ title: get('pdpSeoTitle') || null,
+ description: get('pdpSeoDescription') || null,
+ slug: get('pdpSeoSlug') || null
+ },
+ variants: parseVariants(get('pdpVariantOptions')),
+ has_variants: get('pdpHasVariants') === 'true',
+ default_variant_sku: get('pdpDefaultVariantSku').toUpperCase() || null,
+ metafields: currentPdpMetafields || {}
+ };
+
  const updatePayload = {
- name: document.getElementById('pdpName').value.trim(),
- category: document.getElementById('pdpCategory').value.trim(),
- brand: document.getElementById('pdpBrand').value.trim(),
- price: parseFloat(document.getElementById('pdpPrice').value) || 0,
- cost_price: parseFloat(document.getElementById('pdpCost').value) || 0,
- is_published: document.getElementById('pdpStatus').value === "true",
- metafields: JSON.stringify(currentPdpMetafields)
+ name: get('pdpName'),
+ category: get('pdpCategory') || null,
+ brand: get('pdpBrand') || null,
+ price: parseFloat(get('pdpPrice')) || 0,
+ cost_price: parseFloat(get('pdpCost')) || 0,
+ is_published: get('pdpStatus') === 'true',
+ description: get('pdpDescription') || null,
+ variant_color: get('pdpVariantColor') || null,
+ variant_size: get('pdpVariantSize') || null,
+ erp_barcode: get('pdpErpBarcode') || null,
+ metadata
  };
 
  let imgStr = document.getElementById('pdpMediaUrls').value;
@@ -16250,12 +16412,13 @@ window.savePdpData = async function() {
  try {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);
  if(error) throw error;
- 
- alert("Product saved successfully.");
+ if(typeof showToast === 'function') showToast(`${sku} saved.`, 'success');
+ else alert("Product saved successfully.");
  document.getElementById('pdpModal').style.display = 'none';
  await window.initApp(); // reload everything
  } catch(e) {
- alert("Error saving product: " + e.message);
+ if(typeof showToast === 'function') showToast('Save gagal: ' + e.message, 'error');
+ else alert("Error saving product: " + e.message);
  }
 };
 

@@ -160,6 +160,31 @@ body.pos-mobile-mode #mobileCartFloatingBar:active {
     transform: scale(0.98);
 }
 
+/* p1_238 — Hide orange floating bar when cart drawer terbuka (sebab BAYAR SEKARANG dalam drawer dah cukup).
+   Sebelum ni orange bar overlap dengan BAYAR SEKARANG button kat bawah drawer, staff susah tap. */
+body.pos-mobile-mode .cart-section.drawer-open ~ #mobileCartFloatingBar,
+body.pos-mobile-mode #posCartDrawer.drawer-open ~ #mobileCartFloatingBar {
+    display: none !important;
+}
+
+/* p1_238 — Buang green "Bayar →" button kanan orange bar (redundant dengan BAYAR SEKARANG dalam drawer).
+   Orange bar tap to open drawer je, single CTA dalam drawer. */
+body.pos-mobile-mode #mobileCartFloatingBar > button {
+    display: none !important;
+}
+
+/* p1_238 — BAYAR SEKARANG sticky bottom-of-drawer supaya selalu visible (tak scroll out) */
+body.pos-mobile-mode .cart-section > div:last-child {
+    position: sticky;
+    bottom: 0;
+    background: #FAFAFA;
+    margin: 0 -20px -50px;
+    padding: 20px;
+    padding-bottom: 30px;
+    border-top: 1px solid #E5E7EB;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.04);
+}
+
 /* PRINT MEDIA FOR BARCODE LABELS (THERMAL PRINTER FORMAT) */
 @media print {
     body * {

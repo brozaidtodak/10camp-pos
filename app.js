@@ -6883,7 +6883,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml((i.name || '').slice(0, 60))}</td>
  <td style="padding:8px 10px; font-size:11px;">${i.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(i.location_bin)}</span>` : '<span style="color:#D1D5DB;">—</span>'}</td>
  <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#9CA3AF;">${i.system_qty != null ? i.system_qty : '-'}</td>
- <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${i.counted_qty != null ? i.counted_qty : '—'}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${isChecked ? i.counted_qty : `<button onclick="window.__scsKeyInCount(${i.id}, ${sessionId}, '${escHtml(i.sku || '').replace(/'/g, "\\'")}', ${i.system_qty != null ? i.system_qty : 'null'})" title="Key in kiraan fizikal" style="background:var(--primary); border:none; color:#fff; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="edit-3" style="width:10px;height:10px;"></i> Key In</button>`}</td>
  <td style="padding:8px 10px; text-align:center;"><span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:${badgeBg}; color:${badgeFg}; font-size:10px; font-weight:700;"><i data-lucide="${badgeIcon}" style="width:10px;height:10px;"></i> ${badgeTxt}</span></td>
  <td style="padding:8px 6px; text-align:center;">${isChecked ? `<button onclick="window.__scsResetItem(${i.id}, ${sessionId})" title="Reset count balik ke Belum Check" style="background:none; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="rotate-ccw" style="width:9px;height:9px;"></i> Reset</button>` : `<button onclick="window.__scsRemoveItem(${i.id}, ${sessionId})" title="Buang SKU dari sesi ni" style="background:none; border:1px solid #E5E7EB; color:#6B7280; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="trash-2" style="width:9px;height:9px;"></i> Buang</button>`}</td>
  </tr>`;
@@ -6916,6 +6916,48 @@ window.__scsToggleSkuList = async function(sessionId) {
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  } catch(e) {
  box.innerHTML = '<p style="color:#EF4444; font-size:11.5px; padding:10px;">Error: ' + e.message + '</p>';
+ }
+};
+
+// p1_220 — Inline Key In count from Senarai SKU (staff buat kiraan tanpa pergi Buka & Kira)
+window.__scsKeyInCount = async function(itemId, sessionId, sku, systemQty) {
+ const raw = prompt(`Key in kiraan fizikal untuk ${sku}:\n(Sistem: ${systemQty != null ? systemQty : '-'})`);
+ if(raw === null) return; // cancelled
+ const qty = parseInt(String(raw).trim(), 10);
+ if(isNaN(qty) || qty < 0) { if(typeof showToast === 'function') showToast('Qty mesti nombor >= 0.', 'warn'); return; }
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const u = window.currentUser || {};
+ const nowIso = new Date().toISOString();
+ const variance = (systemQty != null && !isNaN(systemQty)) ? (qty - systemQty) : null;
+ // 1) Update session_items
+ const { error: e1 } = await db.from('stock_check_session_items').update({
+ counted_qty: qty,
+ variance: variance,
+ counted_by_id: u.staff_id || 'unknown',
+ counted_by_name: u.name || 'Unknown',
+ counted_at: nowIso
+ }).eq('id', itemId);
+ if(e1) throw e1;
+ // 2) Mirror to products_master (feeds Stock Check History + analytics)
+ await db.from('products_master').update({
+ last_audited_at: nowIso,
+ last_audited_by: (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')',
+ last_audited_qty: qty,
+ last_audited_system_qty: (systemQty != null && !isNaN(systemQty)) ? systemQty : null
+ }).eq('sku', sku);
+ // 3) Bump session counters
+ const { data: items } = await db.from('stock_check_session_items').select('counted_qty,variance').eq('session_id', sessionId);
+ const checked = (items || []).filter(i => i.counted_qty != null);
+ const varCnt = checked.filter(i => (i.variance || 0) !== 0).length;
+ await db.from('stock_check_sessions').update({ items_checked: checked.length, items_variance: varCnt }).eq('id', sessionId);
+ if(typeof showToast === 'function') showToast(`Disimpan: ${sku} = ${qty} (variance ${variance != null ? (variance > 0 ? '+' + variance : variance) : '-'})`, 'success');
+ // Refresh expanded SKU list + parent sessions card
+ const box = document.getElementById('scsSkuList-' + sessionId);
+ if(box) { box.dataset.loaded = ''; window.__scsToggleSkuList(sessionId); window.__scsToggleSkuList(sessionId); }
+ if(typeof window.renderCheckSessions === 'function') window.renderCheckSessions();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Key in gagal: ' + e.message, 'error');
  }
 };
 

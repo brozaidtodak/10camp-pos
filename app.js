@@ -6880,7 +6880,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  else { badgeBg = '#F3F4F6'; badgeFg = '#6B7280'; badgeTxt = 'Belum Check'; badgeIcon = 'clock'; }
  return `<tr style="border-bottom:1px solid #F3F4F6;">
  <td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:700; font-size:11.5px;">${escHtml(i.sku || '-')}</td>
- <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml((i.name || '').slice(0, 60))}</td>
+ <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml((i.name || '').slice(0, 60))}${i.note ? `<div style="margin-top:3px; padding:3px 6px; background:#FEF9C3; border-left:2px solid #CA8A04; font-size:10.5px; color:#713F12; font-style:italic; line-height:1.4;"><i data-lucide="message-square" style="width:9px;height:9px; vertical-align:-1px; margin-right:3px;"></i>${escHtml(i.note)}</div>` : ''}</td>
  <td style="padding:8px 10px; font-size:11px;">${i.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(i.location_bin)}</span>` : '<span style="color:#D1D5DB;">—</span>'}</td>
  <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#9CA3AF;">${i.system_qty != null ? i.system_qty : '-'}</td>
  <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${isChecked ? i.counted_qty : `<button onclick="window.__scsKeyInCount(${i.id}, ${sessionId}, '${escHtml(i.sku || '').replace(/'/g, "\\'")}', ${i.system_qty != null ? i.system_qty : 'null'})" title="Key in kiraan fizikal" style="background:var(--primary); border:none; color:#fff; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="edit-3" style="width:10px;height:10px;"></i> Key In</button>`}</td>
@@ -6924,11 +6924,14 @@ window.__scsToggleSkuList = async function(sessionId) {
 };
 
 // p1_220 — Inline Key In count from Senarai SKU (staff buat kiraan tanpa pergi Buka & Kira)
+// p1_222 — Optional catatan staff untuk Zakwan (special cases: kotak rosak tapi item OK, label fade, etc.)
 window.__scsKeyInCount = async function(itemId, sessionId, sku, systemQty) {
  const raw = prompt(`Key in kiraan fizikal untuk ${sku}:\n(Sistem: ${systemQty != null ? systemQty : '-'})`);
  if(raw === null) return; // cancelled
  const qty = parseInt(String(raw).trim(), 10);
  if(isNaN(qty) || qty < 0) { if(typeof showToast === 'function') showToast('Qty mesti nombor >= 0.', 'warn'); return; }
+ const noteRaw = prompt(`Catatan untuk Zakwan? (boleh kosongkan jika tiada)\n\nContoh: "kotak terbuka tapi item lengkap", "label fade", "ada lipat-lipat"`, '');
+ const noteText = (noteRaw && noteRaw.trim()) ? noteRaw.trim() : null;
  try {
  if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
  const u = window.currentUser || {};
@@ -6938,6 +6941,7 @@ window.__scsKeyInCount = async function(itemId, sessionId, sku, systemQty) {
  const { error: e1 } = await db.from('stock_check_session_items').update({
  counted_qty: qty,
  variance: variance,
+ note: noteText,
  counted_by_id: u.staff_id || 'unknown',
  counted_by_name: u.name || 'Unknown',
  counted_at: nowIso
@@ -6979,7 +6983,10 @@ window.__scsMarkNotFound = async function(itemId, sessionId, sku, systemQty) {
  const { data: row } = await db.from('stock_check_session_items').select('location_bin').eq('id', itemId).single();
  if(row) loc = row.location_bin || '';
  } catch(e){}
- const noteText = `Tak jumpa${loc ? ' di ' + loc : ''} · ${u.name || '?'} · ${stamp}`;
+ let noteText = `Tak jumpa${loc ? ' di ' + loc : ''} · ${u.name || '?'} · ${stamp}`;
+ // p1_222 — optional staff addendum
+ const addRaw = prompt(`Catatan tambahan untuk Zakwan? (boleh kosongkan)\n\nContoh: "lokasi mungkin salah", "dah cari semua rak", "kemungkinan dah jual"`, '');
+ if(addRaw && addRaw.trim()) noteText += ' — ' + addRaw.trim();
  const variance = (systemQty != null && !isNaN(systemQty)) ? (0 - systemQty) : null;
  const { error: e1 } = await db.from('stock_check_session_items').update({
  counted_qty: 0,
@@ -7027,7 +7034,10 @@ window.__scsMarkDamaged = async function(itemId, sessionId, sku, systemQty) {
  const { data: row } = await db.from('stock_check_session_items').select('location_bin').eq('id', itemId).single();
  if(row) loc = row.location_bin || '';
  } catch(e){}
- const noteText = `${damaged} unit ROSAK${loc ? ' (' + loc + ')' : ''} · baki good ${goodQty} · ${u.name || '?'} · ${stamp}`;
+ let noteText = `${damaged} unit ROSAK${loc ? ' (' + loc + ')' : ''} · baki good ${goodQty} · ${u.name || '?'} · ${stamp}`;
+ // p1_222 — optional staff addendum
+ const addRaw = prompt(`Catatan tambahan untuk Zakwan? (boleh kosongkan)\n\nContoh: "tear di seam", "zip patah", "stain di sleeve"`, '');
+ if(addRaw && addRaw.trim()) noteText += ' — ' + addRaw.trim();
  const variance = goodQty - sysQty;
  const { error: e1 } = await db.from('stock_check_session_items').update({
  counted_qty: goodQty,

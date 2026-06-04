@@ -6763,12 +6763,15 @@ window.__scsConfirmCreate = async function() {
  // 2. Build items from selectedSkus (bypass location-wide query)
  const items = selectedSkus.map(sku => {
  const p = skuToProduct[sku] || {};
+ // p1_225 — snapshot image URL at session-create time (denormalized) untuk staff visual ref
+ const imgUrl = (p.images && Array.isArray(p.images) && p.images[0]) ? p.images[0] : null;
  return {
  session_id: sesData.id,
  sku,
  product_name: p.name || '',
  location_bin: p.location_bin || '',
- system_qty: stockMap.get(sku) || 0
+ system_qty: stockMap.get(sku) || 0,
+ image_url: imgUrl
  };
  });
  if(items.length > 0) {
@@ -6879,12 +6882,18 @@ window.__scsToggleSkuList = async function(sessionId) {
  }
  else { badgeBg = '#F3F4F6'; badgeFg = '#6B7280'; badgeTxt = 'Belum Check'; badgeIcon = 'clock'; }
  // p1_223 — inline qty + catatan input (no popup); Enter or onBlur saves
+ // p1_225 — 40px thumb + product_name field fix (was reading wrong column `name`)
  const skuEsc = escHtml(i.sku || '').replace(/'/g, "\\'");
  const sysQtyArg = i.system_qty != null ? i.system_qty : 'null';
  const saveOnEnter = `if(event.key==='Enter'){event.preventDefault(); window.__scsInlineSave(${i.id}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}`;
+ const productName = i.product_name || i.name || '';
+ const thumbHtml = i.image_url
+ ? `<img src="${escHtml(i.image_url)}" alt="${escHtml(i.sku || '')}" onclick="window.open('${escHtml(i.image_url).replace(/'/g, "\\'")}', '_blank')" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #E5E7EB; cursor:zoom-in; display:block;" loading="lazy" onerror="this.style.display='none'">`
+ : `<div style="width:40px; height:40px; border-radius:4px; background:#F3F4F6; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center;"><i data-lucide="image-off" style="width:14px;height:14px; color:#9CA3AF;"></i></div>`;
  return `<tr style="border-bottom:1px solid #F3F4F6;">
+ <td style="padding:6px 8px; width:48px;">${thumbHtml}</td>
  <td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:700; font-size:11.5px;">${escHtml(i.sku || '-')}</td>
- <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml((i.name || '').slice(0, 60))}</td>
+ <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml(productName.slice(0, 60))}</td>
  <td style="padding:8px 10px; font-size:11px;">${i.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(i.location_bin)}</span>` : '<span style="color:#D1D5DB;">—</span>'}</td>
  <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#9CA3AF;">${i.system_qty != null ? i.system_qty : '-'}</td>
  <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${isChecked ? i.counted_qty : `<input type="number" min="0" id="scsQtyInput-${i.id}" placeholder="qty" onkeydown="${saveOnEnter}" style="width:64px; padding:5px 6px; border:1px solid var(--border-color); border-radius:5px; font-size:12px; text-align:right;">`}</td>
@@ -6910,6 +6919,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  <table style="width:100%; border-collapse:collapse; font-size:12px;">
  <thead style="background:#F9FAFB;">
  <tr>
+ <th style="padding:8px 6px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Gambar</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">SKU</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Nama</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Lokasi</th>
@@ -7242,7 +7252,9 @@ window.__scsConfirmEdit = async function(sessionId) {
  if(toAdd.length > 0) {
  const newItems = toAdd.map(sku => {
  const p = skuToProduct[sku] || {};
- return { session_id: sessionId, sku, product_name: p.name || '', location_bin: p.location_bin || '', system_qty: stockMap.get(sku) || 0 };
+ // p1_225 — snapshot image URL when adding SKU via Edit/Tambah SKU
+ const imgUrl = (p.images && Array.isArray(p.images) && p.images[0]) ? p.images[0] : null;
+ return { session_id: sessionId, sku, product_name: p.name || '', location_bin: p.location_bin || '', system_qty: stockMap.get(sku) || 0, image_url: imgUrl };
  });
  const { error: addErr } = await db.from('stock_check_session_items').insert(newItems);
  if(addErr) throw addErr;

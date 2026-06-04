@@ -21846,20 +21846,26 @@ window.cpSyncCustomerFromPos = function() {
 };
 
 // p1_230 — Resit status badge dalam cpFormView (sebab cpFormView takde proof section)
+// p1_241 — audit fix: layout block-stack untuk small screens, bigger touch targets (Snap/Pilih buttons jadi big block buttons)
 window.cpRefreshProofBadge = function() {
  const badge = document.getElementById('cpProofStatusBadge');
  if(!badge) return;
  const method = document.getElementById('cpPaymentMethod')?.value || 'Cash';
  if(method === 'Cash') { badge.style.display = 'none'; return; }
  const hasProof = !!(window.__proofState && window.__proofState.file);
- badge.style.display = 'flex';
+ badge.style.display = 'block';
  if(hasProof) {
  const f = window.__proofState.file;
  badge.style.background = '#D1FAE5'; badge.style.borderColor = '#10B981'; badge.style.color = '#065F46';
- badge.innerHTML = `<i data-lucide="camera" style="width:14px;height:14px;"></i> Resit ditangkap (${(f.size / 1024).toFixed(0)} KB) — <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="background:none; border:none; color:#065F46; text-decoration:underline; cursor:pointer; padding:0; font-size:11.5px;">snap semula</button>`;
+ badge.innerHTML = `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><i data-lucide="camera" style="width:16px;height:16px;"></i> Resit ditangkap <span style="font-weight:400; opacity:0.75;">(${(f.size / 1024).toFixed(0)} KB)</span></div>
+ <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="width:100%; background:#fff; border:1px solid #10B981; color:#065F46; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Snap Semula</button>`;
  } else {
  badge.style.background = '#FEF3C7'; badge.style.borderColor = '#F59E0B'; badge.style.color = '#92400E';
- badge.innerHTML = `<i data-lucide="alert-circle" style="width:14px;height:14px;"></i> Belum ada resit — <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="background:none; border:none; color:#92400E; text-decoration:underline; cursor:pointer; padding:0; font-size:11.5px;">Snap Camera</button> · <button type="button" onclick="document.getElementById('proofFileInput').click(); return false;" style="background:none; border:none; color:#92400E; text-decoration:underline; cursor:pointer; padding:0; font-size:11.5px;">Pilih Fail</button>`;
+ badge.innerHTML = `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><i data-lucide="alert-circle" style="width:16px;height:16px;"></i> Belum ada resit pembayaran</div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+ <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="background:#1E40AF; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="camera" style="width:13px;height:13px;"></i> Snap Camera</button>
+ <button type="button" onclick="document.getElementById('proofFileInput').click(); return false;" style="background:#fff; color:#1E40AF; border:1.5px solid #1E40AF; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> Pilih Fail</button>
+ </div>`;
  }
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };

@@ -1744,10 +1744,12 @@
 
 /* p1_33 — Walk-in quick checkout button */
 .cp-walkin-btn {
-    display: inline-flex; align-items: center; gap: 5px;
+    /* p1_241 — bigger touch target Apple HIG 44px min (audit: dulu 4px 10px = ~28px tall) */
+    display: inline-flex; align-items: center; gap: 6px;
     background: #F3F4F6; color: #4B5563;
     border: 1px solid #E5E7EB; border-radius: 999px;
-    padding: 4px 10px; font-size: 11px; font-weight: 700;
+    padding: 10px 14px; font-size: 12.5px; font-weight: 700;
+    min-height: 38px;
     cursor: pointer; transition: 0.15s; user-select: none;
 }
 .cp-walkin-btn:hover { background: #E5E7EB; color: #111827; }
@@ -2177,9 +2179,12 @@
 .cmdk { max-width: 100%; }
 }
 
-@media (max-width: 480px) {
+/* p1_241 — Payment grid 2-col on phone (audit: 4-col cramped); 4-col kekal pada iPad+ desktop */
+@media (max-width: 600px) {
 .cp-payment-grid { grid-template-columns: 1fr 1fr; }
 .cp-pay-pill { min-height: 56px; }
+}
+@media (max-width: 480px) {
 .cp-success-actions { grid-template-columns: 1fr; }
 .stat__value { font-size: var(--text-md); }
 }

@@ -21,8 +21,8 @@
  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Store","name":"10 CAMP","description":"Premium camping and outdoor gear retailer in Malaysia","image":"assets/brand/hero/hero-hikers-1500x600.png","telephone":"+60113310 9547","email":"admin@10camp.com","address":{"@type":"PostalAddress","streetAddress":"No. 9-G, Block H, Glomac Cyberjaya, Jalan GC 9","addressLocality":"Cyberjaya","postalCode":"63000","addressRegion":"Selangor","addressCountry":"MY"},"openingHours":"Mo-Sa 10:00-21:00","priceRange":"$$"}</script>
  <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=42">
- <link rel="stylesheet" href="design-tokens.css?v=67">
+ <link rel="stylesheet" href="style.css?v=43">
+ <link rel="stylesheet" href="design-tokens.css?v=68">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -558,9 +558,9 @@
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px; flex-wrap:wrap;">
  <p class="cp-section__title" style="margin:0;">Customer</p>
  <div style="display:flex; gap:6px;">
- <!-- p1_234 — "+ Baru" button: buka customer picker modal (search existing + register new), untuk mobile user yang tak nampak auto-register -->
- <button type="button" onclick="window.posAttachCustomer()" title="Cari customer existing atau daftar pelanggan baru" style="background:#10B981; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
- <i data-lucide="user-plus" style="width:13px;height:13px;"></i> + Baru
+ <!-- p1_234 — "+ Baru" button. p1_241 audit fix: bigger touch target (sebelum 6px 10px ~38px tall, kurang dari Apple HIG 44px). -->
+ <button type="button" onclick="window.posAttachCustomer()" title="Cari customer existing atau daftar pelanggan baru" style="background:#10B981; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:38px;">
+ <i data-lucide="user-plus" style="width:14px;height:14px;"></i> + Baru
  </button>
  <button type="button" id="cpWalkinBtn" class="cp-walkin-btn" onclick="window.cpToggleWalkin()" title="Skip customer info untuk walk-in cepat">
  <i data-lucide="user" style="width:13px; height:13px;"></i>
@@ -616,23 +616,24 @@
  <!-- Payment pills (UX-3.3) -->
  <div class="cp-section">
  <p class="cp-section__title">Cara Bayar</p>
+ <!-- p1_241 — Tambah Lucide icons dalam payment pills (audit: empty span kosong tak intuitif) -->
  <div class="cp-payment-grid" id="cpPayPills">
  <button type="button" class="cp-pay-pill is-active" data-method="Cash" onclick="window.cpSetPayment('Cash')">
- <span class="cp-pay-pill__icon"></span><span>Tunai</span>
+ <i data-lucide="banknote" class="cp-pay-pill__icon" style="width:22px;height:22px;"></i><span>Tunai</span>
  </button>
  <button type="button" class="cp-pay-pill" data-method="QR Pay" onclick="window.cpSetPayment('QR Pay')">
- <span class="cp-pay-pill__icon"></span><span>QR Pay</span>
+ <i data-lucide="qr-code" class="cp-pay-pill__icon" style="width:22px;height:22px;"></i><span>QR Pay</span>
  </button>
  <button type="button" class="cp-pay-pill" data-method="Card" onclick="window.cpSetPayment('Card')">
- <span class="cp-pay-pill__icon"></span><span>Kad/Bank</span>
+ <i data-lucide="credit-card" class="cp-pay-pill__icon" style="width:22px;height:22px;"></i><span>Kad/Bank</span>
  </button>
  <button type="button" class="cp-pay-pill" data-method="E-Wallet" onclick="window.cpSetPayment('E-Wallet')">
- <span class="cp-pay-pill__icon"></span><span>E-Wallet</span>
+ <i data-lucide="wallet" class="cp-pay-pill__icon" style="width:22px;height:22px;"></i><span>E-Wallet</span>
  </button>
  </div>
  <input type="hidden" id="cpPaymentMethod" value="Cash">
- <!-- p1_230 — Resit Pembayaran status (manual snap/pick buttons) -->
- <div id="cpProofStatusBadge" style="display:none; margin-top:10px; padding:10px 12px; border:1px solid; border-radius:var(--radius-md); font-size:11.5px; font-weight:700; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+ <!-- p1_230 — Resit Pembayaran status. p1_241 audit: block layout, bigger touch targets dalam buttons via JS -->
+ <div id="cpProofStatusBadge" style="display:none; margin-top:10px; padding:12px 14px; border:1px solid; border-radius:var(--radius-md); font-size:12.5px; font-weight:700;"></div>
  <!-- E-wallet inline (only shows when E-Wallet pill active) -->
  <div id="cpEwalletInline" class="is-hidden" style="margin-top:10px; padding:10px; background:var(--warning-50); border:1px solid var(--warning-200); border-radius:var(--radius-md);">
  <div style="font-size:11px; font-weight:700; color:var(--warning-900); margin-bottom:6px;"> Manual Confirm — minta customer scan + tunjuk confirmation</div>
@@ -6689,7 +6690,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (240/240 · last 2026-06-04) — Buang GREEN BAYAR SEKARANG floating button. Mobile floating bar cuma orange "Lihat Troli · N item · RM xx" je. Staff tap → drawer slide up → BAYAR SEKARANG sticky dalam drawer. Forced 2-step flow: review cart dulu sebelum bayar.',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (241/241 · last 2026-06-04) — Audit + fix UX kaedah pembayaran di iPad/phone — 5 isu. Lucide icons dalam payment pills (banknote/qr-code/credit-card/wallet). Bigger touch targets (Walk-in, +Baru). Payment grid 2-col earlier breakpoint (600px ganti 480px). Proof badge block layout + bigger snap/pick buttons (min-height 44px).',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6764,6 +6765,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_241', label:'Audit + fix UX kaedah pembayaran di iPad/phone (Zaid: "audit kaedah pembayaran di ipad dan phone"). Ketemu 5 isu, fix semua. (ISU 1) cp-pay-pill icons — HTML guna `<span class="cp-pay-pill__icon"></span>` kosong, CSS set font-size:22px tapi takde content. Pills cuma text-only, tak intuitif. Fix: tukar ke Lucide — Tunai=banknote, QR Pay=qr-code, Kad/Bank=credit-card, E-Wallet=wallet (22px). (ISU 2) cp-walkin-btn padding 4px 10px = ~28px tall, di bawah Apple HIG 44px touch target. Fix: padding 10px 14px + min-height 38px + font 12.5px. (ISU 3) "+ Baru" customer button (p1_234) padding 6px 10px = ~38px tall, sama issue. Fix: padding 10px 14px + min-height 38px + icon naik ke 14px. (ISU 4) cp-payment-grid stay 4-col sampai 480px width — iPad portrait 768px checkout-panel max 480px = 4 col cramped (~120px per pill). Fix: media query 600px breakpoint untuk 2-col (jadi iPad portrait + phone semua 2x2 grid). (ISU 5) cpProofStatusBadge sebelum guna inline flex + flex-wrap, text + underline buttons wrap awkward bila kena snap pada small screen. Fix: block layout + grid 1fr 1fr untuk 2 buttons (Snap Camera + Pilih Fail), tiap button min-height 44px dengan icon visible, separate "Snap Semula" full-width button untuk has-proof state. design-tokens.css v67→v68, style.css v42→v43, app.js v340→v341.', d:'done' },
  { id:'p1_240', label:'Buang GREEN BAYAR SEKARANG floating button — revert ke single orange button (Zaid: "ok now buang bayar sekarang (layout hijau), kalau nak bayar kena tekan cart list dulu"). p1_239 dua row stack tu Zaid recall — flow forced 2-step lebih baik: staff kena tap Lihat Troli dulu untuk review cart, baru tap BAYAR SEKARANG dalam drawer (sticky bottom). Single CTA per state. Single button orange tinggal — padding 16px 22px (lebih besar dari sebelum), font 15px, icon shopping-cart + label kiri, "N item · RM xx.xx" kanan combined dalam single line. Box-shadow orange #C8741E/35% match warna primary. main-content padding-bottom revert dari 160 ke 100px sebab tinggi area kurang. style.css v41→v42.', d:'done' },
  { id:'p1_239', label:'Mobile floating bar restructure — stacked vertical (Zaid: "irfan(phone) ariff(ipad) inform aku, masih sama bro, letakkan layout oren tu dibawah layout hijau"). p1_238 fix tak cukup — staff still confused sebab single row pill orange ada green Bayar→ kanan terlalu kecik. Sekarang restructure penuh: floating bar jadi column flex (gap 8px), bottom 16px, left/right 16px. Row 1 (atas) = GREEN BAYAR SEKARANG button — selebar viewport, padding 18px 20px, font 17px weight 800, border-radius 14px, box-shadow ijau #10B981/35%, credit-card icon + label "BAYAR SEKARANG" kiri + "RM xx.xx" kanan. Onclick window.openPaymentModal(). Active state scale(0.98) feedback. Disabled style bila cart kosong (opacity 0.5 + cursor not-allowed + no shadow). Row 2 (bawah) = ORANGE button kecik (#C8741E primary) — padding 10px 14px font 12.5px, shopping-cart icon + "Lihat Troli" kiri + "N item" kanan. Onclick window.toggleMobileCartSheet() buka drawer review. updateMobileBar helper renderCart auto sync disabled state mobileCartBayarBtn. Main-content padding-bottom naik dari 80 ke 160px sebab floating area lebih tinggi. style.css v40→v41, app.js v339→v340.', d:'done' },
  { id:'p1_238', label:'Fix mobile/tablet BAYAR SEKARANG susah tap sebab redundant dengan orange bar (Zaid: "staff yang pakai phone dan tablet susah nak tekan bayar sekarang sebab redundant dengan layout yang oren, tolong fix"). Root cause: dalam pos-mobile-mode, orange bar (#mobileCartFloatingBar) ada 2 CTA — tap body buka drawer + green "Bayar →" button right. Drawer slide-up (top:10vh height:90vh) ada BAYAR SEKARANG button kat bawah, tapi overlap dengan orange bar yang position:fixed bottom:20px z-index 4999. Drawer z-index 5001 tutup orange visually di z-axis tapi BAYAR button visually berhampiran dengan orange bar Bayar→ button — staff tap salah / confused / area kecik. 3 CSS fix dalam style.css p1_238: (a) Hide orange bar bila drawer-open class active — selector `body.pos-mobile-mode #posCartDrawer.drawer-open ~ #mobileCartFloatingBar { display:none !important }` (general sibling combinator works sebab kedua siblings dalam .main-content). (b) Hide green "Bayar →" button dalam orange bar (mobile mode) — `#mobileCartFloatingBar > button { display:none }`. Orange bar tap-to-open-drawer SAHAJA, single CTA dalam drawer (BAYAR SEKARANG). (c) BAYAR SEKARANG sticky bottom-of-drawer — `.cart-section > div:last-child { position:sticky; bottom:0 }` plus background #FAFAFA + negative margins fill ke parent padding. Sentiasa visible regardless of scroll position. style.css v39→v40, app.js v338→v339.', d:'done' },
@@ -11465,7 +11467,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=340"></script>
+ <script src="app.js?v=341"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

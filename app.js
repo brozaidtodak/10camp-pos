@@ -4580,6 +4580,61 @@ function switchHub(sectionIds, title, btnElement) {
  }
  }
 }
+
+// p1_187 — NUCLEAR panic-show. Zaid screenshot 2026-06-04 12:10 showed Reports
+// section blank on both laptop + iPad. Breadcrumb stuck on "Laporan Saya" tapi
+// content kosong. Suspect switchHub may throw silently or CSS suppress all
+// children. This bypass forces inline-styled visibility + scrolls into view +
+// surfaces visible diagnostic banner so Zaid never sees pure blank.
+window.__panicShow = function(sectionId, title) {
+ console.log('[PANIC] showing', sectionId);
+ try {
+ document.querySelectorAll('.tab-section').forEach(s => {
+ s.style.cssText = 'display:none';
+ });
+ const sec = document.getElementById(sectionId);
+ if(!sec) {
+ alert('[PANIC] Section #' + sectionId + ' tak wujud dalam DOM. Page rosak — refresh.');
+ return;
+ }
+ sec.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; position:relative !important; z-index:10 !important; min-height:60vh; background:#fff;';
+ sec.removeAttribute('hidden');
+ // Inject visible heartbeat banner at top so Zaid sees the click landed
+ let banner = sec.querySelector('[data-panic-banner]');
+ if(!banner) {
+ banner = document.createElement('div');
+ banner.setAttribute('data-panic-banner', '1');
+ banner.style.cssText = 'background:#FEF3C7; border:1px solid #F59E0B; color:#92400E; padding:10px 14px; margin:10px; border-radius:8px; font-size:12px; font-weight:600;';
+ banner.innerHTML = '[PANIC ON] Section: <strong>' + sectionId + '</strong> · ' + new Date().toLocaleTimeString('en-MY') + ' · Kalau nampak banner ni je tapi takda content lain, bermakna section static HTML pun missing. Hit Cmd+Shift+R.';
+ sec.insertBefore(banner, sec.firstChild);
+ } else {
+ banner.innerHTML = '[PANIC ON] Section: <strong>' + sectionId + '</strong> · ' + new Date().toLocaleTimeString('en-MY') + ' · refreshed';
+ }
+ // Update breadcrumb manually
+ const oldTitle = document.getElementById('pageTitle');
+ if(oldTitle) oldTitle.textContent = title || sectionId;
+ if(typeof updateBreadcrumb === 'function') { try { updateBreadcrumb(title || sectionId); } catch(e){} }
+ // Section-specific render dispatch
+ try {
+ if(sectionId === 'feedbackSection' && typeof renderFeedbackSection === 'function') renderFeedbackSection();
+ else if(sectionId === 'reportsSection' && typeof renderMyReport === 'function') renderMyReport();
+ else if(sectionId === 'reportsTeamSection' && typeof renderTeamReports === 'function') renderTeamReports();
+ else if(sectionId === 'feedbackInboxSection' && typeof renderFeedbackInbox === 'function') renderFeedbackInbox();
+ } catch(e) {
+ console.error('[PANIC] render failed:', e);
+ banner.innerHTML += '<br><strong>Render error:</strong> ' + (e && e.message ? e.message : String(e));
+ banner.style.background = '#FEE2E2';
+ banner.style.borderColor = '#DC2626';
+ banner.style.color = '#991B1B';
+ }
+ // Scroll into view
+ sec.scrollIntoView({behavior:'smooth', block:'start'});
+ console.log('[PANIC] done. Section displayed:', sec.style.display, 'innerHTML.length:', sec.innerHTML.length);
+ } catch(outer) {
+ alert('[PANIC] fatal: ' + outer.message);
+ console.error('[PANIC] fatal:', outer);
+ }
+};
 window.switchHub = switchHub;
 
 

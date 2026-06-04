@@ -12846,29 +12846,35 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 // 2. Fetch or Mock DB
 async function checkMyAttendanceStatus() {
  if(!currentUser) return;
- document.getElementById("floatingClockBtn").style.display = "flex";
- 
+ const btn = document.getElementById("floatingClockBtn");
+ const lbl = document.getElementById("lblClockFace");
+ if(!btn || !lbl) return;
+ btn.style.display = "flex";
+
  const today = new Date().toISOString().split('T')[0];
- 
+
+ const setState = (state, text, title, locked) => {
+ btn.setAttribute('data-state', state);
+ lbl.textContent = text;
+ btn.title = title;
+ btn.style.pointerEvents = locked ? 'none' : '';
+ btn.style.opacity = locked ? '0.6' : '';
+ };
+
  if(db) {
  let { data, error } = await db.from('staff_attendance').select('*').eq('staff_name', currentUser.name).eq('date', today);
- if(data && data.length> 0) {
+ if(data && data.length > 0) {
  let record = data[0];
  if(record.clock_out_time) {
  currentAttendanceStatus = "OUT";
- document.getElementById("lblClockFace").textContent = "Anda Telah Clock-Out";
- document.getElementById("floatingClockBtn").style.background = "linear-gradient(135deg, #6B7280, #4B5563)";
- document.getElementById("floatingClockBtn").style.pointerEvents = "none";
- document.getElementById("floatingClockBtn").style.animation = "none";
+ setState('done', 'Done', 'Anda dah clock-out hari ini', true);
  } else {
  currentAttendanceStatus = "IN";
- document.getElementById("lblClockFace").textContent = "Clock Out Sekarang";
- document.getElementById("floatingClockBtn").style.background = "linear-gradient(135deg, #EF4444, #DC2626)";
+ setState('working', 'Clock Out', 'Sedang bekerja — click untuk clock out', false);
  }
  } else {
  currentAttendanceStatus = null;
- document.getElementById("lblClockFace").textContent = "Clock In Sekarang";
- document.getElementById("floatingClockBtn").style.background = "linear-gradient(135deg, #10B981, #059669)";
+ setState('idle', 'Clock In', 'Click untuk clock in', false);
  }
  }
 }

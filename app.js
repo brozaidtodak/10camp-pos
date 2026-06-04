@@ -4391,6 +4391,35 @@ window.__copyReceiptText = async function(saleId) {
  }
 };
 
+// p1_201 — Custom discount preview at checkout. Read amount + type from inputs,
+// compute final, render the Subtotal / Diskaun / Bayar line under the inputs.
+window.__checkoutComputeTotal = function() {
+ const previewEl = document.getElementById('checkoutTotalPreview');
+ const subtotalEl = document.getElementById('cpSubtotal');
+ const discountEl = document.getElementById('cpDiscount');
+ const finalEl = document.getElementById('cpFinal');
+ const totalDispEl = document.getElementById('paymentTotalDisplay');
+ if(!previewEl) return;
+ const subtotal = round2((cart || []).reduce((s, c) => s + (c.price * c.quantity), 0));
+ const type = (document.getElementById('checkoutDiscType') || {}).value || 'rm';
+ const amt = parseFloat((document.getElementById('checkoutDiscAmt') || {}).value) || 0;
+ let discount = 0;
+ if(amt > 0) discount = type === 'pct' ? round2(subtotal * amt / 100) : round2(amt);
+ if(discount > subtotal) discount = subtotal;
+ const finalTotal = round2(subtotal - discount);
+ if(discount > 0) {
+ previewEl.style.display = 'block';
+ if(subtotalEl) subtotalEl.textContent = 'RM ' + subtotal.toFixed(2);
+ if(discountEl) discountEl.textContent = '-RM ' + discount.toFixed(2);
+ if(finalEl) finalEl.textContent = 'RM ' + finalTotal.toFixed(2);
+ if(totalDispEl) totalDispEl.textContent = finalTotal.toFixed(2);
+ } else {
+ previewEl.style.display = 'none';
+ if(totalDispEl) totalDispEl.textContent = subtotal.toFixed(2);
+ }
+ return { subtotal, discount, finalTotal };
+};
+
 // p1_199 — Lazy-load jsPDF + html2canvas from CDN. Returns when both loaded.
 window.__loadPdfLibs = async function() {
  if(window.jspdf && window.html2canvas) return;
@@ -8217,6 +8246,11 @@ window.openPaymentModal = function() {
  // Reset VIP state from any previous session
  window.__currentCheckoutVip = null;
  const vb = document.getElementById('checkoutVipBadge'); if(vb) vb.style.display = 'none';
+ // p1_201 — reset custom discount inputs + preview
+ const dAmt = document.getElementById('checkoutDiscAmt'); if(dAmt) dAmt.value = '';
+ const dType = document.getElementById('checkoutDiscType'); if(dType) dType.value = 'rm';
+ const dReason = document.getElementById('checkoutDiscReason'); if(dReason) dReason.value = '';
+ const preview = document.getElementById('checkoutTotalPreview'); if(preview) preview.style.display = 'none';
  const vl = document.getElementById('checkoutVipDiscountLine'); if(vl) vl.remove();
  // p1_79 fix #2: pre-fill customer fields if widget has an attached customer
  if(window.posCustomer) {
@@ -8545,13 +8579,22 @@ window.processNewCheckout = async function() {
  }
  }
 
- // VIP auto-discount: apply if window.__currentCheckoutVip is set
+ // p1_201 — Custom manual discount applied first (staff entered amount)
+ const customDiscType = (document.getElementById('checkoutDiscType') || {}).value || 'rm';
+ const customDiscAmtIn = parseFloat((document.getElementById('checkoutDiscAmt') || {}).value) || 0;
+ const customDiscReason = ((document.getElementById('checkoutDiscReason') || {}).value || '').trim();
+ let customDiscount = 0;
+ if(customDiscAmtIn > 0) customDiscount = customDiscType === 'pct' ? round2(totalVal * customDiscAmtIn / 100) : round2(customDiscAmtIn);
+ if(customDiscount > totalVal) customDiscount = totalVal;
+ const afterCustomDisc = round2(totalVal - customDiscount);
+
+ // VIP auto-discount: apply on top of custom discount if window.__currentCheckoutVip is set
  let vipDiscountAmt = 0;
- let finalTotal = totalVal;
+ let finalTotal = afterCustomDisc;
  const vip = window.__currentCheckoutVip;
  if(vip && vip.discount_pct> 0) {
- vipDiscountAmt = round2(totalVal * vip.discount_pct / 100);
- finalTotal = round2(totalVal - vipDiscountAmt);
+ vipDiscountAmt = round2(afterCustomDisc * vip.discount_pct / 100);
+ finalTotal = round2(afterCustomDisc - vipDiscountAmt);
  }
 
  const saleMeta = {};
@@ -8565,6 +8608,16 @@ window.processNewCheckout = async function() {
  saleMeta.vip_discount_amount = vipDiscountAmt;
  saleMeta.vip_subtotal_before_discount = totalVal;
  saleMeta.vip_customer_id = vip.customer_id;
+ }
+ // p1_201 — Custom discount audit trail
+ if(customDiscount > 0) {
+ saleMeta.custom_discount_applied = true;
+ saleMeta.custom_discount_type = customDiscType;
+ saleMeta.custom_discount_input = customDiscAmtIn;
+ saleMeta.custom_discount_amount = customDiscount;
+ saleMeta.custom_discount_reason = customDiscReason || null;
+ saleMeta.custom_discount_subtotal_before = totalVal;
+ saleMeta.custom_discount_by = (currentUser && currentUser.name) ? currentUser.name : 'Unknown';
  }
 
  // p1_180 — upload payment proof to Storage before insert (skip if Cash or no file)
@@ -19708,7 +19761,7 @@ window.setMode = function(mode) {
  const dataTab = it.getAttribute('data-tab');
  // Roadmap button + Memo Board — keep visible in all modes (p1_19)
  // p1_148: report_my + staff_feedback — all-staff visibility (Reports template + Aduan feature)
- if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs') { it.classList.remove('mode-hidden'); return; }
+ if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup') { it.classList.remove('mode-hidden'); return; }
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 

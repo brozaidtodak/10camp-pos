@@ -1,8 +1,9 @@
-// Service worker asas untuk benarkan aplikasi berfungsi secara 'offline' dan boleh di-install
+// p1_191 — bumped cache name v3 → v4 to force fresh install. Zaid's browser
+// was holding cached v3 with stale app.js?v=290 even though server has v=291+.
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
   e.waitUntil(
-    caches.open('pos-store-v3').then((cache) => cache.addAll([
+    caches.open('pos-store-v4').then((cache) => cache.addAll([
       './index.html',
       './style.css',
       './app.js'
@@ -11,11 +12,10 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  // Clear old caches
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        if (key !== 'pos-store-v3') {
+        if (key !== 'pos-store-v4') {
           return caches.delete(key);
         }
       }));
@@ -25,7 +25,6 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network-First Strategy 
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );

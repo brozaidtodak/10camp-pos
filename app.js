@@ -4638,7 +4638,10 @@ window.__panicShow = function(sectionId, title) {
  alert('[PANIC] Section #' + sectionId + ' tak wujud dalam DOM. Page rosak — refresh.');
  return;
  }
- sec.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; position:relative !important; z-index:10 !important; min-height:60vh; background:#fff;';
+ // p1_191 — Nuclear position:fixed bypass ALL parent layout. If wrapper or
+ // intermediate divs are hiding sections (flex, overflow, height:0, etc),
+ // fixed position takes section out of normal flow entirely.
+ sec.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; position:fixed !important; top:60px !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:9000 !important; overflow-y:auto !important; padding:20px !important; background:#F9FAFB !important; box-sizing:border-box !important;';
  sec.removeAttribute('hidden');
  console.log('[PANIC] section getBoundingClientRect:', JSON.stringify(sec.getBoundingClientRect()));
  console.log('[PANIC] section parent:', sec.parentElement ? sec.parentElement.id || sec.parentElement.tagName : 'NONE');

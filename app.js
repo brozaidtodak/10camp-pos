@@ -4503,6 +4503,18 @@ window.refreshRailBadges = function() {
 };
 
 function switchHub(sectionIds, title, btnElement) {
+ // p1_188 — Auto-exit Landing preview mode. previewLanding() hides posAppLayout
+ // which contains all .tab-section. Without this, switching sections from
+ // landing-preview keeps content invisible (parent hidden). Same fix as
+ // __panicShow but for the normal switchHub flow.
+ const shop = document.getElementById('shopAppLayout');
+ const pos = document.getElementById('posAppLayout');
+ const previewBanner = document.getElementById('previewBackBanner');
+ if(pos && pos.style.display === 'none') {
+ if(shop) { shop.style.display = 'none'; shop.style.paddingTop = ''; }
+ pos.style.display = 'block';
+ if(previewBanner) previewBanner.style.display = 'none';
+ }
  // Hide all sections first
  document.querySelectorAll('.tab-section').forEach(s => s.style.display = 'none');
  
@@ -4589,6 +4601,17 @@ function switchHub(sectionIds, title, btnElement) {
 window.__panicShow = function(sectionId, title) {
  console.log('[PANIC] showing', sectionId);
  try {
+ // p1_188 — ROOT CAUSE FOUND. Zaid was in Landing preview mode where
+ // posAppLayout is display:none. Clicking staff sidebar items shows the
+ // section (display:block) but parent is hidden, so nothing visible.
+ // Auto-exit Landing preview when any staff sidebar item is clicked.
+ const shop = document.getElementById('shopAppLayout');
+ const pos = document.getElementById('posAppLayout');
+ const previewBanner = document.getElementById('previewBackBanner');
+ if(shop) { shop.style.display = 'none'; shop.style.paddingTop = ''; }
+ if(pos) pos.style.display = 'block';
+ if(previewBanner) previewBanner.style.display = 'none';
+ console.log('[PANIC] forced posAppLayout visible, shopAppLayout hidden');
  document.querySelectorAll('.tab-section').forEach(s => {
  s.style.cssText = 'display:none';
  });

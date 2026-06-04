@@ -4219,7 +4219,12 @@ window.renderPaymentProofs = async function() {
  <td style="padding:8px 10px;">${escHtml(r.channel || '—')}</td>
  <td style="padding:8px 10px; text-align:right; font-weight:700;">RM ${amt.toFixed(2)}</td>
  <td style="padding:8px 10px; text-align:center;">${thumbCell}${uploadedBy}</td>
- <td style="padding:8px 10px;"><button onclick="window.__ppUploadFor(${r.id})" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button></td>
+ <td style="padding:8px 10px; white-space:nowrap;">
+ <button onclick="window.__sendReceiptWhatsApp(${r.id})" title="Hantar resit via WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="send" style="width:11px;height:11px;vertical-align:-1px;"></i> WhatsApp</button>
+ <button onclick="window.__copyReceiptText(${r.id})" title="Copy resit text" style="background:#F3F4F6; border:1px solid #D1D5DB; color:#374151; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="copy" style="width:11px;height:11px;vertical-align:-1px;"></i></button>
+ <button onclick="window.__printReceiptForSale(${r.id})" title="Print resit" style="background:#F3F4F6; border:1px solid #D1D5DB; color:#374151; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="printer" style="width:11px;height:11px;vertical-align:-1px;"></i></button>
+ <button onclick="window.__ppUploadFor(${r.id})" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button>
+ </td>
  </tr>`;
  }).join('');
  listWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:12.5px;">
@@ -4230,8 +4235,8 @@ window.renderPaymentProofs = async function() {
  <th style="text-align:left; padding:8px 10px;">Kaedah</th>
  <th style="text-align:left; padding:8px 10px;">Channel</th>
  <th style="text-align:right; padding:8px 10px;">RM</th>
- <th style="text-align:center; padding:8px 10px;">Resit</th>
- <th style="padding:8px 10px;"></th>
+ <th style="text-align:center; padding:8px 10px;">Resit Bayar</th>
+ <th style="padding:8px 10px;">Hantar Resit</th>
  </tr></thead><tbody>${body}</tbody></table>`;
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  } catch(e) {
@@ -4243,6 +4248,101 @@ window.__ppOpenImg = function(url) {
  const m = document.getElementById('ppImgModal');
  const img = document.getElementById('ppImgModalImg');
  if(m && img) { img.src = url; m.style.display = 'flex'; }
+};
+
+// p1_197 — Build receipt text from sales_history row + send via WhatsApp.
+// Called per-row from Payment Proofs (and reusable from anywhere with saleId).
+window.__buildReceiptText = function(sale) {
+ const shop = (typeof window.getShopInfo === 'function') ? window.getShopInfo() : { name: '10 CAMP', footer: 'Terima kasih!' };
+ const dt = sale.created_at ? new Date(sale.created_at).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+ const items = Array.isArray(sale.items) ? sale.items : [];
+ const itemsList = items.map(c => {
+ const qty = c.quantity || c.qty || 1;
+ const price = c.price || 0;
+ const lineTotal = price * qty;
+ return '• ' + qty + 'x ' + (c.name || c.sku || 'Item') + ' — RM ' + lineTotal.toFixed(2);
+ }).join('\n');
+ const total = Number(sale.total_amount || sale.total || 0);
+ const lines = [
+ 'Hi ' + (sale.customer_name || 'there') + ',',
+ '',
+ 'Terima kasih beli barang dari *' + shop.name + '*!',
+ '',
+ 'Resit: *#' + sale.id + '*',
+ dt,
+ '',
+ '*Items:*',
+ itemsList || '(tiada items dalam record)',
+ '',
+ '*TOTAL: RM ' + total.toFixed(2) + '*',
+ 'Kaedah: ' + (sale.payment_method || 'Cash'),
+ sale.channel ? 'Channel: ' + sale.channel : '',
+ '',
+ shop.footer || 'Hope to see you again!'
+ ].filter(Boolean);
+ return lines.join('\n');
+};
+
+window.__sendReceiptWhatsApp = async function(saleId) {
+ if(!saleId) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('sales_history').select('*').eq('id', saleId).single();
+ if(error) throw error;
+ if(!data) throw new Error('Sale #' + saleId + ' tak jumpa');
+ const phone = (data.customer_phone || '').replace(/[^\d+]/g, '');
+ if(!phone) {
+ const ask = prompt('Customer tak ada phone number simpan. Masukkan WhatsApp number (atau cancel):', '');
+ if(!ask) return;
+ const cleaned = ask.replace(/[^\d+]/g, '');
+ if(!cleaned) { if(typeof showToast === 'function') showToast('Phone invalid', 'warn'); return; }
+ data.customer_phone = cleaned;
+ // Save back to sales_history for future
+ try { await db.from('sales_history').update({ customer_phone: cleaned }).eq('id', saleId); } catch(_) {}
+ }
+ // Normalize to international: 0XXXXXXX → 60XXXXXXX
+ let target = (data.customer_phone || '').replace(/[^\d+]/g, '');
+ if(target.startsWith('0')) target = '60' + target.slice(1);
+ else if(target.startsWith('+')) target = target.slice(1);
+ const text = window.__buildReceiptText(data);
+ const url = target
+ ? 'https://wa.me/' + target + '?text=' + encodeURIComponent(text)
+ : 'https://wa.me/?text=' + encodeURIComponent(text);
+ window.open(url, '_blank');
+ if(typeof showToast === 'function') showToast('WhatsApp dibuka dengan resit untuk #' + saleId, 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Hantar resit gagal: ' + e.message, 'error');
+ }
+};
+
+window.__copyReceiptText = async function(saleId) {
+ if(!saleId) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('sales_history').select('*').eq('id', saleId).single();
+ if(error) throw error;
+ if(!data) throw new Error('Sale #' + saleId + ' tak jumpa');
+ const text = window.__buildReceiptText(data);
+ await navigator.clipboard.writeText(text);
+ if(typeof showToast === 'function') showToast('Resit text copied ke clipboard', 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Copy gagal: ' + e.message, 'error');
+ }
+};
+
+window.__printReceiptForSale = async function(saleId) {
+ if(!saleId) return;
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('sales_history').select('*').eq('id', saleId).single();
+ if(error) throw error;
+ const text = window.__buildReceiptText(data);
+ const w = window.open('', '_blank', 'width=400,height=600');
+ w.document.write('<html><head><title>Resit #' + saleId + '</title><style>body{font-family:monospace;padding:20px;font-size:13px;white-space:pre-wrap;line-height:1.5;}h1{font-size:14px;text-align:center;margin:0 0 10px;}</style></head><body>' + text.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) + '<script>window.print();</script></body></html>');
+ w.document.close();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Print gagal: ' + e.message, 'error');
+ }
 };
 
 // Late-upload (or replace) proof for an existing sale from Reports

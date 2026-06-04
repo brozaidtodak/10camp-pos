@@ -21484,44 +21484,74 @@ let __cpAcCursor = 0;
 let __cpAcResults = [];
 
 window.openCheckoutPanel = function() {
+ console.log('[checkout] openCheckoutPanel called, cart len=', (typeof cart !== 'undefined' ? cart.length : 'undef'));
  if(typeof cart === 'undefined' || cart.length === 0) {
- return showToast('Cart kosong.', 'warn');
+ if(typeof showToast === 'function') return showToast('Cart kosong.', 'warn');
+ else { alert('Cart kosong.'); return; }
  }
+ try {
  // Hide success view, show form view
- document.getElementById('cpFormView').classList.remove('is-hidden');
- document.getElementById('cpSuccessView').classList.add('is-hidden');
- document.getElementById('cpFooter').classList.remove('is-hidden');
+ const fv = document.getElementById('cpFormView'); if(fv) fv.classList.remove('is-hidden');
+ const sv = document.getElementById('cpSuccessView'); if(sv) sv.classList.add('is-hidden');
+ const ft = document.getElementById('cpFooter'); if(ft) ft.classList.remove('is-hidden');
 
  // Reset VIP state
  window.__currentCheckoutVip = null;
  const banner = document.getElementById('cpVipBanner');
  if(banner) { banner.classList.remove('is-shown'); banner.innerHTML = ''; }
- document.getElementById('cpDiscountLine').style.display = 'none';
+ const dl = document.getElementById('cpDiscountLine'); if(dl) dl.style.display = 'none';
 
- // Reset form
- ['cpCustName','cpCustPhone','cpCustEmail','cpBuyerTin','cpEwalletRef','cpDiscAmt','cpDiscReason'].forEach(id => {
+ // p1_231 — Reset discount + ewallet (NOT customer fields if posCustomer attached — Zaid: "redundant untuk isi maklumat customer")
+ ['cpBuyerTin','cpEwalletRef','cpDiscAmt','cpDiscReason'].forEach(id => {
  const el = document.getElementById(id); if(el) el.value = '';
  });
  const dType = document.getElementById('cpDiscType'); if(dType) dType.value = 'rm';
- document.getElementById('cpChannel').value = 'Walk-in Kedai';
- document.getElementById('cpStatus').value = 'Completed';
+ // p1_231 — Pre-fill customer fields from window.posCustomer (attached via picker) — no redundant typing
+ const pc = window.posCustomer;
+ const setIf = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : String(v)); };
+ if(pc) {
+ setIf('cpCustName', pc.name);
+ setIf('cpCustPhone', pc.phone);
+ setIf('cpCustEmail', pc.email);
+ } else {
+ setIf('cpCustName', '');
+ setIf('cpCustPhone', '');
+ setIf('cpCustEmail', '');
+ }
+ const chEl = document.getElementById('cpChannel'); if(chEl) chEl.value = 'Walk-in Kedai';
+ const stEl = document.getElementById('cpStatus'); if(stEl) stEl.value = 'Completed';
  cpSetPayment('Cash');
 
  // Compute & show total
  cpRecomputeTotal();
 
- // Open
- document.getElementById('checkoutPanelOverlay').classList.add('is-open');
+ // Open panel
+ const ov = document.getElementById('checkoutPanelOverlay'); if(ov) ov.classList.add('is-open');
  const panel = document.getElementById('checkoutPanel');
+ if(panel) {
  panel.classList.add('is-open');
  panel.setAttribute('aria-hidden', 'false');
+ } else {
+ console.error('[checkout] checkoutPanel element not found!');
+ if(typeof showToast === 'function') showToast('Checkout panel tak boleh buka — refresh halaman dan cuba semula.', 'error');
+ return;
+ }
 
  // Populate e-wallet dropdown if applicable
  cpPopulateEwallets();
 
- // Focus customer name
- setTimeout(() => document.getElementById('cpCustName').focus(), 320);
+ // Focus first empty field — cpCustName if blank, else amount field; skip focus kalau posCustomer dah ada
+ setTimeout(() => {
+ const focusTarget = pc ? document.getElementById('cpConfirmBtn') : document.getElementById('cpCustName');
+ if(focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+ }, 320);
  if(typeof lucide !== 'undefined') lucide.createIcons();
+ console.log('[checkout] panel opened successfully, posCustomer=', pc ? (pc.name + ' / ' + pc.phone) : 'none');
+ } catch(e) {
+ console.error('[checkout] openCheckoutPanel threw:', e);
+ if(typeof showToast === 'function') showToast('Checkout error: ' + e.message + ' (lihat console F12)', 'error');
+ else alert('Checkout error: ' + e.message);
+ }
 };
 
 window.closeCheckoutPanel = function() {

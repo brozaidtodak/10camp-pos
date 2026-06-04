@@ -7972,7 +7972,11 @@ window.posOpenProductDetail = function(sku) {
     document.getElementById('pdSku').textContent = 'SKU ' + (p.sku || '—');
     document.getElementById('pdCat').textContent = p.category || 'Uncategorized';
     document.getElementById('pdmBrandText').textContent = p.brand ? 'by ' + p.brand : '';
-    document.getElementById('pdPrice').textContent = (typeof formatRM === 'function') ? formatRM(p.price) : 'RM ' + parseFloat(p.price || 0).toFixed(2);
+    // p1_205 — pdPrice innerHTML so discount preview can inject strikethrough + jimat
+    const pdPriceEl = document.getElementById('pdPrice');
+    if(pdPriceEl) {
+        pdPriceEl.innerHTML = '<span class="pdm-price__current">' + ((typeof formatRM === 'function') ? formatRM(p.price) : 'RM ' + parseFloat(p.price || 0).toFixed(2)) + '</span>';
+    }
 
     // Stock pill
     const stockEl = document.getElementById('pdStock');
@@ -8086,7 +8090,9 @@ window.posDetailQty = function(delta) {
     window.__pdState.qty = next;
 };
 
-// p1_202 — Compute per-item discount preview from PDP inputs.
+// p1_205 — PDP discount preview NOW rewrites the main pdPrice area to match
+// catalog card visual: big new price + strikethrough original + Jimat green +
+// -% badge. Same style Zaid screenshot kat catalog.
 window.__pdComputeDiscount = function() {
     const sku = window.__pdState ? window.__pdState.sku : null;
     if(!sku) return;
@@ -8099,15 +8105,21 @@ window.__pdComputeDiscount = function() {
     if(amt > 0) discount = type === 'pct' ? round2(original * amt / 100) : round2(amt);
     if(discount > original) discount = original;
     const finalPrice = round2(original - discount);
-    const previewEl = document.getElementById('pdDiscPreview');
-    if(!previewEl) return;
+    const pctOff = original > 0 ? Math.round(discount / original * 100) : 0;
+    const fmt = (v) => 'RM ' + Number(v).toFixed(2);
+    const pdPriceEl = document.getElementById('pdPrice');
+    if(!pdPriceEl) return { original, discount, finalPrice };
     if(discount > 0) {
-        previewEl.style.display = 'block';
-        const oEl = document.getElementById('pdDiscOriginal'); if(oEl) oEl.textContent = 'RM ' + original.toFixed(2);
-        const fEl = document.getElementById('pdDiscFinal'); if(fEl) fEl.textContent = 'RM ' + finalPrice.toFixed(2);
-        const sEl = document.getElementById('pdDiscSaved'); if(sEl) sEl.textContent = '-RM ' + discount.toFixed(2);
+        // Catalog-style: -% badge + big discounted + strikethrough + Jimat green
+        pdPriceEl.innerHTML = '<div class="pdm-price__sale-wrap">'
+            + '<span class="pdm-price__pct-badge">-' + pctOff + '%</span>'
+            + '<span class="pdm-price__current pdm-price__current--sale">' + fmt(finalPrice) + '</span>'
+            + '<span class="pdm-price__was"><s>' + fmt(original) + '</s></span>'
+            + '<span class="pdm-price__saved">Jimat ' + fmt(discount) + '</span>'
+            + '</div>';
     } else {
-        previewEl.style.display = 'none';
+        // Revert to plain price
+        pdPriceEl.innerHTML = '<span class="pdm-price__current">' + fmt(original) + '</span>';
     }
     return { original, discount, finalPrice };
 };

@@ -4771,6 +4771,9 @@ window.renderFeedbackInbox = async function() {
  const wrap = document.getElementById('fbInboxList');
  const statsEl = document.getElementById('fbInboxStats');
  if(!wrap) return;
+ // p1_210 — non-Bos view = read-only (transparency without authority).
+ const _u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
+ const _isBoss = !!(_u && typeof window.isBoss === 'function' && window.isBoss(_u));
  try {
  if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
  const { data, error } = await db.from('staff_feedback').select('*').order('posted_at', { ascending: false }).limit(200);
@@ -4833,7 +4836,7 @@ window.renderFeedbackInbox = async function() {
  <div style="font-weight:700; font-size:14px; color:#111; margin-bottom:6px;">${escHtml(r.title)}</div>
  <div style="font-size:12.5px; color:#374151; line-height:1.55; white-space:pre-wrap; margin-bottom:12px;">${escHtml(r.body)}</div>
  <!-- Workflow controls -->
- <div style="background:#F9FAFB; padding:10px; border-radius:6px;">
+ ${_isBoss ? `<div style="background:#F9FAFB; padding:10px; border-radius:6px;">
  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
  <div>
  <label style="font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase;">Status</label>
@@ -4848,7 +4851,6 @@ window.renderFeedbackInbox = async function() {
  </div>
  <label style="font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase;">Reply Bos (visible ke staff)</label>
  <textarea id="fbi-reply-${r.id}" class="rp-manual-input" rows="2" placeholder="Cth: Terima kasih, akan check thermal printer setting esok pagi" maxlength="1000" style="padding:6px; font-size:12px; margin-top:2px;">${escHtml(r.bos_reply || '')}</textarea>
- <!-- p1_150 — quick-action buttons: one-click status transition (preserve typed reply/action) -->
  <div style="display:flex; gap:6px; margin-top:8px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
  <div style="display:flex; gap:4px; flex-wrap:wrap;">
  ${r.status !== 'triaged' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'triaged')" style="font-size:11px; padding:5px 10px;" title="Tandai Triaged"><i data-lucide="eye" style="width:11px; height:11px;"></i> Triage</button>` : ''}
@@ -4858,7 +4860,11 @@ window.renderFeedbackInbox = async function() {
  </div>
  <button class="rp-manual-save" onclick="window.__fbiSave(${r.id})" style="font-size:11px; padding:6px 12px;"><i data-lucide="save" style="width:11px; height:11px;"></i> Simpan</button>
  </div>
- </div>
+ </div>` : (r.bos_reply || r.bos_action) ? `<div style="background:rgba(16,185,129,.06); padding:10px; border-left:3px solid #10B981; border-radius:6px;">
+ <div style="font-size:10px; color:#065F46; font-weight:700; text-transform:uppercase; margin-bottom:4px;"><i data-lucide="reply" style="width:11px; height:11px; vertical-align:middle;"></i> Reply Bos</div>
+ ${r.bos_reply ? `<div style="font-size:12.5px; color:#111; white-space:pre-wrap;">${escHtml(r.bos_reply)}</div>` : ''}
+ ${r.bos_action ? `<div style="font-size:11px; color:#065F46; margin-top:4px;"><strong>Tindakan:</strong> ${escHtml(r.bos_action)}</div>` : ''}
+ </div>` : `<div style="font-size:11px; color:#9CA3AF; padding:8px 0; font-style:italic;">Belum ada reply dari Bos.</div>`}
  </div>`;
  }).join('');
  if(window.lucide && lucide.createIcons) lucide.createIcons();
@@ -19960,7 +19966,7 @@ window.setMode = function(mode) {
  const dataTab = it.getAttribute('data-tab');
  // Roadmap button + Memo Board — keep visible in all modes (p1_19)
  // p1_148: report_my + staff_feedback — all-staff visibility (Reports template + Aduan feature)
- if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup') { it.classList.remove('mode-hidden'); return; }
+ if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup' || dataTab === 'feedback_inbox') { it.classList.remove('mode-hidden'); return; }
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 

@@ -19708,7 +19708,7 @@ window.setMode = function(mode) {
  const dataTab = it.getAttribute('data-tab');
  // Roadmap button + Memo Board — keep visible in all modes (p1_19)
  // p1_148: report_my + staff_feedback — all-staff visibility (Reports template + Aduan feature)
- if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback') { it.classList.remove('mode-hidden'); return; }
+ if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs') { it.classList.remove('mode-hidden'); return; }
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 

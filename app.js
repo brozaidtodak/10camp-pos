@@ -4638,10 +4638,10 @@ window.__panicShow = function(sectionId, title) {
  alert('[PANIC] Section #' + sectionId + ' tak wujud dalam DOM. Page rosak — refresh.');
  return;
  }
- // p1_191 — Nuclear position:fixed bypass ALL parent layout. If wrapper or
- // intermediate divs are hiding sections (flex, overflow, height:0, etc),
- // fixed position takes section out of normal flow entirely.
- sec.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; position:fixed !important; top:60px !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:9000 !important; overflow-y:auto !important; padding:20px !important; background:#F9FAFB !important; box-sizing:border-box !important;';
+ // p1_193 — ROOT CAUSE was unclosed divs in floorPriceSection making sections
+ // nested children of floorPriceSection (display:none). HTML structure fixed.
+ // Revert to natural block flow now that nesting is correct.
+ sec.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important;';
  sec.removeAttribute('hidden');
  // Log computed styles AFTER our override — proves if !important won
  const cs = getComputedStyle(sec);

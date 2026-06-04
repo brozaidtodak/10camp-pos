@@ -326,11 +326,26 @@
 
  <label class="small-lbl" style="text-align:center; margin-bottom:10px;">3. Kaedah Bayaran Diterima</label>
  <input type="hidden" id="paymentMethod" value="Cash">
- <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:14px;">
- <button type="button" onclick="window.setPaymentMethod('Cash', this)" class="pay-btn active" style="padding:12px 5px; border:2px solid var(--primary); border-radius:8px; background:#FFF5eb; cursor:pointer; font-weight:bold; color:var(--text-main); font-size:12.5px; transition:0.2s;">Tunai</button>
- <button type="button" onclick="window.setPaymentMethod('QR Pay', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">QR Pay</button>
- <button type="button" onclick="window.setPaymentMethod('Card', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">Kad/Bank</button>
- <button type="button" onclick="window.setPaymentMethod('E-Wallet', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">E-Wallet</button>
+ <!-- p1_180 — 6 payment buttons (Zaid: Cash/QR/Debit/Credit/SPayLater/E-Wallet) -->
+ <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:14px;">
+ <button type="button" data-pay-key="Cash" onclick="window.setPaymentMethod('Cash', this)" class="pay-btn active" style="padding:12px 5px; border:2px solid var(--primary); border-radius:8px; background:#FFF5eb; cursor:pointer; font-weight:bold; color:var(--text-main); font-size:12.5px; transition:0.2s;">Tunai</button>
+ <button type="button" data-pay-key="QR Pay" onclick="window.setPaymentMethod('QR Pay', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">QR Pay</button>
+ <button type="button" data-pay-key="Debit Card" onclick="window.setPaymentMethod('Debit Card', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">Debit Card</button>
+ <button type="button" data-pay-key="Credit Card" onclick="window.setPaymentMethod('Credit Card', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">Credit Card</button>
+ <button type="button" data-pay-key="SPayLater" onclick="window.setPaymentMethod('SPayLater', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">SPayLater</button>
+ <button type="button" data-pay-key="E-Wallet" onclick="window.setPaymentMethod('E-Wallet', this)" class="pay-btn" style="padding:12px 5px; border:1px solid var(--border-color); border-radius:8px; background:#FFF; cursor:pointer; font-weight:bold; color:var(--text-muted); font-size:12.5px; transition:0.2s;">E-Wallet</button>
+ </div>
+
+ <!-- p1_180 — Payment proof upload (shown when non-Cash picked) -->
+ <div id="proofUploadSection" style="display:none; padding:14px; background:#EFF6FF; border:1px dashed #93C5FD; border-radius:8px; margin-bottom:14px;">
+ <label style="font-size:11.5px; font-weight:700; color:#1E40AF; display:block; margin-bottom:6px;"><i data-lucide="upload-cloud" style="width:13px;height:13px;vertical-align:-2px;"></i> Resit Pembayaran (opsional) — screenshot transfer / receipt printout</label>
+ <input type="file" id="proofFileInput" accept="image/*,application/pdf" onchange="window.__proofPickFile()" style="width:100%; font-size:12px; padding:6px 0;">
+ <div id="proofPreview" style="display:none; margin-top:10px; padding:8px; background:#fff; border:1px solid #DBEAFE; border-radius:6px;">
+ <img id="proofPreviewImg" style="max-width:100%; max-height:180px; display:block; margin:0 auto; border-radius:4px;">
+ <div id="proofPreviewMeta" style="font-size:10.5px; color:#6B7280; margin-top:6px; text-align:center;"></div>
+ <button type="button" onclick="window.__proofClearFile()" style="background:none; border:none; color:#DC2626; font-size:11px; cursor:pointer; margin-top:4px; display:block; margin-left:auto;"><i data-lucide="x" style="width:11px;height:11px;vertical-align:-1px;"></i> Buang</button>
+ </div>
+ <p style="font-size:10.5px; color:#3730A3; margin-top:6px; margin-bottom:0;">Boleh upload kemudian dari Reports → Payment Proofs jika belum sempat sekarang. Max 5MB. Format: JPG / PNG / WEBP / PDF.</p>
  </div>
 
  <!-- E-Wallet sub-panel: only shown when E-Wallet method picked -->
@@ -1506,6 +1521,10 @@
  <div class="menu-item mgmt-only" data-group="reports" data-tab="feedback_inbox" onclick="switchHub(['feedbackInboxSection'], 'Inbox Aduan', this); if(typeof renderFeedbackInbox==='function') renderFeedbackInbox();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="inbox" style="width:16px; height:16px;"></i> Inbox Aduan
  <span class="rail-badge" id="sidebarFeedbackInboxBadge" style="display:none;">0</span>
+ </div>
+ <!-- p1_180: Payment Proofs monitor (mgmt — Zaid + supervisors) -->
+ <div class="menu-item mgmt-only" data-group="reports" data-tab="payment_proofs" onclick="switchHub(['paymentProofsSection'], 'Payment Proofs', this); if(typeof renderPaymentProofs==='function') renderPaymentProofs();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <i data-lucide="receipt" style="width:16px; height:16px;"></i> Payment Proofs
  </div>
 
  <!-- FINANCE DEPARTMENT — money/accounting/tax — Management mode -->
@@ -4074,6 +4093,81 @@
  </div>
 
  <!-- ============================================== -->
+ <!-- PAYMENT PROOFS (p1_180) — monitor uploaded payment receipts -->
+ <!-- ============================================== -->
+ <div id="paymentProofsSection" class="tab-section" style="display:none;">
+ <div class="rp-wrap">
+ <div class="rp-header">
+ <div>
+ <h2 class="rp-title"><i data-lucide="receipt" style="width:22px; height:22px; color:var(--primary);"></i> Payment Proofs Monitor</h2>
+ <p class="rp-subtitle">Resit pembayaran yang client / staff dah upload. Filter ikut tarikh, kaedah, channel.</p>
+ </div>
+ </div>
+
+ <!-- Filters -->
+ <div class="rp-section">
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:flex-end;">
+ <div>
+ <label style="font-size:11px; font-weight:700; color:#4B5563; display:block; margin-bottom:4px;">Tarikh Mula</label>
+ <input type="date" id="ppFromDate" onchange="window.renderPaymentProofs()" class="rp-comm-input" style="width:100%;">
+ </div>
+ <div>
+ <label style="font-size:11px; font-weight:700; color:#4B5563; display:block; margin-bottom:4px;">Tarikh Akhir</label>
+ <input type="date" id="ppToDate" onchange="window.renderPaymentProofs()" class="rp-comm-input" style="width:100%;">
+ </div>
+ <div>
+ <label style="font-size:11px; font-weight:700; color:#4B5563; display:block; margin-bottom:4px;">Kaedah</label>
+ <select id="ppMethod" onchange="window.renderPaymentProofs()" class="rp-comm-input" style="width:100%;">
+ <option value="">Semua kaedah</option>
+ <option value="Cash">Cash</option>
+ <option value="QR Pay">QR Pay</option>
+ <option value="Debit Card">Debit Card</option>
+ <option value="Credit Card">Credit Card</option>
+ <option value="SPayLater">SPayLater</option>
+ <option value="E-Wallet">E-Wallet</option>
+ </select>
+ </div>
+ <div>
+ <label style="font-size:11px; font-weight:700; color:#4B5563; display:block; margin-bottom:4px;">Channel</label>
+ <select id="ppChannel" onchange="window.renderPaymentProofs()" class="rp-comm-input" style="width:100%;">
+ <option value="">Semua channel</option>
+ <option value="Walk-in Kedai">Walk-in Kedai</option>
+ <option value="WhatsApp">WhatsApp</option>
+ <option value="Shopee">Shopee</option>
+ </select>
+ </div>
+ <div>
+ <label style="font-size:11px; font-weight:700; color:#4B5563; display:block; margin-bottom:4px;">Status Resit</label>
+ <select id="ppProofStatus" onchange="window.renderPaymentProofs()" class="rp-comm-input" style="width:100%;">
+ <option value="">Semua</option>
+ <option value="has">Ada resit</option>
+ <option value="missing">Tiada resit (bukan Cash)</option>
+ </select>
+ </div>
+ </div>
+ </div>
+
+ <!-- Stats grid -->
+ <div id="ppStats" class="rp-kpi-grid" style="margin-top:14px;"></div>
+
+ <!-- Table -->
+ <div class="rp-section" style="margin-top:14px;">
+ <div id="ppListWrap" style="overflow-x:auto;">
+ <p style="padding:24px; text-align:center; color:#9CA3AF;">Memuatkan…</p>
+ </div>
+ </div>
+ </div>
+
+ <!-- Image modal -->
+ <div id="ppImgModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:4000; align-items:center; justify-content:center; padding:20px;" onclick="document.getElementById('ppImgModal').style.display='none'">
+ <div style="position:relative; max-width:95%; max-height:95%;">
+ <button onclick="event.stopPropagation(); document.getElementById('ppImgModal').style.display='none'" style="position:absolute; top:-40px; right:0; background:#fff; border:none; border-radius:999px; width:32px; height:32px; font-size:18px; cursor:pointer; font-weight:700;">×</button>
+ <img id="ppImgModalImg" style="max-width:100%; max-height:90vh; display:block; border-radius:6px;" onclick="event.stopPropagation()">
+ </div>
+ </div>
+ </div>
+
+ <!-- ============================================== -->
  <!-- SETTINGS HUB (p1_92) — EasyStore-style landing -->
  <!-- ============================================== -->
  <div id="settingsHubSection" class="tab-section" style="display:none;">
@@ -6271,7 +6365,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (179/179 · last 2026-06-04) — Product Master rename + white-screen fix (switchHub now explicitly triggers renderProductDatabase instead of relying on race-prone DOMContentLoaded 100ms setTimeout)',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (180/180 · last 2026-06-04) — Payment Proofs: 6-button cashier (Cash/QR/Debit/Credit/SPayLater/E-Wallet) + Supabase Storage upload at checkout + Reports monitor section (filter, thumb modal, late upload). Email auto-receipt parked pending Resend.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6346,6 +6440,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_180', label:'Payment methods expansion + proof upload + Reports monitor (Zaid: "fokus payment method, wujudkan ruangan Cash/QR/Debit/Credit Card/SPayLater. resit auto generate hantar pada email client. upload resit pembayaran dari client. perlu satu ruangan di laporan untuk kami monitor"). Build order pilih via AskUserQuestion = "Ship 3 piece sekarang, email kemudian". Skip email auto-send (perlu Resend setup PARKED). Build: (1) SQL migration sql/2026-06-04_payment_proofs.sql ADD 6 cols to sales_history (payment_proof_url, payment_proof_uploaded_at, payment_proof_uploaded_by, payment_method_detail, email_sent_at, email_status) + INSERT Storage bucket payment-proofs (public read, 5MB cap, JPG/PNG/WEBP/HEIC/PDF whitelist) + 3 RLS policies on storage.objects (authenticated insert/update + public read) + idx_sales_history_proof partial index. (2) Cashier modal restructure — 4-button grid → 6-button grid (3 col × 2 row): Tunai/QR Pay/Debit Card/Credit Card/SPayLater/E-Wallet. data-pay-key attr untuk styling. New section #proofUploadSection (#EFF6FF bg, dashed blue border) shown bila non-Cash picked — file input accept image/* + PDF, preview thumb 180px, file meta line, Buang button. Max 5MB enforced. (3) JS: setPaymentMethod tambah show/hide proofUploadSection toggle. __proofPickFile FileReader.readAsDataURL preview (PDF jadi label "file-text icon + name + KB"). __proofUploadToStorage async — db.storage.from(\\\'payment-proofs\\\').upload dengan filename = `saleId_ISO-ts.ext`, return getPublicUrl. processNewCheckout — call __proofUploadToStorage before sales_history insert, include payment_proof_url/at/by + payment_method_detail dalam payload. Clear proof state lepas checkout. (4) Reports sidebar: new mgmt-only entry "Payment Proofs" (lucide receipt icon) under Laporan group, opens paymentProofsSection. Section HTML: filters row (From/To date defaults -30d/today, Method, Channel, Status=Ada/Tiada), 3 KPI stats card (Jualan total + RM, Ada Resit + % non-Cash uploaded, Tiada Resit count merah), table 8-col (Tarikh/Sale#/Pelanggan+phone/Kaedah/Channel/RM/Resit thumb-or-PDF-link/Upload-or-Tukar button). Click thumb → ppImgModal fullscreen overlay. __ppUploadFor(saleId) accepts late-upload from Reports (create input element, prompt file, upload to Storage, UPDATE sales_history url+at+by). app.js v280→v281.', d:'done' },
  { id:'p1_179', label:'Product Master rename + white-screen fix (Zaid: "screen putih je dekat browse product" + "aku nak letak nama baru dia iaitu product master"). Root cause analysis: renderProductDatabase() previously triggered hanya via DOMContentLoaded click-listener dgn 100ms setTimeout. switchHub() show/hide section tapi tak panggil render. Race condition kalau setTimeout/section hide-show overlap = empty pdGridView = white screen. Fix: tambah `if(sectionIds.includes(\\\'databaseSection\\\')) renderProductDatabase();` dalam switchHub contextual renders block bersama homeSection/posSection/stockTakeSection/mgmtPlaceholders/rosterSection. Direct call tak race-prone. Rename: sidebar entry "Browse Products" → "Product Master" (BM+EN both), switchHub title arg, db_title i18n value, sb_browse_products i18n value. app.js v279→v280.', d:'done' },
  { id:'p1_178', label:'OutdoorExpo event SKU permanent cleanup (Zaid: "tapis tulisan outdoor expo dan keluarkan terus dari product master"). Pre-flight scan via Supabase Management API SQL: 142 products_master rows matched across 6 parent groups (CHANODUG 28, SHINETRIP 34, LFO 22, MOUNTAINHIKER 17, MOBI-GARDEN 30, VIDALIDO 11) — all RM placeholder catalog mockup prices, only 2 published (CHANODUG yang dulu leak). FK constraint scan: 134 inventory_batches + 1 inventory_transactions both CASCADE ON DELETE. Sales_history items JSONB scan = 156 historical receipts reference expo SKUs tapi snapshotted (sku/name/price/qty baked semasa jual) — receipts kekal readable. Approach pilih (via AskUserQuestion): Hard DELETE (vs soft archive / JS filter-only). Migration: sql/2026-06-04_delete_outdoorexpo.sql wrapped in BEGIN/COMMIT dengan BEFORE/AFTER RAISE NOTICE counts untuk audit trail. Execute via Management API → products_master 963→821 (-142), expo_remaining=0, ib_orphan=0. Memory [[event-skus-business-pattern]] updated: previous "filter only on landing" pattern reversed; new pattern = filter while event live, hard-delete after event ends. ROADMAP 177→178.', d:'done' },
  { id:'p1_177', label:'Pricing Setup Calculator — compact single-panel layout (Zaid: "kemas kini calculator tab" → pilih Compact summary panel via AskUserQuestion). Padat semua dalam satu viewport (no more 3 large rp-section stack scroll). Rewrite jadi 3-row stack dalam `.ps-calc-panel` wrapper (border-radius 12, white card): (a) HERO ROW — product image 84×84 + SKU input inline dengan nama produk + "Harga Skrg RM xxx" divider + besar Apply button kanan (primary, lucide check-circle-2 icon, sub-label "tier_key · RM xxx"). (b) FORMULA ROW — inline mathematical expression: RMB ¥ × Ex + Ship + Hand% = COST BERSIH. Operators × + + = besar warna kelabu antara cell. Final cell dark inverted (background:#0F172A, white text). Background formula row #FBFAF6 warm cream. (c) TIER PILLS ROW — 4 compact pills (`auto-fit minmax 170px`) ganti previous tier cards. Each pill: radio top-left + name + channel sub-label (Baseline retail / Walk-in shop / Online +comm / +5% staff comm) + besar harga + +markup% · profit RM x · delta vs harga skrg (hijau kalau naik, merah kalau turun). Z\\'s Proposal flagged "Recommended" badge top-right kuning + warm gradient background. Selected state: inset 2px primary border. __psComputeAll updates `psCurrentPrice` from p.price untuk perbandingan. __psSelectTier updates Apply button sub-label inline. design-tokens.css v62→v63, app.js v278→v279.', d:'done' },
@@ -10986,7 +11081,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=280"></script>
+ <script src="app.js?v=281"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

@@ -4127,6 +4127,139 @@ window.__fbiSetFilter = function(s, btn) {
  window.renderFeedbackInbox();
 };
 
+// p1_180 — Payment Proofs monitor
+window.renderPaymentProofs = async function() {
+ const listWrap = document.getElementById('ppListWrap');
+ const statsEl = document.getElementById('ppStats');
+ if(!listWrap) return;
+ // Defaults: from = -30 days, to = today (only set once on first open)
+ const fromEl = document.getElementById('ppFromDate');
+ const toEl = document.getElementById('ppToDate');
+ if(fromEl && !fromEl.value && !fromEl.dataset.ppInit) {
+ const d = new Date(); d.setDate(d.getDate() - 30);
+ fromEl.value = d.toISOString().slice(0,10);
+ fromEl.dataset.ppInit = '1';
+ }
+ if(toEl && !toEl.value && !toEl.dataset.ppInit) {
+ toEl.value = new Date().toISOString().slice(0,10);
+ toEl.dataset.ppInit = '1';
+ }
+ const from = (fromEl && fromEl.value) || '';
+ const to = (toEl && toEl.value) || '';
+ const method = (document.getElementById('ppMethod') || {}).value || '';
+ const channel = (document.getElementById('ppChannel') || {}).value || '';
+ const proofStatus = (document.getElementById('ppProofStatus') || {}).value || '';
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ let q = db.from('sales_history').select('id,created_at,customer_name,customer_phone,channel,payment_method,total_amount,total,payment_proof_url,payment_proof_uploaded_at,payment_proof_uploaded_by,staff_name').order('created_at', { ascending: false }).limit(500);
+ if(from) q = q.gte('created_at', from + 'T00:00:00');
+ if(to) q = q.lte('created_at', to + 'T23:59:59');
+ if(channel) q = q.eq('channel', channel);
+ const { data, error } = await q;
+ if(error) throw error;
+ let rows = data || [];
+ // Method filter — match by prefix (E-Wallet may include ref)
+ if(method) rows = rows.filter(r => (r.payment_method || '').startsWith(method));
+ if(proofStatus === 'has') rows = rows.filter(r => !!r.payment_proof_url);
+ if(proofStatus === 'missing') rows = rows.filter(r => (r.payment_method || 'Cash') !== 'Cash' && !r.payment_proof_url);
+ // Stats
+ const total = rows.length;
+ const withProof = rows.filter(r => !!r.payment_proof_url).length;
+ const nonCash = rows.filter(r => (r.payment_method || 'Cash') !== 'Cash').length;
+ const missing = rows.filter(r => (r.payment_method || 'Cash') !== 'Cash' && !r.payment_proof_url).length;
+ const totalRm = rows.reduce((s, r) => s + Number(r.total_amount || r.total || 0), 0);
+ if(statsEl) {
+ statsEl.innerHTML = `
+ <div class="rp-kpi-card"><div class="rp-kpi-card__label">Jualan Senarai</div><div class="rp-kpi-card__value">${total.toLocaleString()}</div><div class="rp-kpi-card__sub">RM ${totalRm.toLocaleString(undefined,{maximumFractionDigits:2})} jumlah</div></div>
+ <div class="rp-kpi-card"><div class="rp-kpi-card__label">Ada Resit</div><div class="rp-kpi-card__value" style="color:#10B981;">${withProof.toLocaleString()}</div><div class="rp-kpi-card__sub">${nonCash > 0 ? Math.round(withProof / nonCash * 100) : 0}% bukan-Cash dah upload</div></div>
+ <div class="rp-kpi-card"><div class="rp-kpi-card__label">Tiada Resit</div><div class="rp-kpi-card__value" style="color:${missing > 0 ? '#DC2626' : '#9CA3AF'};">${missing.toLocaleString()}</div><div class="rp-kpi-card__sub">bukan-Cash · belum upload</div></div>
+ `;
+ }
+ if(!rows.length) { listWrap.innerHTML = '<p style="padding:24px; text-align:center; color:#9CA3AF;">Tiada jualan dalam julat ni.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const body = rows.map(r => {
+ const amt = Number(r.total_amount || r.total || 0);
+ const dt = r.created_at ? new Date(r.created_at).toLocaleString('en-MY', { dateStyle:'short', timeStyle:'short' }) : '—';
+ const pm = r.payment_method || 'Cash';
+ const isCash = pm === 'Cash';
+ const isPdf = (r.payment_proof_url || '').toLowerCase().endsWith('.pdf');
+ let thumbCell = '';
+ if(r.payment_proof_url) {
+ if(isPdf) {
+ thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:700; font-size:11.5px;"><i data-lucide="file-text" style="width:14px;height:14px;"></i> PDF</a>`;
+ } else {
+ thumbCell = `<img src="${escHtml(r.payment_proof_url)}" loading="lazy" onclick="window.__ppOpenImg('${escHtml(r.payment_proof_url)}')" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; cursor:zoom-in;">`;
+ }
+ } else {
+ thumbCell = isCash ? '<span style="font-size:11px; color:#9CA3AF;">— (Cash)</span>' : '<span style="font-size:11px; color:#DC2626; font-weight:700;">tiada</span>';
+ }
+ const uploadedBy = r.payment_proof_uploaded_by ? `<br><span style="font-size:10px; color:#9CA3AF;">${escHtml(r.payment_proof_uploaded_by)}</span>` : '';
+ return `<tr style="border-bottom:1px solid #F3F4F6;">
+ <td style="padding:8px 10px;">${dt}</td>
+ <td style="padding:8px 10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">#${r.id}</td>
+ <td style="padding:8px 10px;"><strong>${escHtml(r.customer_name || 'Walk-in')}</strong>${r.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(r.customer_phone)}</span>` : ''}</td>
+ <td style="padding:8px 10px;">${escHtml(pm)}</td>
+ <td style="padding:8px 10px;">${escHtml(r.channel || '—')}</td>
+ <td style="padding:8px 10px; text-align:right; font-weight:700;">RM ${amt.toFixed(2)}</td>
+ <td style="padding:8px 10px; text-align:center;">${thumbCell}${uploadedBy}</td>
+ <td style="padding:8px 10px;"><button onclick="window.__ppUploadFor(${r.id})" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button></td>
+ </tr>`;
+ }).join('');
+ listWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+ <thead style="background:#F9FAFB;"><tr>
+ <th style="text-align:left; padding:8px 10px;">Tarikh</th>
+ <th style="text-align:left; padding:8px 10px;">Sale</th>
+ <th style="text-align:left; padding:8px 10px;">Pelanggan</th>
+ <th style="text-align:left; padding:8px 10px;">Kaedah</th>
+ <th style="text-align:left; padding:8px 10px;">Channel</th>
+ <th style="text-align:right; padding:8px 10px;">RM</th>
+ <th style="text-align:center; padding:8px 10px;">Resit</th>
+ <th style="padding:8px 10px;"></th>
+ </tr></thead><tbody>${body}</tbody></table>`;
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) {
+ listWrap.innerHTML = '<p style="color:#DC2626; padding:20px;">Error: ' + e.message + '</p>';
+ }
+};
+
+window.__ppOpenImg = function(url) {
+ const m = document.getElementById('ppImgModal');
+ const img = document.getElementById('ppImgModalImg');
+ if(m && img) { img.src = url; m.style.display = 'flex'; }
+};
+
+// Late-upload (or replace) proof for an existing sale from Reports
+window.__ppUploadFor = function(saleId) {
+ const input = document.createElement('input');
+ input.type = 'file';
+ input.accept = 'image/*,application/pdf';
+ input.onchange = async () => {
+ const f = input.files && input.files[0];
+ if(!f) return;
+ if(f.size > 5 * 1024 * 1024) { if(typeof showToast==='function') showToast('Saiz lebih 5MB', 'warn'); return; }
+ if(typeof db === 'undefined' || !db) return;
+ try {
+ const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+ const ts = new Date().toISOString().replace(/[:.]/g, '-');
+ const fileName = saleId + '_' + ts + '.' + ext;
+ const { data, error } = await db.storage.from('payment-proofs').upload(fileName, f, { cacheControl: '3600', upsert: false, contentType: f.type || 'application/octet-stream' });
+ if(error) throw error;
+ const { data: pub } = db.storage.from('payment-proofs').getPublicUrl(data.path);
+ const uploaderName = (window.currentUser && window.currentUser.name) ? window.currentUser.name : 'Unknown';
+ await db.from('sales_history').update({
+ payment_proof_url: pub.publicUrl,
+ payment_proof_uploaded_at: new Date().toISOString(),
+ payment_proof_uploaded_by: uploaderName
+ }).eq('id', saleId);
+ if(typeof showToast==='function') showToast('Resit dah saved untuk sale #' + saleId, 'success');
+ window.renderPaymentProofs();
+ } catch(e) {
+ if(typeof showToast==='function') showToast('Upload gagal: ' + e.message, 'error');
+ }
+ };
+ input.click();
+};
+
 window.renderFeedbackInbox = async function() {
  const wrap = document.getElementById('fbInboxList');
  const statsEl = document.getElementById('fbInboxStats');
@@ -7510,7 +7643,89 @@ window.setPaymentMethod = function(method, btnElement) {
  sub.style.display = 'none';
  }
  }
+
+ // p1_180 — show payment proof upload for any non-Cash method
+ const proofSec = document.getElementById('proofUploadSection');
+ if(proofSec) {
+ proofSec.style.display = (method === 'Cash') ? 'none' : 'block';
+ if(method === 'Cash') {
+ // Cash → also clear any pending file
+ if(typeof window.__proofClearFile === 'function') window.__proofClearFile();
+ }
+ }
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
 }
+
+// p1_180 — Payment proof file upload state
+window.__proofState = { file: null, dataUrl: null };
+
+window.__proofPickFile = function() {
+ const input = document.getElementById('proofFileInput');
+ const preview = document.getElementById('proofPreview');
+ const img = document.getElementById('proofPreviewImg');
+ const meta = document.getElementById('proofPreviewMeta');
+ if(!input || !input.files || !input.files[0]) {
+ if(preview) preview.style.display = 'none';
+ window.__proofState = { file: null, dataUrl: null };
+ return;
+ }
+ const f = input.files[0];
+ if(f.size > 5 * 1024 * 1024) {
+ if(typeof showToast === 'function') showToast('Saiz fail lebih 5MB. Compress dulu.', 'warn');
+ input.value = '';
+ return;
+ }
+ const isPdf = (f.type === 'application/pdf');
+ window.__proofState.file = f;
+ const reader = new FileReader();
+ reader.onload = (e) => {
+ window.__proofState.dataUrl = e.target.result;
+ if(preview && img && meta) {
+ if(isPdf) {
+ img.style.display = 'none';
+ meta.innerHTML = '<i data-lucide="file-text" style="width:14px;height:14px;vertical-align:-2px;"></i> ' + f.name + ' (' + (f.size / 1024).toFixed(0) + ' KB)';
+ } else {
+ img.src = e.target.result;
+ img.style.display = 'block';
+ meta.textContent = f.name + ' · ' + (f.size / 1024).toFixed(0) + ' KB';
+ }
+ preview.style.display = 'block';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ }
+ };
+ reader.readAsDataURL(f);
+};
+
+window.__proofClearFile = function() {
+ const input = document.getElementById('proofFileInput');
+ const preview = document.getElementById('proofPreview');
+ if(input) input.value = '';
+ if(preview) preview.style.display = 'none';
+ window.__proofState = { file: null, dataUrl: null };
+};
+
+// Upload to Supabase Storage payment-proofs bucket. Returns public URL or null.
+window.__proofUploadToStorage = async function(saleId) {
+ const f = window.__proofState && window.__proofState.file;
+ if(!f) return null;
+ if(typeof db === 'undefined' || !db) return null;
+ try {
+ const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+ const ts = new Date().toISOString().replace(/[:.]/g, '-');
+ const fileName = (saleId || 'pending') + '_' + ts + '.' + ext;
+ const { data, error } = await db.storage.from('payment-proofs').upload(fileName, f, {
+ cacheControl: '3600',
+ upsert: false,
+ contentType: f.type || 'application/octet-stream'
+ });
+ if(error) throw error;
+ const { data: pub } = db.storage.from('payment-proofs').getPublicUrl(data.path);
+ return pub && pub.publicUrl ? pub.publicUrl : null;
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Upload resit gagal: ' + e.message, 'warn');
+ return null;
+ }
+};
 
 window.clearCart = function() {
  cart = [];
@@ -7706,12 +7921,27 @@ window.processNewCheckout = async function() {
  saleMeta.vip_customer_id = vip.customer_id;
  }
 
+ // p1_180 — upload payment proof to Storage before insert (skip if Cash or no file)
+ let proofUrl = null, proofUploadedAt = null, proofUploadedBy = null;
+ if(pm !== 'Cash' && window.__proofState && window.__proofState.file && typeof window.__proofUploadToStorage === 'function') {
+ const url = await window.__proofUploadToStorage(null);
+ if(url) {
+ proofUrl = url;
+ proofUploadedAt = new Date().toISOString();
+ proofUploadedBy = (currentUser && currentUser.name) ? currentUser.name : 'Unknown';
+ }
+ }
+
  await db.from('sales_history').insert([{
  customer_name: custNameText, customer_phone: custPhoneText, payment_method: pm, channel: cn, status: cst,
  total: finalTotal, total_amount: finalTotal, items: cart,
  staff_name: currentUser ? currentUser.name : 'Unknown',
  buyer_tin: buyerTin || null,
- metadata: Object.keys(saleMeta).length ? saleMeta : null
+ metadata: Object.keys(saleMeta).length ? saleMeta : null,
+ payment_proof_url: proofUrl,
+ payment_proof_uploaded_at: proofUploadedAt,
+ payment_proof_uploaded_by: proofUploadedBy,
+ payment_method_detail: pm
  }]);
  // Use finalTotal downstream
  totalVal = finalTotal;
@@ -7733,6 +7963,9 @@ window.processNewCheckout = async function() {
  const ewRefEl = document.getElementById("ewalletRef"); if (ewRefEl) ewRefEl.value = "";
  const ewProvEl = document.getElementById("ewalletProvider"); if (ewProvEl) ewProvEl.value = "";
  const ewSub = document.getElementById("ewalletSubPanel"); if (ewSub) ewSub.style.display = "none";
+ // p1_180 — clear proof state after checkout
+ if(typeof window.__proofClearFile === 'function') window.__proofClearFile();
+ const proofSec = document.getElementById('proofUploadSection'); if (proofSec) proofSec.style.display = 'none';
  document.getElementById('checkoutPaymentModal').style.display = 'none';
  await initApp(); 
  renderCart();

@@ -6484,9 +6484,14 @@ window.renderCheckSessions = async function() {
  ${(s.items_variance || 0) > 0 ? `<div style="font-size:12px; color:#991B1B; margin-bottom:8px;"><i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:-1px;"></i> ${s.items_variance} variance · RM ${Number(s.rm_variance||0).toFixed(2)} drift</div>` : ''}
  <div style="display:flex; gap:6px; flex-wrap:wrap;">
  <button class="sy-btn" onclick="window.__scsOpenSession(${s.id})" style="font-size:11px;"><i data-lucide="arrow-right" style="width:11px;height:11px;"></i> ${s.status === 'active' ? 'Buka & Kira' : 'Buka'}</button>
+ <button class="sy-btn secondary" onclick="window.__scsToggleSkuList(${s.id})" style="font-size:11px;"><i data-lucide="list" style="width:11px;height:11px;"></i> Tunjuk Senarai SKU</button>
  ${s.status === 'active' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsSubmitForReview(${s.id})" style="font-size:11px;"><i data-lucide="send" style="width:11px;height:11px;"></i> Submit ke Review</button>` : ''}
  ${s.status === 'review' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsForwardToBos(${s.id})" style="font-size:11px;"><i data-lucide="forward" style="width:11px;height:11px;"></i> Forward ke Bos</button>` : ''}
  ${s.status === 'forwarded' && (typeof window.isBoss === 'function' && window.isBoss(u)) ? `<button class="sy-btn secondary" onclick="window.__scsApprove(${s.id})" style="font-size:11px; background:#10B981; color:#FFF;"><i data-lucide="check-circle" style="width:11px;height:11px;"></i> Approve</button>` : ''}
+ </div>
+ <!-- p1_211 — Per-session SKU list (collapsed by default, lazy-loaded on click) -->
+ <div id="scsSkuList-${s.id}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-color);">
+ <p style="font-size:11.5px; color:#9CA3AF; padding:12px 0; text-align:center;">Loading…</p>
  </div>
  </div>`;
  }).join('');
@@ -6651,6 +6656,80 @@ window.__scsForwardToBos = async function(id) {
  if(typeof showToast === 'function') showToast('Forwarded ke Bos.', 'success');
  window.renderCheckSessions();
  } catch(e) { if(typeof showToast === 'function') showToast('Forward gagal: ' + e.message, 'error'); }
+};
+
+// p1_211 — Per-session SKU list: lazy-load items + render checked/pending status grid.
+// Tujuan: staff lihat SKU mana yang sudah/belum check dalam session tu.
+window.__scsToggleSkuList = async function(sessionId) {
+ const box = document.getElementById('scsSkuList-' + sessionId);
+ if(!box) return;
+ // Toggle visibility
+ if(box.style.display === 'block') { box.style.display = 'none'; return; }
+ box.style.display = 'block';
+ // Already loaded? show cached
+ if(box.dataset.loaded === '1') return;
+ box.innerHTML = '<p style="font-size:11.5px; color:#9CA3AF; padding:12px 0; text-align:center;">Loading…</p>';
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('stock_check_session_items').select('*').eq('session_id', sessionId).order('sku', { ascending: true });
+ if(error) throw error;
+ const items = data || [];
+ if(!items.length) { box.innerHTML = '<p style="font-size:11.5px; color:#9CA3AF; padding:12px 0; text-align:center;">Tiada SKU dalam sesi ni.</p>'; return; }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ const checked = items.filter(i => i.counted_qty != null);
+ const pending = items.filter(i => i.counted_qty == null);
+ const totalPct = items.length ? Math.round(checked.length / items.length * 100) : 0;
+ const rows = items.map(i => {
+ const isChecked = i.counted_qty != null;
+ const variance = (i.variance != null) ? Number(i.variance) : null;
+ const flag = i.flag || '';
+ // Status badge
+ let badgeBg, badgeFg, badgeTxt, badgeIcon;
+ if(flag === 'not_found') { badgeBg = '#FEE2E2'; badgeFg = '#991B1B'; badgeTxt = 'Tak Jumpa'; badgeIcon = 'search-x'; }
+ else if(flag === 'damaged') { badgeBg = '#FED7AA'; badgeFg = '#9A3412'; badgeTxt = 'Rosak'; badgeIcon = 'alert-triangle'; }
+ else if(isChecked) {
+ if(variance === 0) { badgeBg = '#D1FAE5'; badgeFg = '#065F46'; badgeTxt = 'Tepat'; badgeIcon = 'check-circle'; }
+ else if(variance > 0) { badgeBg = '#FEF3C7'; badgeFg = '#92400E'; badgeTxt = '+' + variance + ' Lebih'; badgeIcon = 'trending-up'; }
+ else { badgeBg = '#FEE2E2'; badgeFg = '#991B1B'; badgeTxt = variance + ' Kurang'; badgeIcon = 'trending-down'; }
+ }
+ else { badgeBg = '#F3F4F6'; badgeFg = '#6B7280'; badgeTxt = 'Belum Check'; badgeIcon = 'clock'; }
+ return `<tr style="border-bottom:1px solid #F3F4F6;">
+ <td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:700; font-size:11.5px;">${escHtml(i.sku || '-')}</td>
+ <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml((i.name || '').slice(0, 60))}</td>
+ <td style="padding:8px 10px; font-size:11px; color:#6B7280;">${escHtml(i.location_bin || '-')}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#9CA3AF;">${i.system_qty != null ? i.system_qty : '-'}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${i.counted_qty != null ? i.counted_qty : '—'}</td>
+ <td style="padding:8px 10px; text-align:center;"><span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:${badgeBg}; color:${badgeFg}; font-size:10px; font-weight:700;"><i data-lucide="${badgeIcon}" style="width:10px;height:10px;"></i> ${badgeTxt}</span></td>
+ </tr>`;
+ }).join('');
+ box.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px; flex-wrap:wrap;">
+ <div style="font-size:12px; color:#6B7280;">
+ Total: <strong style="color:#111;">${items.length}</strong> ·
+ <span style="color:#10B981;">${checked.length} dah check</span> ·
+ <span style="color:#9CA3AF;">${pending.length} belum</span>
+ </div>
+ <div style="font-size:12px; color:var(--primary); font-weight:800;">${totalPct}%</div>
+ </div>
+ <div style="overflow-x:auto; border:1px solid var(--border-color); border-radius:6px;">
+ <table style="width:100%; border-collapse:collapse; font-size:12px;">
+ <thead style="background:#F9FAFB;">
+ <tr>
+ <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">SKU</th>
+ <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Nama</th>
+ <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Lokasi</th>
+ <th style="text-align:right; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Sistem</th>
+ <th style="text-align:right; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Dikira</th>
+ <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Status</th>
+ </tr>
+ </thead>
+ <tbody>${rows}</tbody>
+ </table>
+ </div>`;
+ box.dataset.loaded = '1';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ } catch(e) {
+ box.innerHTML = '<p style="color:#EF4444; font-size:11.5px; padding:10px;">Error: ' + e.message + '</p>';
+ }
 };
 
 window.__scsApprove = async function(id) {

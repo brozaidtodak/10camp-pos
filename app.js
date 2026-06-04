@@ -7972,10 +7972,25 @@ window.posOpenProductDetail = function(sku) {
     document.getElementById('pdSku').textContent = 'SKU ' + (p.sku || '—');
     document.getElementById('pdCat').textContent = p.category || 'Uncategorized';
     document.getElementById('pdmBrandText').textContent = p.brand ? 'by ' + p.brand : '';
-    // p1_205 — pdPrice innerHTML so discount preview can inject strikethrough + jimat
+    // p1_206 — Render pdPrice with catalog-style sale visual kalau compare_at_price set
     const pdPriceEl = document.getElementById('pdPrice');
     if(pdPriceEl) {
-        pdPriceEl.innerHTML = '<span class="pdm-price__current">' + ((typeof formatRM === 'function') ? formatRM(p.price) : 'RM ' + parseFloat(p.price || 0).toFixed(2)) + '</span>';
+        const priceNum = parseFloat(p.price) || 0;
+        const compareNum = parseFloat(p.compare_at_price) || 0;
+        const isOnSale = compareNum > priceNum && priceNum > 0;
+        const fmt = (v) => (typeof formatRM === 'function') ? formatRM(v) : 'RM ' + Number(v).toFixed(2);
+        if(isOnSale) {
+            const saved = compareNum - priceNum;
+            const pctOff = Math.round((saved / compareNum) * 100);
+            pdPriceEl.innerHTML = '<div class="pdm-price__sale-wrap">'
+                + '<span class="pdm-price__pct-badge">-' + pctOff + '%</span>'
+                + '<span class="pdm-price__current pdm-price__current--sale">' + fmt(priceNum) + '</span>'
+                + '<span class="pdm-price__was"><s>' + fmt(compareNum) + '</s></span>'
+                + '<span class="pdm-price__saved">Jimat ' + fmt(saved) + '</span>'
+                + '</div>';
+        } else {
+            pdPriceEl.innerHTML = '<span class="pdm-price__current">' + fmt(priceNum) + '</span>';
+        }
     }
 
     // Stock pill

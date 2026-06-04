@@ -923,11 +923,12 @@
 .ps-tier-card__compare { font-size: 12px; color: #94A3B8; text-decoration: line-through; margin-left: 8px; }
 .ps-tier-card__markup { font-size: 11px; color: #059669; font-weight: 700; margin-top: 4px; }
 .ps-tier-card__formula { font-size: 11px; color: #6B7280; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #E5E7EB; line-height: 1.5; }
-/* p1_181 — Password visibility toggle (eye icon) */
-.pwd-wrap { position: relative; display: block; }
-.pwd-wrap > input { padding-right: 38px !important; }
-.pwd-toggle { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); background: none; border: none; padding: 6px; cursor: pointer; color: #9CA3AF; line-height: 0; border-radius: 4px; transition: color 0.12s, background 0.12s; }
-.pwd-toggle:hover { color: var(--primary); background: rgba(205,124,50,0.08); }
+/* p1_181/182 — Password visibility toggle (eye icon, iPad-friendly) */
+.pwd-wrap { position: relative; display: block; width: 100%; }
+.pwd-wrap > input { padding-right: 44px !important; box-sizing: border-box; }
+.pwd-toggle { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); background: transparent; border: none; padding: 8px; cursor: pointer; color: #9CA3AF; line-height: 0; border-radius: 6px; transition: color 0.12s, background 0.12s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; display: flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; }
+.pwd-toggle svg { width: 20px; height: 20px; display: block; }
+.pwd-toggle:hover, .pwd-toggle:active { color: var(--primary); background: rgba(205,124,50,0.08); }
 .pwd-toggle:focus { outline: none; color: var(--primary); }
 
 /* p1_177 — Pricing Setup Calculator (compact single-panel: hero / formula / tier pills) */

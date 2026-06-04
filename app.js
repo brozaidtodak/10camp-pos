@@ -4071,8 +4071,13 @@ window.submitFeedback = async function() {
 };
 
 window.renderFeedbackSection = async function() {
+ // p1_182 — defensive: ensure section is visible (covers cases where switchHub
+ // didn't run, e.g., direct call). Without this the static form may not be
+ // shown depending on how the section was entered.
+ const sec = document.getElementById('feedbackSection');
+ if(sec && sec.style.display === 'none') sec.style.display = 'block';
  const wrap = document.getElementById('fbMyList');
- if(!wrap) return;
+ if(!wrap) { console.warn('[Aduan] fbMyList missing — section HTML not rendered?'); return; }
  const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
  if(!u) { wrap.innerHTML = '<p style="color:#9CA3AF; padding:20px; text-align:center;">Login dulu.</p>'; return; }
  try {
@@ -9817,15 +9822,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // p1_181 — Password visibility toggle (eye icon). Auto-attach to every
 // <input type="password"> on boot + on demand. Idempotent (data-pwd-toggled marker).
+// p1_182 — inline SVG (no Lucide dependency, works on iPad first paint),
+// <div> wrapper (more reliable than span), bigger touch target.
+window.__PWD_EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+window.__PWD_EYE_OFF_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
+
 window.togglePwd = function(targetId, btn) {
  const input = document.getElementById(targetId);
  if(!input || !btn) return;
  const showing = input.type === 'text';
  input.type = showing ? 'password' : 'text';
- btn.innerHTML = '<i data-lucide="' + (showing ? 'eye' : 'eye-off') + '" style="width:16px;height:16px;"></i>';
+ btn.innerHTML = showing ? window.__PWD_EYE_SVG : window.__PWD_EYE_OFF_SVG;
  btn.setAttribute('aria-label', showing ? 'Tunjuk password' : 'Sembunyi password');
  btn.setAttribute('title', showing ? 'Tunjuk' : 'Sembunyi');
- if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
 window.__autoAttachPwdToggles = function() {
@@ -9833,44 +9842,51 @@ window.__autoAttachPwdToggles = function() {
  if(input.dataset.pwdToggled === '1') return;
  if(!input.id) input.id = '__pwd_' + Math.random().toString(36).slice(2, 9);
  input.dataset.pwdToggled = '1';
- // Wrap with .pwd-wrap
- const wrapper = document.createElement('span');
+ // Wrap with .pwd-wrap div (block-level for reliable iPad rendering)
+ const wrapper = document.createElement('div');
  wrapper.className = 'pwd-wrap';
- // Preserve any margin-bottom from input style on the wrapper so layout doesn't collapse
+ // Preserve margin-bottom + width:100% from input inline styles
  const inlineStyle = input.getAttribute('style') || '';
  const mbMatch = inlineStyle.match(/margin-bottom:\s*([^;]+)/i);
  if(mbMatch) {
  wrapper.style.marginBottom = mbMatch[1].trim();
  input.style.marginBottom = '0';
  }
- // Match width of input if explicitly 100%
- if(/width:\s*100%/i.test(inlineStyle)) wrapper.style.width = '100%';
+ wrapper.style.width = '100%';
  input.parentNode.insertBefore(wrapper, input);
  wrapper.appendChild(input);
- // Add eye button
+ // Eye button — inline SVG (renders even before Lucide loads), bigger touch target for iPad
  const btn = document.createElement('button');
  btn.type = 'button';
  btn.className = 'pwd-toggle';
  btn.tabIndex = -1;
  btn.setAttribute('aria-label', 'Tunjuk password');
  btn.setAttribute('title', 'Tunjuk');
- btn.innerHTML = '<i data-lucide="eye" style="width:16px;height:16px;"></i>';
+ btn.innerHTML = window.__PWD_EYE_SVG;
  btn.addEventListener('click', (e) => {
  e.preventDefault();
  e.stopPropagation();
  window.togglePwd(input.id, btn);
  });
+ // iOS-Safari friendly tap
+ btn.addEventListener('touchend', (e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ window.togglePwd(input.id, btn);
+ }, { passive: false });
  wrapper.appendChild(btn);
  });
- if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
  window.__autoAttachPwdToggles();
  // Backstop for inputs added dynamically (modals rendered later)
+ setTimeout(window.__autoAttachPwdToggles, 500);
  setTimeout(window.__autoAttachPwdToggles, 1500);
  setTimeout(window.__autoAttachPwdToggles, 4000);
 });
+// Also fire on load (covers Safari quirks where DOMContentLoaded races assets)
+window.addEventListener('load', () => window.__autoAttachPwdToggles());
 
 let publicCart = [];
 

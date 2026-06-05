@@ -47,6 +47,11 @@ function mapChannel(sourceName) {
     return s.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// p1_290 — channels that have their own DIRECT API integration. EasyStore must
+// NOT also import these or stock double-deducts. TikTok cutover was 2026-05-25;
+// Shopee went live 2026-06-05. EasyStore now only owns its own online store.
+const DIRECT_CHANNELS = ['Shopee', 'TikTok Shop', 'Lazada'];
+
 function verifyHmac(rawBody, signature) {
     if (!APP_SECRET || !signature) return false;
     const expected = crypto.createHmac('sha256', APP_SECRET).update(rawBody).digest('base64');
@@ -205,6 +210,20 @@ exports.handler = async function (event) {
     const orderId = String(order.id || '');
     if (!orderId) {
         return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'no_order_id' }) };
+    }
+
+    // p1_290 — Shopee/TikTok cutover guard: these channels have direct API
+    // integrations that import + deduct stock. If EasyStore also processed them,
+    // the same order would insert twice and deduct stock twice. Skip them here.
+    const _ch = mapChannel(order.source_name || order.source_type || (order.customer || {}).creation_source);
+    if (DIRECT_CHANNELS.includes(_ch)) {
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                ok: true, skipped: true, reason: 'direct_channel_owns_this',
+                channel: _ch, easystore_order_id: orderId, topic
+            })
+        };
     }
 
     // Idempotency: check if already in DB

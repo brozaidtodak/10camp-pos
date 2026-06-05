@@ -6508,6 +6508,26 @@ window.ffPrintSlip = function(id) {
  w.document.close();
 };
 
+// p1_300 — group products by parent_sku so variants collapse into 1 entry.
+function __invGroupByParent(products) {
+ const groups = new Map();
+ for(const p of products) {
+ const key = (p.parent_sku && String(p.parent_sku).trim()) ? ('p:' + p.parent_sku) : ('s:' + p.sku);
+ if(!groups.has(key)) groups.set(key, []);
+ groups.get(key).push(p);
+ }
+ return Array.from(groups.values());
+}
+function __invCleanTitle(name) {
+ // strip the "— Variant / size" suffix that variant rows carry
+ return String(name || 'Untitled').split('—')[0].trim() || 'Untitled';
+}
+function __invStockMap() {
+ const m = {};
+ for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) m[b.sku] = (m[b.sku] || 0) + b.qty_remaining;
+ return m;
+}
+
 function renderInventoryGrid(products) {
  const container = document.getElementById('invGridContainer');
  if(!container) return;
@@ -6516,10 +6536,13 @@ function renderInventoryGrid(products) {
  return;
  }
  const fmt = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+ const stockBySku = __invStockMap();
  let html = '';
- products.forEach(p => {
- const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining > 0);
- const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
+ __invGroupByParent(products).forEach(list => {
+ const lead = list.find(x => x.sku === x.parent_sku) || list[0];
+ const isGroup = list.length > 1;
+ const p = lead;
+ const totalStock = list.reduce((s, v) => s + (stockBySku[v.sku] || 0), 0);
  const reorderPt = parseFloat(p.reorder_point) || 5;
  const stockState = totalStock <= 0 ? 'oos' : (totalStock <= reorderPt ? 'low' : 'ok');
  const stockLabel = stockState === 'oos' ? 'Sold Out' : (stockState === 'low' ? `${totalStock} ${p.unit||'Pcs'} · Low` : `${totalStock} ${p.unit||'Pcs'}`);
@@ -6528,11 +6551,14 @@ function renderInventoryGrid(products) {
  const draftBadge = !isPublished(p) ? '<span class="inv-card__badge inv-card__badge--draft">Draft</span>' : '';
  const cost = parseFloat(p.cost_price || 0);
  const price = parseFloat(p.price || 0);
+ const title = isGroup ? __invCleanTitle(p.name) : (p.name || 'Untitled');
+ const skuLine = isGroup ? (p.parent_sku || p.sku) : p.sku;
+ const variantBadge = isGroup ? `<span class="inv-card__badge" style="left:8px; right:auto; background:#101010; color:#fff;">${list.length} variants</span>` : '';
  html += `
  <button type="button" class="inv-card" data-sku="${p.sku}" onclick="window.openPdpModal('${skuEsc}')">
  <div class="inv-card__media">
- <img src="${thumb}" alt="${(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
- ${draftBadge}
+ <img src="${thumb}" alt="${(title||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=No+Img'">
+ ${draftBadge}${variantBadge}
  <span class="inv-card__stock inv-card__stock--${stockState}">${stockLabel}</span>
  </div>
  <div class="inv-card__body">
@@ -6540,8 +6566,8 @@ function renderInventoryGrid(products) {
  ${p.brand ? `<span class="inv-card__brand">${p.brand}</span>` : ''}
  ${p.category ? `<span class="inv-card__cat">${p.category}</span>` : ''}
  </div>
- <div class="inv-card__sku">${p.sku}</div>
- <h3 class="inv-card__name">${p.name || 'Untitled'}</h3>
+ <div class="inv-card__sku">${skuLine}</div>
+ <h3 class="inv-card__name">${title}</h3>
  <div class="inv-card__footer">
  <div class="inv-card__price-wrap">
  <small>Cost ${fmt(cost)}</small>
@@ -6564,12 +6590,23 @@ function renderInventoryTable(products) {
  const tbody = document.getElementById("inventoryTableBody");
  if(!tbody) return;
  let htmlBuf3 = "";
- products.forEach(p => {
- const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining> 0);
- const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
+ const stockBySku = __invStockMap();
+ __invGroupByParent(products).forEach(list => {
+ const lead = list.find(x => x.sku === x.parent_sku) || list[0];
+ const isGroup = list.length > 1;
+ const p = lead;
+ const totalStock = list.reduce((s, v) => s + (stockBySku[v.sku] || 0), 0);
  let thumb = "https://placehold.co/100x100?text=Img";
  let imgs = p.images || []; if(imgs.length> 0) thumb = imgs[0];
  let sBadge = isPublished(p) ? `<span style="color:green;font-size:10px;">Active</span>` : `<span style="color:red;font-size:10px;">Draft</span>`;
+ const title = isGroup ? __invCleanTitle(p.name) : p.name;
+ const skuLine = isGroup ? (p.parent_sku || p.sku) : p.sku;
+ // variant summary: distinct colours + sizes across the group
+ const colors = [...new Set(list.map(v => v.variant_color).filter(Boolean))];
+ const sizes = [...new Set(list.map(v => v.variant_size).filter(Boolean))];
+ const variantCell = isGroup
+ ? `<span style="background:#101010; color:#fff; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700;">${list.length} variants</span><br><small style="color:#555;">${colors.join(' / ') || '-'}${sizes.length ? '<br>Saiz: ' + sizes.join(', ') : ''}</small>`
+ : `Model: ${p.model_no || '-'}<br>Variant: ${p.variant_size || '-'} / ${p.variant_color || '-'}<br>Dimensi: ${p.dimensions || '-'} (${p.weight_kg ? p.weight_kg+'Kg' : '-'})`;
  htmlBuf3 += `
  <tr onclick="window.openPdpModal('${String(p.sku).replace(/'/g, "\\'")}')" style="cursor:pointer;">
  <td>
@@ -6577,37 +6614,25 @@ function renderInventoryTable(products) {
  ${sBadge}
  </td>
  <td>
- <span class="sku-badge">${p.sku}</span> <span class="cat-badge">${p.category||'Uncategorized'}</span> ${p.location_bin ? `<span style="background:#fef08a; color:#854d0e; padding:3px 6px; border-radius:4px; font-size:10px;"> Loc: ${p.location_bin}</span>` : ''}<br>
- <strong>${p.name}</strong><br>
+ <span class="sku-badge">${skuLine}</span> <span class="cat-badge">${p.category||'Uncategorized'}</span> ${(!isGroup && p.location_bin) ? `<span style="background:#fef08a; color:#854d0e; padding:3px 6px; border-radius:4px; font-size:10px;"> Loc: ${p.location_bin}</span>` : ''}<br>
+ <strong>${title}</strong><br>
  <small style="color:#888;">Jenama: <strong>${p.brand || 'N/A'}</strong></small>
  </td>
  <td>
- <div style="font-size:12px; color:#555;">
- Model: ${p.model_no || '-'}<br>
- Variant: ${p.variant_size || '-'} / ${p.variant_color || '-'}<br>
- Dimensi: ${p.dimensions || '-'} (${p.weight_kg ? p.weight_kg+'Kg' : '-'})
- </div>
+ <div style="font-size:12px; color:#555;">${variantCell}</div>
  </td>
  <td style="font-weight:bold; color:${totalStock <= 0 ? 'red' : 'green'};">
  ${totalStock} ${p.unit||'Pcs'}<br>
- <small style="font-weight:normal; color:#888;">${myBatches.length} batch(es)</small>
- ${myBatches.length> 0 ? (() => {
- const sources = [...new Set(myBatches.map(b => b.po_number).filter(Boolean))];
- const suppliers = [...new Set(myBatches.map(b => b.supplier_name).filter(Boolean))];
- let trace = '';
- if(sources.length) trace += `<br><span style="font-weight:normal; color:#0EA5E9; font-size:10px;"> ${sources.slice(0,2).join(', ')}${sources.length> 2 ? '+' : ''}</span>`;
- if(suppliers.length) trace += `<br><span style="font-weight:normal; color:#7C3AED; font-size:10px;"> ${suppliers.slice(0,2).join(', ')}${suppliers.length> 2 ? '+' : ''}</span>`;
- return trace;
- })() : ''}
+ <small style="font-weight:normal; color:#888;">${isGroup ? list.length + ' variant' : 'single'}</small>
  </td>
  <td>
  <div style="background:#F3F4F6; padding:5px; border-radius:4px; font-family:monospace; font-size:12px; border:1px solid #ddd; display:inline-block;">
- ${p.location_bin || "Tiada Maklumat Rak"}
+ ${isGroup ? (colors.length ? list.length + ' variants' : (p.location_bin || '—')) : (p.location_bin || "Tiada Maklumat Rak")}
  </div>
  </td>
  <td>
  <small>Cost: RM${parseFloat(p.cost_price||0).toFixed(2)}</small><br>
- <strong>Sell: RM${parseFloat(p.price).toFixed(2)}</strong>
+ <strong>Sell: RM${parseFloat(p.price||0).toFixed(2)}</strong>
  </td>
  </tr>
  `;
@@ -17077,6 +17102,7 @@ window.openPdpModal = function(sku) {
  set('pdpCost', prod.cost_price || 0);
  set('pdpShopeePrice', prod.shopee_price); set('pdpTiktokPrice', prod.tiktok_price);
  set('pdpShopeeMode', prod.shopee_price_mode || 'rm'); set('pdpTiktokMode', prod.tiktok_price_mode || 'rm');
+ if(window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(prod);
 
  // Media
  let imgs = prod.images || [];
@@ -17242,6 +17268,51 @@ window.pdpDeleteProduct = async function() {
  if(typeof showToast === 'function') showToast('Delete gagal: ' + e.message, 'error');
  else alert('Delete gagal: ' + e.message);
  }
+};
+
+// p1_300 — render this product's sibling variants (same parent_sku) as an
+// EasyStore-style table inside the PDP modal. Click a row to switch to it.
+window.renderPdpSiblingVariants = function(prod) {
+ const wrap = document.getElementById('pdpSiblingVariants');
+ if(!wrap) return;
+ if(!prod || !prod.parent_sku) { wrap.innerHTML = ''; return; }
+ const sibs = (masterProducts || []).filter(x => x.parent_sku === prod.parent_sku);
+ if(sibs.length < 2) { wrap.innerHTML = ''; return; }
+ // stock per sku
+ const stockBySku = {};
+ for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) stockBySku[b.sku] = (stockBySku[b.sku] || 0) + b.qty_remaining;
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const escJs = (s) => String(s == null ? '' : s).replace(/'/g, "\\'");
+ // sort by colour then size
+ const sizeOrder = { 'S':1,'M':2,'L':3,'XL':4,'2XL':5,'3XL':6,'4XL':7,'5XL':8 };
+ sibs.sort((a,b) => {
+ const c = String(a.variant_color||'').localeCompare(String(b.variant_color||''));
+ if(c !== 0) return c;
+ return (sizeOrder[String(a.variant_size||'').toUpperCase()]||99) - (sizeOrder[String(b.variant_size||'').toUpperCase()]||99);
+ });
+ let rows = '';
+ for(const v of sibs) {
+ const isCur = v.sku === prod.sku;
+ const stock = stockBySku[v.sku] || 0;
+ const label = [v.variant_color, v.variant_size].filter(Boolean).join(' · ') || v.sku;
+ rows += `<tr onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; ${isCur ? 'background:#FFF7ED;' : ''}border-bottom:1px solid #F3F4F6;">
+ <td style="padding:8px 10px; font-weight:${isCur?'800':'600'}; color:#101010;">${esc(label)}${isCur ? ' <span style="color:#CD7C32; font-size:10px;">(sedang dilihat)</span>' : ''}</td>
+ <td style="padding:8px 10px; font-family:monospace; font-size:11px; color:#6B7280;">${esc(v.sku)}</td>
+ <td style="padding:8px 10px; text-align:right; font-weight:700; color:${stock<=0?'#DC2626':'#16A34A'};">${stock}</td>
+ <td style="padding:8px 10px; text-align:right;">RM ${parseFloat(v.price||0).toFixed(2)}</td>
+ </tr>`;
+ }
+ const totalStock = sibs.reduce((s,v)=>s+(stockBySku[v.sku]||0),0);
+ wrap.innerHTML = `
+ <div style="border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
+ <div style="background:#F9FAFB; padding:8px 10px; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between;">
+ <span>${sibs.length} Variants</span><span style="color:#6B7280; font-weight:600;">Jumlah stok: ${totalStock}</span>
+ </div>
+ <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+ <thead><tr style="background:#FAFAFA; color:#9CA3AF; font-size:10.5px; text-transform:uppercase;">
+ <th style="padding:6px 10px; text-align:left;">Variant</th><th style="padding:6px 10px; text-align:left;">SKU</th><th style="padding:6px 10px; text-align:right;">Stok</th><th style="padding:6px 10px; text-align:right;">Harga</th>
+ </tr></thead><tbody>${rows}</tbody></table>
+ </div>`;
 };
 
 window.renderPdpMediaGallery = function(urls) {

@@ -14871,6 +14871,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // 2. Fetch or Mock DB
 async function checkMyAttendanceStatus() {
+ // p1_270 — Clock-in/out function hidden (Zaid). Skip showing floating button.
+ return;
  if(!currentUser) return;
  const btn = document.getElementById("floatingClockBtn");
  const lbl = document.getElementById("lblClockFace");

@@ -1592,7 +1592,8 @@
  <i data-lucide="receipt" style="width:16px; height:16px;"></i> <span data-i18n="sb_claim">Claim</span>
  <span id="claimSidebarBadge" style="display:none; margin-left:auto; background:#10B981; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
- <div class="menu-item" data-group="hr" data-tab="hr_clock_history" onclick="switchHub(['hrClockHistorySection'], 'Riwayat Clock', this); if(typeof renderHrClockHistory==='function') renderHrClockHistory();" style="display:flex; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
+ <!-- p1_270 — Riwayat Clock sidebar item hidden (Zaid: "sorok function clockin/clock out"). Section kekal untuk back-compat. -->
+ <div class="menu-item" data-group="hr" data-tab="hr_clock_history" onclick="switchHub(['hrClockHistorySection'], 'Riwayat Clock', this); if(typeof renderHrClockHistory==='function') renderHrClockHistory();" style="display:none !important; align-items:center; gap:8px; padding-left:35px; font-size:13px;">
  <i data-lucide="history" style="width:16px; height:16px;"></i> <span data-i18n="sb_clock_history">Riwayat Clock</span>
  </div>
 
@@ -1850,7 +1851,8 @@
  <p class="inv-page-sub" data-i18n="hr_today_sub">Status clock-in, baki cuti, dan tindakan pantas untuk hari ni.</p>
 
  <!-- Hero clock card -->
- <div class="admin-card" id="hrTodayClockCard" style="padding:24px; margin:18px 0; background:linear-gradient(135deg, #ECFDF5, #D1FAE5); border-left:4px solid #10B981;">
+ <!-- p1_270 — Clock-in/out card hidden (Zaid: "sorok function clockin/clock out") -->
+ <div class="admin-card" id="hrTodayClockCard" style="display:none; padding:24px; margin:18px 0; background:linear-gradient(135deg, #ECFDF5, #D1FAE5); border-left:4px solid #10B981;">
  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
  <div>
  <div style="font-size:11px; font-weight:700; color:#065F46; text-transform:uppercase; letter-spacing:0.8px;" data-i18n="hr_today_clock_label">Status Clock</div>
@@ -11551,7 +11553,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=363"></script>
+ <script src="app.js?v=364"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

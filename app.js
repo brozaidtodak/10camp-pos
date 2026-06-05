@@ -17075,6 +17075,7 @@ window.openPdpModal = function(sku) {
  set('pdpBrand', prod.brand);
  set('pdpPrice', prod.price || 0);
  set('pdpCost', prod.cost_price || 0);
+ set('pdpShopeePrice', prod.shopee_price); set('pdpTiktokPrice', prod.tiktok_price);
 
  // Media
  let imgs = prod.images || [];
@@ -17335,6 +17336,8 @@ window.savePdpData = async function() {
  brand: get('pdpBrand') || null,
  price: parseFloat(get('pdpPrice')) || 0,
  cost_price: parseFloat(get('pdpCost')) || 0,
+ shopee_price: (function(){ const v=get('pdpShopeePrice'); return (v===''||v==null)?null:(parseFloat(v)||null); })(),
+ tiktok_price: (function(){ const v=get('pdpTiktokPrice'); return (v===''||v==null)?null:(parseFloat(v)||null); })(),
  is_published: get('pdpStatus') === 'true',
  description: get('pdpDescription') || null,
  variant_color: get('pdpVariantColor') || null,
@@ -17349,7 +17352,9 @@ window.savePdpData = async function() {
  try {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);
  if(error) throw error;
- if(typeof showToast === 'function') showToast(`${sku} saved.`, 'success');
+ // p1_297b — push this product's price to Shopee + TikTok (fire-and-forget)
+ try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
+ if(typeof showToast === 'function') showToast(`${sku} saved. Harga dipush ke marketplace.`, 'success');
  else alert("Product saved successfully.");
  document.getElementById('pdpModal').style.display = 'none';
  await window.initApp(); // reload everything

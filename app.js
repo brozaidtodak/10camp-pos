@@ -14880,6 +14880,11 @@ window.renderAbandonedCheckouts = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 
+// p1_274 — Stock Transfer stub (build flow later)
+window.renderStockTransfer = function() {
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
 // p1_271 — Sidebar restructure placeholder handlers
 window.openSetupGuide = function() {
  if(typeof showToast === 'function') showToast('Setup Guide coming soon — walkthrough tutorial untuk POS setup.', 'info');

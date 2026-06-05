@@ -15135,6 +15135,26 @@ window.toggleNavGroup = function(name, event) {
  } catch(e){}
 };
 
+// p1_286 — tapping the "Orders" parent jumps straight to All Orders (Zaid:
+// "bila tekan order, aku nak kau terus visiblekan all order"). Unlike other
+// nav parents (toggle-only since p1_281), the Orders parent expands its submenu
+// AND opens the All Orders section in a single tap.
+window.openOrdersHub = function(event) {
+ if(event && event.stopPropagation) event.stopPropagation();
+ const parent = document.querySelector('[data-nav-parent="orders"]');
+ if(parent) {
+ parent.classList.add('is-expanded');
+ try {
+ const st = JSON.parse(localStorage.getItem('navGroupState') || '{}');
+ st.orders = true;
+ localStorage.setItem('navGroupState', JSON.stringify(st));
+ } catch(e){}
+ }
+ const aoItem = document.querySelector('[data-tab="sales_all_orders"]');
+ if(typeof switchHub === 'function') switchHub(['allOrdersSection'], 'All Orders', aoItem || null);
+ if(typeof window.renderAllOrders === 'function') window.renderAllOrders();
+};
+
 window.restoreNavGroupState = function() {
  let state = {};
  try { state = JSON.parse(localStorage.getItem('navGroupState') || '{}'); } catch(e){}

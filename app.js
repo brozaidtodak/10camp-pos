@@ -17275,44 +17275,115 @@ window.pdpDeleteProduct = async function() {
 window.renderPdpSiblingVariants = function(prod) {
  const wrap = document.getElementById('pdpSiblingVariants');
  if(!wrap) return;
- if(!prod || !prod.parent_sku) { wrap.innerHTML = ''; return; }
+ if(!prod || !prod.parent_sku) { wrap.innerHTML = ''; window.__pdpVariantSkus = []; return; }
  const sibs = (masterProducts || []).filter(x => x.parent_sku === prod.parent_sku);
- if(sibs.length < 2) { wrap.innerHTML = ''; return; }
- // stock per sku
+ if(sibs.length < 2) { wrap.innerHTML = ''; window.__pdpVariantSkus = []; return; }
  const stockBySku = {};
  for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) stockBySku[b.sku] = (stockBySku[b.sku] || 0) + b.qty_remaining;
  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
  const escJs = (s) => String(s == null ? '' : s).replace(/'/g, "\\'");
- // sort by colour then size
  const sizeOrder = { 'S':1,'M':2,'L':3,'XL':4,'2XL':5,'3XL':6,'4XL':7,'5XL':8 };
  sibs.sort((a,b) => {
  const c = String(a.variant_color||'').localeCompare(String(b.variant_color||''));
  if(c !== 0) return c;
  return (sizeOrder[String(a.variant_size||'').toUpperCase()]||99) - (sizeOrder[String(b.variant_size||'').toUpperCase()]||99);
  });
+ window.__pdpVariantSkus = sibs.map(v => v.sku);
+ // editable cell input
+ const inp = (i,f,val,w,num) => `<input id="pv_${i}_${f}" type="${num?'number':'text'}" ${num?'step="'+num+'" inputmode="decimal"':''} value="${val==null?'':esc(val)}" onclick="event.stopPropagation();" style="width:${w}px; padding:5px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px;">`;
  let rows = '';
- for(const v of sibs) {
+ sibs.forEach((v,i) => {
  const isCur = v.sku === prod.sku;
  const stock = stockBySku[v.sku] || 0;
  const label = [v.variant_color, v.variant_size].filter(Boolean).join(' · ') || v.sku;
- rows += `<tr onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; ${isCur ? 'background:#FFF7ED;' : ''}border-bottom:1px solid #F3F4F6;">
- <td style="padding:8px 10px; font-weight:${isCur?'800':'600'}; color:#101010;">${esc(label)}${isCur ? ' <span style="color:#CD7C32; font-size:10px;">(sedang dilihat)</span>' : ''}</td>
- <td style="padding:8px 10px; font-family:monospace; font-size:11px; color:#6B7280;">${esc(v.sku)}</td>
- <td style="padding:8px 10px; text-align:right; font-weight:700; color:${stock<=0?'#DC2626':'#16A34A'};">${stock}</td>
- <td style="padding:8px 10px; text-align:right;">RM ${parseFloat(v.price||0).toFixed(2)}</td>
+ rows += `<tr style="${isCur ? 'background:#FFF7ED;' : ''}border-bottom:1px solid #F3F4F6;">
+ <td style="padding:6px 8px; white-space:nowrap;"><a onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; color:#CD7C32; font-weight:${isCur?'800':'600'}; text-decoration:none;">${esc(label)}</a>${isCur ? ' <span style="color:#9CA3AF; font-size:9px;">(kini)</span>' : ''}</td>
+ <td style="padding:6px 8px; font-family:monospace; font-size:11px; color:#6B7280; white-space:nowrap;">${esc(v.sku)}</td>
+ <td style="padding:6px 8px;">${inp(i,'qty',stock,58,'1')}</td>
+ <td style="padding:6px 8px;">${inp(i,'price',v.price,70,'0.01')}</td>
+ <td style="padding:6px 8px;">${inp(i,'compare',v.compare_at_price,70,'0.01')}</td>
+ <td style="padding:6px 8px;">${inp(i,'cost',v.cost_price,70,'0.01')}</td>
+ <td style="padding:6px 8px;">${inp(i,'barcode',v.erp_barcode,110,'')}</td>
+ <td style="padding:6px 8px;">${inp(i,'len',v.length_cm,50,'0.1')}</td>
+ <td style="padding:6px 8px;">${inp(i,'wid',v.width_cm,50,'0.1')}</td>
+ <td style="padding:6px 8px;">${inp(i,'hei',v.height_cm,50,'0.1')}</td>
+ <td style="padding:6px 8px;">${inp(i,'wt',v.weight_kg,56,'0.01')}</td>
+ <td style="padding:6px 8px; text-align:center;"><input id="pv_${i}_pub" type="checkbox" ${isPublished(v)?'checked':''} onclick="event.stopPropagation();" style="width:16px; height:16px;"></td>
  </tr>`;
- }
+ });
  const totalStock = sibs.reduce((s,v)=>s+(stockBySku[v.sku]||0),0);
+ const th = (t) => `<th style="padding:6px 8px; text-align:left; white-space:nowrap;">${t}</th>`;
  wrap.innerHTML = `
  <div style="border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
- <div style="background:#F9FAFB; padding:8px 10px; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between;">
- <span>${sibs.length} Variants</span><span style="color:#6B7280; font-weight:600;">Jumlah stok: ${totalStock}</span>
+ <div style="background:#F9FAFB; padding:8px 10px; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+ <span>${sibs.length} Variants · Jumlah stok: ${totalStock}</span>
+ <button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Simpan Variants</button>
  </div>
- <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
- <thead><tr style="background:#FAFAFA; color:#9CA3AF; font-size:10.5px; text-transform:uppercase;">
- <th style="padding:6px 10px; text-align:left;">Variant</th><th style="padding:6px 10px; text-align:left;">SKU</th><th style="padding:6px 10px; text-align:right;">Stok</th><th style="padding:6px 10px; text-align:right;">Harga</th>
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:920px;">
+ <thead><tr style="background:#FAFAFA; color:#9CA3AF; font-size:10px; text-transform:uppercase;">
+ ${th('Variant')}${th('SKU')}${th('Stok')}${th('Harga')}${th('Compare')}${th('Cost')}${th('Barcode')}${th('P(cm)')}${th('L(cm)')}${th('T(cm)')}${th('Berat')}${th('Aktif')}
  </tr></thead><tbody>${rows}</tbody></table>
+ </div>
+ <div style="padding:6px 10px; font-size:10.5px; color:#9CA3AF;">Edit terus dalam jadual, tekan "Simpan Variants". Tukar Stok = auto adjustment (audit trail). Harga auto-push ke marketplace.</div>
  </div>`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_303 — save all variant edits (stock + price/cost/dims/enabled) inline
+window.__pdpSaveVariants = async function(parentSku) {
+ const skus = window.__pdpVariantSkus || [];
+ if(!skus.length || typeof db === 'undefined' || !db) return;
+ const curSku = (document.getElementById('pdpOriginalSku') || {}).value || skus[0];
+ const stockBySku = {};
+ for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) stockBySku[b.sku] = (stockBySku[b.sku] || 0) + b.qty_remaining;
+ const u = window.currentUser || {};
+ const colMap = { price:'price', compare:'compare_at_price', cost:'cost_price', barcode:'erp_barcode', len:'length_cm', wid:'width_cm', hei:'height_cm', wt:'weight_kg' };
+ let fieldUpdates = 0, stockAdj = 0; const errs = [];
+ for(let i=0;i<skus.length;i++) {
+ const sku = skus[i];
+ const prod = (masterProducts || []).find(x => x.sku === sku);
+ if(!prod) continue;
+ const payload = {};
+ for(const [k,col] of Object.entries(colMap)) {
+ const el = document.getElementById('pv_'+i+'_'+k);
+ if(!el) continue;
+ const raw = el.value.trim();
+ const nv = (k === 'barcode') ? (raw === '' ? null : raw) : (raw === '' ? null : parseFloat(raw));
+ const ov = prod[col] == null ? null : (k === 'barcode' ? String(prod[col]) : Number(prod[col]));
+ if(String(ov) !== String(nv)) payload[col] = nv;
+ }
+ const pubEl = document.getElementById('pv_'+i+'_pub');
+ if(pubEl && (!!isPublished(prod) !== pubEl.checked)) payload.is_published = pubEl.checked;
+ if(Object.keys(payload).length) {
+ try {
+ const { error } = await db.from('products_master').update(payload).eq('sku', sku);
+ if(error) throw error;
+ const idx = masterProducts.findIndex(x => x.sku === sku);
+ if(idx >= 0) Object.assign(masterProducts[idx], payload);
+ fieldUpdates++;
+ } catch(e) { errs.push(sku + ': ' + e.message); }
+ }
+ // stock — set to target via delta adjustment batch (audit trail)
+ const qtyEl = document.getElementById('pv_'+i+'_qty');
+ if(qtyEl && qtyEl.value.trim() !== '') {
+ const target = parseInt(qtyEl.value, 10);
+ const cur = stockBySku[sku] || 0;
+ if(!isNaN(target) && target !== cur) {
+ const delta = target - cur;
+ try {
+ const { error } = await db.from('inventory_batches').insert([{ sku, qty_received: delta, qty_remaining: delta, cost_price: 0, inbound_date: new Date().toISOString(), notes: 'Variant inline edit by ' + (u.name || 'System') }]);
+ if(error) throw error;
+ stockAdj++;
+ } catch(e) { errs.push(sku + ' stok: ' + e.message); }
+ }
+ }
+ }
+ // push updated prices to marketplaces (fire-and-forget, single batch)
+ try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
+ if(typeof showToast === 'function') showToast(`Variants disimpan — ${fieldUpdates} field, ${stockAdj} stok adjust${errs.length ? ', ' + errs.length + ' ralat' : ''}.`, errs.length ? 'warn' : 'success');
+ if(typeof initApp === 'function') await initApp();
+ setTimeout(() => window.openPdpModal(curSku), 250);
 };
 
 window.renderPdpMediaGallery = function(urls) {

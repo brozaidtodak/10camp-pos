@@ -19201,6 +19201,211 @@ window.__updateCrmSegmentCounts = function() {
  });
 };
 
+// p1_249 — All Orders section (walk-in + online entry + list)
+window.renderAllOrders = function() {
+ const tbody = document.getElementById('aoTbody');
+ if(!tbody) return;
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
+ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
+ return;
+ }
+ const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
+ const channel = document.getElementById('aoChannel')?.value || '';
+ const status = document.getElementById('aoStatus')?.value || '';
+ const period = document.getElementById('aoPeriod')?.value || '30';
+ const cutoff = period === 'all' ? 0 : (Date.now() - parseInt(period, 10) * 86400000);
+ const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
+ let filtered = salesHistory.filter(s => {
+ if(cutoff && s.created_at && new Date(s.created_at).getTime() < cutoff) return false;
+ const chLower = (s.channel || '').toLowerCase();
+ if(channel === 'walkin') { if(!chLower.includes('walk')) return false; }
+ else if(channel === 'online') { if(!ONLINE_CHANNELS.some(c => chLower.includes(c))) return false; }
+ else if(channel && s.channel !== channel) return false;
+ if(status && s.status !== status) return false;
+ if(q) {
+ const itemsTxt = Array.isArray(s.items) ? s.items.map(i => (i.sku || '') + ' ' + (i.name || '')).join(' ') : '';
+ const hay = `${s.customer_name||''} ${s.customer_phone||''} ${s.customer_email||''} ${itemsTxt}`.toLowerCase();
+ if(!hay.includes(q)) return false;
+ }
+ return true;
+ });
+ filtered.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+ const total = filtered.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
+ const walkinCount = filtered.filter(s => (s.channel || '').toLowerCase().includes('walk')).length;
+ const onlineCount = filtered.filter(s => ONLINE_CHANNELS.some(c => (s.channel || '').toLowerCase().includes(c))).length;
+ const completed = filtered.filter(s => s.status === 'Completed').length;
+ const toFulfil = filtered.filter(s => s.status === 'To Fulfil').length;
+
+ document.getElementById('aoStats').innerHTML = `
+ <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Total Orders</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#16A34A;"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Total Sales</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> Walk-in</div><div class="stat-card__value">${walkinCount}</div></div>
+ <div class="stat-card" style="border-left-color:#3B82F6;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#3B82F6;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
+ <div class="stat-card" style="border-left-color:#F59E0B;"><div class="stat-card__label"><i data-lucide="clock" style="width:13px;height:13px; color:#F59E0B;"></i> To Fulfil</div><div class="stat-card__value">${toFulfil}</div></div>
+ `;
+
+ if(filtered.length === 0) {
+ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
+ document.getElementById('aoSummaryLine').textContent = '';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ return;
+ }
+ const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+ const statusBadge = (st) => {
+ const map = {
+ 'Completed': '#D1FAE5;#065F46', 'To Fulfil': '#FEF3C7;#92400E',
+ 'Cancelled': '#FEE2E2;#991B1B', 'Refunded': '#E0E7FF;#3730A3'
+ };
+ const colors = (map[st] || '#F3F4F6;#6B7280').split(';');
+ return `<span style="background:${colors[0]}; color:${colors[1]}; padding:2px 8px; border-radius:4px; font-size:10.5px; font-weight:700;">${escHtml(st || '-')}</span>`;
+ };
+ const slice = filtered.slice(0, 200);
+ tbody.innerHTML = slice.map(s => {
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+ const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + (parseInt(it.quantity) || 0), 0) : 0;
+ const ch = (s.channel || '').toLowerCase();
+ const chIcon = ch.includes('walk') ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
+ return `<tr style="border-bottom:1px solid #F3F4F6;">
+ <td style="padding:10px;">${dt}</td>
+ <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">#${s.id}</td>
+ <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
+ <td style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
+ <td style="padding:10px; font-size:11.5px;">${escHtml(s.payment_method || '-')}</td>
+ <td style="padding:10px;">${statusBadge(s.status)}</td>
+ <td style="padding:10px; text-align:right;">${itemsCount}</td>
+ <td style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
+ <td style="padding:10px; white-space:nowrap;">
+ <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
+ </td>
+ </tr>`;
+ }).join('');
+ document.getElementById('aoSummaryLine').innerHTML = `Showing <strong>${slice.length}</strong> of <strong>${filtered.length}</strong> orders${filtered.length > 200 ? ' (top 200; refine filter untuk lihat lain)' : ''}.`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+window.openAddWalkinOrder = function() {
+ // Walk-in flow: route to Cashier (existing checkout flow) — most accurate path
+ const btn = document.querySelector('[data-tab="sales_cashier"]');
+ if(btn) btn.click();
+ if(typeof showToast === 'function') showToast('Tambah barang ke troli, isi customer kalau perlu, lepas tu tekan BAYAR.', 'info');
+};
+
+window.openAddOnlineOrder = function() {
+ const html = `<div id="aoOnlineOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3700; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;" onclick="if(event.target===this) this.remove();">
+ <div style="background:#fff; max-width:560px; width:100%; border-radius:12px; padding:24px; margin:auto;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+ <h2 style="margin:0; font-size:20px;">Tambah Online Order</h2>
+ <button onclick="document.getElementById('aoOnlineOverlay').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999;">×</button>
+ </div>
+ <p style="font-size:12px; color:#6B7280; margin-bottom:14px;">Untuk record order yang dah sampai dari Shopee/TikTok/WhatsApp manually. Stok tak deduct auto — guna untuk reporting je.</p>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+ <div>
+ <label class="small-lbl">Channel <span style="color:#dc2626;">*</span></label>
+ <select id="aoOnlineChannel" class="login-input" style="margin:0;">
+ <option value="Shopee">Shopee</option>
+ <option value="TikTok">TikTok</option>
+ <option value="WhatsApp">WhatsApp</option>
+ <option value="EasyStore">EasyStore</option>
+ </select>
+ </div>
+ <div>
+ <label class="small-lbl">Status</label>
+ <select id="aoOnlineStatus" class="login-input" style="margin:0;">
+ <option value="To Fulfil" selected>To Fulfil (Pos)</option>
+ <option value="Completed">Completed</option>
+ </select>
+ </div>
+ </div>
+ <div style="margin-bottom:10px;">
+ <label class="small-lbl">Nama Pelanggan</label>
+ <input type="text" id="aoOnlineCustName" class="login-input" placeholder="Nama dari order" style="margin:0;">
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+ <div><label class="small-lbl">Phone</label><input type="tel" id="aoOnlineCustPhone" class="login-input" placeholder="0123456789" style="margin:0;"></div>
+ <div><label class="small-lbl">Email</label><input type="email" id="aoOnlineCustEmail" class="login-input" placeholder="customer@..." style="margin:0;"></div>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+ <div>
+ <label class="small-lbl">Total Amount (RM) <span style="color:#dc2626;">*</span></label>
+ <input type="number" id="aoOnlineTotal" class="login-input" step="0.01" min="0" placeholder="0.00" style="margin:0;">
+ </div>
+ <div>
+ <label class="small-lbl">Kaedah Bayar</label>
+ <select id="aoOnlinePaymentMethod" class="login-input" style="margin:0;">
+ <option value="Cash">Cash on Delivery</option>
+ <option value="QR Pay">QR Pay</option>
+ <option value="Card">Card</option>
+ <option value="E-Wallet">E-Wallet</option>
+ <option value="SPayLater">SPayLater</option>
+ </select>
+ </div>
+ </div>
+ <div style="margin-bottom:10px;">
+ <label class="small-lbl">Order Ref / Marketplace Order ID (optional)</label>
+ <input type="text" id="aoOnlineOrderRef" class="login-input" placeholder="e.g. SP240605ABC123" style="margin:0;">
+ </div>
+ <div style="margin-bottom:14px;">
+ <label class="small-lbl">Items (SKU x qty, satu line satu item — optional)</label>
+ <textarea id="aoOnlineItems" class="login-input" rows="3" placeholder="BD005 x 1&#10;BD007 x 2" style="margin:0;"></textarea>
+ </div>
+ <div id="aoOnlineErr" style="font-size:12px; color:#dc2626; min-height:16px; margin-bottom:8px;"></div>
+ <div style="display:flex; gap:8px;">
+ <button onclick="document.getElementById('aoOnlineOverlay').remove()" class="btn-brand-secondary" style="flex:1;">Batal</button>
+ <button onclick="window.submitOnlineOrder()" class="btn-brand-primary" style="flex:2;"><i data-lucide="check" style="width:14px;height:14px;"></i> Simpan Order</button>
+ </div>
+ </div>
+ </div>`;
+ const tmp = document.createElement('div');
+ tmp.innerHTML = html;
+ document.body.appendChild(tmp.firstChild);
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.submitOnlineOrder = async function() {
+ const get = (id) => (document.getElementById(id)?.value || '').trim();
+ const channel = get('aoOnlineChannel');
+ const status = get('aoOnlineStatus');
+ const custName = get('aoOnlineCustName') || 'Online Customer';
+ const custPhone = get('aoOnlineCustPhone');
+ const custEmail = get('aoOnlineCustEmail');
+ const total = parseFloat(get('aoOnlineTotal'));
+ const pm = get('aoOnlinePaymentMethod') || 'Cash';
+ const orderRef = get('aoOnlineOrderRef');
+ const itemsRaw = get('aoOnlineItems');
+ const err = document.getElementById('aoOnlineErr');
+ if(!channel) { if(err) err.textContent = 'Channel wajib pilih.'; return; }
+ if(isNaN(total) || total <= 0) { if(err) err.textContent = 'Total amount mesti > 0.'; return; }
+ // Parse items
+ const items = itemsRaw.split('\n').map(line => {
+ const m = line.match(/^([\w-]+)\s*[xX×*]\s*(\d+)$/);
+ if(!m) return null;
+ const sku = m[1].toUpperCase();
+ const qty = parseInt(m[2], 10);
+ const p = (typeof masterProducts !== 'undefined') ? masterProducts.find(x => x.sku === sku) : null;
+ return { sku, name: p ? p.name : sku, price: p ? parseFloat(p.price) : 0, quantity: qty };
+ }).filter(Boolean);
+ const payload = {
+ customer_name: custName, customer_phone: custPhone || null, customer_email: custEmail || null,
+ payment_method: pm, channel, status,
+ total: total, total_amount: total,
+ items: items.length ? items : null,
+ staff_name: (window.currentUser && window.currentUser.name) || 'Unknown',
+ metadata: orderRef ? { online_order_ref: orderRef, manual_entry: true } : { manual_entry: true }
+ };
+ try {
+ if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+ const { data, error } = await db.from('sales_history').insert([payload]).select().single();
+ if(error) throw error;
+ if(typeof salesHistory !== 'undefined') salesHistory.unshift(data);
+ if(typeof showToast === 'function') showToast(`Order ${channel} #${data.id} disimpan.`, 'success');
+ document.getElementById('aoOnlineOverlay')?.remove();
+ window.renderAllOrders();
+ } catch(e) {
+ if(err) err.textContent = 'Simpan gagal: ' + (e.message || e);
+ }
+};
+
 window.renderCustomersV2 = function() {
  const tbody = document.getElementById('customersTableBody');
  if(!tbody) return;
@@ -22030,17 +22235,20 @@ window.cpRecomputeTotal = function() {
  }
  final = round2(afterCustom - vipDiscount);
  const totalDiscount = customDiscount + vipDiscount;
- document.getElementById('cpTotalDisplay').textContent = final.toFixed(2);
- document.getElementById('cpConfirmAmount').textContent = final.toFixed(2);
+ // p1_249 — defensive null checks (Zaid screenshot: "null is not an object cpConfirmAmount")
+ const tdEl = document.getElementById('cpTotalDisplay'); if(tdEl) tdEl.textContent = final.toFixed(2);
+ const caEl = document.getElementById('cpConfirmAmount'); if(caEl) caEl.textContent = final.toFixed(2);
  const discLine = document.getElementById('cpDiscountLine');
+ if(discLine) {
  if(totalDiscount > 0) {
  discLine.style.display = 'block';
  const parts = [];
  if(customDiscount > 0) parts.push('Diskaun custom −RM ' + customDiscount.toFixed(2));
- if(vipDiscount > 0) parts.push((window.__currentCheckoutVip.tier || 'VIP') + ' −RM ' + vipDiscount.toFixed(2));
+ if(vipDiscount > 0) parts.push((window.__currentCheckoutVip?.tier || 'VIP') + ' −RM ' + vipDiscount.toFixed(2));
  discLine.innerHTML = parts.join(' · ') + ' (subtotal RM ' + raw.toFixed(2) + ')';
  } else {
  discLine.style.display = 'none';
+ }
  }
  const legacy = document.getElementById('paymentTotalDisplay');
  if(legacy) legacy.textContent = final.toFixed(2);

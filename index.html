@@ -1510,6 +1510,10 @@
  <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_cashier" onclick="switchHub(['posSection'], 'POS / Cashier', this)">
  <i data-lucide="shopping-cart" style="width:16px; height:16px;"></i> <span data-i18n="sb_pos_cashier">POS / Cashier</span>
  </div>
+ <!-- p1_249 — All Orders sidebar item (walk-in + online) -->
+ <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_all_orders" onclick="switchHub(['allOrdersSection'], 'All Orders', this); if(typeof renderAllOrders==='function') renderAllOrders();">
+ <i data-lucide="list-ordered" style="width:16px; height:16px;"></i> <span data-i18n="sb_all_orders">All Orders</span>
+ </div>
  <div class="menu-item sales-only" data-group="sales" style="padding-left:35px; font-size:13px; display:flex; align-items:center; gap:8px;" data-tab="sales_customer_lookup" onclick="switchHub(['customersSection'], 'Customer Lookup', this); if(typeof renderCustomersV2==='function') renderCustomersV2();">
  <i data-lucide="search" style="width:16px; height:16px;"></i> <span data-i18n="sb_customer_lookup">Customer Lookup</span>
  </div>
@@ -4096,6 +4100,80 @@
  <!-- ============================================== -->
  <!-- SECTION: CUSTOMERS CRM -->
  <!-- ============================================== -->
+ <!-- p1_249 — All Orders section (walk-in + online manual entry + list) -->
+ <div id="allOrdersSection" class="tab-section" style="display: none;">
+ <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="list-ordered" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> All Orders</h2>
+
+ <!-- Stats cards -->
+ <div id="aoStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:14px;"></div>
+
+ <!-- Toolbar — filter + add buttons -->
+ <div class="admin-card" style="padding:14px; margin-bottom:14px;">
+ <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
+ <div style="grid-column: 1 / -1;"><label class="small-lbl">Cari (customer / sku / phone)</label><input type="text" id="aoSearch" class="login-input" placeholder="zaid / BD005 / 60123..." style="margin:0;" oninput="window.renderAllOrders && window.renderAllOrders()"></div>
+ <div><label class="small-lbl">Channel</label>
+ <select id="aoChannel" class="login-input" style="margin:0;" onchange="window.renderAllOrders && window.renderAllOrders()">
+ <option value="">Semua</option>
+ <option value="walkin">Walk-in (kedai)</option>
+ <option value="online">Online (semua)</option>
+ <option value="Walk-in Kedai">Walk-in Kedai</option>
+ <option value="WhatsApp">WhatsApp</option>
+ <option value="Shopee">Shopee</option>
+ <option value="TikTok">TikTok</option>
+ <option value="EasyStore">EasyStore</option>
+ </select>
+ </div>
+ <div><label class="small-lbl">Status</label>
+ <select id="aoStatus" class="login-input" style="margin:0;" onchange="window.renderAllOrders && window.renderAllOrders()">
+ <option value="">Semua</option>
+ <option value="Completed">Completed</option>
+ <option value="To Fulfil">To Fulfil</option>
+ <option value="Cancelled">Cancelled</option>
+ <option value="Refunded">Refunded</option>
+ </select>
+ </div>
+ <div><label class="small-lbl">Tempoh</label>
+ <select id="aoPeriod" class="login-input" style="margin:0;" onchange="window.renderAllOrders && window.renderAllOrders()">
+ <option value="7">7 hari</option>
+ <option value="30" selected>30 hari</option>
+ <option value="90">90 hari</option>
+ <option value="365">12 bulan</option>
+ <option value="all">Semua</option>
+ </select>
+ </div>
+ </div>
+ <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+ <button onclick="window.openAddWalkinOrder()" class="btn-brand-primary"><i data-lucide="store" style="width:14px;height:14px;"></i> Tambah Walk-in</button>
+ <button onclick="window.openAddOnlineOrder()" class="btn-brand-dark"><i data-lucide="globe" style="width:14px;height:14px;"></i> Tambah Online Order</button>
+ <button onclick="window.renderAllOrders && window.renderAllOrders()" class="btn-brand-secondary"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Refresh</button>
+ </div>
+ </div>
+
+ <div class="admin-card" style="padding:0;">
+ <div style="overflow-x:auto;">
+ <table class="data-table" style="font-size:12.5px;">
+ <thead style="background:var(--card-bg); position:sticky; top:0; z-index:5;">
+ <tr>
+ <th style="text-align:left; padding:10px;">Tarikh</th>
+ <th style="text-align:left; padding:10px;">Sale#</th>
+ <th style="text-align:left; padding:10px;">Pelanggan</th>
+ <th style="text-align:left; padding:10px;">Channel</th>
+ <th style="text-align:left; padding:10px;">Kaedah</th>
+ <th style="text-align:left; padding:10px;">Status</th>
+ <th style="text-align:right; padding:10px;">Items</th>
+ <th style="text-align:right; padding:10px;">RM</th>
+ <th style="padding:10px;">Aksi</th>
+ </tr>
+ </thead>
+ <tbody id="aoTbody">
+ <tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>
+ </tbody>
+ </table>
+ </div>
+ <p id="aoSummaryLine" style="font-size:12px; color:#666; padding:10px 14px; margin:0;"></p>
+ </div>
+ </div>
+
  <div id="customersSection" class="tab-section" style="display: none;">
  <!-- p1_244: data-skip-title-sync supaya switchHub tak append "Customer Lookup" ke end h2 (bug: span tak detected as text node, append node ke akhir h2). -->
  <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="users" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> <span data-i18n="cr_title">Customer Database (CRM)</span></h2>
@@ -6692,7 +6770,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (248/248 · last 2026-06-05) — Fix iPad checkout panel orange Lihat Troli bar OVERLAP Sahkan Bayaran button. Root cause: p1_232 JS set display:none inline tapi p1_239 CSS pakai !important — !important menang. Fix: body class .checkout-panel-open via JS + CSS rule dengan !important specifity guna body class (broader compat than :has).',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (249/249 · last 2026-06-05) — Sales sidebar All Orders item baru (walk-in + online) + fix cpRecomputeTotal null error. Section #allOrdersSection ada stats (5 cards), filter (search/channel/status/period), table 9-col semua orders sorted desc dengan channel icon + status badge + Edit button. Tambah Walk-in route ke Cashier; Tambah Online buka modal manual entry (channel/status/customer/total/items text "SKU x qty"), insert ke sales_history dengan metadata.manual_entry=true.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -6767,6 +6845,7 @@
  { id:'p1_70', label:'Sidebar restructure — buang Reports dari Inventory + cipta Marketing Department. (1) Inventory Department: seksyen "— Reports —" (5 entri: Velocity & Sales, Stock Aging, Stock Valuation, Period Snapshot, Stock Reservations) DIBUANG dari sidebar — Operasi tinggal kerja harian (Pesanan Online, Jadual Operasi, Browse Products, Purchase Orders, Warehouse Hub, Stock Take, Smart Picking, Barcode Labels). Section divs (productSalesSection/agingSection/valuationSection/snapshotSection/reservationsSection) kekal dalam DOM untuk back-compat — boleh kembalikan kemudian jika perlu. (2) Marketing Department BARU dicipta sebagai group sidebar berasingan (sebelum Finance, selepas Admin). 3 entri (data-group="marketing"): Promotions & Vouchers + WhatsApp Broadcast + Re-engage Campaign — dipindah keluar dari Admin Dept (sub-header "— Marketing —" dibuang dari Admin). data-tab kekal sama (admin_promotions/admin_wa_broadcast/admin_reengage) untuk back-compat dengan staffSidebarAccess_v1 overlay. Manager-access tier sama macam Admin', d:'done' },
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
+ { id:'p1_249', label:'Sales > All Orders + fix cpRecomputeTotal null error (Zaid: "sekarang ni wujudkan item baru dibawah sidebar sales, all orders, masukkan order walk in dan online order. selepas itu [error popup]"). BUG FIX p1_249a: cpRecomputeTotal threw "null is not an object (evaluating document.getElementById(cpConfirmAmount).textContent = final.toFixed(2))" — Zaid screenshot. Cause: cpRecomputeTotal call paths might fire before cpFormView DOM ready (e.g. cpSetPayment dari closed panel state). Defensive null checks: const tdEl = getElementById(cpTotalDisplay); if(tdEl) tdEl.textContent = ...; same untuk caEl, discLine. Also chain `?.tier || VIP` untuk __currentCheckoutVip kalau null. FEATURE p1_249b: Sales sidebar tambah item "All Orders" (line 1513 selepas POS/Cashier, dengan icon list-ordered). #allOrdersSection: (a) Stats 5 cards via .stat-card class — Total Orders, Total Sales RM, Walk-in count, Online count, To Fulfil count. (b) Filter toolbar — search (customer+sku+phone), channel select (Semua/walkin/online/Walk-in Kedai/WhatsApp/Shopee/TikTok/EasyStore), status select (Completed/To Fulfil/Cancelled/Refunded), period (7/30/90/365/all hari). (c) 3 action buttons — Tambah Walk-in (.btn-brand-primary, route ke Cashier), Tambah Online Order (.btn-brand-dark, buka modal), Refresh. (d) Table 9-col: Tarikh/Sale#/Pelanggan+Phone/Channel dengan Lucide icon (walk=store, shopee=shopping-cart, tiktok=video, whatsapp=message-circle)/Kaedah/Status badge color-coded (Completed=green, To Fulfil=amber, Cancelled=red, Refunded=indigo)/Items count/RM total/Edit button (reuse __ppEditSale dari Payment Proofs). Sorted desc by created_at, slice 200 max dengan summary line. (e) renderAllOrders entry — fire on sidebar click. (f) Modal Add Online Order — channel/status/customer/phone/email/total/payment method/order ref/items text "BD005 x 1\\nBD007 x 2" parser. submitOnlineOrder insert sales_history dengan metadata.manual_entry=true + metadata.online_order_ref kalau ada. Sync ke in-memory salesHistory + re-render. app.js v346→v347.', d:'done' },
  { id:'p1_248', label:'Fix iPad checkout panel — orange Lihat Troli bar overlap Sahkan Bayaran (Zaid screenshot iPad: "dekat ipad, selepas isi checkout, cart tutup button bayar, so tak boleh nak tekan"). Root cause: p1_232 set mfb.style.display=none inline via JS, tapi p1_239 CSS rule `body.pos-mobile-mode #mobileCartFloatingBar { display:flex !important }` pakai `!important` — !important menang vs inline style. So mfb stayed visible meskipun JS dah tutup. Fix dua-layer: (a) JS openCheckoutPanel `document.body.classList.add("checkout-panel-open")` + closeCheckoutPanel `remove("checkout-panel-open")`. (b) CSS baru: `body.checkout-panel-open #mobileCartFloatingBar { display:none !important }` — selector specificity (1 class on body + 1 id) > p1_239 (.pos-mobile-mode body class + id) sebab id beats class, plus !important matches. Body class approach pakai broader compat berbanding `:has(.is-open)` (Safari/Chrome 15+ je). Pada iPad checkout panel sekarang full visible, button Sahkan accessible tanpa overlap orange bar. style.css v48→v49, app.js v345→v346.', d:'done' },
  { id:'p1_247', label:'Fix mobile cart drawer + checkout panel double-visible (Zaid screenshot: "bila buka troli, tekan bayar sekarang dia akan keluar checkout section tanpa tutup cart. flow ni sangatlah tak convinient"). Bug: openCheckoutPanel slide in dari kanan tapi cart drawer (posCartDrawer.drawer-open mobile mode) tak ditutup → dua-dua visible serentak = confusing. Fix simple: dalam openCheckoutPanel (selepas cart-empty guard, sebelum try block), check kalau drawer.classList.contains("drawer-open") → drawer.classList.remove("drawer-open"). closeCheckoutPanel tak perlu re-open drawer — drawer stay tutup unless staff explicitly tap orange Lihat Troli bar lagi. app.js v344→v345.', d:'done' },
  { id:'p1_246', label:'Polish semua via legacy class refresh (Zaid: "ok polish semua"). Realistic approach: 177 inline-styled card patterns + 87 button class usages — manual refactor terlalu risky. Strategy: update existing classes (.btn-primary, .btn-success, etc) supaya AUTO-apply brand polish ke semua usage site tanpa code touch. Refactor (style.css line 179-225 area): (a) Universal button group `.btn-primary, .btn-secondary, .btn-success, .btn-dark, .btn-danger` — padding 12×22 (was 14×24), border 1px solid transparent + brand-aligned border-radius 8px (was pill 50px — pill jadi extreme bila padding kecik), Poppins font + filter:brightness hover + active scale + min-height 40px + display inline-flex with gap 6px untuk icon support, transition smooth. (b) .btn-secondary tukar dari muted gray solid ke white bg + neutral border + lift hover (matches .btn-brand-secondary pattern). (c) .btn-success — BUANG `width:100%` legacy (sebab tu Export CSV full-width pelik) + filter:brightness hover. (d) .btn-dark — tukar #111827 ke var(--secondary) Tropical Black + warm hover #2A2520. (e) .btn-danger BARU ditambah — #DC2626 red. (f) .admin-card consolidate (was duplicate definition — p1_245 + existing line 185 conflict): single rule 12px radius + soft shadow + hover lift transition. Outcome: 87 button + 23 admin-card usage site dapat brand polish AUTOMATIC tanpa refactor inline-style satu-satu. Sections affected: Cashier (BAYAR SEKARANG / Kosongkan), Reports (semua action buttons), Inventory (Daftar/Save), Stock Check (sessions), Pricing Setup, PDP Modal, Customer DB (dah refactor p1_244-p1_245), HR, Marketplace, Settings — semua dapat hover lift + filter brightness + correct min-height + Poppins. Subsequent polish iterations boleh fokus pada pastel BG inline-styled cards (103 occurrences) atau specific micro-UX. style.css v47→v48.', d:'done' },
@@ -11476,7 +11555,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=346"></script>
+ <script src="app.js?v=347"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

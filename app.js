@@ -21905,8 +21905,9 @@ window.setMode = function(mode) {
  // Roadmap button + Memo Board — keep visible in all modes (p1_19)
  // p1_148: report_my + staff_feedback — all-staff visibility (Reports template + Aduan feature)
  // p1_251 — sales_all_orders ditambah ke whitelist (Zaid: "visiblekan all orders dekat semua orang")
- // p1_262 — inv_database (Product Master) ditambah ke whitelist (Zaid: "master product sepatutnya stand on his own sebagai env item")
- if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup' || dataTab === 'feedback_inbox' || dataTab === 'sales_all_orders' || dataTab === 'inv_database') { it.classList.remove('mode-hidden'); return; }
+ // p1_262 — inv_database (Product Master) ditambah ke whitelist
+ // p1_267 — Product Master group + 3 sub-items (Collection / Inventory / Purchase Orders) visible semua role
+ if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup' || dataTab === 'feedback_inbox' || dataTab === 'sales_all_orders' || dataTab === 'inv_database' || dataTab === 'inv_warehouse_hub' || dataTab === 'inv_po' || groupToggle === 'product_master' || it.getAttribute('data-group') === 'product_master') { it.classList.remove('mode-hidden'); return; }
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 

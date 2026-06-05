@@ -67,29 +67,33 @@ exports.handler = async (event) => {
         out.markup = cfg;
         const applyMarkup = (base, c) => (c && c.mode === 'rm') ? round2(base + (Number(c.value) || 0)) : round2(base * (1 + (Number(c.value) || 0) / 100));
         // Load products (scoped to skus, or all that are mapped to either channel)
-        let path = '/products_master?select=sku,price,price_marketplace,metadata';
+        let path = '/products_master?select=sku,price,price_marketplace,shopee_price,tiktok_price,metadata';
         if (skus.length) path += `&sku=in.(${skus.map(s => `"${s}"`).join(',')})`;
         const rows = await shopee.sb('GET', path) || [];
 
-        // Build plan
+        // Build plan. Per-product custom price wins; else POS price + channel markup.
         const plan = rows.map(r => {
             const m = (r.metadata && typeof r.metadata === 'object') ? r.metadata : {};
             const base = (r.price_marketplace != null ? Number(r.price_marketplace) : Number(r.price)) || 0;
+            const customShopee = r.shopee_price != null ? Number(r.shopee_price) : null;
+            const customTiktok = r.tiktok_price != null ? Number(r.tiktok_price) : null;
             return {
                 sku: (r.sku || '').toUpperCase(),
                 base,
-                shopee_price: applyMarkup(base, cfg.shopee),
-                tiktok_price: applyMarkup(base, cfg.tiktok),
+                shopee_price: customShopee != null ? round2(customShopee) : applyMarkup(base, cfg.shopee),
+                tiktok_price: customTiktok != null ? round2(customTiktok) : applyMarkup(base, cfg.tiktok),
+                shopee_custom: customShopee != null,
+                tiktok_custom: customTiktok != null,
                 shopee_item_id: m.shopee_item_id || null,
                 shopee_model_id: m.shopee_model_id != null ? m.shopee_model_id : null
             };
-        }).filter(x => x.base > 0);
+        }).filter(x => x.base > 0 || x.shopee_price > 0 || x.tiktok_price > 0);
 
         out.products = plan.length;
         out.shopee_targets = plan.filter(x => x.shopee_item_id).length;
 
         if (mode === 'dryrun') {
-            out.sample = plan.slice(0, 15).map(x => ({ sku: x.sku, base: x.base, shopee: x.shopee_price, tiktok: x.tiktok_price, shopee_mapped: !!x.shopee_item_id }));
+            out.sample = plan.slice(0, 15).map(x => ({ sku: x.sku, base: x.base, shopee: x.shopee_price + (x.shopee_custom ? ' (custom)' : ''), tiktok: x.tiktok_price + (x.tiktok_custom ? ' (custom)' : ''), shopee_mapped: !!x.shopee_item_id }));
             out.note = 'DRYRUN — nothing written. Add ?mode=push to apply (LIVE prices).';
             return json(200, out);
         }

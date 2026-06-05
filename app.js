@@ -15026,7 +15026,7 @@ window.renderMarketplaces = async function() {
  // p1_296 — Markup Harga Marketplace (editable RM/%) + Push Harga
  html += '<div style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:18px; margin-bottom:20px;">';
  html += '<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><i data-lucide="tags" style="width:18px;height:18px;color:#CD7C32;"></i><span style="font-size:15px; font-weight:700; color:#101010;">Markup Harga Marketplace</span></div>';
- html += '<div style="font-size:12px; color:#6B7280; margin-bottom:14px;">Harga POS + markup ini = harga yang dipush ke marketplace (tutup komisen). Pilih % atau RM.</div>';
+ html += '<div style="font-size:12px; color:#6B7280; margin-bottom:14px;">Markup DEFAULT untuk produk yang TIADA harga custom. Set harga custom per produk dalam borang edit produk (Harga Shopee / Harga TikTok). Pilih % atau RM.</div>';
  html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">';
  const mkRow = (key, name, color) =>
    '<div style="border:1px solid #E5E7EB; border-radius:10px; padding:14px;">' +
@@ -16399,6 +16399,8 @@ window.saveMasterProduct = async function() {
  unit: get('mpUnit') || 'pcs',
  price,
  cost_price: getNum('mpCostPrice'),
+ shopee_price: getNum('mpShopeePrice'),
+ tiktok_price: getNum('mpTiktokPrice'),
  category: get('mpCategory') || null,
  brand: get('mpBrand') || null,
  model_no: get('mpModelNo') || null,
@@ -16447,6 +16449,10 @@ window.saveMasterProduct = async function() {
  if(idx >= 0) masterProducts[idx] = savedProd; else masterProducts.push(savedProd);
  }
 
+ // p1_297 — push this product's price to Shopee + TikTok (custom price or markup
+ // fallback). Single SKU = fast, fire-and-forget, never blocks the save.
+ try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
+
  // p1_226 — Initial Quantity → inventory_batches insert (only for NEW products + qty > 0)
  // p1_236 — fix schema columns: was unit_cost_rm/received_at/received_by/note → actual: cost_price/inbound_date/notes
  const initQty = getNum('mpInitQty');
@@ -16487,6 +16493,7 @@ window.loadMasterProductForEdit = async function() {
  set('mpModelNo', p.model_no); set('mpParentSku', p.parent_sku);
  set('mpUnit', p.unit || 'pcs');
  set('mpPrice', p.price); set('mpCostPrice', p.cost_price);
+ set('mpShopeePrice', p.shopee_price); set('mpTiktokPrice', p.tiktok_price);
  set('mpInitQty', ''); // edit mode tak override stock
  set('mpVariantColor', p.variant_color); set('mpVariantSize', p.variant_size);
  set('mpErpBarcode', p.erp_barcode);

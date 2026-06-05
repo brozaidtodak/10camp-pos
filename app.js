@@ -14951,6 +14951,8 @@ window.renderMarketplaces = async function() {
  key: 'easystore',
  name: 'EasyStore',
  desc: 'Online store + product catalog (current platform)',
+ storeUrl: 'https://www.10camp.com',
+ channelValue: 'Web EasyStore',
  icon: 'store',
  color: '#FF6B35',
  connected: true,
@@ -14966,6 +14968,8 @@ window.renderMarketplaces = async function() {
  key: 'shopee',
  name: 'Shopee',
  desc: 'Shopee Live API · Order pull + stock sync',
+ storeUrl: 'https://shopee.com.my/10camp.os',
+ channelValue: 'Shopee',
  icon: 'shopping-bag',
  color: '#EE4D2D',
  connected: mapStats.shopee > 0,
@@ -14982,6 +14986,8 @@ window.renderMarketplaces = async function() {
  key: 'tiktok',
  name: 'TikTok Shop',
  desc: 'Direct API · Read-only product compare (Phase 3 ready)',
+ storeUrl: 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop',
+ channelValue: 'TikTok Shop',
  icon: 'video',
  color: '#000000',
  connected: mapStats.tiktok > 0,
@@ -15012,44 +15018,128 @@ window.renderMarketplaces = async function() {
  html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #3B82F6; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Master Catalog</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + mapStats.total + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">products_master rows</div></div>';
  html += '</div>';
 
- // Platform cards
- html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">';
+ // p1_289 — "Your active channels" heading (EasyStore-style)
+ html += '<div style="font-size:13px; font-weight:700; color:#101010; margin:4px 0 2px;">Your active channels</div>';
+ html += '<div style="font-size:12px; color:#6B7280; margin-bottom:14px;">Tekan channel untuk urus orders, products & sync.</div>';
+
+ // Platform cards — whole card clickable → channel detail page
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">';
  platforms.forEach(p => {
- const pct = p.total > 0 ? Math.round((p.mapped / (p.limit || p.total)) * 100) : 0;
  const statusColor = p.connected ? '#10B981' : '#9CA3AF';
  const statusLabel = p.connected ? 'Connected' : 'Not connected';
- html += '<div style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px;">';
- // Header row: icon + name + status pill
+ html += '<div onclick="window.__mpOpenChannel && window.__mpOpenChannel(\'' + p.key + '\')" style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px; cursor:pointer; transition:box-shadow .15s, transform .1s;" onmouseover="this.style.boxShadow=\'0 4px 14px rgba(0,0,0,.08)\'; this.style.transform=\'translateY(-2px)\';" onmouseout="this.style.boxShadow=\'none\'; this.style.transform=\'none\';">';
+ // Header row: icon + name + chevron
  html += '<div style="display:flex; align-items:center; gap:12px;">';
  html += '<div style="width:42px; height:42px; border-radius:10px; background:' + p.color + '; display:flex; align-items:center; justify-content:center; color:#FFF; flex-shrink:0;"><i data-lucide="' + p.icon + '" style="width:22px; height:22px;"></i></div>';
  html += '<div style="flex:1; min-width:0;"><div style="font-size:15px; font-weight:700; color:#101010;">' + p.name + '</div><div style="font-size:11.5px; color:#6B7280; line-height:1.4;">' + p.desc + '</div></div>';
+ html += '<i data-lucide="chevron-right" style="width:18px; height:18px; color:#9CA3AF; flex-shrink:0;"></i>';
+ html += '</div>';
+ // Footer row: status pill + mapped count
+ html += '<div style="display:flex; align-items:center; justify-content:space-between; padding-top:4px; border-top:1px solid #F3F4F6;">';
  html += '<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 9px; background:' + statusColor + '18; color:' + statusColor + '; border-radius:999px; font-size:11px; font-weight:700;"><span style="width:6px; height:6px; background:' + statusColor + '; border-radius:50%;"></span>' + statusLabel + '</span>';
- html += '</div>';
- // Stats row
- html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 12px; background:#F9FAFB; border-radius:8px;">';
- html += '<div><div style="font-size:10px; color:#9CA3AF; text-transform:uppercase; font-weight:600;">Mapped</div><div style="font-size:18px; font-weight:800; color:#101010;">' + p.mapped + (p.limit ? ' <span style="font-size:11px; color:#9CA3AF; font-weight:500;">/ ' + p.limit + '</span>' : '') + '</div></div>';
- html += '<div><div style="font-size:10px; color:#9CA3AF; text-transform:uppercase; font-weight:600;">Last Sync</div><div style="font-size:12.5px; font-weight:600; color:#101010; margin-top:3px;">' + fmtTs(p.lastSync) + '</div></div>';
- html += '</div>';
- // Progress bar
- if(p.limit || p.mapped > 0) {
- const barColor = pct >= 90 ? '#10B981' : (pct >= 50 ? '#F59E0B' : '#9CA3AF');
- html += '<div><div style="height:6px; background:#E5E7EB; border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + Math.min(100, pct) + '%; background:' + barColor + '; border-radius:999px; transition:width 0.3s;"></div></div><div style="font-size:10.5px; color:#6B7280; margin-top:4px;">' + pct + '% mapping coverage</div></div>';
- }
- // Actions
- html += '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;">';
- p.actions.forEach(a => {
- html += '<button onclick="' + a.onclick + '" style="flex:1; min-width:120px; padding:8px 12px; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:8px; font-size:12px; font-weight:600; color:#374151; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="' + a.icon + '" style="width:13px; height:13px;"></i>' + a.label + '</button>';
- });
+ html += '<span style="font-size:11.5px; color:#6B7280;">' + p.mapped + ' mapped · ' + fmtTs(p.lastSync) + '</span>';
  html += '</div>';
  html += '</div>';
  });
  html += '</div>';
 
  // Footer note
- html += '<div style="margin-top:20px; padding:12px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:10px; font-size:12px; color:#9A3412;"><i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; margin-right:5px;"></i>Mapping data dibaca dari products_master.metadata. Run mapping per platform untuk sync product IDs. Stock + order sync jalan automatic ikut webhook + schedule.</div>';
+ html += '<div style="margin-top:20px; padding:12px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:10px; font-size:12px; color:#9A3412;"><i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; margin-right:5px;"></i>Mapping data dibaca dari products_master.metadata. Stock + order sync jalan automatic ikut webhook + schedule.</div>';
+
+ // Stash computed data so the detail view can read it without re-querying.
+ window.__mpData = { platforms: platforms, connectedCount: connectedCount, totalMapped: totalMapped, totalCatalog: mapStats.total };
 
  body.innerHTML = html;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_289 — human-readable "last sync" timestamp (global so detail view reuses it)
+window.__mpFmtTs = function(ts) {
+ if(!ts) return 'Belum pernah sync';
+ try {
+ const d = new Date(ts);
+ const diff = (Date.now() - d.getTime()) / 1000;
+ if(diff < 60) return 'Just now';
+ if(diff < 3600) return Math.floor(diff/60) + ' min lalu';
+ if(diff < 86400) return Math.floor(diff/3600) + ' jam lalu';
+ if(diff < 604800) return Math.floor(diff/86400) + ' hari lalu';
+ return d.toLocaleDateString('ms-MY', { day:'2-digit', month:'short', year:'numeric' });
+ } catch(e) { return ts; }
+};
+
+// p1_289 — Channel detail page (EasyStore-style): Open Store + Orders/Products/Sync.
+window.__mpOpenChannel = function(key) {
+ const body = document.getElementById('mpDashboardBody');
+ if(!body) return;
+ const platforms = (window.__mpData && window.__mpData.platforms) || [];
+ const p = platforms.find(x => x.key === key);
+ if(!p) { window.renderMarketplaces(); return; }
+ const fmtTs = window.__mpFmtTs;
+ const pct = p.total > 0 ? Math.round((p.mapped / (p.limit || p.total)) * 100) : 0;
+ const statusColor = p.connected ? '#10B981' : '#9CA3AF';
+ const statusLabel = p.connected ? 'Connected' : 'Not connected';
+ const esc = (s) => String(s == null ? '' : s).replace(/'/g, "\\'");
+
+ let html = '';
+ // Top bar: back + Open Store
+ html += '<div style="display:flex; align-items:center; justify-content:space-between; margin:20px 0 16px; gap:10px; flex-wrap:wrap;">';
+ html += '<button onclick="window.renderMarketplaces()" class="btn-brand-outline" style="font-size:13px; padding:8px 14px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="chevron-left" style="width:16px; height:16px;"></i>Channels</button>';
+ if(p.storeUrl) {
+ html += '<a href="' + p.storeUrl + '" target="_blank" rel="noopener" class="btn-brand-primary" style="font-size:13px; padding:9px 16px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;"><i data-lucide="external-link" style="width:15px; height:15px;"></i>Open Store</a>';
+ }
+ html += '</div>';
+
+ // Channel header card
+ html += '<div style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:20px; display:flex; align-items:center; gap:16px; margin-bottom:16px;">';
+ html += '<div style="width:56px; height:56px; border-radius:12px; background:' + p.color + '; display:flex; align-items:center; justify-content:center; color:#FFF; flex-shrink:0;"><i data-lucide="' + p.icon + '" style="width:28px; height:28px;"></i></div>';
+ html += '<div style="flex:1; min-width:0;"><div style="font-size:20px; font-weight:800; color:#101010;">' + p.name + '</div><div style="font-size:12.5px; color:#6B7280; margin-top:2px;">' + p.desc + '</div></div>';
+ html += '<span style="display:inline-flex; align-items:center; gap:5px; padding:5px 11px; background:' + statusColor + '18; color:' + statusColor + '; border-radius:999px; font-size:12px; font-weight:700;"><span style="width:7px; height:7px; background:' + statusColor + '; border-radius:50%;"></span>' + statusLabel + '</span>';
+ html += '</div>';
+
+ // Stats strip
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid ' + p.color + '; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Products Mapped</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + p.mapped + (p.limit ? ' <span style="font-size:13px; color:#9CA3AF; font-weight:500;">/ ' + p.limit + '</span>' : '') + '</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #3B82F6; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Last Sync</div><div style="font-size:16px; font-weight:700; color:#101010; margin-top:8px;">' + fmtTs(p.lastSync) + '</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #10B981; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Coverage</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + pct + '%</div></div>';
+ html += '</div>';
+
+ // Action tiles — Orders / Products / Sync
+ const tile = (icon, color, title, desc, onclick) =>
+ '<div onclick="' + onclick + '" style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:18px; cursor:pointer; transition:box-shadow .15s, transform .1s; display:flex; flex-direction:column; gap:8px;" onmouseover="this.style.boxShadow=\'0 4px 14px rgba(0,0,0,.08)\'; this.style.transform=\'translateY(-2px)\';" onmouseout="this.style.boxShadow=\'none\'; this.style.transform=\'none\';">' +
+ '<div style="width:38px; height:38px; border-radius:9px; background:' + color + '18; display:flex; align-items:center; justify-content:center; color:' + color + ';"><i data-lucide="' + icon + '" style="width:19px; height:19px;"></i></div>' +
+ '<div style="font-size:14px; font-weight:700; color:#101010;">' + title + '</div>' +
+ '<div style="font-size:11.5px; color:#6B7280; line-height:1.4;">' + desc + '</div>' +
+ '</div>';
+
+ html += '<div style="font-size:13px; font-weight:700; color:#101010; margin:4px 0 10px;">Urus ' + p.name + '</div>';
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">';
+ // Orders → All Orders filtered to this channel
+ html += tile('clipboard-list', '#3B82F6', 'Orders', 'Lihat & urus pesanan dari ' + p.name + ' (auto-tapis channel ni).',
+ "window.__mpChannelOrders && window.__mpChannelOrders('" + esc(p.channelValue || '') + "')");
+ // Products → product database
+ html += tile('package', '#10B981', 'Products', 'Urus katalog produk & mapping listing.',
+ "switchHub(['databaseSection'], 'Collection', null); if(typeof renderProductDatabase==='function') renderProductDatabase();");
+ // Sync tiles from platform.actions
+ (p.actions || []).forEach(a => {
+ html += tile(a.icon || 'refresh-cw', '#CD7C32', a.label, 'Jalankan ' + a.label.toLowerCase() + ' untuk ' + p.name + '.', a.onclick);
+ });
+ html += '</div>';
+
+ body.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_289 — open All Orders pre-filtered to a channel
+window.__mpChannelOrders = function(channelValue) {
+ if(typeof switchHub === 'function') switchHub(['allOrdersSection'], 'All Orders', null);
+ const sel = document.getElementById('aoChannel');
+ if(sel && channelValue) {
+ // set exact value if the option exists, else fall back to generic online
+ const hasOpt = Array.from(sel.options).some(o => o.value === channelValue);
+ sel.value = hasOpt ? channelValue : 'online';
+ }
+ const period = document.getElementById('aoPeriod'); if(period) period.value = 'all';
+ if(typeof window.renderAllOrders === 'function') window.renderAllOrders();
 };
 
 // p1_283 — Marketplace action handlers (fire mapping/sync functions)

@@ -263,20 +263,22 @@ exports.handler = async (event) => {
             return json(200, out);
         }
 
-        // 5. Import
-        let inserted = 0;
-        for (const batch of chunk(fresh, 50)) {
-            if (!batch.length) continue;
-            await sb('POST', '/sales_history', batch, { Prefer: 'return=minimal' });
-            inserted += batch.length;
-        }
-        out.inserted = inserted;
-
-        // 6. Lubang A — deduct POS stock for each NEWLY-imported order (FIFO).
-        // Only `fresh` orders reach here (already deduped), so each deducts once.
-        // Skip voided/cancelled orders — those never consumed stock.
+        // 5+6. Import PER-ORDER + deduct only on a real insert.
+        // The unique index uq_sales_shopee_order_sn makes a racing duplicate
+        // insert fail with 23505; we skip those, so stock is deducted exactly
+        // once per order even if the webhook + cron process it concurrently.
+        let inserted = 0, dupes = 0;
         const stock = { orders: 0, total_deducted: 0, shortfalls: [], errors: [] };
         for (const order of fresh) {
+            try {
+                await sb('POST', '/sales_history', order, { Prefer: 'return=minimal' });
+                inserted++;
+            } catch (e) {
+                const msg = String(e.message || e);
+                if (msg.includes('23505') || msg.includes('duplicate key') || msg.includes('Supabase 409')) { dupes++; continue; }
+                stock.errors.push({ order_sn: order.metadata.shopee_order_sn, err: msg.slice(0, 120) });
+                continue;
+            }
             if (isVoidStatus(order.status)) continue;
             const r = await deductStockForItems(sb, order.items, { txnType: 'OUTBOUND_SALE' });
             stock.orders++;
@@ -284,6 +286,8 @@ exports.handler = async (event) => {
             for (const s of r.shortfalls) stock.shortfalls.push({ order_sn: order.metadata.shopee_order_sn, ...s });
             for (const e of r.errors) stock.errors.push({ order_sn: order.metadata.shopee_order_sn, ...e });
         }
+        out.inserted = inserted;
+        out.dupes_skipped = dupes;
         out.stock = stock;
         out.ok = true;
         return json(200, out);

@@ -312,11 +312,20 @@ exports.handler = async (event) => {
                 { status: row.status, total: row.total, total_amount: row.total, items: row.items, metadata: row.metadata },
                 { Prefer: 'return=minimal' });
         } else {
-            await sb('POST', '/sales_history', row, { Prefer: 'return=minimal' });
-            // Lubang A — first time we see this order: deduct POS stock (FIFO).
-            // Skip voided/cancelled. The 15-min cron (shopee-sync) dedups on the
-            // same order_sn, so whoever inserts first deducts; the other skips.
-            if (!isVoidStatus(row.status)) {
+            // Try insert. The unique index uq_sales_shopee_order_sn means a racing
+            // cron insert of the same order_sn fails here with 23505 — in that case
+            // the cron already deducted, so we must NOT deduct again.
+            let didInsert = false;
+            try {
+                await sb('POST', '/sales_history', row, { Prefer: 'return=minimal' });
+                didInsert = true;
+            } catch (e) {
+                const msg = String(e.message || e);
+                if (!(msg.includes('23505') || msg.includes('duplicate key') || msg.includes('Supabase 409'))) throw e;
+                // duplicate → another path inserted+deducted; skip silently
+            }
+            // Lubang A — deduct POS stock only if THIS call created the row.
+            if (didInsert && !isVoidStatus(row.status)) {
                 stockResult = await deductStockForItems(sb, row.items, { txnType: 'OUTBOUND_SALE' });
             }
         }

@@ -551,6 +551,9 @@ window.staffProfilesHydrate = async function() {
 setTimeout(() => { if(typeof window.staffProfilesHydrate === 'function') window.staffProfilesHydrate(); }, 3500);
 
 let inventoryBatches = [];
+// p1_309 — global HTML escaper for interpolating product fields (name/brand/
+// category/barcode come from marketplace imports → must escape to prevent XSS).
+function hesc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 let salesHistory = [];
 let inventoryTransactions = [];
@@ -6565,11 +6568,11 @@ function renderInventoryGrid(products) {
  </div>
  <div class="inv-card__body">
  <div class="inv-card__meta">
- ${p.brand ? `<span class="inv-card__brand">${p.brand}</span>` : ''}
- ${p.category ? `<span class="inv-card__cat">${p.category}</span>` : ''}
+ ${p.brand ? `<span class="inv-card__brand">${hesc(p.brand)}</span>` : ''}
+ ${p.category ? `<span class="inv-card__cat">${hesc(p.category)}</span>` : ''}
  </div>
- <div class="inv-card__sku">${skuLine}</div>
- <h3 class="inv-card__name">${title}</h3>
+ <div class="inv-card__sku">${hesc(skuLine)}</div>
+ <h3 class="inv-card__name">${hesc(title)}</h3>
  <div class="inv-card__footer">
  <div class="inv-card__price-wrap">
  <small>Cost ${fmt(cost)}</small>
@@ -6607,8 +6610,8 @@ function renderInventoryTable(products) {
  const colors = [...new Set(list.map(v => v.variant_color).filter(Boolean))];
  const sizes = [...new Set(list.map(v => v.variant_size).filter(Boolean))];
  const variantCell = isGroup
- ? `<span style="background:#101010; color:#fff; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700;">${list.length} variants</span><br><small style="color:#555;">${colors.join(' / ') || '-'}${sizes.length ? '<br>Saiz: ' + sizes.join(', ') : ''}</small>`
- : `Model: ${p.model_no || '-'}<br>Variant: ${p.variant_size || '-'} / ${p.variant_color || '-'}<br>Dimensi: ${p.dimensions || '-'} (${p.weight_kg ? p.weight_kg+'Kg' : '-'})`;
+ ? `<span style="background:#101010; color:#fff; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700;">${list.length} variants</span><br><small style="color:#555;">${colors.map(hesc).join(' / ') || '-'}${sizes.length ? '<br>Saiz: ' + sizes.map(hesc).join(', ') : ''}</small>`
+ : `Model: ${hesc(p.model_no) || '-'}<br>Variant: ${hesc(p.variant_size) || '-'} / ${hesc(p.variant_color) || '-'}<br>Dimensi: ${hesc(p.dimensions) || '-'} (${p.weight_kg ? hesc(p.weight_kg)+'Kg' : '-'})`;
  htmlBuf3 += `
  <tr onclick="window.openPdpModal('${String(p.sku).replace(/'/g, "\\'")}')" style="cursor:pointer;">
  <td>
@@ -6616,9 +6619,9 @@ function renderInventoryTable(products) {
  ${sBadge}
  </td>
  <td>
- <span class="sku-badge">${skuLine}</span> <span class="cat-badge">${p.category||'Uncategorized'}</span> ${(!isGroup && p.location_bin) ? `<span style="background:#fef08a; color:#854d0e; padding:3px 6px; border-radius:4px; font-size:10px;"> Loc: ${p.location_bin}</span>` : ''}<br>
- <strong>${title}</strong><br>
- <small style="color:#888;">Jenama: <strong>${p.brand || 'N/A'}</strong></small>
+ <span class="sku-badge">${hesc(skuLine)}</span> <span class="cat-badge">${hesc(p.category||'Uncategorized')}</span> ${(!isGroup && p.location_bin) ? `<span style="background:#fef08a; color:#854d0e; padding:3px 6px; border-radius:4px; font-size:10px;"> Loc: ${hesc(p.location_bin)}</span>` : ''}<br>
+ <strong>${hesc(title)}</strong><br>
+ <small style="color:#888;">Jenama: <strong>${hesc(p.brand || 'N/A')}</strong></small>
  </td>
  <td>
  <div style="font-size:12px; color:#555;">${variantCell}</div>
@@ -23647,13 +23650,13 @@ window.renderProductDatabase = function() {
  : `<span class="pd-card__image-placeholder"></span>`}
  </div>
  <div class="pd-card__body">
- <span class="pd-card__brand">${p.brand || p.category || '·'}</span>
- <span class="pd-card__title">${((isGrp ? p.__cleanName : p.name) || '').slice(0, 90)}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:800; white-space:nowrap;">${p.__vcount} variants</span>` : ''}</span>
- <span class="pd-card__sku">${isGrp ? (p.parent_sku || p.sku) : p.sku}${(!isGrp && p.location_bin) ? ` · <span style="background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:3px; font-size:9.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${p.location_bin}</span>` : ''}</span>
+ <span class="pd-card__brand">${hesc(p.brand || p.category || '·')}</span>
+ <span class="pd-card__title">${hesc(((isGrp ? p.__cleanName : p.name) || '').slice(0, 90))}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:800; white-space:nowrap;">${p.__vcount} variants</span>` : ''}</span>
+ <span class="pd-card__sku">${hesc(isGrp ? (p.parent_sku || p.sku) : p.sku)}${(!isGrp && p.location_bin) ? ` · <span style="background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:3px; font-size:9.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${hesc(p.location_bin)}</span>` : ''}</span>
  <span class="pd-card__price">RM ${(p.price || 0).toFixed(2)}${cost ? `<span class="pd-card__price-sub">cost RM ${cost}</span>` : ''}</span>
  </div>
  <div class="pd-card__footer">
- <span>${p.category || '—'}</span>
+ <span>${hesc(p.category || '—')}</span>
  <span style="display:inline-flex; gap:6px; align-items:center;">
  <button onclick="event.stopPropagation(); window.shareProductWA('${p.sku.replace(/'/g, "\\'")}')" aria-label="Share to WhatsApp" title="Share ke WhatsApp" style="background:none; border:none; cursor:pointer; padding:2px 4px; color:#25D366;"><i data-lucide="message-circle" style="width:14px; height:14px;"></i></button>
  <button onclick="event.stopPropagation(); window.shareProduct('${p.sku.replace(/'/g, "\\'")}')" aria-label="Share public-safe description" title="Share (copy / native)" style="background:none; border:none; cursor:pointer; padding:2px 4px; color:var(--neutral-700);"><i data-lucide="share-2" style="width:13px; height:13px;"></i></button>
@@ -23675,7 +23678,7 @@ window.renderProductDatabase = function() {
  return `
  <tr onclick="window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')" tabindex="0" role="button">
  <td>${img ? `<img src="${img}" class="pd-row-img" loading="lazy" alt="">` : '<div class="pd-row-img" style="display:flex;align-items:center;justify-content:center;color:var(--neutral-400);"></div>'}</td>
- <td><span class="pd-row-name">${((isGrp ? p.__cleanName : p.name)||'').slice(0, 70)}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:800;">${p.__vcount} variants</span>` : ''}</span><span class="pd-row-meta">${isGrp ? (p.parent_sku||p.sku) : p.sku}${(!isGrp && p.erp_barcode) ? ' · '+p.erp_barcode : ''}</span></td>
+ <td><span class="pd-row-name">${hesc(((isGrp ? p.__cleanName : p.name)||'').slice(0, 70))}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:800;">${p.__vcount} variants</span>` : ''}</span><span class="pd-row-meta">${hesc(isGrp ? (p.parent_sku||p.sku) : p.sku)}${(!isGrp && p.erp_barcode) ? ' · '+hesc(p.erp_barcode) : ''}</span></td>
  <td>${p.brand || '—'}</td>
  <td>${p.category || '—'}</td>
  <td>${p.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 7px; border-radius:4px; font-size:10.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${p.location_bin}</span>` : '<span style="color:#D1D5DB; font-size:11px;">—</span>'}</td>

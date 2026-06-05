@@ -4982,6 +4982,10 @@ window.__ppUploadFor = function(saleId) {
  payment_proof_uploaded_by: uploaderName
  }).eq('id', saleId);
  if(typeof showToast==='function') showToast('Resit dah saved untuk sale #' + saleId, 'success');
+ // p1_257 — auto-trigger HEIC conversion (kalau staff upload .heic)
+ if(typeof window.__triggerHeicConvertIfNeeded === 'function') {
+ window.__triggerHeicConvertIfNeeded(saleId, pub.publicUrl);
+ }
  window.renderPaymentProofs();
  } catch(e) {
  if(typeof showToast==='function') showToast('Upload gagal: ' + e.message, 'error');
@@ -9590,6 +9594,38 @@ window.__proofUploadToStorage = async function(saleId) {
  }
 };
 
+// p1_257 — Auto-trigger HEIC conversion lepas upload (fire-and-forget).
+// Function /api/heic-convert detect HEIC + decode → JPEG + UPDATE sales_history.
+// UI render initially tunjuk HEIC link (p1_255), pastu lepas conversion (~3-5s) DB
+// auto-update ke JPEG URL. Next render tunjuk thumb biasa.
+window.__triggerHeicConvertIfNeeded = function(saleId, proofUrl) {
+ if(!saleId || !proofUrl) return;
+ const urlLower = String(proofUrl).toLowerCase();
+ if(!urlLower.endsWith('.heic') && !urlLower.endsWith('.heif')) return;
+ console.log('[heic-convert] HEIC detected for sale #' + saleId + ', triggering conversion...');
+ if(typeof showToast === 'function') showToast('HEIC detected — auto-convert ke JPEG dalam background (~5s).', 'info');
+ try {
+ fetch('/api/heic-convert', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ sale_id: saleId })
+ }).then(r => r.json()).then(d => {
+ if(d.converted) {
+ console.log('[heic-convert] converted sale #' + saleId + ' — reduction ' + d.reduction_pct + '%');
+ if(typeof showToast === 'function') showToast(`HEIC → JPEG dah convert (reduction ${d.reduction_pct}%). Refresh untuk lihat thumb baru.`, 'success');
+ // Auto-refresh Reports/All Orders kalau visible
+ if(typeof window.renderPaymentProofs === 'function' && document.getElementById('paymentProofsSection')?.style.display !== 'none') window.renderPaymentProofs();
+ if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection')?.style.display !== 'none') window.renderAllOrders();
+ } else if(d.skipped) {
+ console.log('[heic-convert] skipped:', d.reason);
+ } else if(d.error) {
+ console.warn('[heic-convert] failed:', d.error);
+ if(typeof showToast === 'function') showToast('HEIC convert gagal: ' + d.error.slice(0, 80), 'warn');
+ }
+ }).catch(e => console.warn('[heic-convert] fetch error:', e));
+ } catch(e) { console.warn('[heic-convert] trigger error:', e); }
+};
+
 window.clearCart = function() {
  cart = [];
  // p1_79 fix #2: also detach customer when clearing cart
@@ -9971,6 +10007,10 @@ window.processNewCheckout = async function() {
  payment_method_detail: pmDetail
  }]).select('id').single();
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
+ // p1_257 — auto-trigger HEIC conversion bila proof uploaded as HEIC dari iPhone
+ if(insertedSaleId && proofUrl && typeof window.__triggerHeicConvertIfNeeded === 'function') {
+ window.__triggerHeicConvertIfNeeded(insertedSaleId, proofUrl);
+ }
  // Use finalTotal downstream
  totalVal = finalTotal;
  // p1_29: Push inventory deduction to EasyStore (best-effort, async, non-blocking)

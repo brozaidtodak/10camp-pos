@@ -23,6 +23,7 @@
  */
 
 const crypto = require('crypto');
+const { deductStockForItems, isVoidStatus } = require('./_inventory');
 
 const PARTNER_ID   = process.env.SHOPEE_PARTNER_ID || '';
 const PARTNER_KEY  = process.env.SHOPEE_PARTNER_KEY || '';
@@ -289,14 +290,22 @@ exports.handler = async (event) => {
         const existing = await sb('GET',
             `/sales_history?select=id&metadata->>shopee_order_sn=eq.${encodeURIComponent(orderSn)}&limit=1`);
 
+        let stockResult = null;
         if (existing && existing.length) {
-            // Update existing row (status may have changed)
+            // Update existing row (status may have changed). Do NOT re-deduct —
+            // stock was already deducted on the first insert (idempotency).
             await sb('PATCH',
                 `/sales_history?metadata->>shopee_order_sn=eq.${encodeURIComponent(orderSn)}`,
                 { status: row.status, total: row.total, total_amount: row.total, items: row.items, metadata: row.metadata },
                 { Prefer: 'return=minimal' });
         } else {
             await sb('POST', '/sales_history', row, { Prefer: 'return=minimal' });
+            // Lubang A — first time we see this order: deduct POS stock (FIFO).
+            // Skip voided/cancelled. The 15-min cron (shopee-sync) dedups on the
+            // same order_sn, so whoever inserts first deducts; the other skips.
+            if (!isVoidStatus(row.status)) {
+                stockResult = await deductStockForItems(sb, row.items, { txnType: 'OUTBOUND_SALE' });
+            }
         }
 
         await logEvent({
@@ -304,7 +313,7 @@ exports.handler = async (event) => {
             orders_found: 1,
             orders_new: existing && existing.length ? 0 : 1,
             orders_inserted: existing && existing.length ? 0 : 1,
-            raw_response: { order_sn: orderSn, status: row.status, action: existing && existing.length ? 'update' : 'insert' },
+            raw_response: { order_sn: orderSn, status: row.status, action: existing && existing.length ? 'update' : 'insert', stock: stockResult },
             duration_ms: Date.now() - startMs
         });
 

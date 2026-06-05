@@ -16,6 +16,7 @@
  */
 
 const crypto = require('crypto');
+const { deductStockForItems } = require('./_inventory');
 
 // ===== ENV (set via Netlify dashboard or CLI) =====
 const SUPABASE_URL    = process.env.SUPABASE_URL    || 'https://asehjdnfzoypbwfeazra.supabase.co';
@@ -251,38 +252,14 @@ exports.handler = async function (event) {
         };
     }
 
-    // p1_29: Deduct inventory_batches for each line item (LIFO — newest batch first)
-    // Skip if order is voided/cancelled (no need to deduct).
-    let inventoryResult = { skus_processed: 0, total_deducted: 0, errors: [] };
+    // Deduct inventory_batches for each line item — now via shared _inventory
+    // helper so EasyStore, Shopee + TikTok all deduct identically (FIFO oldest
+    // batch first, matching the cashier counter, + OUTBOUND_SALE audit ledger).
+    // Skip if order is voided/cancelled (never consumed stock).
+    let inventoryResult = { skus_processed: 0, total_deducted: 0, shortfalls: [], errors: [] };
     const fin = (order.financial_status || '').toLowerCase();
     if (fin !== 'voided' && fin !== 'cancelled' && payload.items && payload.items.length) {
-        for (const item of payload.items) {
-            if (!item.sku || item.qty <= 0) continue;
-            try {
-                // Fetch batches for this SKU with qty_remaining > 0, newest first
-                const batches = await sb('GET',
-                    `/inventory_batches?sku=eq.${encodeURIComponent(item.sku)}&qty_remaining=gt.0` +
-                    `&order=inbound_date.desc&select=id,qty_remaining,inbound_date`
-                );
-                let remaining = item.qty;
-                for (const b of (batches || [])) {
-                    if (remaining <= 0) break;
-                    const deduct = Math.min(b.qty_remaining, remaining);
-                    await sb('PATCH',
-                        `/inventory_batches?id=eq.${b.id}`,
-                        { qty_remaining: b.qty_remaining - deduct }
-                    );
-                    remaining -= deduct;
-                    inventoryResult.total_deducted += deduct;
-                }
-                if (remaining > 0) {
-                    inventoryResult.errors.push({ sku: item.sku, short: remaining });
-                }
-                inventoryResult.skus_processed++;
-            } catch (e) {
-                inventoryResult.errors.push({ sku: item.sku, err: (e.message||'').slice(0, 100) });
-            }
-        }
+        inventoryResult = await deductStockForItems(sb, payload.items, { txnType: 'OUTBOUND_SALE' });
     }
 
     return {

@@ -23,6 +23,7 @@
  */
 
 const crypto = require('crypto');
+const { deductStockForItems, isVoidStatus } = require('./_inventory');
 
 const API_BASE   = 'https://open-api.tiktokglobalshop.com';
 const TOKEN_BASE = 'https://auth.tiktok-shops.com/api/v2/token';
@@ -301,6 +302,19 @@ exports.handler = async (event) => {
             inserted += batch.length;
         }
         out.inserted = inserted;
+
+        // 6. Lubang A — deduct POS stock for each NEWLY-imported order (FIFO).
+        // Only `fresh` orders reach here (already deduped), so each deducts once.
+        const stock = { orders: 0, total_deducted: 0, shortfalls: [], errors: [] };
+        for (const order of fresh) {
+            if (isVoidStatus(order.status)) continue;
+            const r = await deductStockForItems(sb, order.items, { txnType: 'OUTBOUND_SALE' });
+            stock.orders++;
+            stock.total_deducted += r.total_deducted;
+            for (const s of r.shortfalls) stock.shortfalls.push({ tiktok_order_id: order.metadata.tiktok_order_id, ...s });
+            for (const e of r.errors) stock.errors.push({ tiktok_order_id: order.metadata.tiktok_order_id, ...e });
+        }
+        out.stock = stock;
         out.ok = true;
         return json(200, out);
 

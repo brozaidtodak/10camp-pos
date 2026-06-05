@@ -19,6 +19,7 @@
  */
 
 const crypto = require('crypto');
+const { deductStockForItems, isVoidStatus } = require('./_inventory');
 
 const PARTNER_ID   = process.env.SHOPEE_PARTNER_ID || '';
 const PARTNER_KEY  = process.env.SHOPEE_PARTNER_KEY || '';
@@ -270,6 +271,20 @@ exports.handler = async (event) => {
             inserted += batch.length;
         }
         out.inserted = inserted;
+
+        // 6. Lubang A — deduct POS stock for each NEWLY-imported order (FIFO).
+        // Only `fresh` orders reach here (already deduped), so each deducts once.
+        // Skip voided/cancelled orders — those never consumed stock.
+        const stock = { orders: 0, total_deducted: 0, shortfalls: [], errors: [] };
+        for (const order of fresh) {
+            if (isVoidStatus(order.status)) continue;
+            const r = await deductStockForItems(sb, order.items, { txnType: 'OUTBOUND_SALE' });
+            stock.orders++;
+            stock.total_deducted += r.total_deducted;
+            for (const s of r.shortfalls) stock.shortfalls.push({ order_sn: order.metadata.shopee_order_sn, ...s });
+            for (const e of r.errors) stock.errors.push({ order_sn: order.metadata.shopee_order_sn, ...e });
+        }
+        out.stock = stock;
         out.ok = true;
         return json(200, out);
 

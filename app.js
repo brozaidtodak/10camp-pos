@@ -5302,6 +5302,7 @@ function switchHub(sectionIds, title, btnElement) {
  // p1_179 — Product Master section explicit render (was relying on DOMContentLoaded
  // click listener with 100ms setTimeout; Zaid reported white screen).
  if(sectionIds.includes('databaseSection') && typeof renderProductDatabase === 'function') renderProductDatabase();
+ if(sectionIds.includes('collectionsSection') && typeof renderCollections === 'function') renderCollections();
  // p1_186 — Aduan & Cadangan defense in depth (Zaid: still blank). Force visible
  // attributes (some style cascade may keep block from rendering) + call render.
  if(sectionIds.includes('feedbackSection')) {
@@ -23463,6 +23464,64 @@ window.pdbClearFilters = function() {
  const allPill = document.querySelector('#pdbStatusPills .pdb-pill[data-status=""]');
  if(allPill) window.pdbSetStatus('', allPill);
  else window.renderProductDatabase();
+};
+
+// p1_310 — Collections list (EasyStore-style): products grouped into Brands +
+// Categories with counts. Click a row → open Products grid filtered to it.
+window.renderCollections = function() {
+ const body = document.getElementById('collectionsBody');
+ if(!body) return;
+ const prods = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const pub = (typeof isPublished === 'function') ? isPublished : (() => true);
+ // group helper → [{name, total, live}]
+ const groupBy = (field) => {
+ const m = new Map();
+ for(const p of prods) {
+ const v = (p[field] || '').trim();
+ if(!v) continue;
+ if(!m.has(v)) m.set(v, { name: v, total: 0, live: 0 });
+ const g = m.get(v); g.total++; if(pub(p)) g.live++;
+ }
+ return Array.from(m.values()).sort((a,b) => b.total - a.total);
+ };
+ const brands = groupBy('brand');
+ const cats = groupBy('category');
+ const noBrand = prods.filter(p => !(p.brand || '').trim()).length;
+ const noCat = prods.filter(p => !(p.category || '').trim()).length;
+
+ const row = (type, g) =>
+ `<div onclick="window.__collectionOpen('${type}','${hesc(g.name).replace(/'/g, "\\'")}')" style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px 11px 34px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='#fff'">
+ <span style="display:inline-flex; align-items:center; gap:9px; font-size:13.5px; color:#1E40AF; font-weight:600;"><i data-lucide="tag" style="width:14px;height:14px;color:#9CA3AF;"></i>${hesc(g.name)}</span>
+ <span style="display:inline-flex; align-items:center; gap:16px;"><span style="font-size:10.5px; font-weight:700; color:#16A34A; background:#D1FAE5; padding:2px 8px; border-radius:999px;">${g.live} live</span><span style="font-size:13px; color:#6B7280; min-width:40px; text-align:right;">${g.total}</span></span>
+ </div>`;
+ const groupHeader = (icon, title, sub) =>
+ `<div style="display:flex; align-items:center; gap:9px; padding:12px 14px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; font-weight:700; font-size:13px; color:#101010;"><i data-lucide="${icon}" style="width:16px;height:16px;color:#CD7C32;"></i>${title} <span style="font-weight:500; color:#9CA3AF; font-size:11.5px;">${sub}</span></div>`;
+
+ let html = '';
+ html += '<div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 14px;"><h2 class="section-title" data-skip-title-sync style="margin:0;"><i data-lucide="folder-tree" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i>Collections</h2><span style="font-size:12px; color:#6B7280;">' + prods.length + ' produk · ' + brands.length + ' brand · ' + cats.length + ' kategori</span></div>';
+ html += '<div style="border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; background:#fff;">';
+ // Brands group
+ html += groupHeader('award', 'Brands', brands.length + ' brand');
+ html += brands.map(g => row('brand', g)).join('');
+ if(noBrand) html += `<div style="padding:9px 14px 9px 34px; border-bottom:1px solid #F3F4F6; font-size:12px; color:#9CA3AF;">${noBrand} produk tiada brand</div>`;
+ // Categories group
+ html += groupHeader('layers', 'Categories', cats.length + ' kategori');
+ html += cats.map(g => row('category', g)).join('');
+ if(noCat) html += `<div style="padding:9px 14px 9px 34px; font-size:12px; color:#9CA3AF;">${noCat} produk tiada kategori</div>`;
+ html += '</div>';
+ html += '<div style="margin-top:14px; font-size:12px; color:#9CA3AF;">Tekan mana-mana koleksi untuk lihat produk di dalamnya.</div>';
+ body.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_310 — open the Products grid filtered to a collection (brand/category)
+window.__collectionOpen = function(type, value) {
+ if(typeof switchHub === 'function') switchHub(['databaseSection'], 'Products', null);
+ if(typeof window.renderProductDatabase === 'function') window.renderProductDatabase(); // ensure filter selects populated
+ const sEl = document.getElementById('pdSearch'); if(sEl) sEl.value = '';
+ const bEl = document.getElementById('pdBrand'); if(bEl) bEl.value = (type === 'brand') ? value : '';
+ const cEl = document.getElementById('pdCategory'); if(cEl) cEl.value = (type === 'category') ? value : '';
+ if(typeof window.renderProductDatabase === 'function') window.renderProductDatabase();
 };
 
 window.renderProductDatabase = function() {

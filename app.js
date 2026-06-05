@@ -19249,12 +19249,28 @@ window.renderCustomersV2 = function() {
  const vipCount = filtered.filter(c => c.is_member).length;
  const emailConsent = filtered.filter(c => c.accepts_email_marketing).length;
 
+ // p1_244 — Stats cards redesign: white bg + primary border-left accent + Lucide icons (was random pastels, not theme)
  document.getElementById('crmStats').innerHTML = `
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Match</div><div style="font-size:18px; font-weight:bold;">${filtered.length}</div></div>
- <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Total Orders</div><div style="font-size:18px; font-weight:bold;">${totalOrders}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">VIP Members</div><div style="font-size:18px; font-weight:bold;">${vipCount}</div></div>
- <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Email Consent</div><div style="font-size:18px; font-weight:bold;">${emailConsent}</div></div>
+ <div style="background:#fff; padding:14px 16px; border-radius:8px; border:1px solid var(--neutral-200, #E5E7EB); border-left:3px solid var(--primary, #C8741E); box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));">
+ <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:4px;"><i data-lucide="users" style="width:13px;height:13px; color:var(--primary, #C8741E);"></i> Match</div>
+ <div style="font-size:22px; font-weight:800; color:#111;">${filtered.length.toLocaleString()}</div>
+ </div>
+ <div style="background:#fff; padding:14px 16px; border-radius:8px; border:1px solid var(--neutral-200, #E5E7EB); border-left:3px solid #10B981; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));">
+ <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:4px;"><i data-lucide="trending-up" style="width:13px;height:13px; color:#10B981;"></i> Total Spent</div>
+ <div style="font-size:22px; font-weight:800; color:#111;">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+ </div>
+ <div style="background:#fff; padding:14px 16px; border-radius:8px; border:1px solid var(--neutral-200, #E5E7EB); border-left:3px solid #6366F1; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));">
+ <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:4px;"><i data-lucide="shopping-bag" style="width:13px;height:13px; color:#6366F1;"></i> Total Orders</div>
+ <div style="font-size:22px; font-weight:800; color:#111;">${totalOrders.toLocaleString()}</div>
+ </div>
+ <div style="background:#fff; padding:14px 16px; border-radius:8px; border:1px solid var(--neutral-200, #E5E7EB); border-left:3px solid #F59E0B; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));">
+ <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:4px;"><i data-lucide="star" style="width:13px;height:13px; color:#F59E0B;"></i> VIP Members</div>
+ <div style="font-size:22px; font-weight:800; color:#111;">${vipCount.toLocaleString()}</div>
+ </div>
+ <div style="background:#fff; padding:14px 16px; border-radius:8px; border:1px solid var(--neutral-200, #E5E7EB); border-left:3px solid #3B82F6; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));">
+ <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:4px;"><i data-lucide="mail-check" style="width:13px;height:13px; color:#3B82F6;"></i> Email Consent</div>
+ <div style="font-size:22px; font-weight:800; color:#111;">${emailConsent.toLocaleString()}</div>
+ </div>
  `;
 
  // p1_80 fix #8: pagination via __crmShown — incremented by Show More button

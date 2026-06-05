@@ -29,10 +29,7 @@ body { background: var(--bg-color); color: var(--text-main); }
     cursor: pointer;
 }
 
-/* p1_243 — Stats card section title nicer */
-#crmStats > div {
-    border-left: 3px solid currentColor;
-}
+/* p1_244 — Stats cards inline-styled directly (border-left + semantic colors per card) */
 .login-box { background: #FFFFFF; padding: 40px; border-radius: var(--radius-md); text-align: center; max-width: 380px; width: 90%; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
 .login-input { width: 100%; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 20px; background: #FAFAFA; font-size: 14px; }
 .login-btn { background: var(--primary); color: white; width: 100%; padding: 14px; border: none; border-radius: var(--radius-pill); cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }

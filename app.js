@@ -14957,10 +14957,8 @@ window.restoreNavGroupState = function() {
  const groups = document.querySelectorAll('[data-nav-parent]');
  groups.forEach(function(p) {
  const n = p.getAttribute('data-nav-parent');
- // Default: expand orders + products on first load so user sees the pattern
- const defaultOpen = (n === 'orders' || n === 'products');
- const shouldExpand = (state[n] === undefined) ? defaultOpen : !!state[n];
- if(shouldExpand) p.classList.add('is-expanded');
+ // p1_281 — All collapsed by default; only persisted expand state restores
+ if(state[n] === true) p.classList.add('is-expanded');
  else p.classList.remove('is-expanded');
  });
 };

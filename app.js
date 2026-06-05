@@ -4214,13 +4214,19 @@ window.renderPaymentProofs = async function() {
  const dt = r.created_at ? new Date(r.created_at).toLocaleString('en-MY', { dateStyle:'short', timeStyle:'short' }) : '—';
  const pm = r.payment_method || 'Cash';
  const isCash = pm === 'Cash';
- const isPdf = (r.payment_proof_url || '').toLowerCase().endsWith('.pdf');
+ const urlLower = (r.payment_proof_url || '').toLowerCase();
+ const isPdf = urlLower.endsWith('.pdf');
+ const isHeic = urlLower.endsWith('.heic') || urlLower.endsWith('.heif');
  let thumbCell = '';
  if(r.payment_proof_url) {
  if(isPdf) {
  thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:700; font-size:11.5px;"><i data-lucide="file-text" style="width:14px;height:14px;"></i> PDF</a>`;
+ } else if(isHeic) {
+ // p1_255 — HEIC tak render inline. Link je.
+ thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" title="HEIC format — klik untuk download/buka external" style="display:inline-flex; align-items:center; gap:4px; color:#0EA5E9; font-weight:700; font-size:11.5px;"><i data-lucide="image-down" style="width:14px;height:14px;"></i> HEIC</a>`;
  } else {
- thumbCell = `<img src="${escHtml(r.payment_proof_url)}" loading="lazy" onclick="window.__ppOpenImg('${escHtml(r.payment_proof_url)}')" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; cursor:zoom-in;">`;
+ // p1_255 — guna this.src + onerror fallback (was raw URL escape bug)
+ thumbCell = `<img src="${escHtml(r.payment_proof_url)}" loading="lazy" onclick="window.__ppOpenImg(this.src)" onerror="this.outerHTML='<a href=&quot;${escHtml(r.payment_proof_url)}&quot; target=_blank rel=noopener style=&quot;display:inline-flex; align-items:center; gap:3px; color:#DC2626; font-size:11px; font-weight:700; text-decoration:none;&quot;><i data-lucide=image-off style=&quot;width:12px;height:12px;&quot;></i> broken</a>'" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; cursor:zoom-in;">`;
  }
  } else {
  thumbCell = isCash ? '<span style="font-size:11px; color:#9CA3AF;">— (Cash)</span>' : '<span style="font-size:11px; color:#DC2626; font-weight:700;">tiada</span>';
@@ -19329,11 +19335,19 @@ window.renderAllOrders = function() {
  const pm = s.payment_method || 'Cash';
  const url = s.payment_proof_url || '';
  if(url) {
- const isPdf = url.toLowerCase().endsWith('.pdf');
+ const urlLower = url.toLowerCase();
+ const isPdf = urlLower.endsWith('.pdf');
+ const isHeic = urlLower.endsWith('.heic') || urlLower.endsWith('.heif');
  if(isPdf) {
  return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="file-text" style="width:12px;height:12px;"></i> PDF</a></td>`;
  }
- return `<td style="padding:6px; text-align:center;"><img src="${escHtml(url)}" loading="lazy" onclick="window.__ppOpenImg && window.__ppOpenImg('${escHtml(url).replace(/'/g, "\\'")}')" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; cursor:zoom-in; vertical-align:middle;"></td>`;
+ if(isHeic) {
+ // p1_255 — HEIC tak render inline dalam Chrome/Safari. Sediakan link download je.
+ return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" title="HEIC format — Safari/Chrome tak render inline. Klik untuk download/buka external." style="display:inline-flex; align-items:center; gap:3px; color:#0EA5E9; font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="image-down" style="width:12px;height:12px;"></i> HEIC</a></td>`;
+ }
+ // p1_255 — guna this.src elak escaping bug (entities decoded by HTML parser breaks JS string literal).
+ // onerror fallback link kalau image tak load (storage gone / wrong format detected late).
+ return `<td style="padding:6px; text-align:center;"><img src="${escHtml(url)}" loading="lazy" onclick="window.__ppOpenImg && window.__ppOpenImg(this.src)" onerror="this.outerHTML='<a href=&quot;${escHtml(url)}&quot; target=_blank rel=noopener style=&quot;display:inline-flex; align-items:center; gap:3px; color:#DC2626; font-size:10px; font-weight:700; text-decoration:none;&quot;><i data-lucide=image-off style=&quot;width:11px;height:11px;&quot;></i> broken</a>'" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; cursor:zoom-in; vertical-align:middle;"></td>`;
  }
  if(pm === 'Cash') {
  return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Cash</td>';

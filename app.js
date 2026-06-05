@@ -16616,6 +16616,17 @@ window.openPdpModal = function(sku) {
  set('pdpVariantOptions', (window.__mpStringifyVariantOptions || (a => ''))(m.variants));
  set('pdpHasVariants', m.has_variants ? 'true' : 'false');
  set('pdpDefaultVariantSku', m.default_variant_sku);
+ // p1_263 — Marketplace integration IDs
+ set('pdpShopeeItemId', m.shopee_item_id);
+ set('pdpTiktokProductId', m.tiktok_product_id);
+ // Sync status line — show last sync timestamps
+ const syncEl = document.getElementById('pdpSyncStatus');
+ if(syncEl) {
+ const parts = [];
+ if(m.shopee_synced_at) parts.push('Shopee last sync: ' + new Date(m.shopee_synced_at).toLocaleString('en-MY'));
+ if(m.tiktok_synced_at) parts.push('TikTok last sync: ' + new Date(m.tiktok_synced_at).toLocaleString('en-MY'));
+ syncEl.textContent = parts.join(' · ') || 'Belum pernah sync auto.';
+ }
 
  // Metafields (key-value extension) — read from prod.metadata.metafields (new) or legacy prod.metafields
  currentPdpMetafields = {};
@@ -16822,7 +16833,10 @@ window.savePdpData = async function() {
  variants: parseVariants(get('pdpVariantOptions')),
  has_variants: get('pdpHasVariants') === 'true',
  default_variant_sku: get('pdpDefaultVariantSku').toUpperCase() || null,
- metafields: currentPdpMetafields || {}
+ metafields: currentPdpMetafields || {},
+ // p1_263 — Marketplace integration IDs (manual entry from PDP modal)
+ shopee_item_id: get('pdpShopeeItemId') || null,
+ tiktok_product_id: get('pdpTiktokProductId') || null
  };
 
  const updatePayload = {
@@ -22926,9 +22940,19 @@ window.renderProductDatabase = function() {
  ? '<span class="badge badge--success pd-card__status-badge">Live</span>'
  : '<span class="badge badge--warning pd-card__status-badge">Draft</span>';
  const cost = p.cost_price ? Number(p.cost_price).toFixed(2) : null;
+ // p1_263 — Marketplace integration indicators (Shopee / TikTok). Read dari metadata JSONB.
+ const meta = (p.metadata && typeof p.metadata === 'object') ? p.metadata : {};
+ const shopeeIntegrated = !!(meta.shopee_item_id || meta.shopee_synced_at);
+ const tiktokIntegrated = !!(meta.tiktok_product_id || meta.tiktok_synced_at);
+ const integrationBadges = `
+ <div class="pd-card__integrations" style="position:absolute; top:6px; left:6px; display:flex; gap:3px; z-index:2;">
+ <span title="${shopeeIntegrated ? 'Synced dengan Shopee · click product untuk lihat detail' : 'BELUM disync dengan Shopee'}" style="background:${shopeeIntegrated ? '#EE4D2D' : '#E5E7EB'}; color:${shopeeIntegrated ? '#fff' : '#9CA3AF'}; padding:2px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.3px; line-height:1; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="${shopeeIntegrated ? 'check' : 'x'}" style="width:8px;height:8px;"></i> SP</span>
+ <span title="${tiktokIntegrated ? 'Synced dengan TikTok Shop · click product untuk lihat detail' : 'BELUM disync dengan TikTok Shop'}" style="background:${tiktokIntegrated ? '#000' : '#E5E7EB'}; color:${tiktokIntegrated ? '#fff' : '#9CA3AF'}; padding:2px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.3px; line-height:1; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="${tiktokIntegrated ? 'check' : 'x'}" style="width:8px;height:8px;"></i> TT</span>
+ </div>`;
  return `
  <div class="pd-card" onclick="window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')" tabindex="0" role="button" aria-label="Edit ${p.sku}">
  ${statusBadge}
+ ${integrationBadges}
  <span class="pd-card__stock-pill ${stockClass}">${stockLabel}</span>
  <div class="pd-card__image-wrap">
  ${img

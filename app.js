@@ -19248,7 +19248,7 @@ window.renderAllOrders = function() {
  `;
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
  document.getElementById('aoSummaryLine').textContent = '';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  return;
@@ -19280,6 +19280,22 @@ window.renderAllOrders = function() {
  <td style="padding:10px;">${statusBadge(s.status)}</td>
  <td style="padding:10px; text-align:right;">${itemsCount}</td>
  <td style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
+ ${(() => {
+ // p1_252 — Resit column: thumb kalau image, PDF link kalau pdf, "Cash" untuk Cash sales, "tiada" merah untuk non-Cash tanpa proof
+ const pm = s.payment_method || 'Cash';
+ const url = s.payment_proof_url || '';
+ if(url) {
+ const isPdf = url.toLowerCase().endsWith('.pdf');
+ if(isPdf) {
+ return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="file-text" style="width:12px;height:12px;"></i> PDF</a></td>`;
+ }
+ return `<td style="padding:6px; text-align:center;"><img src="${escHtml(url)}" loading="lazy" onclick="window.__ppOpenImg && window.__ppOpenImg('${escHtml(url).replace(/'/g, "\\'")}')" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; cursor:zoom-in; vertical-align:middle;"></td>`;
+ }
+ if(pm === 'Cash') {
+ return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Cash</td>';
+ }
+ return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppUploadFor && window.__ppUploadFor(${s.id})" title="Upload bukti bayar (tiada resit dalam DB)" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="upload" style="width:10px;height:10px;vertical-align:-1px;"></i> tiada</button></td>`;
+ })()}
  <td style="padding:10px; white-space:nowrap;">
  <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
  <button onclick="window.__aoToggleTest && window.__aoToggleTest(${s.id}, ${!isTest})" title="${isTest ? 'Tandai semula sebagai REAL sale (akan masuk laporan)' : 'Tandai sebagai TEST (tak masuk laporan sales sebenar)'}" style="background:${isTest ? '#D1FAE5' : '#FEF3C7'}; border:1px solid ${isTest ? '#86EFAC' : '#FCD34D'}; color:${isTest ? '#065F46' : '#92400E'}; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="${isTest ? 'check-circle' : 'flask-conical'}" style="width:10px;height:10px;vertical-align:-1px;"></i> ${isTest ? 'Real' : 'Test'}</button>

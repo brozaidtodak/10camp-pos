@@ -47,9 +47,14 @@ function parseSkus(event) {
 exports.handler = async (event) => {
     const p = event.queryStringParameters || {};
     const mode = p.mode === 'push' ? 'push' : 'dryrun';
+    // channel: 'both' (default) | 'shopee' | 'tiktok'. Lets callers batch each
+    // channel separately to stay under Netlify's function time limit.
+    const channel = ['shopee', 'tiktok'].includes(p.channel) ? p.channel : 'both';
+    const doShopee = channel === 'both' || channel === 'shopee';
+    const doTiktok = channel === 'both' || channel === 'tiktok';
     const shopeeMarkup = p.shopee_markup != null ? Number(p.shopee_markup) : DEFAULT_SHOPEE_MARKUP;
     const tiktokMarkup = p.tiktok_markup != null ? Number(p.tiktok_markup) : DEFAULT_TIKTOK_MARKUP;
-    const out = { mode, shopee_markup_pct: shopeeMarkup, tiktok_markup_pct: tiktokMarkup };
+    const out = { mode, channel, shopee_markup_pct: shopeeMarkup, tiktok_markup_pct: tiktokMarkup };
 
     const skus = parseSkus(event);
     try {
@@ -82,8 +87,8 @@ exports.handler = async (event) => {
         }
 
         // ---- PUSH: Shopee (group by item_id) ----
-        const shopeeRes = { pushed: 0, failed: 0, errors: [] };
-        const shopeeMapped = plan.filter(x => x.shopee_item_id);
+        const shopeeRes = { pushed: 0, failed: 0, errors: [], skipped: !doShopee };
+        const shopeeMapped = doShopee ? plan.filter(x => x.shopee_item_id) : [];
         if (shopeeMapped.length) {
             const tok = await shopee.getValidToken();
             const byItem = {};
@@ -103,8 +108,8 @@ exports.handler = async (event) => {
         out.shopee = shopeeRes;
 
         // ---- PUSH: TikTok (resolve product/sku via catalog, mapping not persisted) ----
-        const tiktokRes = { pushed: 0, failed: 0, errors: [], unmatched: 0 };
-        try {
+        const tiktokRes = { pushed: 0, failed: 0, errors: [], unmatched: 0, skipped: !doTiktok };
+        if (doTiktok) try {
             const tok = await tiktok.getValidToken();
             const cipher = await tiktok.ensureShopCipher(tok);
             const products = await tiktok.getTiktokProducts(tok.access_token, cipher);

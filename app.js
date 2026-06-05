@@ -597,11 +597,15 @@ window.setActiveRail = function(railId, navigateDirect) {
  const group = it.getAttribute('data-group');
  const tab = it.getAttribute('data-tab');
  const isToggle = it.hasAttribute('data-group-toggle');
+ // p1_268 — Product Master group toggle: visible all rails (header standalone)
+ if(isToggle && it.getAttribute('data-group-toggle') === 'product_master') { it.style.display = ''; return; }
  if(isToggle) { it.style.display = 'none'; return; } // CAPS headers always hidden
  // Standalone items (overview / memo_board / roadmap) — show only when their own rail is active
  if(tab === 'overview') { it.style.display = (railId === 'overview') ? '' : 'none'; return; }
  if(tab === 'memo_board') { it.style.display = (railId === 'memo') ? '' : 'none'; return; }
  if(tab === 'roadmap') { it.style.display = (railId === 'roadmap') ? '' : 'none'; return; }
+ // p1_268 — Product Master sub-items: visible all rails (group standalone)
+ if(group === 'product_master') { it.style.display = ''; return; }
  // Group items — show only when their group matches active rail
  if(group) { it.style.display = (group === railId) ? '' : 'none'; return; }
  // Items without group (legacy) — show by default

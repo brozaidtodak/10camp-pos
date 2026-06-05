@@ -14894,8 +14894,182 @@ window.renderExports = function() {
 };
 
 // p1_278 — Channels sub-section stubs
-window.renderMarketplaces = function() {
+// p1_283 — Marketplaces dashboard (real platform status, function-first)
+window.renderMarketplaces = async function() {
+ const body = document.getElementById('mpDashboardBody');
+ if(!body) return;
+
+ body.innerHTML = '<div style="padding:40px; text-align:center; color:#6B7280;"><i data-lucide="loader" style="width:24px; height:24px;"></i><br>Loading marketplace data...</div>';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+
+ // Count product mappings from products_master.metadata
+ let mapStats = { easystore: 0, shopee: 0, tiktok: 0, total: 0, lastSync: { easystore: null, shopee: null, tiktok: null } };
+ try {
+ if(typeof db !== 'undefined' && db.from) {
+ const { data: products } = await db.from('products_master').select('metadata');
+ if(products) {
+ mapStats.total = products.length;
+ products.forEach(p => {
+ const m = p.metadata || {};
+ if(m.easystore_product_id || m.easystore_variant_id) mapStats.easystore++;
+ if(m.shopee_item_id) mapStats.shopee++;
+ if(m.tiktok_product_id) mapStats.tiktok++;
+ // Track latest sync timestamp per platform
+ if(m.easystore_synced_at && (!mapStats.lastSync.easystore || m.easystore_synced_at > mapStats.lastSync.easystore)) mapStats.lastSync.easystore = m.easystore_synced_at;
+ if(m.shopee_synced_at && (!mapStats.lastSync.shopee || m.shopee_synced_at > mapStats.lastSync.shopee)) mapStats.lastSync.shopee = m.shopee_synced_at;
+ if(m.tiktok_synced_at && (!mapStats.lastSync.tiktok || m.tiktok_synced_at > mapStats.lastSync.tiktok)) mapStats.lastSync.tiktok = m.tiktok_synced_at;
+ });
+ }
+ }
+ } catch(e) { console.error('renderMarketplaces stat error:', e); }
+
+ const fmtTs = (ts) => {
+ if(!ts) return 'Belum pernah sync';
+ try {
+ const d = new Date(ts);
+ const diff = (Date.now() - d.getTime()) / 1000;
+ if(diff < 60) return 'Just now';
+ if(diff < 3600) return Math.floor(diff/60) + ' min lalu';
+ if(diff < 86400) return Math.floor(diff/3600) + ' jam lalu';
+ if(diff < 604800) return Math.floor(diff/86400) + ' hari lalu';
+ return d.toLocaleDateString('ms-MY', { day:'2-digit', month:'short', year:'numeric' });
+ } catch(e) { return ts; }
+ };
+
+ const platforms = [
+ {
+ key: 'easystore',
+ name: 'EasyStore',
+ desc: 'Online store + product catalog (current platform)',
+ icon: 'store',
+ color: '#FF6B35',
+ connected: true,
+ mapped: mapStats.easystore,
+ total: mapStats.total,
+ lastSync: mapStats.lastSync.easystore,
+ actions: [
+ { label: 'Sync Products', icon: 'refresh-cw', onclick: "window.__mpSyncEasyStore && window.__mpSyncEasyStore()" },
+ { label: 'View Mappings', icon: 'list', onclick: "switchHub(['databaseSection'], 'Collection', null); if(typeof renderProductDatabase==='function') renderProductDatabase();" }
+ ]
+ },
+ {
+ key: 'shopee',
+ name: 'Shopee',
+ desc: 'Shopee Live API · Order pull + stock sync',
+ icon: 'shopping-bag',
+ color: '#EE4D2D',
+ connected: mapStats.shopee > 0,
+ mapped: mapStats.shopee,
+ total: mapStats.total,
+ lastSync: mapStats.lastSync.shopee,
+ limit: 100,
+ actions: [
+ { label: 'Run Mapping', icon: 'link', onclick: "window.__mpMapShopee && window.__mpMapShopee()" },
+ { label: 'Sync Stock', icon: 'refresh-cw', onclick: "window.__mpSyncShopeeStock && window.__mpSyncShopeeStock()" }
+ ]
+ },
+ {
+ key: 'tiktok',
+ name: 'TikTok Shop',
+ desc: 'Direct API · Read-only product compare (Phase 3 ready)',
+ icon: 'video',
+ color: '#000000',
+ connected: mapStats.tiktok > 0,
+ mapped: mapStats.tiktok,
+ total: mapStats.total,
+ lastSync: mapStats.lastSync.tiktok,
+ actions: [
+ { label: 'Run Mapping', icon: 'link', onclick: "window.__mpMapTiktok && window.__mpMapTiktok()" },
+ { label: 'Compare Products', icon: 'git-compare', onclick: "if(typeof showToast==='function') showToast('TikTok compare view coming soon', 'info');" }
+ ]
+ }
+ ];
+
+ const connectedCount = platforms.filter(p => p.connected).length;
+ const totalMapped = mapStats.easystore + mapStats.shopee + mapStats.tiktok;
+
+ let html = '';
+ // Header
+ html += '<div style="display:flex; align-items:center; justify-content:space-between; margin:20px 0 16px; flex-wrap:wrap; gap:10px;">';
+ html += '<h2 class="section-title" data-skip-title-sync style="margin:0;"><i data-lucide="shopping-bag" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i>Marketplaces</h2>';
+ html += '<button onclick="window.renderMarketplaces()" class="btn-brand-outline" style="font-size:13px; padding:8px 14px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>Refresh</button>';
+ html += '</div>';
+
+ // Summary strip — 3 stat cards
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px;">';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #CD7C32; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Connected</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + connectedCount + ' / ' + platforms.length + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">platforms active</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #10B981; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Total Mapped</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + totalMapped + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">across all platforms</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #3B82F6; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Master Catalog</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + mapStats.total + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">products_master rows</div></div>';
+ html += '</div>';
+
+ // Platform cards
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">';
+ platforms.forEach(p => {
+ const pct = p.total > 0 ? Math.round((p.mapped / (p.limit || p.total)) * 100) : 0;
+ const statusColor = p.connected ? '#10B981' : '#9CA3AF';
+ const statusLabel = p.connected ? 'Connected' : 'Not connected';
+ html += '<div style="background:#FFF; border:1px solid #E5E7EB; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px;">';
+ // Header row: icon + name + status pill
+ html += '<div style="display:flex; align-items:center; gap:12px;">';
+ html += '<div style="width:42px; height:42px; border-radius:10px; background:' + p.color + '; display:flex; align-items:center; justify-content:center; color:#FFF; flex-shrink:0;"><i data-lucide="' + p.icon + '" style="width:22px; height:22px;"></i></div>';
+ html += '<div style="flex:1; min-width:0;"><div style="font-size:15px; font-weight:700; color:#101010;">' + p.name + '</div><div style="font-size:11.5px; color:#6B7280; line-height:1.4;">' + p.desc + '</div></div>';
+ html += '<span style="display:inline-flex; align-items:center; gap:4px; padding:4px 9px; background:' + statusColor + '18; color:' + statusColor + '; border-radius:999px; font-size:11px; font-weight:700;"><span style="width:6px; height:6px; background:' + statusColor + '; border-radius:50%;"></span>' + statusLabel + '</span>';
+ html += '</div>';
+ // Stats row
+ html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 12px; background:#F9FAFB; border-radius:8px;">';
+ html += '<div><div style="font-size:10px; color:#9CA3AF; text-transform:uppercase; font-weight:600;">Mapped</div><div style="font-size:18px; font-weight:800; color:#101010;">' + p.mapped + (p.limit ? ' <span style="font-size:11px; color:#9CA3AF; font-weight:500;">/ ' + p.limit + '</span>' : '') + '</div></div>';
+ html += '<div><div style="font-size:10px; color:#9CA3AF; text-transform:uppercase; font-weight:600;">Last Sync</div><div style="font-size:12.5px; font-weight:600; color:#101010; margin-top:3px;">' + fmtTs(p.lastSync) + '</div></div>';
+ html += '</div>';
+ // Progress bar
+ if(p.limit || p.mapped > 0) {
+ const barColor = pct >= 90 ? '#10B981' : (pct >= 50 ? '#F59E0B' : '#9CA3AF');
+ html += '<div><div style="height:6px; background:#E5E7EB; border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + Math.min(100, pct) + '%; background:' + barColor + '; border-radius:999px; transition:width 0.3s;"></div></div><div style="font-size:10.5px; color:#6B7280; margin-top:4px;">' + pct + '% mapping coverage</div></div>';
+ }
+ // Actions
+ html += '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;">';
+ p.actions.forEach(a => {
+ html += '<button onclick="' + a.onclick + '" style="flex:1; min-width:120px; padding:8px 12px; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:8px; font-size:12px; font-weight:600; color:#374151; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="' + a.icon + '" style="width:13px; height:13px;"></i>' + a.label + '</button>';
+ });
+ html += '</div>';
+ html += '</div>';
+ });
+ html += '</div>';
+
+ // Footer note
+ html += '<div style="margin-top:20px; padding:12px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:10px; font-size:12px; color:#9A3412;"><i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; margin-right:5px;"></i>Mapping data dibaca dari products_master.metadata. Run mapping per platform untuk sync product IDs. Stock + order sync jalan automatic ikut webhook + schedule.</div>';
+
+ body.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_283 — Marketplace action handlers (fire mapping/sync functions)
+window.__mpMapShopee = async function() {
+ if(typeof showToast === 'function') showToast('Triggering Shopee mapping...', 'info');
+ try {
+ const r = await fetch('/api/shopee-stock-sync?mode=map&limit=40');
+ const d = await r.json();
+ if(typeof showToast === 'function') showToast('Shopee map: ' + (d.write_count || 0) + ' new mappings (total mapped: ' + (d.previously_mapped + (d.write_count || 0)) + ')', 'success');
+ setTimeout(() => window.renderMarketplaces(), 800);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Shopee map error: ' + e.message, 'error');
+ }
+};
+window.__mpSyncShopeeStock = async function() {
+ if(typeof showToast === 'function') showToast('Shopee stock sync coming soon', 'info');
+};
+window.__mpMapTiktok = async function() {
+ if(typeof showToast === 'function') showToast('Triggering TikTok mapping...', 'info');
+ try {
+ const r = await fetch('/api/tiktok-product-sync?mode=map&limit=40');
+ const d = await r.json();
+ if(typeof showToast === 'function') showToast('TikTok map: ' + (d.write_count || 0) + ' new mappings', 'success');
+ setTimeout(() => window.renderMarketplaces(), 800);
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('TikTok map error: ' + e.message, 'error');
+ }
+};
+window.__mpSyncEasyStore = async function() {
+ if(typeof showToast === 'function') showToast('EasyStore sync — guna script sync dari Inventory section, atau tunggu auto-cadence', 'info');
 };
 window.renderApps = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}

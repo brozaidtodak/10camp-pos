@@ -18299,7 +18299,7 @@ window.renderBulkOps = function() {
  <td><input id="bk_price_${hesc(p.sku)}" type="number" step="0.01" value="${p.price != null ? p.price : ''}" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
  <td><input id="bk_cmp_${hesc(p.sku)}" type="number" step="0.01" value="${p.compare_at_price != null ? p.compare_at_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
  <td><input id="bk_cost_${hesc(p.sku)}" type="number" step="0.01" value="${p.cost_price != null ? p.cost_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
- <td style="text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}">${stock}</td>
+ <td><input id="bk_stock_${hesc(p.sku)}" type="number" step="1" value="${stock}" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}"></td>
  <td style="text-align:center;">${statusBadge}</td>
  </tr>
  `;
@@ -18317,15 +18317,17 @@ window.bulkSaveEdits = async function() {
  if(!skus.length) return;
  const hint = document.getElementById('bulkEditHint');
  const numOrNull = (id) => { const el = document.getElementById(id); if(!el) return undefined; const v = el.value.trim(); return v === '' ? null : (isFinite(parseFloat(v)) ? parseFloat(v) : undefined); };
- let changed = 0; const errs = []; const pushedSkus = [];
+ let changed = 0, stockChanged = false; const errs = []; const pushedSkus = [];
+ const uName = (window.currentUser || {}).name || 'System';
  for(const sku of skus) {
  const p = (masterProducts || []).find(x => x.sku === sku);
  if(!p) continue;
+ // product_master fields (price/compared/cost)
  const payload = {};
  const np = numOrNull('bk_price_' + sku); if(np !== undefined && Number(np) !== Number(p.price)) payload.price = np;
  const nc = numOrNull('bk_cmp_' + sku); if(nc !== undefined && Number(nc) !== Number(p.compare_at_price)) payload.compare_at_price = nc;
  const nk = numOrNull('bk_cost_' + sku); if(nk !== undefined && Number(nk) !== Number(p.cost_price)) payload.cost_price = nk;
- if(!Object.keys(payload).length) continue;
+ if(Object.keys(payload).length) {
  try {
  const { error } = await db.from('products_master').update(payload).eq('sku', sku);
  if(error) throw error;
@@ -18334,6 +18336,17 @@ window.bulkSaveEdits = async function() {
  changed++;
  if('price' in payload) pushedSkus.push(sku);
  } catch(e) { errs.push(sku + ': ' + e.message); }
+ }
+ // stock (set via FIFO delta adjustment, like variant editor)
+ const stEl = document.getElementById('bk_stock_' + sku);
+ if(stEl && stEl.value.trim() !== '') {
+ const target = parseInt(stEl.value, 10);
+ const cur = (typeof bulkComputeStock === 'function') ? bulkComputeStock(sku) : 0;
+ if(!isNaN(target) && target !== cur) {
+ try { await window.__applyStockDelta(sku, target - cur, 'Bulk edit by ' + uName); changed++; stockChanged = true; }
+ catch(e) { errs.push(sku + ' stok: ' + e.message); }
+ }
+ }
  if(hint) hint.textContent = `Menyimpan... ${changed}`;
  }
  // push changed prices to marketplaces (batched, fire-and-forget)
@@ -18341,9 +18354,11 @@ window.bulkSaveEdits = async function() {
  const chunk = (a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
  for(const c of chunk(pushedSkus, 25)) { try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(c.join(','))).catch(()=>{}); } catch(e){} }
  }
+ // reload batches so stock display reflects adjustments
+ if(stockChanged) { try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){} }
  if(hint) hint.textContent = '';
  if(errs.length) console.warn('bulk save errors:', errs);
- if(typeof showToast === 'function') showToast(`Disimpan: ${changed} produk${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
+ if(typeof showToast === 'function') showToast(`Disimpan: ${changed} perubahan${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
  if(typeof renderBulkOps === 'function') renderBulkOps();
 };
 

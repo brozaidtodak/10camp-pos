@@ -17220,7 +17220,7 @@ window.pdpAdjustStock = async function() {
  // p1_236 — fix schema columns: was unit_cost_rm/received_at/received_by/note → actual: cost_price/inbound_date/notes
  // Append batch row with delta (qty_received + qty_remaining = delta; for negative, treat as write-off batch)
  const { error } = await db.from('inventory_batches').insert([{
- sku, qty_received: delta, qty_remaining: delta,
+ sku, batch_year: new Date().getFullYear(), qty_received: delta, qty_remaining: delta,
  cost_price: 0,
  inbound_date: new Date().toISOString(),
  notes: 'Manual adjustment by ' + (u.name || 'System') + (note ? ': ' + note : '')
@@ -17374,7 +17374,7 @@ window.__pdpSaveVariants = async function(parentSku) {
  if(!isNaN(target) && target !== cur) {
  const delta = target - cur;
  try {
- const { error } = await db.from('inventory_batches').insert([{ sku, qty_received: delta, qty_remaining: delta, cost_price: 0, inbound_date: new Date().toISOString(), notes: 'Variant inline edit by ' + (u.name || 'System') }]);
+ const { error } = await db.from('inventory_batches').insert([{ sku, batch_year: new Date().getFullYear(), qty_received: delta, qty_remaining: delta, cost_price: 0, inbound_date: new Date().toISOString(), notes: 'Variant inline edit by ' + (u.name || 'System') }]);
  if(error) throw error;
  stockAdj++;
  } catch(e) { errs.push(sku + ' stok: ' + e.message); }
@@ -17383,7 +17383,8 @@ window.__pdpSaveVariants = async function(parentSku) {
  }
  // push updated prices to marketplaces (fire-and-forget, single batch)
  try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
- if(typeof showToast === 'function') showToast(`Variants disimpan — ${fieldUpdates} field, ${stockAdj} stok adjust${errs.length ? ', ' + errs.length + ' ralat' : ''}.`, errs.length ? 'warn' : 'success');
+ if(errs.length) console.warn('Variant save errors:', errs);
+ if(typeof showToast === 'function') showToast(`Variants disimpan — ${fieldUpdates} field, ${stockAdj} stok adjust${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
  if(typeof initApp === 'function') await initApp();
  setTimeout(() => window.openPdpModal(curSku), 250);
 };

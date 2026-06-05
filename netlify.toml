@@ -36,6 +36,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/tiktok-stock-push"
+  to = "/.netlify/functions/tiktok-stock-push"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/tiktok-product-sync"
   to = "/.netlify/functions/tiktok-product-sync"
   status = 200

@@ -10023,6 +10023,16 @@ window.processNewCheckout = async function() {
    const pushItems = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-'))).map(c => ({ sku: c.sku, qty: parseInt(c.quantity) || 0 })).filter(x => x.qty > 0);
    if(pushItems.length) window.easystorePushSale(pushItems, 'subtract');
  }
+ // p1_285 (Lubang B): push new POS stock for sold SKUs out to TikTok Shop.
+ // EasyStore's TikTok channel is disconnected (cutover 2026-05-25), so POS must
+ // push directly. Fire-and-forget — never block the receipt on a marketplace call.
+ try {
+   const ttSkus = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-')) && (parseInt(c.quantity) || 0) > 0).map(c => c.sku);
+   if(ttSkus.length) {
+     fetch('/api/tiktok-stock-push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ skus: ttSkus }) })
+       .catch(e => console.warn('tiktok-stock-push failed (non-blocking):', e));
+   }
+ } catch(e) { console.warn('tiktok-stock-push skipped:', e); }
 
  const invId = "INV-10C-" + Math.floor(1000 + Math.random() * 9000);
  const email = document.getElementById("customerEmail").value.trim();

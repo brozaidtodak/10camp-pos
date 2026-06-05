@@ -21848,6 +21848,11 @@ window.openCheckoutPanel = function() {
  if(typeof showToast === 'function') return showToast('Cart kosong.', 'warn');
  else { alert('Cart kosong.'); return; }
  }
+ // p1_247 — tutup mobile cart drawer dulu kalau terbuka (Zaid: dua-dua visible together = confusing)
+ const drawer = document.getElementById('posCartDrawer');
+ if(drawer && drawer.classList.contains('drawer-open')) {
+ drawer.classList.remove('drawer-open');
+ }
  try {
  // Hide success view, show form view
  const fv = document.getElementById('cpFormView'); if(fv) fv.classList.remove('is-hidden');

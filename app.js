@@ -19214,8 +19214,10 @@ window.renderAllOrders = function() {
  const status = document.getElementById('aoStatus')?.value || '';
  const period = document.getElementById('aoPeriod')?.value || '30';
  const cutoff = period === 'all' ? 0 : (Date.now() - parseInt(period, 10) * 86400000);
+ const hideTest = !!document.getElementById('aoHideTest')?.checked;
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
  let filtered = salesHistory.filter(s => {
+ if(hideTest && s.is_test) return false;
  if(cutoff && s.created_at && new Date(s.created_at).getTime() < cutoff) return false;
  const chLower = (s.channel || '').toLowerCase();
  if(channel === 'walkin') { if(!chLower.includes('walk')) return false; }
@@ -19266,9 +19268,12 @@ window.renderAllOrders = function() {
  const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + (parseInt(it.quantity) || 0), 0) : 0;
  const ch = (s.channel || '').toLowerCase();
  const chIcon = ch.includes('walk') ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
- return `<tr style="border-bottom:1px solid #F3F4F6;">
+ // p1_250 — Test badge + Test toggle button. is_test column dah exist + __ordMarkTest handler dah exist (line 5868).
+ const isTest = !!s.is_test;
+ const testBadge = isTest ? '<span style="background:#F59E0B; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
+ return `<tr style="border-bottom:1px solid #F3F4F6; ${isTest ? 'background:rgba(254,243,199,.18);' : ''}">
  <td style="padding:10px;">${dt}</td>
- <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">#${s.id}</td>
+ <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">#${s.id}${testBadge}</td>
  <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
  <td style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
  <td style="padding:10px; font-size:11.5px;">${escHtml(s.payment_method || '-')}</td>
@@ -19276,12 +19281,36 @@ window.renderAllOrders = function() {
  <td style="padding:10px; text-align:right;">${itemsCount}</td>
  <td style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
  <td style="padding:10px; white-space:nowrap;">
- <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__aoToggleTest && window.__aoToggleTest(${s.id}, ${!isTest})" title="${isTest ? 'Tandai semula sebagai REAL sale (akan masuk laporan)' : 'Tandai sebagai TEST (tak masuk laporan sales sebenar)'}" style="background:${isTest ? '#D1FAE5' : '#FEF3C7'}; border:1px solid ${isTest ? '#86EFAC' : '#FCD34D'}; color:${isTest ? '#065F46' : '#92400E'}; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="${isTest ? 'check-circle' : 'flask-conical'}" style="width:10px;height:10px;vertical-align:-1px;"></i> ${isTest ? 'Real' : 'Test'}</button>
  </td>
  </tr>`;
  }).join('');
  document.getElementById('aoSummaryLine').innerHTML = `Showing <strong>${slice.length}</strong> of <strong>${filtered.length}</strong> orders${filtered.length > 200 ? ' (top 200; refine filter untuk lihat lain)' : ''}.`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_250 — Toggle test flag dari All Orders table
+window.__aoToggleTest = async function(saleId, isTest) {
+ if(typeof db === 'undefined' || !db) return;
+ try {
+ const u = window.currentUser || {};
+ const { error } = await db.from('sales_history').update({
+ is_test: !!isTest,
+ test_marked_by: isTest ? (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')' : null,
+ test_marked_at: isTest ? new Date().toISOString() : null
+ }).eq('id', saleId);
+ if(error) throw error;
+ // Sync in-memory
+ if(typeof salesHistory !== 'undefined') {
+ const idx = salesHistory.findIndex(s => s.id === saleId);
+ if(idx >= 0) salesHistory[idx].is_test = !!isTest;
+ }
+ if(typeof showToast === 'function') showToast(`Sale #${saleId} ditandai ${isTest ? 'TEST (tak masuk laporan)' : 'REAL'}.`, 'success');
+ window.renderAllOrders();
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Toggle gagal: ' + e.message, 'error');
+ }
 };
 
 window.openAddWalkinOrder = function() {

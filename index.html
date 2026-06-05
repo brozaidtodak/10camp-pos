@@ -5439,30 +5439,10 @@
  </div>
 
  </div><div id="bulkOpsSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="check-square" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> <span data-i18n="bk_title">Bulk Publish &amp; Edit</span></h2>
- <p style="font-size:13px; color:#666; margin-bottom:18px;" data-i18n="bk_sub">Tapis produk → tick → bulk action. Berguna selepas import katalog Shopify atau bila nak adjust harga seluruh brand.</p>
+ <h2 class="section-title" data-skip-title-sync style="margin:18px 0 4px;"><i data-lucide="table-2" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> <span data-i18n="bk_title">Bulk Edit Produk</span></h2>
+ <p style="font-size:13px; color:var(--text-muted); margin:0 0 18px;" data-i18n="bk_sub">Edit Harga / Compared / Kos terus dalam jadual → tekan <b>Simpan Perubahan</b>. Atau tick produk untuk bulk Publish / Category.</p>
 
- <!-- BIN LOCATION BULK IMPORT (moved from databaseSection — p1_28) -->
- <div class="admin-card" style="border-top:4px solid #6366F1; padding:20px; margin-bottom:20px;">
- <h3 style="margin-bottom:6px;"><i data-lucide="map-pin" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;"></i> <span data-i18n="bk_bin_title">Bulk Import Lokasi Bin</span></h3>
- <p style="font-size:12px; color:#666; margin-bottom:14px;">
- Paste senarai SKU + Bin location. Format setiap baris: <code style="background:#F3F4F6; padding:2px 6px; border-radius:3px;">SKU,LOCATION</code><br>
- Contoh: <code style="background:#F3F4F6; padding:2px 6px; border-radius:3px;">NH139,A01-R02-S03-B01</code>
- </p>
- <textarea id="binImportTextarea2" class="login-input" rows="6" placeholder="NH139,A01-R02-S03-B01&#10;BD001,A02-R01-S01-B05&#10;MG062,B01-R03-S02-B07" style="font-family:monospace; font-size:12px;" oninput="document.getElementById('binImportTextarea').value=this.value"></textarea>
- <div style="display:flex; gap:8px; margin-top:10px;">
- <button class="btn-primary" onclick="window.bulkImportBinPreview()" style="flex:1; background:#6366F1; border-color:#6366F1;" data-i18n="bk_bin_preview_btn">Preview (semak SKU)</button>
- <button class="btn-success" onclick="window.bulkImportBinConfirm()" style="flex:1;" id="binImportConfirmBtn2" data-i18n="bk_bin_confirm_btn">Sahkan Import</button>
- </div>
- <div id="binImportPreview2" style="margin-top:12px; font-size:12px;"></div>
- </div>
-
- <!-- DANGER ZONE (moved from databaseSection — p1_28) -->
- <div class="admin-card" style="border-top:4px solid var(--danger); padding:20px; background:#FEF2F2; margin-bottom:20px;">
- <h3 style="color:var(--danger); margin-bottom:10px;"><i data-lucide="alert-triangle" style="vertical-align:middle; width:20px;"></i> <span data-i18n="bk_danger_title">DANGER ZONE — Wipe All Product Data</span></h3>
- <p style="font-size:12px; color:#991B1B; margin-bottom:15px;">Fungsi ini akan memadam <b>KESEMUA</b> data produk dan stok sedia ada di dalam sistem (Termasuk <i>Master Product</i> dan <i>Inventory Batches</i>). Gunakan fungsi ini untuk membersihkan sistem sebelum memasukkan produk yang sebenar.</p>
- <button class="btn-danger" style="background:var(--danger); font-weight:bold; width:auto; padding:10px 20px;" onclick="window.wipeAllProductsData()" data-i18n="bk_danger_btn">Padam Semua Data Produk</button>
- </div>
+ <!-- p1_312 — Bin Import + Danger Zone removed (Zaid: tak perlu) -->
 
  <!-- Filter bar -->
  <div class="admin-card" style="border-top:4px solid var(--primary); padding:18px; margin-bottom:18px;">
@@ -5486,8 +5466,8 @@
  <div>
  <label class="small-lbl" data-i18n="bk_filter_status">Status</label>
  <select id="bulkFilterStatus" class="login-input" style="margin:0;" onchange="renderBulkOps()">
- <option value="all" data-i18n="bk_status_all">Semua</option>
- <option value="draft" selected data-i18n="bk_status_draft">Draft sahaja</option>
+ <option value="all" selected data-i18n="bk_status_all">Semua</option>
+ <option value="draft" data-i18n="bk_status_draft">Draft sahaja</option>
  <option value="published" data-i18n="bk_status_published">Published sahaja</option>
  </select>
  </div>
@@ -5504,32 +5484,20 @@
  <div id="bulkSummaryLine" style="margin-top:12px; font-size:12px; color:#666;"></div>
  </div>
 
- <!-- Action bar -->
- <div id="bulkActionBar" style="position:sticky; top:0; z-index:50; background:#FFF; border:1px solid var(--border-color); border-radius:8px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
- <div style="font-size:13px;">
- <strong id="bulkSelectedCount">0</strong> <span data-i18n="bk_selected_label">dipilih</span>
- <span style="color:#999; margin-left:10px;" id="bulkVisibleCount"></span>
+ <!-- Action bar (p1_312 redesign) -->
+ <div id="bulkActionBar" style="position:sticky; top:0; z-index:50; background:#FFF; border:1px solid var(--border-color); border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.04);">
+ <div style="font-size:13px; color:#374151;">
+ <strong id="bulkSelectedCount" style="color:#CD7C32;">0</strong> <span data-i18n="bk_selected_label">dipilih</span>
+ <span style="color:#9CA3AF; margin-left:8px;" id="bulkVisibleCount"></span>
  </div>
- <div style="display:flex; gap:8px; flex-wrap:wrap;">
- <button class="btn-success" style="padding:6px 14px; font-size:12px; margin:0;" onclick="bulkAction('publish')">
- <i data-lucide="eye" style="width:14px; height:14px;"></i> <span data-i18n="bk_btn_publish">Publish</span>
- </button>
- <button class="btn-primary" style="padding:6px 14px; font-size:12px; margin:0; background:#6B7280; border-color:#6B7280;" onclick="bulkAction('unpublish')">
- <i data-lucide="eye-off" style="width:14px; height:14px;"></i> <span data-i18n="bk_btn_unpublish">Unpublish</span>
- </button>
- <button class="btn-primary" style="padding:6px 14px; font-size:12px; margin:0; background:#0EA5E9; border-color:#0EA5E9;" onclick="bulkOpenPriceModal()">
- <i data-lucide="tag" style="width:14px; height:14px;"></i> <span data-i18n="bk_btn_price">Edit Price</span>
- </button>
- <button class="btn-primary" style="padding:6px 14px; font-size:12px; margin:0; background:#A855F7; border-color:#A855F7;" onclick="bulkOpenCategoryModal()">
- <i data-lucide="folder" style="width:14px; height:14px;"></i> <span data-i18n="bk_btn_category">Reassign Category</span>
- </button>
- <button class="btn-danger" style="padding:6px 14px; font-size:12px; margin:0;" onclick="bulkAction('strip-stocktake-tag')" title="Buang prefix [STOK BELUM DISAHKAN] dari description">
- <i data-lucide="check-circle" style="width:14px; height:14px;"></i> <span data-i18n="bk_btn_stocktake">Tandakan Selesai Stock-take</span>
- </button>
- <button class="btn-success" style="padding:6px 16px; font-size:12px; margin:0; font-weight:700;" onclick="window.bulkSaveEdits && window.bulkSaveEdits()" title="Simpan semua Harga/Compared/Kos yang diedit dalam jadual">
- <i data-lucide="save" style="width:14px; height:14px;"></i> Simpan Perubahan
- </button>
- <span id="bulkEditHint" style="font-size:11px; color:#9CA3AF; align-self:center;"></span>
+ <div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center;">
+ <button onclick="bulkAction('publish')" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="eye" style="width:13px;height:13px;"></i> <span data-i18n="bk_btn_publish">Publish</span></button>
+ <button onclick="bulkAction('unpublish')" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="eye-off" style="width:13px;height:13px;"></i> <span data-i18n="bk_btn_unpublish">Unpublish</span></button>
+ <button onclick="bulkOpenPriceModal()" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;" title="Tukar harga produk dipilih secara % atau RM"><i data-lucide="percent" style="width:13px;height:13px;"></i> Set Harga</button>
+ <button onclick="bulkOpenCategoryModal()" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> <span data-i18n="bk_btn_category">Category</span></button>
+ <span style="width:1px; height:26px; background:#E5E7EB; margin:0 3px;"></span>
+ <span id="bulkEditHint" style="font-size:11px; color:#9CA3AF;"></span>
+ <button onclick="window.bulkSaveEdits && window.bulkSaveEdits()" style="padding:8px 18px; font-size:13px; font-weight:700; background:#CD7C32; color:#fff; border:none; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;" title="Simpan semua Harga/Compared/Kos yang diedit"><i data-lucide="save" style="width:15px;height:15px;"></i> Simpan Perubahan</button>
  </div>
  </div>
 
@@ -7086,6 +7054,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_312', label:'Bulk Edit page cleanup + redesign (Zaid: "ui/ux berterabut, design tak cantik; bulk import bin location tak perlu boleh padam; danger zone wipe all product mende sia buang"). BUANG: blok Bulk Import Lokasi Bin + blok DANGER ZONE (wipe all products) dari bulkOpsSection (fungsi binImport/wipeAllProductsData kekal dalam app.js tapi tak dipanggil). FIX "tak semua benda ada": default filter Status dari "Draft sahaja" → "Semua" (sebelum ni bukak Bulk Edit cuma tunjuk ~31 draft, bukan 663 live). REDESIGN: header bersih (tajuk "Bulk Edit Produk" + sub jelas, i18n bk_title/bk_sub dikemas), action bar dari butang pelangi (hijau/kelabu/biru/ungu/merah) → konsisten neutral + butang "Simpan Perubahan" brand bronze menonjol kanan, separator, buang butang Stock-take yg clutter, "Edit Price"→"Set Harga". app.js v396→v397.', d:'done' },
  { id:'p1_311', label:'Bulk Edit spreadsheet (Zaid: "dekat product aku nak tambah features bulk edit" + screenshot EasyStore Product bulk editor). Extend bulkOpsSection: kolum Harga + Compared (baru) + Kos jadi input editable inline; butang "Simpan Perubahan" → window.bulkSaveEdits loop bulkVisibleSkus, update products_master field berubah sahaja, sync in-memory, push harga marketplace (batch 25), toast + re-render. Header tambah kolum Compared (colspan 10→11). Escape nama/brand/kategori/sku. Butang "Bulk Edit" dalam toolbar Products grid → buka bulkOpsSection. Bulk action sedia ada kekal. app.js v395→v396.', d:'done' },
  { id:'p1_310', label:'Collections view EasyStore-style (Zaid: "bila tekan product keluar product, dekat collection kau buat macamni" + screenshot EasyStore Collections list). Sidebar Products: rename sub "Collection" → "Products" (grid produk kekal), tambah sub baru "Collections". Section baru collectionsSection + renderCollections() — group produk ikut Brands (11) + Categories (~30), tiap row papar nama + bilangan live + jumlah, klik → __collectionOpen buka grid Products yang ditapis (set pdBrand/pdCategory + renderProductDatabase). Data POS takde metadata.collection custom, jadi guna brand+category yang solid. switchHub dispatch tambah collectionsSection. app.js v394→v395.', d:'done' },
  { id:'p1_309', label:'Fix follow-up audit: dedup race + XSS (Zaid: "sambung fix dedup race dan XSS"). (A) DEDUP RACE: Shopee order boleh masuk via webhook (instant) + cron serentak → check-then-insert tak atomic → double insert + double deduct stok. FIX: unique partial index uq_sales_shopee_order_sn (+ tiktok_order_id + easystore_order_id future-proof) pada sales_history; shopee-sync.js tukar batch insert → PER-ORDER insert, deduct stok HANYA bila insert berjaya (catch 23505 duplicate → skip); shopee-webhook.js cabang insert catch 23505 → skip deduct. Tiada duplicate sedia ada. (B) XSS: field produk (name/brand/category/erp_barcode/location_bin) datang dari import marketplace, di-inject mentah dalam innerHTML 4 renderer (renderInventoryGrid/Table + renderProductDatabase grid/table) → boleh execute <img onerror>. FIX: helper global hesc() (escape semua aksara HTML); balut semua field berisiko dalam keempat-empat renderer. SQL: sql/2026-06-05_order_unique_indexes.sql. app.js v393→v394.', d:'done' },
@@ -11843,7 +11812,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=396"></script>
+ <script src="app.js?v=397"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

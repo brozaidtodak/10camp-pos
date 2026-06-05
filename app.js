@@ -24339,8 +24339,8 @@ window.I18N = {
  inv_btn_inv_sewa: { bm: 'JANA PDF INV. SEWA', en: 'GENERATE PDF RENTAL INV.' },
 
  // Bulk Product Edit (bk_*)
- bk_title: { bm: 'Bulk Publish & Edit', en: 'Bulk Publish & Edit' },
- bk_sub: { bm: 'Tapis produk → tick → bulk action. Berguna selepas import katalog Shopify atau bila nak adjust harga seluruh brand.', en: 'Filter products → tick → bulk action. Useful after importing a Shopify catalogue or adjusting prices across a brand.' },
+ bk_title: { bm: 'Bulk Edit Produk', en: 'Bulk Edit Products' },
+ bk_sub: { bm: 'Edit Harga / Compared / Kos terus dalam jadual, tekan Simpan Perubahan. Atau tick produk untuk bulk Publish / Category.', en: 'Edit Price / Compared / Cost inline in the table, then Save Changes. Or tick products for bulk Publish / Category.' },
  bk_bin_title: { bm: 'Bulk Import Lokasi Bin', en: 'Bulk Import Bin Location' },
  bk_bin_preview_btn: { bm: 'Preview (semak SKU)', en: 'Preview (verify SKU)' },
  bk_bin_confirm_btn: { bm: 'Sahkan Import', en: 'Confirm Import' },

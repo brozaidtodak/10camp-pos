@@ -42,6 +42,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/shopee-stock-push"
+  to = "/.netlify/functions/shopee-stock-push"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/tiktok-product-sync"
   to = "/.netlify/functions/tiktok-product-sync"
   status = 200

@@ -10027,12 +10027,17 @@ window.processNewCheckout = async function() {
  // EasyStore's TikTok channel is disconnected (cutover 2026-05-25), so POS must
  // push directly. Fire-and-forget — never block the receipt on a marketplace call.
  try {
-   const ttSkus = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-')) && (parseInt(c.quantity) || 0) > 0).map(c => c.sku);
-   if(ttSkus.length) {
-     fetch('/api/tiktok-stock-push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ skus: ttSkus }) })
+   const soldSkus = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-')) && (parseInt(c.quantity) || 0) > 0).map(c => c.sku);
+   if(soldSkus.length) {
+     // p1_285 — push to TikTok (EasyStore TikTok channel disconnected)
+     fetch('/api/tiktok-stock-push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ skus: soldSkus }) })
        .catch(e => console.warn('tiktok-stock-push failed (non-blocking):', e));
+     // p1_291 — push to Shopee direct (Lubang B Shopee). update_stock is absolute,
+     // so safe even while EasyStore also syncs Shopee — both write the same value.
+     fetch('/api/shopee-stock-push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ skus: soldSkus }) })
+       .catch(e => console.warn('shopee-stock-push failed (non-blocking):', e));
    }
- } catch(e) { console.warn('tiktok-stock-push skipped:', e); }
+ } catch(e) { console.warn('marketplace stock-push skipped:', e); }
 
  const invId = "INV-10C-" + Math.floor(1000 + Math.random() * 9000);
  const email = document.getElementById("customerEmail").value.trim();

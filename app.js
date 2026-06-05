@@ -23478,12 +23478,29 @@ window.renderProductDatabase = function() {
  }
 
  // Summary line
+ // p1_301 — collapse variants: 1 card per parent_sku (lead product + group stock)
+ const __pdbGroups = new Map();
+ for(const gp of list) {
+ const key = (gp.parent_sku && String(gp.parent_sku).trim()) ? ('p:' + gp.parent_sku) : ('s:' + gp.sku);
+ if(!__pdbGroups.has(key)) __pdbGroups.set(key, []);
+ __pdbGroups.get(key).push(gp);
+ }
+ const grouped = Array.from(__pdbGroups.values()).map(g => {
+ const lead = g.find(x => x.sku === x.parent_sku) || g[0];
+ const gstock = g.reduce((s, v) => s + (stockMap.get(v.sku) || 0), 0);
+ return Object.assign({}, lead, {
+ __vcount: g.length,
+ __gstock: gstock,
+ __cleanName: g.length > 1 ? (String(lead.name || '').split('—')[0].trim() || lead.name) : (lead.name || '')
+ });
+ });
+
  const summaryEl = document.getElementById('pdSummary');
  if(summaryEl) {
- summaryEl.innerHTML = `Match: <strong>${list.length}</strong> · Show: <strong>${Math.min(list.length, perPage)}</strong>${list.length> perPage ? ' <span style="color:var(--warning-700);">(turunkan saiz halaman atau tighten filter untuk lihat semua)</span>' : ''}`;
+ summaryEl.innerHTML = `Match: <strong>${grouped.length}</strong> produk · Show: <strong>${Math.min(grouped.length, perPage)}</strong>${grouped.length> perPage ? ' <span style="color:var(--warning-700);">(turunkan saiz halaman atau tighten filter untuk lihat semua)</span>' : ''}`;
  }
 
- const slice = list.slice(0, perPage);
+ const slice = grouped.slice(0, perPage);
 
  if(slice.length === 0) {
  const empty = `<div class="empty-state" style="grid-column:1/-1;">
@@ -23500,7 +23517,8 @@ window.renderProductDatabase = function() {
  // Render Grid
  if(__pdView === 'grid') {
  gridEl.innerHTML = slice.map(p => {
- const stock = stockMap.get(p.sku) || 0;
+ const isGrp = p.__vcount > 1;
+ const stock = isGrp ? p.__gstock : (stockMap.get(p.sku) || 0);
  const reorder = p.reorder_point || 5;
  const stockClass = stock === 0 ? 'out' : (stock < reorder ? 'low' : '');
  const stockLabel = stock === 0 ? 'OOS' : `${stock} ${p.unit || 'pcs'}`;
@@ -23531,8 +23549,8 @@ window.renderProductDatabase = function() {
  </div>
  <div class="pd-card__body">
  <span class="pd-card__brand">${p.brand || p.category || '·'}</span>
- <span class="pd-card__title">${(p.name || '').slice(0, 90)}</span>
- <span class="pd-card__sku">${p.sku}${p.location_bin ? ` · <span style="background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:3px; font-size:9.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${p.location_bin}</span>` : ''}</span>
+ <span class="pd-card__title">${((isGrp ? p.__cleanName : p.name) || '').slice(0, 90)}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:800; white-space:nowrap;">${p.__vcount} variants</span>` : ''}</span>
+ <span class="pd-card__sku">${isGrp ? (p.parent_sku || p.sku) : p.sku}${(!isGrp && p.location_bin) ? ` · <span style="background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:3px; font-size:9.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${p.location_bin}</span>` : ''}</span>
  <span class="pd-card__price">RM ${(p.price || 0).toFixed(2)}${cost ? `<span class="pd-card__price-sub">cost RM ${cost}</span>` : ''}</span>
  </div>
  <div class="pd-card__footer">
@@ -23549,7 +23567,8 @@ window.renderProductDatabase = function() {
  } else if(tableBody) {
  // Render Table
  tableBody.innerHTML = slice.map(p => {
- const stock = stockMap.get(p.sku) || 0;
+ const isGrp = p.__vcount > 1;
+ const stock = isGrp ? p.__gstock : (stockMap.get(p.sku) || 0);
  const reorder = p.reorder_point || 5;
  const stockColor = stock === 0 ? 'var(--danger-600)' : (stock < reorder ? 'var(--warning-600)' : 'var(--neutral-700)');
  const img = (p.images && p.images[0]) || '';
@@ -23557,7 +23576,7 @@ window.renderProductDatabase = function() {
  return `
  <tr onclick="window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')" tabindex="0" role="button">
  <td>${img ? `<img src="${img}" class="pd-row-img" loading="lazy" alt="">` : '<div class="pd-row-img" style="display:flex;align-items:center;justify-content:center;color:var(--neutral-400);"></div>'}</td>
- <td><span class="pd-row-name">${(p.name||'').slice(0, 70)}</span><span class="pd-row-meta">${p.sku}${p.erp_barcode ? ' · '+p.erp_barcode : ''}</span></td>
+ <td><span class="pd-row-name">${((isGrp ? p.__cleanName : p.name)||'').slice(0, 70)}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:800;">${p.__vcount} variants</span>` : ''}</span><span class="pd-row-meta">${isGrp ? (p.parent_sku||p.sku) : p.sku}${(!isGrp && p.erp_barcode) ? ' · '+p.erp_barcode : ''}</span></td>
  <td>${p.brand || '—'}</td>
  <td>${p.category || '—'}</td>
  <td>${p.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 7px; border-radius:4px; font-size:10.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${p.location_bin}</span>` : '<span style="color:#D1D5DB; font-size:11px;">—</span>'}</td>

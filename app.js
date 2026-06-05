@@ -17384,9 +17384,13 @@ window.__pdpSaveVariants = async function(parentSku) {
  // push updated prices to marketplaces (fire-and-forget, single batch)
  try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
  if(errs.length) console.warn('Variant save errors:', errs);
+ // Reload batches so the stock display reflects the adjustments, then re-render
+ // the variant table IN PLACE. Resets inputs to true current stock so pressing
+ // Simpan again can't compound deltas (p1_307 fix).
+ try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){}
  if(typeof showToast === 'function') showToast(`Variants disimpan — ${fieldUpdates} field, ${stockAdj} stok adjust${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
- if(typeof initApp === 'function') await initApp();
- setTimeout(() => window.openPdpModal(curSku), 250);
+ const freshProd = (masterProducts || []).find(x => x.sku === curSku);
+ if(freshProd && window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
 };
 
 window.renderPdpMediaGallery = function(urls) {

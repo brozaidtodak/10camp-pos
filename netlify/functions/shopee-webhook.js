@@ -61,15 +61,21 @@ function signShop(path, timestamp, accessToken, shopId) {
     return crypto.createHmac('sha256', PARTNER_KEY).update(base).digest('hex');
 }
 
-// Webhook sign uses Push Partner Key (separate from OAuth partner_key).
-// If SHOPEE_PUSH_KEY not set, skip verification (dev/initial-setup mode).
+// Webhook Authorization header = HMAC-SHA256(url + "|" + body).
+// Shopee docs are ambiguous on which key signs pushes, so try BOTH the Push
+// Partner Key and the OAuth Partner Key and accept if either matches (p1_292).
+// If neither env is set, skip verification (dev/initial-setup mode).
 function verifyWebhookSign(url, body, authHeader) {
-    if (!PUSH_KEY) return { ok: true, skipped: true, reason: 'PUSH_KEY not set — skipping verify' };
-    const computed = crypto.createHmac('sha256', PUSH_KEY)
-        .update(`${url}|${body}`)
-        .digest('hex');
-    const matched = computed === (authHeader || '').trim();
-    return { ok: matched, skipped: false };
+    const got = (authHeader || '').trim();
+    const keys = [];
+    if (PUSH_KEY) keys.push(PUSH_KEY);
+    if (PARTNER_KEY) keys.push(PARTNER_KEY);
+    if (!keys.length) return { ok: true, skipped: true, reason: 'no Shopee signing key set' };
+    for (const k of keys) {
+        const computed = crypto.createHmac('sha256', k).update(`${url}|${body}`).digest('hex');
+        if (computed === got) return { ok: true, skipped: false };
+    }
+    return { ok: false, skipped: false };
 }
 
 async function shopeeGet(path, extraQuery, accessToken, shopId) {
@@ -146,7 +152,11 @@ exports.handler = async (event) => {
     }
 
     const startMs = Date.now();
-    const rawBody = event.body || '';
+    let rawBody = event.body || '';
+    // Netlify base64-encodes some bodies; Shopee signs the decoded JSON.
+    if (event.isBase64Encoded && rawBody) {
+        try { rawBody = Buffer.from(rawBody, 'base64').toString('utf8'); } catch(_) {}
+    }
     const authHeader = (event.headers && (event.headers.authorization || event.headers.Authorization)) || '';
 
     // Shopee Push Mechanism URL verification (code=0): echo the verify message back.
@@ -170,7 +180,30 @@ exports.handler = async (event) => {
         }
     } catch (_) { /* fall through to normal sign verify */ }
 
-    // 1. Verify signature (uses SHOPEE_PUSH_KEY; skips check if env not set)
+    // 1. Parse payload FIRST. Non-order pushes (Shopee promo/marketing
+    //    notifications — the "msg_id" type) are acked + ignored WITHOUT sign
+    //    enforcement: we act on no data from them, so there's nothing to spoof.
+    //    This stops the "sign mismatch" log spam from Shopee's promo pushes (p1_292).
+    let payload;
+    try { payload = JSON.parse(rawBody); }
+    catch(e) { return { statusCode: 400, body: 'invalid json' }; }
+
+    const code = payload.code;
+    const shopId = payload.shop_id;
+    const orderSn = payload.data && payload.data.ordersn;
+
+    // 2. Only Order Status Update (code 3) is actioned. Everything else (promo
+    //    notifications, other event codes) → ack 200 + ignore (no sign needed).
+    if (code !== 3 || !shopId || !orderSn) {
+        await logEvent({
+            source: 'webhook', mode: 'import', environment: ENV,
+            raw_response: { code, shop_id: shopId, msg_id: payload.msg_id || null, note: 'non-order push ignored (ack)' },
+            duration_ms: Date.now() - startMs
+        });
+        return { statusCode: 200, body: 'event ignored' };
+    }
+
+    // 3. Order event — NOW enforce signature (tries PUSH_KEY then PARTNER_KEY).
     const verifyResult = verifyWebhookSign(WEBHOOK_URL, rawBody, authHeader);
     if (!verifyResult.ok) {
         await logEvent({
@@ -182,32 +215,12 @@ exports.handler = async (event) => {
         return { statusCode: 401, body: 'invalid signature' };
     }
     if (verifyResult.skipped) {
-        // Log warning but accept — dev/setup mode without SHOPEE_PUSH_KEY env var.
         await logEvent({
             source: 'webhook', mode: 'import', environment: ENV,
-            error_message: 'WARNING: SHOPEE_PUSH_KEY not set, sign check skipped',
+            error_message: 'WARNING: no Shopee signing key set, sign check skipped',
             duration_ms: 0,
-            raw_response: { note: 'set SHOPEE_PUSH_KEY in Netlify env for production' }
+            raw_response: { note: 'set SHOPEE_PUSH_KEY / SHOPEE_PARTNER_KEY in Netlify env' }
         });
-    }
-
-    // 2. Parse payload
-    let payload;
-    try { payload = JSON.parse(rawBody); }
-    catch(e) { return { statusCode: 400, body: 'invalid json' }; }
-
-    const code = payload.code;
-    const shopId = payload.shop_id;
-    const orderSn = payload.data && payload.data.ordersn;
-
-    // 3. Only handle Order Status Update (code 3)
-    if (code !== 3 || !shopId || !orderSn) {
-        await logEvent({
-            source: 'webhook', mode: 'import', environment: ENV,
-            raw_response: { code, shop_id: shopId, note: 'event ignored (not order-status)' },
-            duration_ms: Date.now() - startMs
-        });
-        return { statusCode: 200, body: 'event ignored' };
     }
 
     try {

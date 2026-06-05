@@ -15347,14 +15347,18 @@ window.toggleNavGroup = function(name, event) {
 window.openOrdersHub = function(event) {
  if(event && event.stopPropagation) event.stopPropagation();
  const parent = document.querySelector('[data-nav-parent="orders"]');
+ // p1_316 — toggle: if already open, just COLLAPSE (so Orders can be closed);
+ // if closed, expand + jump to All Orders.
+ const willOpen = !(parent && parent.classList.contains('is-expanded'));
  if(parent) {
- parent.classList.add('is-expanded');
+ parent.classList.toggle('is-expanded', willOpen);
  try {
  const st = JSON.parse(localStorage.getItem('navGroupState') || '{}');
- st.orders = true;
+ st.orders = willOpen;
  localStorage.setItem('navGroupState', JSON.stringify(st));
  } catch(e){}
  }
+ if(!willOpen) return; // collapsing — don't navigate
  const aoItem = document.querySelector('[data-tab="sales_all_orders"]');
  if(typeof switchHub === 'function') switchHub(['allOrdersSection'], 'All Orders', aoItem || null);
  if(typeof window.renderAllOrders === 'function') window.renderAllOrders();

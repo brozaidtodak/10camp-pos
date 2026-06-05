@@ -19625,7 +19625,7 @@ window.renderAllOrders = function() {
  const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
  const channel = document.getElementById('aoChannel')?.value || '';
  const status = document.getElementById('aoStatus')?.value || '';
- const period = document.getElementById('aoPeriod')?.value || '30';
+ const period = document.getElementById('aoPeriod')?.value || 'all';
  const cutoff = period === 'all' ? 0 : (Date.now() - parseInt(period, 10) * 86400000);
  const hideTest = !!document.getElementById('aoHideTest')?.checked;
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];

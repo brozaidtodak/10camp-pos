@@ -42,7 +42,7 @@ function mapChannel(sourceName) {
     if (s.includes('tiktok'))  return 'TikTok Shop';
     if (s.includes('shopee'))  return 'Shopee';
     if (s.includes('lazada'))  return 'Lazada';
-    if (s === 'pos')           return 'Walk-in Kedai';
+    if (s === 'pos')           return 'POS Cashier';
     if (s === 'sf' || s === 'online_store' || s.includes('store')) return 'Web EasyStore';
     return s.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }

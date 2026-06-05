@@ -77,7 +77,7 @@ function buildEmailHtml(sale) {
         </tr>
     `).join('');
 
-    const channelLabel = sale.channel || 'Walk-in Kedai';
+    const channelLabel = sale.channel || 'POS Cashier';
     const pmLabel = sale.payment_method || 'Cash';
 
     return `<!DOCTYPE html>

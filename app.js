@@ -1156,7 +1156,7 @@ window.__rpRenderSalesTemplate = function(body, u, range) {
  if(sale.customer_phone) customerSet.add(sale.customer_phone);
  else if(sale.customer_name) customerSet.add(sale.customer_name);
  // Channel tally
- const ch = sale.channel || 'Walk-in Kedai';
+ const ch = sale.channel || 'POS Cashier';
  if(!channelTally[ch]) channelTally[ch] = { channel: ch, orders: 0, revenue: 0 };
  channelTally[ch].orders++;
  channelTally[ch].revenue += rev;
@@ -1987,7 +1987,7 @@ window.__rlOpenSubmit = function() {
  document.getElementById('rlSku').value = '';
  document.getElementById('rlQty').value = '1';
  document.getElementById('rlSubmitType').value = 'return';
- document.getElementById('rlChannel').value = 'Walk-in Kedai';
+ document.getElementById('rlChannel').value = 'POS Cashier';
  document.getElementById('rlReasonSelect').value = '';
  document.getElementById('rlReason').value = '';
  document.getElementById('rlCost').value = '0';
@@ -2359,7 +2359,7 @@ window.__cpPeriod = 'mtd';
 window.__cpDefaultFees = {
  'Shopee':         { fee: 8.0, processing: 2.5, label: 'Shopee', color: '#EE4D2D' },
  'TikTok Shop':    { fee: 5.0, processing: 2.0, label: 'TikTok Shop', color: '#000000' },
- 'Walk-in Kedai':  { fee: 0.0, processing: 0.5, label: 'Walk-in Kedai', color: '#10B981' },
+ 'POS Cashier':  { fee: 0.0, processing: 0.5, label: 'POS Cashier', color: '#10B981' },
  'Web EasyStore':  { fee: 0.0, processing: 2.5, label: 'Web EasyStore', color: '#3B82F6' },
  'WhatsApp':       { fee: 0.0, processing: 0.5, label: 'WhatsApp', color: '#22C55E' }
 };
@@ -2443,7 +2443,7 @@ window.renderChannelProfit = function() {
  salesHistory.forEach(sale => {
  const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
  if(t < startMs || t > endMs) return;
- const ch = sale.channel || 'Walk-in Kedai';
+ const ch = sale.channel || 'POS Cashier';
  if(!channelStats[ch]) channelStats[ch] = { revenue: 0, orders: 0, cogs: 0 };
  const total = Number(sale.total || sale.amount || 0);
  channelStats[ch].revenue += total;
@@ -4537,7 +4537,7 @@ window.__buildReceiptHtmlFragment = function(sale) {
 </div>
 <div class="receipt-header">
  <div class="receipt-no">RESIT #${sale.id}</div>
- <div class="receipt-date">${esc(dtStr)}<br>${esc(sale.channel || 'Walk-in Kedai')}</div>
+ <div class="receipt-date">${esc(dtStr)}<br>${esc(sale.channel || 'POS Cashier')}</div>
 </div>
 <div class="customer-row">
  <strong>${esc(sale.customer_name || 'Walk-In Customer')}</strong>
@@ -4765,7 +4765,7 @@ table.items-table .col-total { text-align: right; width: 22%; font-weight: 600; 
 
 <div class="receipt-header">
  <div class="receipt-no">RESIT #${sale.id}</div>
- <div class="receipt-date">${esc(dtStr)}<br>${esc(sale.channel || 'Walk-in Kedai')}</div>
+ <div class="receipt-date">${esc(dtStr)}<br>${esc(sale.channel || 'POS Cashier')}</div>
 </div>
 
 <div class="customer-row">
@@ -4847,7 +4847,7 @@ window.__ppEditSale = async function(saleId) {
  set('ppEditCustPhone', row.customer_phone);
  set('ppEditCustEmail', row.customer_email);
  set('ppEditMethod', row.payment_method || 'Cash');
- set('ppEditChannel', row.channel || 'Walk-in Kedai');
+ set('ppEditChannel', row.channel || 'POS Cashier');
  set('ppEditTotal', row.total_amount != null ? row.total_amount : (row.total != null ? row.total : ''));
  set('ppEditStatus', row.status || 'Completed');
  set('ppEditBuyerTin', row.buyer_tin);
@@ -4938,7 +4938,7 @@ window.__ppSaveEdit = async function() {
  customer_phone: get('ppEditCustPhone') || null,
  customer_email: get('ppEditCustEmail') || null,
  payment_method: get('ppEditMethod') || 'Cash',
- channel: get('ppEditChannel') || 'Walk-in Kedai',
+ channel: get('ppEditChannel') || 'POS Cashier',
  status: get('ppEditStatus') || 'Completed',
  buyer_tin: get('ppEditBuyerTin') || null
  };
@@ -5716,7 +5716,7 @@ window.renderDashboard = function() {
  totalSales = round2(totalSales + rev);
  
  // Channels
- let ch = sale.channel || 'Walk-in Kedai';
+ let ch = sale.channel || 'POS Cashier';
  channelFreq[ch] = (channelFreq[ch] || 0) + rev;
 
  // Status
@@ -5888,7 +5888,7 @@ function renderHistory() {
  const filteredList = hideTest ? salesHistory.filter(s => !s.is_test) : salesHistory;
  const sorted = filteredList.slice().sort((a, b) => new Date(b.created_at||0) - new Date(a.created_at||0)).slice(0, 200);
  el.innerHTML = sorted.map(sale => {
- const sc = sale.channel || 'Walk-in Kedai';
+ const sc = sale.channel || 'POS Cashier';
  const st = sale.status || 'Completed';
  const stColor = st==='Completed'?'#000000': (st==='Unpaid'?'#6F6F6F': (st==='To Fulfil'?'#F37021':'#D80000'));
  const d = new Date(sale.created_at);
@@ -6340,7 +6340,7 @@ window.__renderOrderDetail = function(sale) {
  + (tax > 0 ? '<div style="display:flex; justify-content:space-between;"><span style="color:#64748B;">SST</span><span>RM ' + tax.toFixed(2) + '</span></div>' : '')
  + '<div style="display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid #E2E8F0; font-weight:800; font-size:15px;"><span>Total</span><span>RM ' + total.toFixed(2) + '</span></div>';
 
- const ch = sale.channel || 'Walk-in Kedai';
+ const ch = sale.channel || 'POS Cashier';
  const chColor = ch === 'TikTok Shop' ? '#000' : (ch === 'Shopee' ? '#ee4d2d' : (String(ch).includes('EasyStore') ? '#10B981' : '#6366F1'));
  document.getElementById('odChannelIcon').textContent = ch === 'TikTok Shop' ? 'T' : (ch === 'Shopee' ? 'S' : (String(ch).includes('EasyStore') ? 'E' : 'W'));
  document.getElementById('odChannelName').textContent = ch;
@@ -12962,7 +12962,7 @@ function renderSalesMgmtTarget() {
  let irfanTotal = 0;
  
  // Tally Omnichannel — canonical channel set (p3_1)
- let channels = { 'Walk-in Kedai': 0, 'TikTok Shop': 0, 'Shopee': 0, 'WhatsApp': 0, 'Web EasyStore': 0 };
+ let channels = { 'POS Cashier': 0, 'TikTok Shop': 0, 'Shopee': 0, 'WhatsApp': 0, 'Web EasyStore': 0 };
  let totalSalesSystem = 0;
  let totalTransactions = salesHistory.length;
 
@@ -12973,7 +12973,7 @@ function renderSalesMgmtTarget() {
  if(sale.staff_name === 'Irfan') irfanTotal = round2(irfanTotal + amt);
  
  // Taburan Omnichannel
- let ch = sale.channel || 'Walk-in Kedai';
+ let ch = sale.channel || 'POS Cashier';
  if(!channels[ch]) channels[ch] = 0;
  channels[ch] += amt;
  totalSalesSystem = round2(totalSalesSystem + amt);
@@ -13002,9 +13002,9 @@ function renderSalesMgmtTarget() {
  if(tbodyOmni) {
  let omniHtml = "";
  for (let ch in channels) {
- if(channels[ch]> 0 || ch === 'Walk-in Kedai' || ch === 'TikTok Shop') {
+ if(channels[ch]> 0 || ch === 'POS Cashier' || ch === 'TikTok Shop') {
  let pct = totalSalesSystem> 0 ? ((channels[ch] / totalSalesSystem) * 100).toFixed(1) : 0;
- let count = salesHistory.filter(s => (s.channel || 'Walk-in Kedai') === ch).length;
+ let count = salesHistory.filter(s => (s.channel || 'POS Cashier') === ch).length;
  omniHtml += `<tr>
  <td><strong>${ch}</strong></td>
  <td>${count} resit</td>
@@ -19633,7 +19633,7 @@ window.renderAllOrders = function() {
  if(hideTest && s.is_test) return false;
  if(cutoff && s.created_at && new Date(s.created_at).getTime() < cutoff) return false;
  const chLower = (s.channel || '').toLowerCase();
- if(channel === 'walkin') { if(!chLower.includes('walk')) return false; }
+ if(channel === 'walkin') { if(!(chLower.includes('walk') || chLower.includes('cashier'))) return false; }
  else if(channel === 'online') { if(!ONLINE_CHANNELS.some(c => chLower.includes(c))) return false; }
  else if(channel && s.channel !== channel) return false;
  if(status && s.status !== status) return false;
@@ -19647,7 +19647,7 @@ window.renderAllOrders = function() {
  filtered.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 
  const total = filtered.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
- const walkinCount = filtered.filter(s => (s.channel || '').toLowerCase().includes('walk')).length;
+ const walkinCount = filtered.filter(s => { const c = (s.channel || '').toLowerCase(); return c.includes('walk') || c.includes('cashier'); }).length;
  const onlineCount = filtered.filter(s => ONLINE_CHANNELS.some(c => (s.channel || '').toLowerCase().includes(c))).length;
  const completed = filtered.filter(s => s.status === 'Completed').length;
  const toFulfil = filtered.filter(s => s.status === 'To Fulfil').length;
@@ -19680,7 +19680,7 @@ window.renderAllOrders = function() {
  const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
  const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + (parseInt(it.quantity) || 0), 0) : 0;
  const ch = (s.channel || '').toLowerCase();
- const chIcon = ch.includes('walk') ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
+ const chIcon = (ch.includes('walk') || ch.includes('cashier')) ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
  // p1_250 — Test badge + Test toggle button. is_test column dah exist + __ordMarkTest handler dah exist (line 5868).
  const isTest = !!s.is_test;
  const testBadge = isTest ? '<span style="background:#F59E0B; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
@@ -22556,7 +22556,7 @@ window.openCheckoutPanel = function() {
  setIf('cpCustPhone', '');
  setIf('cpCustEmail', '');
  }
- const chEl = document.getElementById('cpChannel'); if(chEl) chEl.value = 'Walk-in Kedai';
+ const chEl = document.getElementById('cpChannel'); if(chEl) chEl.value = 'POS Cashier';
  const stEl = document.getElementById('cpStatus'); if(stEl) stEl.value = 'Completed';
  cpSetPayment('Cash');
 

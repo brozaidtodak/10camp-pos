@@ -4,7 +4,7 @@ One-off backfill — re-tag sales_history.channel from EasyStore order.source_na
 
 Before p3_1 the sync collapsed every online order into "EasyStore Online".
 This script walks every EasyStore order, maps source_name → proper channel
-label (TikTok Shop / Shopee / Walk-in Kedai / Web EasyStore), and UPDATEs the
+label (TikTok Shop / Shopee / POS Cashier / Web EasyStore), and UPDATEs the
 matching sales_history rows (keyed on metadata.easystore_order_id).
 
 Usage:
@@ -36,7 +36,7 @@ def map_channel(source_name):
     if 'tiktok' in s: return 'TikTok Shop'
     if 'shopee' in s: return 'Shopee'
     if 'lazada' in s: return 'Lazada'
-    if s == 'pos':    return 'Walk-in Kedai'
+    if s == 'pos':    return 'POS Cashier'
     if s in ('sf', 'online_store') or 'store' in s: return 'Web EasyStore'
     return s.replace('-', ' ').replace('_', ' ').title()
 

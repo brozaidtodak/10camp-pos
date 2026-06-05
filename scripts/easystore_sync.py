@@ -47,7 +47,7 @@ def map_channel(source_name):
     if 'tiktok' in s: return 'TikTok Shop'
     if 'shopee' in s: return 'Shopee'
     if 'lazada' in s: return 'Lazada'
-    if s == 'pos':    return 'Walk-in Kedai'
+    if s == 'pos':    return 'POS Cashier'
     if s in ('sf', 'online_store') or 'store' in s: return 'Web EasyStore'
     return s.replace('-', ' ').replace('_', ' ').title()
 

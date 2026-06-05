@@ -1501,92 +1501,113 @@
  <div class="menu-item" data-tab="nav_home" onclick="switchHub(['homeSection','managerDashboardSection'], 'Home', this); if(typeof renderDashboard==='function') renderDashboard(); if(typeof renderManagerDashboard==='function') renderManagerDashboard();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
  <i data-lucide="home" style="width:18px; height:18px;"></i> <span>Home</span>
  </div>
- <div class="menu-item" data-tab="nav_orders" onclick="switchHub(['allOrdersSection'], 'Orders', this); if(typeof renderAllOrders==='function') renderAllOrders();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ <!-- p1_280 — Orders parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="orders" onclick="window.toggleNavGroup('orders', event); switchHub(['allOrdersSection'], 'Orders', this); if(typeof renderAllOrders==='function') renderAllOrders();">
  <i data-lucide="shopping-bag" style="width:18px; height:18px;"></i> <span>Orders</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
- <!-- p1_273 — Orders sub-items: Returns + Abandoned Checkouts (indented) -->
- <div class="menu-item" data-tab="nav_returns" onclick="switchHub(['returnsSection'], 'Returns', this); if(typeof renderReturnsLog==='function') renderReturnsLog();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="nav-children" data-nav-children="orders">
+ <div class="menu-item" data-tab="nav_returns" onclick="event.stopPropagation(); switchHub(['returnsSection'], 'Returns', this); if(typeof renderReturnsLog==='function') renderReturnsLog();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="rotate-ccw" style="width:15px; height:15px;"></i> <span>Returns</span>
  </div>
- <div class="menu-item" data-tab="nav_abandoned" onclick="switchHub(['abandonedCheckoutsSection'], 'Abandoned Checkouts', this); if(typeof renderAbandonedCheckouts==='function') renderAbandonedCheckouts();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_abandoned" onclick="event.stopPropagation(); switchHub(['abandonedCheckoutsSection'], 'Abandoned Checkouts', this); if(typeof renderAbandonedCheckouts==='function') renderAbandonedCheckouts();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="shopping-cart" style="width:15px; height:15px;"></i> <span>Abandoned Checkouts</span>
  </div>
- <div class="menu-item" data-tab="nav_products" onclick="switchHub(['databaseSection'], 'Products', this); if(typeof renderProductDatabase==='function') renderProductDatabase();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="package" style="width:18px; height:18px;"></i> <span>Products</span>
  </div>
- <!-- p1_274 — Products sub-items: Collection / Inventory / Purchase Orders / Transfer -->
- <div class="menu-item" data-tab="nav_collection" onclick="switchHub(['databaseSection'], 'Collection', this); if(typeof renderProductDatabase==='function') renderProductDatabase();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <!-- p1_280 — Products parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="products" onclick="window.toggleNavGroup('products', event); switchHub(['databaseSection'], 'Products', this); if(typeof renderProductDatabase==='function') renderProductDatabase();">
+ <i data-lucide="package" style="width:18px; height:18px;"></i> <span>Products</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
+ </div>
+ <div class="nav-children" data-nav-children="products">
+ <div class="menu-item" data-tab="nav_collection" onclick="event.stopPropagation(); switchHub(['databaseSection'], 'Collection', this); if(typeof renderProductDatabase==='function') renderProductDatabase();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="layout-grid" style="width:15px; height:15px;"></i> <span>Collection</span>
  </div>
- <div class="menu-item" data-tab="nav_inventory" onclick="switchHub(['warehouseConfigSection'], 'Inventory', this); if(typeof refreshMpDatalists==='function') refreshMpDatalists();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_inventory" onclick="event.stopPropagation(); switchHub(['warehouseConfigSection'], 'Inventory', this); if(typeof refreshMpDatalists==='function') refreshMpDatalists();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="boxes" style="width:15px; height:15px;"></i> <span>Inventory</span>
  </div>
- <div class="menu-item" data-tab="nav_purchase_orders" onclick="switchHub(['poSection'], 'Purchase Orders', this)" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_purchase_orders" onclick="event.stopPropagation(); switchHub(['poSection'], 'Purchase Orders', this)" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="truck" style="width:15px; height:15px;"></i> <span>Purchase Orders</span>
  </div>
- <div class="menu-item" data-tab="nav_transfer" onclick="switchHub(['stockTransferSection'], 'Transfer', this); if(typeof renderStockTransfer==='function') renderStockTransfer();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_transfer" onclick="event.stopPropagation(); switchHub(['stockTransferSection'], 'Transfer', this); if(typeof renderStockTransfer==='function') renderStockTransfer();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="arrow-left-right" style="width:15px; height:15px;"></i> <span>Transfer</span>
  </div>
- <div class="menu-item" data-tab="nav_customers" onclick="switchHub(['customersSection'], 'Customers', this); if(typeof renderCustomersV2==='function') renderCustomersV2();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="users" style="width:18px; height:18px;"></i> <span>Customers</span>
  </div>
- <!-- p1_275 — Customers sub-items: Segments / Points & Membership / Engagement / Store Credit -->
- <div class="menu-item" data-tab="nav_segments" onclick="switchHub(['segmentsSection'], 'Segments', this); if(typeof renderSegments==='function') renderSegments();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <!-- p1_280 — Customers parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="customers" onclick="window.toggleNavGroup('customers', event); switchHub(['customersSection'], 'Customers', this); if(typeof renderCustomersV2==='function') renderCustomersV2();">
+ <i data-lucide="users" style="width:18px; height:18px;"></i> <span>Customers</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
+ </div>
+ <div class="nav-children" data-nav-children="customers">
+ <div class="menu-item" data-tab="nav_segments" onclick="event.stopPropagation(); switchHub(['segmentsSection'], 'Segments', this); if(typeof renderSegments==='function') renderSegments();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="filter" style="width:15px; height:15px;"></i> <span>Segments</span>
  </div>
- <div class="menu-item" data-tab="nav_points" onclick="switchHub(['pointsMembershipSection'], 'Points & Membership', this); if(typeof renderPointsMembership==='function') renderPointsMembership();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_points" onclick="event.stopPropagation(); switchHub(['pointsMembershipSection'], 'Points & Membership', this); if(typeof renderPointsMembership==='function') renderPointsMembership();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="star" style="width:15px; height:15px;"></i> <span>Points &amp; Membership</span>
  </div>
- <div class="menu-item" data-tab="nav_engagement" onclick="switchHub(['engagementSection'], 'Engagement', this); if(typeof renderEngagement==='function') renderEngagement();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_engagement" onclick="event.stopPropagation(); switchHub(['engagementSection'], 'Engagement', this); if(typeof renderEngagement==='function') renderEngagement();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="megaphone" style="width:15px; height:15px;"></i> <span>Engagement</span>
  </div>
- <div class="menu-item" data-tab="nav_store_credit" onclick="switchHub(['storeCreditSection'], 'Store Credit', this); if(typeof renderStoreCredit==='function') renderStoreCredit();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_store_credit" onclick="event.stopPropagation(); switchHub(['storeCreditSection'], 'Store Credit', this); if(typeof renderStoreCredit==='function') renderStoreCredit();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="wallet" style="width:15px; height:15px;"></i> <span>Store Credit</span>
  </div>
- <div class="menu-item" data-tab="nav_messages" onclick="switchHub(['memoBoardSection'], 'Messages', this); if(typeof renderMemoBoard==='function') renderMemoBoard();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ </div>
+ <!-- p1_280 — Messages parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="messages" onclick="window.toggleNavGroup('messages', event); switchHub(['memoBoardSection'], 'Messages', this); if(typeof renderMemoBoard==='function') renderMemoBoard();">
  <i data-lucide="message-square" style="width:18px; height:18px;"></i> <span>Messages</span>
  <span id="memoBadgePendingNav" style="display:none; margin-left:auto; background:#EF4444; color:#FFF; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center;">0</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
- <!-- p1_276 — Messages sub-items: Broadcast + Connections -->
- <div class="menu-item" data-tab="nav_broadcast" onclick="switchHub(['broadcastSection'], 'Broadcast', this); if(typeof renderBroadcast==='function') renderBroadcast();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="nav-children" data-nav-children="messages">
+ <div class="menu-item" data-tab="nav_broadcast" onclick="event.stopPropagation(); switchHub(['broadcastSection'], 'Broadcast', this); if(typeof renderBroadcast==='function') renderBroadcast();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="send" style="width:15px; height:15px;"></i> <span>Broadcast</span>
  </div>
- <div class="menu-item" data-tab="nav_connections" onclick="switchHub(['connectionsSection'], 'Connections', this); if(typeof renderConnections==='function') renderConnections();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_connections" onclick="event.stopPropagation(); switchHub(['connectionsSection'], 'Connections', this); if(typeof renderConnections==='function') renderConnections();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="plug" style="width:15px; height:15px;"></i> <span>Connections</span>
  </div>
- <div class="menu-item" data-tab="nav_discounts" onclick="switchHub(['promotionsSection'], 'Discounts', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="tag" style="width:18px; height:18px;"></i> <span>Discounts</span>
  </div>
- <!-- p1_277 — Discounts sub-items: Vouchers + Campaigns -->
- <div class="menu-item" data-tab="nav_vouchers" onclick="switchHub(['promotionsSection'], 'Vouchers', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <!-- p1_280 — Discounts parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="discounts" onclick="window.toggleNavGroup('discounts', event); switchHub(['promotionsSection'], 'Discounts', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();">
+ <i data-lucide="tag" style="width:18px; height:18px;"></i> <span>Discounts</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
+ </div>
+ <div class="nav-children" data-nav-children="discounts">
+ <div class="menu-item" data-tab="nav_vouchers" onclick="event.stopPropagation(); switchHub(['promotionsSection'], 'Vouchers', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="ticket" style="width:15px; height:15px;"></i> <span>Vouchers</span>
  </div>
- <div class="menu-item" data-tab="nav_campaigns" onclick="switchHub(['campaignsSection'], 'Campaigns', this); if(typeof renderCampaigns==='function') renderCampaigns();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_campaigns" onclick="event.stopPropagation(); switchHub(['campaignsSection'], 'Campaigns', this); if(typeof renderCampaigns==='function') renderCampaigns();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="trophy" style="width:15px; height:15px;"></i> <span>Campaigns</span>
  </div>
- <div class="menu-item" data-tab="nav_channels" onclick="switchHub(['syncSection'], 'Channels', this); if(typeof renderSyncSection==='function') renderSyncSection();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="globe" style="width:18px; height:18px;"></i> <span>Channels</span>
  </div>
- <!-- p1_278 — Channels sub-items: Marketplaces + Apps -->
- <div class="menu-item" data-tab="nav_marketplaces" onclick="switchHub(['marketplacesSection'], 'Marketplaces', this); if(typeof renderMarketplaces==='function') renderMarketplaces();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <!-- p1_280 — Channels parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="channels" onclick="window.toggleNavGroup('channels', event); switchHub(['syncSection'], 'Channels', this); if(typeof renderSyncSection==='function') renderSyncSection();">
+ <i data-lucide="globe" style="width:18px; height:18px;"></i> <span>Channels</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
+ </div>
+ <div class="nav-children" data-nav-children="channels">
+ <div class="menu-item" data-tab="nav_marketplaces" onclick="event.stopPropagation(); switchHub(['marketplacesSection'], 'Marketplaces', this); if(typeof renderMarketplaces==='function') renderMarketplaces();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="shopping-bag" style="width:15px; height:15px;"></i> <span>Marketplaces</span>
  </div>
- <div class="menu-item" data-tab="nav_apps" onclick="switchHub(['appsSection'], 'Apps', this); if(typeof renderApps==='function') renderApps();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_apps" onclick="event.stopPropagation(); switchHub(['appsSection'], 'Apps', this); if(typeof renderApps==='function') renderApps();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="grid-3x3" style="width:15px; height:15px;"></i> <span>Apps</span>
+ </div>
  </div>
 
  <!-- p1_271 — Bottom items (Reports / Settings / Help) — pinned at bottom via flex-grow spacer -->
  <div style="flex:1; min-height:20px;"></div>
  <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:8px; margin-top:8px;">
- <div class="menu-item" data-tab="nav_reports" onclick="switchHub(['reportsSection'], 'Reports', this); if(typeof renderReports==='function') renderReports();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ <!-- p1_280 — Reports parent (collapsible) -->
+ <div class="menu-item nav-parent" data-nav-parent="reports" onclick="window.toggleNavGroup('reports', event); switchHub(['reportsSection'], 'Reports', this); if(typeof renderReports==='function') renderReports();">
  <i data-lucide="bar-chart-3" style="width:18px; height:18px;"></i> <span>Reports</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
- <!-- p1_279 — Reports sub-items: Analytics + Exports -->
- <div class="menu-item" data-tab="nav_analytics" onclick="switchHub(['analyticsSection'], 'Analytics', this); if(typeof renderAnalytics==='function') renderAnalytics();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="nav-children" data-nav-children="reports">
+ <div class="menu-item" data-tab="nav_analytics" onclick="event.stopPropagation(); switchHub(['analyticsSection'], 'Analytics', this); if(typeof renderAnalytics==='function') renderAnalytics();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="line-chart" style="width:15px; height:15px;"></i> <span>Analytics</span>
  </div>
- <div class="menu-item" data-tab="nav_exports" onclick="switchHub(['exportsSection'], 'Exports', this); if(typeof renderExports==='function') renderExports();" style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 36px; margin-bottom:2px; font-size:13px;">
+ <div class="menu-item" data-tab="nav_exports" onclick="event.stopPropagation(); switchHub(['exportsSection'], 'Exports', this); if(typeof renderExports==='function') renderExports();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="download" style="width:15px; height:15px;"></i> <span>Exports</span>
+ </div>
  </div>
  <div class="menu-item" data-tab="nav_settings" onclick="switchHub(['shopSettingsSection'], 'Settings', this); if(typeof renderShopSettings==='function') renderShopSettings();" style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
  <i data-lucide="settings" style="width:18px; height:18px;"></i> <span>Settings</span>
@@ -6977,7 +6998,7 @@
  { id:'p0_4', label:'PWA offline-capable', d:'done' },
  { id:'p0_5', label:'Single-user login', d:'done' }
 ]},
- { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (269/269 · last 2026-06-05) — Recall p1_267 standalone, simplify Product Master jadi rail icon (package). Rename rail tooltip Inventory → Product Master (data-rail kekal inv back-compat). Group label tukar ke Product Master. 3 sub-items: Collection / Inventory / Purchase Orders. Remove semua legacy inv items dari sidebar (sections kekal di body).',
+ { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (280/280 · last 2026-06-05) — Sidebar collapsible nav groups: 7 parent items (Orders / Products / Customers / Messages / Discounts / Channels / Reports) ada chevron + .nav-children wrapper, click toggle .is-expanded, state persist ke localStorage navGroupState. Default open Orders + Products. Fix Zaid complaint sub-items tak nampak grouped sebab takde visual hierarchy.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
@@ -7053,6 +7074,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_280', label:'Sidebar collapsible nav groups (Zaid: "kalau kau buat macam ni, susah nak tengok section2 bro, sebab walaupun tak scattered tapi dia macam takde group. tolong fix"). p1_273 sampai p1_279 dah sambung sub-items kepada 7 parent (Orders / Products / Customers / Messages / Discounts / Channels / Reports) tapi hanya guna indent + smaller font — visually flat, susah scan group. p1_280 upgrade jadi proper collapsible: (a) Setiap parent menu-item dapat class .nav-parent + data-nav-parent attribute + chevron-right Lucide icon di kanan. (b) Sub-items dibungkus dalam div .nav-children data-nav-children, default display:none, border-left subtle rgba white 8% supaya tree visual jelas. (c) Click parent toggle .is-expanded class — chevron rotate 90deg, children block. (d) CSS rule .nav-parent.is-expanded + .nav-children display:block — siblings selector kekal sub-items hidden bila collapsed. (e) JS window.toggleNavGroup(name, event) — stopPropagation, toggle class, persist state ke localStorage navGroupState JSON. (f) window.restoreNavGroupState dipanggil masa DOMContentLoaded + 500ms fallback — default expand Orders + Products supaya user nampak pattern bila first load. (g) Parent onclick masih trigger switchHub asal (klik parent expand + jump ke main section serentak), sub-item onclick stopPropagation supaya tak re-trigger parent. Cache app.js v373 → v374.', d:'done' },
  { id:'p1_269', label:'Recall p1_267 + p1_262, simplify Product Master jadi rail (Zaid screenshot rail icons: "aku nak letak product master dekat sini je. recall balik yang kau buat tadi"). p1_262 standalone top-level + p1_267 group structure salah path. Yang betul: Product Master HUKUM sebenar adalah RAIL icon (package). Solusi: (a) Rename rail tooltip dulu "Inventory" → "Product Master" (data-rail kekal "inv" untuk back-compat). (b) Rename group label "Inventory Department" → "Product Master". (c) Cuma 3 sub-items dalam group: Collection (inv_database, layout-grid icon) → switchHub Collection title; Inventory (inv_warehouse_hub, boxes icon) → switchHub Inventory title; Purchase Orders (inv_po, truck icon). (d) Remove semua legacy inv items dari sidebar: inv_fulfillment, inv_returns, inv_check_sessions, inv_check_history, inv_reorder, inv_supplier, inv_floorprice, inv_pricehistory, inv_barcode, inv_picking — sections kekal di body untuk back-compat. (e) Remove p1_267 standalone group entry (yang lama, pre-rail era). app.js v362→v363.', d:'done' },
  { id:'p1_267', label:'Product Master jadi group dengan 3 sub-items (Zaid: "aku nak product master dekat sidebar, item dalam product master adalah collection, inventory, purchase orders"). p1_262 sebelum ni single standalone item. p1_267 restructure jadi collapsible group. Group header pakai warm orange gradient (#FFF7ED → #FED7AA) + chevron-down toggle. Sub-items: (a) Collection — data-tab inv_database (layout-grid icon) → renderProductDatabase grid view. Switchhub title tukar dari Product Master → Collection. (b) Inventory — data-tab inv_warehouse_hub (boxes icon) → warehouseConfigSection (Daftar Profile Produk form). Pindah dari Inventory Department group. Switchhub title Warehouse Hub → Inventory. (c) Purchase Orders — data-tab inv_po (truck icon) → poSection. Pindah dari Inventory Department group. Inventory Department group sekarang tinggal Pesanan Online + Returns + Stock Check items + Setup tools. Whitelist line 21779 extended: groupToggle === product_master OR data-group === product_master OR specific data-tabs (inv_database, inv_warehouse_hub, inv_po) — semua visible kepada semua role tanpa inv-only restriction. app.js v360→v361.', d:'done' },
  { id:'p1_262', label:'Product Master sidebar standalone top-level item (Zaid: "ok now fokus dekat sidebar. master product sepatutnya stand on his own sebagai env item"). Master Product sebelum ni nested dalam Inventory Department group bawah divider "— Operasi Harian —" (line 1560 lama). Zaid nak dia stand on its own — like Memo Board sebelum Sales Department. Move logic: (a) Delete original entry from Inventory group + add comment placeholder. (b) Add new top-level menu-item selepas Memo Board (line 1507 area, sebelum Sales Department header). Visual: warm orange gradient bg (#FFF7ED → #FED7AA) + #FDBA74 border + #9A3412 text — sama treatment pattern macam Memo Board kuning gradient supaya distinct dari group items. Onclick switchHub databaseSection + renderProductDatabase. Same data-tab "inv_database" supaya tab→rail mapping + other code yang reference still work. (c) Add "inv_database" ke whitelist line 21779 app.js (sebelah memo_board, sales_all_orders) supaya visible kepada SEMUA role tanpa inv-only restriction — kira level dengan Customer Lookup + All Orders. app.js v358→v359.', d:'done' },
@@ -11778,7 +11800,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=373"></script>
+ <script src="app.js?v=374"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

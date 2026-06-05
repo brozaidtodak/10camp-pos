@@ -14937,6 +14937,41 @@ window.openHelpDialog = function() {
  if(typeof showToast === 'function') showToast('Help: hubungi admin@10camp.com atau Zaid via WhatsApp.', 'info');
  else alert('Help — Hubungi admin@10camp.com');
 };
+
+// p1_280 — Collapsible nav groups (toggle + persistence)
+window.toggleNavGroup = function(name, event) {
+ if(event && event.stopPropagation) event.stopPropagation();
+ const parent = document.querySelector('[data-nav-parent="' + name + '"]');
+ if(!parent) return;
+ const isExpanded = parent.classList.toggle('is-expanded');
+ try {
+ const state = JSON.parse(localStorage.getItem('navGroupState') || '{}');
+ state[name] = isExpanded;
+ localStorage.setItem('navGroupState', JSON.stringify(state));
+ } catch(e){}
+};
+
+window.restoreNavGroupState = function() {
+ let state = {};
+ try { state = JSON.parse(localStorage.getItem('navGroupState') || '{}'); } catch(e){}
+ const groups = document.querySelectorAll('[data-nav-parent]');
+ groups.forEach(function(p) {
+ const n = p.getAttribute('data-nav-parent');
+ // Default: expand orders + products on first load so user sees the pattern
+ const defaultOpen = (n === 'orders' || n === 'products');
+ const shouldExpand = (state[n] === undefined) ? defaultOpen : !!state[n];
+ if(shouldExpand) p.classList.add('is-expanded');
+ else p.classList.remove('is-expanded');
+ });
+};
+
+// Restore on DOM ready + a fallback after a tick (icons load after main parse)
+if(typeof document !== 'undefined') {
+ document.addEventListener('DOMContentLoaded', function() {
+ setTimeout(window.restoreNavGroupState, 50);
+ setTimeout(window.restoreNavGroupState, 500);
+ });
+}
 // p1_272 — _p271_void removed (orphan body had `await` outside async, broke parse)
 async function _p271_void() {
  if(!currentUser) return;

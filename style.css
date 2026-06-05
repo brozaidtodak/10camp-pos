@@ -104,6 +104,16 @@ h4, .h4 { font-family: 'Poppins', sans-serif; font-weight: 600; }
 .menu-list .menu-item:hover { background: rgba(255, 255, 255, 0.08); color: #FFF; }
 .menu-list .menu-item.active { background: rgba(205, 124, 50, 0.18); color: var(--primary, #CD7C32); font-weight: 700; }
 
+/* p1_280 — Collapsible sub-items group (Zaid: "kalau kau buat macam ni, susah nak tengok section2... macam takde group") */
+.nav-parent { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 2px; cursor: pointer; position: relative; }
+.nav-parent .nav-chevron { margin-left: auto; transition: transform 0.2s; opacity: 0.5; }
+.nav-parent.is-expanded .nav-chevron { transform: rotate(90deg); opacity: 0.85; }
+.nav-children { display: none; margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(255,255,255,0.08); margin-bottom: 4px; }
+.nav-parent.is-expanded + .nav-children { display: block; }
+.nav-children .menu-item { padding: 7px 10px !important; font-size: 12.5px !important; color: #9CA3AF; }
+.nav-children .menu-item:hover { color: #FFF; }
+.nav-children .menu-item.active { color: var(--primary, #CD7C32); font-weight: 700; }
+
 /* p1_242 — Login overlay padding-top + padding-bottom safe area (Dynamic Island + home indicator) */
 .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
 

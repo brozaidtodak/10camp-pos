@@ -18259,7 +18259,7 @@ window.renderBulkOps = function() {
  (total> filtered.length ? ` <span style="color:#DC2626;">(turunkan saiz halaman atau tightenkan filter untuk lihat semua)</span>` : '');
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">Tiada produk match filter. Cuba tukar Status ke "Semua".</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:30px; color:#999;">Tiada produk match filter. Cuba tukar Status ke "Semua".</td></tr>';
  bulkUpdateActionBar();
  return;
  }
@@ -18279,12 +18279,13 @@ window.renderBulkOps = function() {
  <tr>
  <td><input type="checkbox" data-sku="${p.sku}" ${checked} onchange="bulkToggleRow('${p.sku.replace(/'/g, "\\'")}', this.checked)"></td>
  <td><img src="${thumb}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; background:#F3F4F6;" loading="lazy" onerror="this.src='https://placehold.co/40x40?text=?'"></td>
- <td style="font-family:monospace; font-size:11px;">${p.sku}</td>
- <td>${(p.name || '').slice(0, 90)}${stockTakeBadge}</td>
- <td>${p.brand || '-'}</td>
- <td>${p.category || '-'}</td>
- <td style="text-align:right; font-weight:bold;">RM ${(p.price || 0).toFixed(2)}</td>
- <td style="text-align:right; color:#666;">${p.cost_price != null ? 'RM ' + Number(p.cost_price).toFixed(2) : '-'}</td>
+ <td style="font-family:monospace; font-size:11px;">${hesc(p.sku)}</td>
+ <td>${hesc((p.name || '').slice(0, 90))}${stockTakeBadge}</td>
+ <td>${hesc(p.brand || '-')}</td>
+ <td>${hesc(p.category || '-')}</td>
+ <td><input id="bk_price_${hesc(p.sku)}" type="number" step="0.01" value="${p.price != null ? p.price : ''}" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
+ <td><input id="bk_cmp_${hesc(p.sku)}" type="number" step="0.01" value="${p.compare_at_price != null ? p.compare_at_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
+ <td><input id="bk_cost_${hesc(p.sku)}" type="number" step="0.01" value="${p.cost_price != null ? p.cost_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
  <td style="text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}">${stock}</td>
  <td style="text-align:center;">${statusBadge}</td>
  </tr>
@@ -18293,6 +18294,44 @@ window.renderBulkOps = function() {
  tbody.innerHTML = html;
  bulkUpdateActionBar();
  if(typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+// p1_311 — inline spreadsheet bulk save (EasyStore-style): write any edited
+// Harga/Compared/Kos across the visible rows, then push prices to marketplace.
+window.bulkSaveEdits = async function() {
+ if(typeof db === 'undefined' || !db) return;
+ const skus = (typeof bulkVisibleSkus !== 'undefined' && Array.isArray(bulkVisibleSkus)) ? bulkVisibleSkus : [];
+ if(!skus.length) return;
+ const hint = document.getElementById('bulkEditHint');
+ const numOrNull = (id) => { const el = document.getElementById(id); if(!el) return undefined; const v = el.value.trim(); return v === '' ? null : (isFinite(parseFloat(v)) ? parseFloat(v) : undefined); };
+ let changed = 0; const errs = []; const pushedSkus = [];
+ for(const sku of skus) {
+ const p = (masterProducts || []).find(x => x.sku === sku);
+ if(!p) continue;
+ const payload = {};
+ const np = numOrNull('bk_price_' + sku); if(np !== undefined && Number(np) !== Number(p.price)) payload.price = np;
+ const nc = numOrNull('bk_cmp_' + sku); if(nc !== undefined && Number(nc) !== Number(p.compare_at_price)) payload.compare_at_price = nc;
+ const nk = numOrNull('bk_cost_' + sku); if(nk !== undefined && Number(nk) !== Number(p.cost_price)) payload.cost_price = nk;
+ if(!Object.keys(payload).length) continue;
+ try {
+ const { error } = await db.from('products_master').update(payload).eq('sku', sku);
+ if(error) throw error;
+ const idx = masterProducts.findIndex(x => x.sku === sku);
+ if(idx >= 0) Object.assign(masterProducts[idx], payload);
+ changed++;
+ if('price' in payload) pushedSkus.push(sku);
+ } catch(e) { errs.push(sku + ': ' + e.message); }
+ if(hint) hint.textContent = `Menyimpan... ${changed}`;
+ }
+ // push changed prices to marketplaces (batched, fire-and-forget)
+ if(pushedSkus.length) {
+ const chunk = (a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
+ for(const c of chunk(pushedSkus, 25)) { try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(c.join(','))).catch(()=>{}); } catch(e){} }
+ }
+ if(hint) hint.textContent = '';
+ if(errs.length) console.warn('bulk save errors:', errs);
+ if(typeof showToast === 'function') showToast(`Disimpan: ${changed} produk${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
+ if(typeof renderBulkOps === 'function') renderBulkOps();
 };
 
 window.bulkToggleRow = function(sku, checked) {

@@ -5538,6 +5538,8 @@ async function initApp() {
  if(sales) salesHistory = [...salesHistory,...sales];
  // p3_10: refresh fulfillment KPIs + sidebar badge once orders are loaded
  if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
+ // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
+ if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
 
  let { data: custs } = await db.from('customers').select('*');
  if(custs) customersData = custs;
@@ -20190,6 +20192,7 @@ window.renderAllOrders = function() {
  }).join('');
  document.getElementById('aoSummaryLine').innerHTML = `Showing <strong>${slice.length}</strong> of <strong>${filtered.length}</strong> orders${filtered.length > 200 ? ' (top 200; refine filter untuk lihat lain)' : ''}.`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
 };
 
 // p1_250 — Toggle test flag dari All Orders table
@@ -20362,6 +20365,7 @@ window.__aoSetFulfil = async function(saleId, action, opts) {
  s.status = newStatus; s.metadata = md;
  if(typeof showToast === 'function') showToast(`Order #${saleId} ${msg}.`, 'success');
  window.renderAllOrders && window.renderAllOrders();
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
  const ov = document.getElementById('aoViewOverlay');
  if(ov) { ov.remove(); window.__aoViewOrder(saleId); }
  } catch(e) {
@@ -20541,6 +20545,44 @@ window.__aoPrintPickingList = function() {
  win.document.close();
 };
 
+// p1_324 — badge "order baru / perlu pack" di sidebar (Orders parent + All Orders sub-item)
+window.__aoUpdateOrderBadge = function() {
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
+ let n = 0;
+ for(const s of salesHistory) { if(!s.is_test && window.__aoStatusMeta(s.status).canon === 'To Fulfil') n++; }
+ ['ordersNavBadge','aoNavBadge'].forEach(id => {
+ const el = document.getElementById(id);
+ if(!el) return;
+ if(n > 0) { el.textContent = n > 99 ? '99+' : String(n); el.style.display = ''; }
+ else el.style.display = 'none';
+ });
+};
+
+// p1_324 — Refresh sebenar: re-query sales_history dari DB (bukan render in-memory je)
+window.__aoRefresh = async function(silent) {
+ if(typeof db === 'undefined' || !db) { window.renderAllOrders && window.renderAllOrders(); return; }
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
+ const btn = document.getElementById('aoRefreshBtn');
+ if(btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+ try {
+ const prevIds = new Set(salesHistory.map(s => s.id));
+ const { data, error } = await db.from('sales_history').select('*').order('created_at', { ascending: false }).limit(100000);
+ if(error) throw error;
+ if(Array.isArray(data)) {
+ salesHistory.length = 0;
+ for(const d of data) salesHistory.push(d);
+ }
+ const newCount = (data || []).filter(s => !prevIds.has(s.id)).length;
+ window.renderAllOrders && window.renderAllOrders();
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
+ if(!silent && typeof showToast === 'function') showToast(newCount > 0 ? `${newCount} order baru ditarik. Jumlah ${salesHistory.length} order.` : `Dikemaskini — ${salesHistory.length} order, tiada yang baru.`, 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Refresh gagal: ' + (e.message || e), 'error');
+ } finally {
+ if(btn) { btn.disabled = false; btn.style.opacity = ''; }
+ }
+};
+
 window.openAddWalkinOrder = function() {
  // Walk-in flow: route to Cashier (existing checkout flow) — most accurate path
  const btn = document.querySelector('[data-tab="sales_cashier"]');
@@ -20658,6 +20700,7 @@ window.submitOnlineOrder = async function() {
  if(typeof showToast === 'function') showToast(`Order ${channel} #${data.id} disimpan.`, 'success');
  document.getElementById('aoOnlineOverlay')?.remove();
  window.renderAllOrders();
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
  } catch(e) {
  if(err) err.textContent = 'Simpan gagal: ' + (e.message || e);
  }

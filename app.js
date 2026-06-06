@@ -14930,8 +14930,76 @@ async function checkMyAttendanceStatus() {
 }
 
 // p1_273 — Abandoned Checkouts stub (build flow later)
+// p1_337 — Belum Bayar / Abandoned: order status Pending (belum bayar) + follow-up recover jualan
 window.renderAbandonedCheckouts = function() {
+ const tbody = document.getElementById('abTbody');
+ if(!tbody) return;
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
+ return;
+ }
+ const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+ const list = salesHistory
+ .filter(s => !s.is_test && window.__aoStatusMeta(s.status).canon === 'Pending')
+ .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '')); // tertua dulu (paling urgent)
+ const total = list.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0) || 0), 0);
+ const ageDays = (iso) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0;
+ const oldest = list.length ? ageDays(list[0].created_at) : 0;
+ document.getElementById('abStats').innerHTML = `
+ <div class="stat-card" style="border-left-color:#F59E0B;"><div class="stat-card__label"><i data-lucide="hourglass" style="width:13px;height:13px; color:#F59E0B;"></i> Belum Bayar</div><div class="stat-card__value">${list.length.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#DC2626;"><div class="stat-card__label"><i data-lucide="alert-circle" style="width:13px;height:13px; color:#DC2626;"></i> RM Berisiko</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#6B7280;"><div class="stat-card__label"><i data-lucide="clock" style="width:13px;height:13px; color:#6B7280;"></i> Tertua</div><div class="stat-card__value">${oldest} hari</div></div>
+ `;
+ if(!list.length) {
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#16A34A; padding:32px; font-weight:600;">Tiada order belum bayar — semua dah settle.</td></tr>';
+ document.getElementById('abSummaryLine').textContent = '';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ return;
+ }
+ tbody.innerHTML = list.slice(0, 200).map(s => {
+ const md = s.metadata || {};
+ const ref = md.shopee_order_sn || md.tiktok_order_id || md.online_order_ref || ('#' + s.id);
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+ const items = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
+ const amt = parseFloat(s.total_amount || s.total || 0) || 0;
+ const age = ageDays(s.created_at);
+ const ageColor = age >= 3 ? '#DC2626' : (age >= 1 ? '#92400E' : '#6B7280');
+ const phoneClean = (s.customer_phone || '').replace(/[^\d]/g, '');
+ const waNum = phoneClean ? (phoneClean.startsWith('60') ? phoneClean : (phoneClean.startsWith('0') ? '6' + phoneClean : '60' + phoneClean)) : '';
+ const waMsg = `Hi ${s.customer_name || ''}, order anda ${ref} (RM ${amt.toFixed(2)}) di 10 CAMP masih belum dibayar. Boleh selesaikan pembayaran ya? Terima kasih.`;
+ const waBtn = waNum ? `<a href="https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}" target="_blank" rel="noopener" title="Follow-up WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:4px 9px; border-radius:5px; font-size:10.5px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin-right:3px;"><i data-lucide="message-circle" style="width:11px;height:11px;"></i> WA</a>` : '';
+ return `<tr>
+ <td style="padding:10px;">${dt}</td>
+ <td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" style="cursor:pointer; color:#2563EB; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${esc(ref)}</a></td>
+ <td style="padding:10px;"><strong>${esc((s.customer_name||'-').slice(0,28))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${esc(s.customer_phone)}</span>` : ''}</td>
+ <td style="padding:10px; font-size:11.5px;">${esc(s.channel || '-')}</td>
+ <td style="padding:10px; text-align:right;">${items}</td>
+ <td style="padding:10px; text-align:right; font-weight:700;">RM ${amt.toFixed(2)}</td>
+ <td style="padding:10px; text-align:center; font-weight:700; color:${ageColor};">${age}h</td>
+ <td style="padding:10px; white-space:nowrap;">
+ ${waBtn}
+ <button onclick="window.__abSetStatus(${s.id}, 'Completed')" title="Tandai dah bayar (jadi Completed)" style="background:#DBEAFE; border:1px solid #93C5FD; color:#1E40AF; padding:4px 9px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="check" style="width:11px;height:11px;vertical-align:-1px;"></i> Dah Bayar</button>
+ <button onclick="window.__abSetStatus(${s.id}, 'Cancelled')" title="Batalkan order" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:4px 9px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="x" style="width:11px;height:11px;vertical-align:-1px;"></i> Batal</button>
+ </td>
+ </tr>`;
+ }).join('');
+ document.getElementById('abSummaryLine').innerHTML = `${list.length} order belum bayar${list.length > 200 ? ' (papar 200 teratas)' : ''}. Disusun tertua dahulu.`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_337 — tukar status order belum bayar (Dah Bayar / Batal)
+window.__abSetStatus = async function(id, newStatus) {
+ if(typeof db === 'undefined' || !db) return;
+ if(!confirm(`Tukar order #${id} kepada "${newStatus}"?`)) return;
+ try {
+ const { error } = await db.from('sales_history').update({ status: newStatus }).eq('id', id);
+ if(error) throw error;
+ const s = (typeof salesHistory !== 'undefined') ? salesHistory.find(x => x.id === id) : null;
+ if(s) s.status = newStatus;
+ if(typeof showToast === 'function') showToast(`Order #${id} → ${newStatus}.`, 'success');
+ window.renderAbandonedCheckouts();
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
+ } catch(e) { if(typeof showToast === 'function') showToast('Gagal: ' + (e.message || e), 'error'); }
 };
 
 // p1_274 — Stock Transfer stub (build flow later)

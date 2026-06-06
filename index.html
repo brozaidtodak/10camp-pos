@@ -4304,11 +4304,37 @@
 
  <!-- p1_273 — Abandoned Checkouts placeholder section -->
  <div id="abandonedCheckoutsSection" class="tab-section" style="display: none;">
- <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="shopping-cart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Abandoned Checkouts</h2>
- <div class="admin-card" style="padding:24px; text-align:center;">
- <i data-lucide="construction" style="width:32px; height:32px; color:#9CA3AF;"></i>
- <h3 style="margin:14px 0 6px;">Coming Soon</h3>
- <p style="color:#6B7280; font-size:13px; margin:0;">Track checkouts yang customer mula tapi tak siapkan. Recover sales via email reminder + WhatsApp follow-up.</p>
+ <style>
+ #abandonedCheckoutsSection .data-table { border-collapse:collapse; width:100%; }
+ #abandonedCheckoutsSection .data-table tbody td { border-bottom:1px solid #E5E7EB; }
+ #abandonedCheckoutsSection .data-table thead th { border-bottom:2px solid #D1D5DB; }
+ #abandonedCheckoutsSection .data-table tbody tr:nth-child(even) { background:#FAFBFC; }
+ #abandonedCheckoutsSection .data-table tbody tr:hover { background:#EEF4FD !important; }
+ </style>
+ <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="shopping-cart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Belum Bayar / Abandoned</h2>
+ <p style="color:#6B7280; font-size:13px; margin:2px 0 14px;">Order yang dah dibuat tapi customer belum bayar (status <strong>Belum Bayar</strong>). Follow up untuk recover jualan. <em>10 CAMP takde web cart — sumber = order belum bayar dari semua channel.</em></p>
+ <div id="abStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:14px;"></div>
+ <div class="admin-card" style="padding:0;">
+ <div style="overflow-x:auto;">
+ <table class="data-table" style="font-size:12.5px;">
+ <thead style="background:var(--card-bg);">
+ <tr>
+ <th style="text-align:left; padding:10px;">Tarikh</th>
+ <th style="text-align:left; padding:10px;">Order</th>
+ <th style="text-align:left; padding:10px;">Pelanggan</th>
+ <th style="text-align:left; padding:10px;">Channel</th>
+ <th style="text-align:right; padding:10px;">Items</th>
+ <th style="text-align:right; padding:10px;">RM</th>
+ <th style="text-align:center; padding:10px;">Umur</th>
+ <th style="padding:10px;">Tindakan</th>
+ </tr>
+ </thead>
+ <tbody id="abTbody">
+ <tr><td colspan="8" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>
+ </tbody>
+ </table>
+ </div>
+ <p id="abSummaryLine" style="font-size:12px; color:#666; padding:10px 14px; margin:0;"></p>
  </div>
  </div>
 
@@ -7102,6 +7128,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_337', label:'Setup Returns + Abandoned Checkouts (Zaid: "setup returns dan abandoned checkout"). (1) RETURNS — disahkan dah siap penuh (p1_121): table returns_log wujud, section returnsSection ada semua elemen (rlTableWrap/rlTotalEntries/rlProblemSku dll) yang renderReturnsLog tulis; kosong sebab belum ada rekod. Staff log via butang "Log Item Baharu". Tiada kerja baru perlu. (2) ABANDONED CHECKOUTS — dulu stub "Coming Soon". 10 CAMP takde web cart (jual via Shopee/TikTok/walk-in), jadi "abandoned" sebenar = order BELUM BAYAR (status Pending). Bina renderAbandonedCheckouts: tapis salesHistory status canon Pending (bukan test), susun tertua dulu (paling urgent); 3 KPI (Belum Bayar bilangan / RM Berisiko / Tertua hari); jadual Tarikh/Order(klik→__aoViewOrder)/Pelanggan+phone/Channel/Items/RM/Umur(warna ikut umur)/Tindakan. Tindakan: butang WhatsApp (wa.me + mesej peringatan auto-isi), "Dah Bayar" (→Completed), "Batal" (→Cancelled) via __abSetStatus. Section abandonedCheckoutsSection ditukar dari placeholder ke struktur penuh (stats+table, zebra/hover). app.js v417 to v418.', d:'done' },
  { id:'p1_336', label:'Butang "Segarkan Total" CRM — kira semula total_spent/total_orders dari jualan sebenar (Zaid pilih opsyen recompute selepas siasat: checkout TAK update total_spent — cuma loyalty points; marketplace sync + DB trigger pun tak; medan beku sejak migrasi EasyStore). window.__crmRefreshTotals: index sales_history ikut customer_phone (utama) + nama (fallback, sama logik openCustomerDetail), kecuali is_test + status Cancelled/Refunded; banding vs nilai semasa, update yang berubah sahaja (batch 10 serentak, butang papar progress X/Y, disable masa jalan); sync in-memory + re-render. Butang dalam toolbar CRM (crmRefreshBtn) sebelah Export CSV. Preview dry-run: 921k→1068k (+147k), 310 naik / 46 turun / 2590 sama. Linking guna phone sebab sales_history takde customer_id konsisten. NOTA: recompute = ikut jualan yang ADA dalam POS; kalau sejarah EasyStore lama tak dimigrasi penuh, sebahagian boleh turun. app.js v416 to v417.', d:'done' },
  { id:'p1_335', label:'Audit info card CRM Customers (Zaid: "audit info card pada CRM customers"). Data disahkan bersih (2946 pelanggan, sum belanja RM921k, top spender RM6.5k — takde outlier kembung). Penemuan + fix: (1) label "Match" mengelirukan → "Pelanggan". (2) "Total Orders" (sum 3516) kurang berguna sebagai headline + tak sepadan 4974 sale di All Orders (banyak walk-in tak diikat ke pelanggan) → ganti dengan dua metrik boleh-tindakan: "Purata Belanja" (jumlah belanja / pelanggan yang pernah beli) + "Pernah Beli" (bilangan pelanggan dengan >=1 order; 2746/2946, 200 tak pernah beli). (3) label diselaraskan BM + tooltip: Jumlah Belanja / Purata Belanja / Pernah Beli / Ahli VIP / Setuju Email. CAVEAT dicatat: customer.total_spent/total_orders ialah medan denormalized — mungkin lag berbanding jualan sebenar (tak semua checkout kemaskini medan ni); audit pipeline lain hari kalau perlu. app.js v415 to v416.', d:'done' },
  { id:'p1_334', label:'Audit info card All Orders (Zaid: "audit info card pada all orders"). BUG: "Total Sales" jumlahkan SEMUA order termasuk Batal/Voided + Refund — angka jualan kembung (cth order RM3551 dibatalkan masih dikira). FIX: card jadi "Jualan Bersih" — tolak order canon Cancelled/Refunded; tooltip papar berapa order dikecualikan. Tambah card "Purata / Order" (AOV = jualan bersih / bilangan order hidup). Label diselaraskan ke BM (Total Orders→Jumlah Order). Card lain (Walk-in/Online/Perlu Pack/Dah Hantar) kekal; Perlu Pack + Dah Hantar masih boleh klik untuk tapis. app.js v414 to v415.', d:'done' },
@@ -11884,7 +11911,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=417"></script>
+ <script src="app.js?v=418"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

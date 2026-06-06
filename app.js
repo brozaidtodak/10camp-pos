@@ -5127,17 +5127,19 @@ window.__ppSaveEdit = async function() {
 window.__ppUploadFor = function(saleId) {
  const input = document.createElement('input');
  input.type = 'file';
- input.accept = 'image/*,application/pdf';
+ input.accept = 'image/*,.heic,.heif,application/pdf';
  input.onchange = async () => {
  const f = input.files && input.files[0];
  if(!f) return;
- if(f.size > 5 * 1024 * 1024) { if(typeof showToast==='function') showToast('Saiz lebih 5MB', 'warn'); return; }
+ if(f.size > 10 * 1024 * 1024) { if(typeof showToast==='function') showToast('Saiz lebih 10MB', 'warn'); return; }
  if(typeof db === 'undefined' || !db) return;
  try {
  const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
  const ts = new Date().toISOString().replace(/[:.]/g, '-');
  const fileName = saleId + '_' + ts + '.' + ext;
- const { data, error } = await db.storage.from('payment-proofs').upload(fileName, f, { cacheControl: '3600', upsert: false, contentType: f.type || 'application/octet-stream' });
+ // p1_374 — teka mime dari extension kalau f.type kosong (octet-stream ditolak bucket)
+ const extMime = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp', heic:'image/heic', heif:'image/heic', pdf:'application/pdf' };
+ const { data, error } = await db.storage.from('payment-proofs').upload(fileName, f, { cacheControl: '3600', upsert: false, contentType: f.type || extMime[ext] || 'image/jpeg' });
  if(error) throw error;
  const { data: pub } = db.storage.from('payment-proofs').getPublicUrl(data.path);
  const uploaderName = (window.currentUser && window.currentUser.name) ? window.currentUser.name : 'Unknown';
@@ -9735,8 +9737,9 @@ window.__proofPickFile = function(inputEl) {
  return;
  }
  const f = input.files[0];
- if(f.size > 5 * 1024 * 1024) {
- if(typeof showToast === 'function') showToast('Saiz fail lebih 5MB. Compress dulu.', 'warn');
+ // p1_374 — naikkan had 5MB→10MB (foto iPad/iPhone resolusi tinggi selalu 5-8MB)
+ if(f.size > 10 * 1024 * 1024) {
+ if(typeof showToast === 'function') showToast('Saiz fail lebih 10MB. Compress dulu.', 'warn');
  input.value = '';
  return;
  }

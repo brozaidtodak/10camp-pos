@@ -20161,7 +20161,7 @@ window.renderAllOrders = function() {
  };
  const slice = filtered.slice(0, 200);
  tbody.innerHTML = slice.map(s => {
- const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
  const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
  const ch = (s.channel || '').toLowerCase();
  const chIcon = (ch.includes('walk') || ch.includes('cashier')) ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));

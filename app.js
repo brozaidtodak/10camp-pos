@@ -137,7 +137,7 @@ window.easystorePushSale = async function(items, delta) {
 window.showToast = function(msg, type) {
  type = type || 'info';
  const colors = {
- info: { bg:'#3b82f6', icon:'i' },
+ info: { bg:'#cd7c32', icon:'i' },
  success: { bg:'#10b981', icon:'' },
  warning: { bg:'#f59e0b', icon:'' },
  warn: { bg:'#f59e0b', icon:'' },
@@ -1446,8 +1446,8 @@ window.__rpRenderInventoryTemplate = function(body, u, range) {
  : '<span style="display:inline-block; padding:2px 8px; background:#E0F2FE; color:#075985; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">ASSISTANT</span>';
 
  body.innerHTML = `
- <div class="rp-section" style="border-left:4px solid #3B82F6; background:rgba(59,130,246,.04);">
- <h3 class="rp-section__title" style="color:#1E40AF;"><i data-lucide="warehouse" style="width:14px;height:14px;"></i> Pasukan Inventory ${roleBadge}</h3>
+ <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(205, 124, 50,.04);">
+ <h3 class="rp-section__title" style="color:#7c4a1a;"><i data-lucide="warehouse" style="width:14px;height:14px;"></i> Pasukan Inventory ${roleBadge}</h3>
  <p class="rp-section__help" style="margin:0;">KPI bawah ni adalah <strong>team-wide</strong> (Kael + Fahmi shared work). Individual contribution diukur via Roadmap section + Catatan Manual.</p>
  </div>
 
@@ -1645,8 +1645,8 @@ window.__rpRenderBizdevTemplate = function(body, u, range) {
  const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
  body.innerHTML = `
- <div class="rp-section" style="border-left:4px solid #8B5CF6; background:rgba(139,92,246,.04);">
- <h3 class="rp-section__title" style="color:#6D28D9;"><i data-lucide="handshake" style="width:14px;height:14px;"></i> Business Development</h3>
+ <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(205, 124, 50,.04);">
+ <h3 class="rp-section__title" style="color:#a05f22;"><i data-lucide="handshake" style="width:14px;height:14px;"></i> Business Development</h3>
  <p class="rp-section__help" style="margin:0;">Bahagian atas auto-data dari B2B customers + sales. Bahagian bawah form manual untuk track pipeline + outreach yang POS tak ada visibility.</p>
  </div>
 
@@ -1967,7 +1967,7 @@ window.renderReturnsLog = async function() {
  <thead><tr><th>Tarikh</th><th>SKU</th><th>Type</th><th>Reason</th><th style="text-align:right;">Qty</th><th>Channel</th><th>Reporter</th></tr></thead>
  <tbody>
  ${rows.slice(0, 100).map(r => {
- const typeColor = { return:'#3B82F6', damaged:'#EF4444', missing:'#D97706', expired:'#7C3AED' }[r.type] || '#6B7280';
+ const typeColor = { return:'#cd7c32', damaged:'#EF4444', missing:'#D97706', expired:'#a05f22' }[r.type] || '#6B7280';
  const typeLabel = { return:'Return', damaged:'Rosak', missing:'Hilang', expired:'Expired' }[r.type] || r.type;
  return `<tr>
  <td style="font-size:11px; color:#6B7280;">${new Date(r.reported_at).toLocaleString('en-MY', { dateStyle:'short', timeStyle:'short' })}</td>
@@ -2365,7 +2365,7 @@ window.__cpDefaultFees = {
  'Shopee':         { fee: 8.0, processing: 2.5, label: 'Shopee', color: '#EE4D2D' },
  'TikTok Shop':    { fee: 5.0, processing: 2.0, label: 'TikTok Shop', color: '#000000' },
  'POS Cashier':  { fee: 0.0, processing: 0.5, label: 'POS Cashier', color: '#10B981' },
- 'Web EasyStore':  { fee: 0.0, processing: 2.5, label: 'Web EasyStore', color: '#3B82F6' },
+ 'Web EasyStore':  { fee: 0.0, processing: 2.5, label: 'Web EasyStore', color: '#cd7c32' },
  'WhatsApp':       { fee: 0.0, processing: 0.5, label: 'WhatsApp', color: '#22C55E' }
 };
 
@@ -2981,7 +2981,7 @@ window.__scRenderList = function() {
  const statusBadge = (s) => {
  const cfg = {
  submitted: { bg:'#FEF3C7', fg:'#92400E', label:'Menunggu Review' },
- reviewed: { bg:'#DBEAFE', fg:'#1E40AF', label:'Direview · Pending Bos' },
+ reviewed: { bg:'#ffedd5', fg:'#7c4a1a', label:'Direview · Pending Bos' },
  approved: { bg:'#D1FAE5', fg:'#065F46', label:'Bos Acknowledged' },
  rejected: { bg:'#FEE2E2', fg:'#991B1B', label:'Rejected' }
  }[s] || { bg:'#E5E7EB', fg:'#374151', label:s };
@@ -3004,7 +3004,7 @@ window.__scRenderList = function() {
  </div>
  </div>
  ${r.summary_text ? `<p style="margin:8px 0 0; padding:8px; background:#F9FAFB; border-radius:6px; font-size:12px; line-height:1.5; color:#374151; white-space:pre-wrap;">${escAttr(r.summary_text).slice(0, 300)}${r.summary_text.length > 300 ? '…' : ''}</p>` : ''}
- ${r.review_notes && r.status !== 'submitted' ? `<div style="margin-top:8px; padding:8px 10px; background:#EFF6FF; border-left:3px solid #3B82F6; border-radius:4px; font-size:11.5px;"><strong>${escAttr(r.reviewer_name || 'Zack')}:</strong> ${escAttr(r.review_notes)}</div>` : ''}
+ ${r.review_notes && r.status !== 'submitted' ? `<div style="margin-top:8px; padding:8px 10px; background:#fff8f0; border-left:3px solid #cd7c32; border-radius:4px; font-size:11.5px;"><strong>${escAttr(r.reviewer_name || 'Zack')}:</strong> ${escAttr(r.review_notes)}</div>` : ''}
  ${isBoss && r.status === 'reviewed' ? `<div style="margin-top:10px; display:flex; gap:6px;"><button class="sy-btn fin-btn--gold" onclick="event.stopPropagation(); window.__scBosAck(${r.id})"><i data-lucide="check-circle" style="width:13px;height:13px;"></i> Acknowledge</button></div>` : ''}
  </div>`).join('');
  if(window.lucide && lucide.createIcons) lucide.createIcons();
@@ -3698,7 +3698,7 @@ window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
 
  // Quick render skeleton first
  body.innerHTML = `
- <div class="rp-section" style="border-left:4px solid #0EA5E9; background:rgba(14,165,233,.04);">
+ <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(14,165,233,.04);">
  <h3 class="rp-section__title" style="color:#0369A1;"><i data-lucide="cog" style="width:14px;height:14px;"></i> System Management</h3>
  <p class="rp-section__help" style="margin:0;">Dashboard untuk Zack — review queues + system health + price/sync oversight. Auto-data dari shopee_sync_log, tiktok_sync_log, stock_check_reports, product_price_history.</p>
  </div>
@@ -4021,8 +4021,8 @@ window.renderTeamReports = async function() {
  const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
  const tagBadge = (type) => {
  const cfg = {
- manual_notes: { bg:'#DBEAFE', fg:'#1E40AF', label:'Catatan' },
- bizdev_pipeline: { bg:'#EDE9FE', fg:'#6D28D9', label:'BizDev Pipeline' },
+ manual_notes: { bg:'#ffedd5', fg:'#7c4a1a', label:'Catatan' },
+ bizdev_pipeline: { bg:'#ffedd5', fg:'#a05f22', label:'BizDev Pipeline' },
  commission_draft: { bg:'#D1FAE5', fg:'#065F46', label:'Komisen' }
  }[type] || { bg:'#E5E7EB', fg:'#374151', label:type };
  return `<span style="display:inline-block; padding:2px 8px; border-radius:50px; background:${cfg.bg}; color:${cfg.fg}; font-size:10px; font-weight:700;">${cfg.label}</span>`;
@@ -4198,20 +4198,20 @@ window.__teamMarkAllRead = async function() {
 
 const FB_CAT = {
  bug: { label: 'Bug', bg: '#FEE2E2', fg: '#991B1B', icon: 'bug' },
- improvement: { label: 'Cadangan', bg: '#DBEAFE', fg: '#1E40AF', icon: 'lightbulb' },
+ improvement: { label: 'Cadangan', bg: '#ffedd5', fg: '#7c4a1a', icon: 'lightbulb' },
  training: { label: 'Training', bg: '#FAE8FF', fg: '#86198F', icon: 'graduation-cap' },
  hardware: { label: 'Hardware', bg: '#FEF3C7', fg: '#92400E', icon: 'wrench' },
  other: { label: 'Lain-lain', bg: '#E5E7EB', fg: '#374151', icon: 'help-circle' }
 };
 const FB_SEV = {
  low: { label: 'Rendah', color: '#9CA3AF' },
- medium: { label: 'Sederhana', color: '#0EA5E9' },
+ medium: { label: 'Sederhana', color: '#cd7c32' },
  high: { label: 'Tinggi', color: '#D97706' },
  critical: { label: 'CRITICAL', color: '#DC2626' }
 };
 const FB_STATUS = {
  new: { label: 'Baru', bg: '#FEF3C7', fg: '#92400E' },
- triaged: { label: 'Triaged', bg: '#DBEAFE', fg: '#1E40AF' },
+ triaged: { label: 'Triaged', bg: '#ffedd5', fg: '#7c4a1a' },
  in_progress: { label: 'Dalam Progress', bg: '#FAE8FF', fg: '#86198F' },
  resolved: { label: 'Resolved', bg: '#D1FAE5', fg: '#065F46' },
  wontfix: { label: 'Wontfix', bg: '#E5E7EB', fg: '#6B7280' }
@@ -4388,7 +4388,7 @@ window.renderPaymentProofs = async function() {
  thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:700; font-size:11.5px;"><i data-lucide="file-text" style="width:14px;height:14px;"></i> PDF</a>`;
  } else if(isHeic) {
  // p1_255 — HEIC tak render inline. Link je.
- thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" title="HEIC format — klik untuk download/buka external" style="display:inline-flex; align-items:center; gap:4px; color:#0EA5E9; font-weight:700; font-size:11.5px;"><i data-lucide="image-down" style="width:14px;height:14px;"></i> HEIC</a>`;
+ thumbCell = `<a href="${escHtml(r.payment_proof_url)}" target="_blank" rel="noopener" title="HEIC format — klik untuk download/buka external" style="display:inline-flex; align-items:center; gap:4px; color:#cd7c32; font-weight:700; font-size:11.5px;"><i data-lucide="image-down" style="width:14px;height:14px;"></i> HEIC</a>`;
  } else {
  // p1_255 — guna this.src + onerror fallback (was raw URL escape bug)
  thumbCell = `<img src="${escHtml(r.payment_proof_url)}" loading="lazy" onclick="window.__ppOpenImg(this.src)" onerror="this.outerHTML='<a href=&quot;${escHtml(r.payment_proof_url)}&quot; target=_blank rel=noopener style=&quot;display:inline-flex; align-items:center; gap:3px; color:#DC2626; font-size:11px; font-weight:700; text-decoration:none;&quot;><i data-lucide=image-off style=&quot;width:12px;height:12px;&quot;></i> broken</a>'" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; cursor:zoom-in;">`;
@@ -4409,9 +4409,9 @@ window.renderPaymentProofs = async function() {
  <button onclick="window.__openReceiptPDF(${r.id})" title="Buka resit official (preview + send)" style="background:#FEF7ED; border:1px solid #FCD34D; color:#92400E; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="file-text" style="width:11px;height:11px;vertical-align:-1px;"></i> Resit</button>
  <button onclick="window.__sendReceiptPdfWhatsApp(${r.id})" title="Hantar resit PDF via WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="message-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> WhatsApp</button>
  <button onclick="window.__sendReceiptPdfEmail(${r.id})" title="Hantar resit PDF via Email" style="background:#E0E7FF; border:1px solid #A5B4FC; color:#3730A3; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="mail" style="width:11px;height:11px;vertical-align:-1px;"></i> Email</button>
- <button onclick="window.__ppUploadFor(${r.id})" title="Upload bukti bayar dari customer" style="background:#EFF6FF; border:1px solid #BFDBFE; color:#1E40AF; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button>
- <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
- <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#DBEAFE; border:1px solid #93C5FD; color:#1E3A8A; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
+ <button onclick="window.__ppUploadFor(${r.id})" title="Upload bukti bayar dari customer" style="background:#fff8f0; border:1px solid #fed7aa; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="upload" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.payment_proof_url ? 'Tukar' : 'Upload'}</button>
+ <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#ffedd5; border:1px solid #fdba74; color:#1E3A8A; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
  </td>
  </tr>`;
  }).join('');
@@ -4957,7 +4957,7 @@ table.items-table .col-total { text-align: right; width: 22%; font-weight: 600; 
 <div class="no-print">
  <button onclick="window.print()">Print / Save PDF</button>
  <button onclick="window.opener && window.opener.__sendReceiptPdfWhatsApp(${sale.id}); window.close();" style="background:#10B981;">Hantar WhatsApp</button>
- <button onclick="window.opener && window.opener.__sendReceiptPdfEmail(${sale.id}); window.close();" style="background:#6366F1;">Hantar Email</button>
+ <button onclick="window.opener && window.opener.__sendReceiptPdfEmail(${sale.id}); window.close();" style="background:#cd7c32;">Hantar Email</button>
  <button class="secondary" onclick="window.close()">Close</button>
  <span class="hint">Print/Save PDF untuk fail. WhatsApp/Email akan generate PDF + upload + hantar link auto.</span>
 </div>
@@ -6566,7 +6566,7 @@ window.__renderOrderDetail = function(sale) {
  + '<div style="display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid #E2E8F0; font-weight:800; font-size:15px;"><span>Total</span><span>RM ' + total.toFixed(2) + '</span></div>';
 
  const ch = sale.channel || 'POS Cashier';
- const chColor = ch === 'TikTok Shop' ? '#000' : (ch === 'Shopee' ? '#ee4d2d' : (String(ch).includes('EasyStore') ? '#10B981' : '#6366F1'));
+ const chColor = ch === 'TikTok Shop' ? '#000' : (ch === 'Shopee' ? '#ee4d2d' : (String(ch).includes('EasyStore') ? '#10B981' : '#cd7c32'));
  document.getElementById('odChannelIcon').textContent = ch === 'TikTok Shop' ? 'T' : (ch === 'Shopee' ? 'S' : (String(ch).includes('EasyStore') ? 'E' : 'W'));
  document.getElementById('odChannelName').textContent = ch;
  document.getElementById('odChannelCard').style.borderLeft = '3px solid ' + chColor;
@@ -6919,8 +6919,8 @@ window.renderCheckSessions = async function() {
  const approved = rows.filter(s => s.status === 'approved').length;
  stats.innerHTML = `
  <div style="background:#FEF3C7; padding:12px; border-radius:8px; border-left:4px solid #D97706;"><div style="font-size:10px; color:#92400E; text-transform:uppercase; font-weight:700;">Aktif</div><div style="font-size:22px; font-weight:900;">${active}</div><div style="font-size:11px; color:#6B7280;">sedang kira</div></div>
- <div style="background:#DBEAFE; padding:12px; border-radius:8px; border-left:4px solid #2563EB;"><div style="font-size:10px; color:#1E40AF; text-transform:uppercase; font-weight:700;">Menunggu Review</div><div style="font-size:22px; font-weight:900;">${review}</div><div style="font-size:11px; color:#6B7280;">Zack semak</div></div>
- <div style="background:#E0E7FF; padding:12px; border-radius:8px; border-left:4px solid #6366F1;"><div style="font-size:10px; color:#3730A3; text-transform:uppercase; font-weight:700;">Bos Inbox</div><div style="font-size:22px; font-weight:900;">${forwarded}</div><div style="font-size:11px; color:#6B7280;">menunggu Bos</div></div>
+ <div style="background:#ffedd5; padding:12px; border-radius:8px; border-left:4px solid #b86a26;"><div style="font-size:10px; color:#7c4a1a; text-transform:uppercase; font-weight:700;">Menunggu Review</div><div style="font-size:22px; font-weight:900;">${review}</div><div style="font-size:11px; color:#6B7280;">Zack semak</div></div>
+ <div style="background:#E0E7FF; padding:12px; border-radius:8px; border-left:4px solid #cd7c32;"><div style="font-size:10px; color:#3730A3; text-transform:uppercase; font-weight:700;">Bos Inbox</div><div style="font-size:22px; font-weight:900;">${forwarded}</div><div style="font-size:11px; color:#6B7280;">menunggu Bos</div></div>
  <div style="background:#D1FAE5; padding:12px; border-radius:8px; border-left:4px solid #10B981;"><div style="font-size:10px; color:#065F46; text-transform:uppercase; font-weight:700;">Approved</div><div style="font-size:22px; font-weight:900;">${approved}</div><div style="font-size:11px; color:#6B7280;">selesai</div></div>
  `;
  }
@@ -6933,8 +6933,8 @@ window.renderCheckSessions = async function() {
  const u = window.currentUser || {};
  const isMgmt = (typeof window.isBoss === 'function' && window.isBoss(u)) || u.role === 'mgmt';
  const STATUS_LBL = { active:'Aktif', review:'Menunggu Review', forwarded:'Bos Acknowledged', approved:'Approved', rejected:'Rejected' };
- const STATUS_BG = { active:'#FEF3C7', review:'#DBEAFE', forwarded:'#E0E7FF', approved:'#D1FAE5', rejected:'#FEE2E2' };
- const STATUS_FG = { active:'#92400E', review:'#1E40AF', forwarded:'#3730A3', approved:'#065F46', rejected:'#991B1B' };
+ const STATUS_BG = { active:'#FEF3C7', review:'#ffedd5', forwarded:'#E0E7FF', approved:'#D1FAE5', rejected:'#FEE2E2' };
+ const STATUS_FG = { active:'#92400E', review:'#7c4a1a', forwarded:'#3730A3', approved:'#065F46', rejected:'#991B1B' };
 
  list.innerHTML = filtered.map(s => {
  const pct = s.items_total > 0 ? Math.round((s.items_checked / s.items_total) * 100) : 0;
@@ -7819,7 +7819,7 @@ window.renderStockCheckHistory = async function() {
  const coverPct = total > 0 ? Math.round((audited30 / total) * 100) : 0;
  // KPI cards
  statsEl.innerHTML = `
- <div style="background:#EFF6FF; padding:14px; border-radius:8px;"><div style="font-size:10px; color:#1E40AF; font-weight:700; text-transform:uppercase;">Total SKU</div><div style="font-size:22px; font-weight:900;">${total}</div><div style="font-size:11px; color:#6B7280;">products_master</div></div>
+ <div style="background:#fff8f0; padding:14px; border-radius:8px;"><div style="font-size:10px; color:#7c4a1a; font-weight:700; text-transform:uppercase;">Total SKU</div><div style="font-size:22px; font-weight:900;">${total}</div><div style="font-size:11px; color:#6B7280;">products_master</div></div>
  <div style="background:#F0FDF4; padding:14px; border-radius:8px; border-left:4px solid #10B981;"><div style="font-size:10px; color:#065F46; font-weight:700; text-transform:uppercase;">Audited 30 hari</div><div style="font-size:22px; font-weight:900; color:#10B981;">${audited30}</div><div style="font-size:11px; color:#6B7280;">${coverPct}% coverage</div></div>
  <div style="background:${stale30 > 0 ? '#FEF3C7' : '#F3F4F6'}; padding:14px; border-radius:8px; border-left:4px solid ${stale30 > 0 ? '#D97706' : '#9CA3AF'};"><div style="font-size:10px; color:#92400E; font-weight:700; text-transform:uppercase;">Stale > 30 hari</div><div style="font-size:22px; font-weight:900; color:${stale30 > 0 ? '#D97706' : '#9CA3AF'};">${stale30}</div><div style="font-size:11px; color:#6B7280;">perlu audit balik</div></div>
  <div style="background:${withVariance > 0 ? '#FEE2E2' : '#F0FDF4'}; padding:14px; border-radius:8px; border-left:4px solid ${withVariance > 0 ? '#EF4444' : '#10B981'};"><div style="font-size:10px; color:${withVariance > 0 ? '#991B1B' : '#065F46'}; font-weight:700; text-transform:uppercase;">Variance</div><div style="font-size:22px; font-weight:900; color:${withVariance > 0 ? '#EF4444' : '#10B981'};">${withVariance}</div><div style="font-size:11px; color:#6B7280;">QC ≠ Sistem</div></div>
@@ -8362,7 +8362,7 @@ function renderStockTake() {
 
  <div style="background:#e0f2fe; border:1px dashed #bae6fd; padding:10px; border-radius:6px; margin-bottom:10px; text-align:center;">
  <label style="font-size:11px; font-weight:bold; color:#0369a1; display:block; margin-bottom:5px;"> Tally Scan Fizikal (+1)</label>
- <input type="text" onkeyup="handleTallyScan(event, '${p.sku}', '${scanCode}')" class="login-input" style="width:100%; text-align:center; padding:6px; margin:0; border-color:#0ea5e9; font-size:12px;" placeholder="Tumpu di sini & scan barcode...">
+ <input type="text" onkeyup="handleTallyScan(event, '${p.sku}', '${scanCode}')" class="login-input" style="width:100%; text-align:center; padding:6px; margin:0; border-color:#cd7c32; font-size:12px;" placeholder="Tumpu di sini & scan barcode...">
  </div>
 
  <input type="text" id="auditKomen-${p.sku}" oninput="window.stDraft && window.stDraft.save('${p.sku}', (document.getElementById('fizikalQty-${p.sku}')||{}).value || '', this.value)" class="login-input" style="margin:0; padding:8px; font-size:12px; margin-bottom:10px;" placeholder="Tulis catatan (Cth: 2 item rosak)...">
@@ -9865,7 +9865,7 @@ window.__cartProofRefresh = function() {
  <button type="button" onclick="window.__proofClearFile()" title="Buang resit" style="background:none; border:none; color:#991B1B; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
  </div>`;
  } else {
- row.innerHTML = `<button type="button" onclick="document.getElementById('proofCameraInput').click()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:#EFF6FF; border:1px dashed #93C5FD; color:#1E40AF; padding:11px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;">
+ row.innerHTML = `<button type="button" onclick="document.getElementById('proofCameraInput').click()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:#fff8f0; border:1px dashed #fdba74; color:#7c4a1a; padding:11px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;">
  <i data-lucide="camera" style="width:16px;height:16px;"></i> Snap Resit (sebelum bayar)
  <span style="font-weight:500; opacity:0.7; font-size:11px;">· opsional</span>
  </button>
@@ -12894,7 +12894,7 @@ function __finRenderRevenueDonut(period) {
  });
  const data = [pos, b2b, quoteConv];
  const labels = ['POS Cashier', 'B2B Invoice', 'Quote → Sale'];
- const colors = ['#10B981', '#3B82F6', '#8B5CF6'];
+ const colors = ['#10B981', '#cd7c32', '#cd7c32'];
  if(__finRevDonut) __finRevDonut.destroy();
  if(typeof Chart === 'undefined') return;
  __finRevDonut = new Chart(ctx, {
@@ -12921,7 +12921,7 @@ function __finRenderExpenseDonut(period) {
  });
  const data = [cats.OPEX, cats.COGS, cats.CAPEX];
  const labels = ['OPEX', 'COGS', 'CAPEX'];
- const colors = ['#EF4444', '#F59E0B', '#8B5CF6'];
+ const colors = ['#EF4444', '#F59E0B', '#cd7c32'];
  if(__finExpDonut) __finExpDonut.destroy();
  if(typeof Chart === 'undefined') return;
  __finExpDonut = new Chart(ctx, {
@@ -12978,7 +12978,7 @@ function __finRenderLedger() {
  });
  rows.sort((a,b)=> (parseInt(b.year)-parseInt(a.year)) || (FIN_MONTHS.indexOf(b.month)-FIN_MONTHS.indexOf(a.month)));
  if(!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#9CA3AF;">Tiada rekod untuk filter ni.</td></tr>'; return; }
- const catColors = { OPEX:'#EF4444', COGS:'#F59E0B', CAPEX:'#8B5CF6' };
+ const catColors = { OPEX:'#EF4444', COGS:'#F59E0B', CAPEX:'#cd7c32' };
  let total = 0;
  tbody.innerHTML = rows.map(f => {
  total += parseFloat(f.amount || 0);
@@ -14059,9 +14059,9 @@ window.renderStaffSchedule = function() {
  let bg = rowBg, col = "#333", fw = "normal";
  if(code === 'A') { bg = "#fde047"; fw = "bold"; }
  else if(code === 'B') { bg = "#86efac"; fw = "bold"; }
- else if(code === 'C') { bg = "#c4b5fd"; fw = "bold"; }
+ else if(code === 'C') { bg = "#fdba74"; fw = "bold"; }
  else if(code === 'OFF') { col = "red"; fw = "bold"; }
- else if(code === 'AL') { bg = "#3b82f6"; col = "white"; fw = "bold"; }
+ else if(code === 'AL') { bg = "#cd7c32"; col = "white"; fw = "bold"; }
  else if(code === 'MC') { bg = "#fbbf24"; fw = "bold"; }
  else if(code === 'EL') { bg = "#ef4444"; col = "white"; fw = "bold"; }
  else if(code === 'PH') { bg = "#f472b6"; col = "white"; fw = "bold"; }
@@ -14134,9 +14134,9 @@ window.saveQuickShiftInline = function(el, staff, date, id, shiftCode) {
  let bg = "#FAFAFA", col = "#333", fw = "normal";
  if(shiftCode === 'A') { bg = "#fde047"; fw = "bold"; }
  else if(shiftCode === 'B') { bg = "#86efac"; fw = "bold"; }
- else if(shiftCode === 'C') { bg = "#c4b5fd"; fw = "bold"; }
+ else if(shiftCode === 'C') { bg = "#fdba74"; fw = "bold"; }
  else if(shiftCode === 'OFF') { bg = "#FAFAFA"; col = "red"; fw = "bold"; }
- else if(shiftCode === 'AL') { bg = "#3b82f6"; col = "white"; fw = "bold"; }
+ else if(shiftCode === 'AL') { bg = "#cd7c32"; col = "white"; fw = "bold"; }
  else if(shiftCode === 'MC') { bg = "#fbbf24"; fw = "bold"; }
  else if(shiftCode === 'EL') { bg = "#ef4444"; col = "white"; fw = "bold"; }
  else { bg = "#FFF"; col = "#ccc"; }
@@ -14205,7 +14205,7 @@ window.renderPendingSchedules = function() {
  pendingSchedules.forEach(req => {
  let badgeBg = "#eee"; let col = "#333";
  if(req.shift === 'OFF') { col = "red"; }
- else if(req.shift === 'AL') { badgeBg = "#3b82f6"; col="white"; }
+ else if(req.shift === 'AL') { badgeBg = "#cd7c32"; col="white"; }
  else if(req.shift === 'MC') { badgeBg = "#fbbf24"; }
  else if(req.shift === 'EL') { badgeBg = "#ef4444"; col="white"; }
 
@@ -14349,7 +14349,7 @@ window.renderAuditLogs = async function() {
  
  html += `<tr>
  <td style="font-size:11px; color:#555;">${actDate}</td>
- <td style="font-weight:bold; color:#4c1d95;">${log.actor_name}</td>
+ <td style="font-weight:bold; color:#5a3413;">${log.actor_name}</td>
  <td>${badge} <span style="font-weight:bold;">${log.target_staff}</span></td>
  <td style="font-size:11px;">${log.details}</td>
  </tr>`;
@@ -14404,7 +14404,7 @@ function renderWarehouseLowStock() {
  tbody.innerHTML = lowStocks.slice(0, 50).map(s => {
  const color = s.remaining === 0 ? "#DC2626" : (s.remaining < s.threshold * 0.5 ? "#D97706" : "#CA8A04");
  const reorderHint = s.reorderQty
- ? `<br><span style="font-size:9px; color:#0EA5E9;"> Order ${s.reorderQty}${s.leadDays ? ' (lead ' + s.leadDays + 'd)' : ''}</span>`
+ ? `<br><span style="font-size:9px; color:#cd7c32;"> Order ${s.reorderQty}${s.leadDays ? ' (lead ' + s.leadDays + 'd)' : ''}</span>`
  : '';
  return `
  <tr>
@@ -14885,7 +14885,7 @@ window.renderMemoBoard = function() {
  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
  };
- const deptColor = { general:'#6B7280', sales:'#10B981', inv:'#3B82F6', admin:'#8B5CF6', hr:'#EC4899', finance:'#B45309' };
+ const deptColor = { general:'#6B7280', sales:'#10B981', inv:'#cd7c32', admin:'#cd7c32', hr:'#EC4899', finance:'#B45309' };
 
  // Filter
  const q = (window.__memoSearch || '').toLowerCase();
@@ -15008,9 +15008,9 @@ window.changeGraphMode = function(mode) {
  if(activeBtnId) {
  let activeBtn = document.getElementById(activeBtnId);
  if(activeBtn) {
- activeBtn.style.backgroundColor = '#3b82f6';
+ activeBtn.style.backgroundColor = '#cd7c32';
  activeBtn.style.color = '#fff';
- activeBtn.style.borderColor = '#3b82f6';
+ activeBtn.style.borderColor = '#cd7c32';
  }
  }
 
@@ -15123,11 +15123,11 @@ window.renderSalesGraph = function(mode = window.currentGraphMode) {
  datasets: [{
  label: 'Gross Sales (RM)',
  data: dataPoints,
- borderColor: '#3b82f6',
- backgroundColor: mode === 'thisyear' ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.2)',
+ borderColor: '#cd7c32',
+ backgroundColor: mode === 'thisyear' ? 'rgba(205, 124, 50, 0.6)' : 'rgba(205, 124, 50, 0.2)',
  borderWidth: 2,
  pointBackgroundColor: '#fff',
- pointBorderColor: '#3b82f6',
+ pointBorderColor: '#cd7c32',
  pointRadius: 4,
  fill: true,
  tension: 0.3
@@ -15296,7 +15296,7 @@ window.renderAbandonedCheckouts = function() {
  const waBtn = waNum ? `<a href="https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}" target="_blank" rel="noopener" title="Follow-up WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:4px 9px; border-radius:5px; font-size:10.5px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin-right:3px;"><i data-lucide="message-circle" style="width:11px;height:11px;"></i> WA</a>` : '';
  return `<tr>
  <td style="padding:10px;">${dt}</td>
- <td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" style="cursor:pointer; color:#2563EB; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${esc(ref)}</a></td>
+ <td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" style="cursor:pointer; color:#b86a26; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${esc(ref)}</a></td>
  <td style="padding:10px;"><strong>${esc((s.customer_name||'-').slice(0,28))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${esc(s.customer_phone)}</span>` : ''}</td>
  <td style="padding:10px; font-size:11.5px;">${esc(s.channel || '-')}</td>
  <td style="padding:10px; text-align:right;">${items}</td>
@@ -15304,7 +15304,7 @@ window.renderAbandonedCheckouts = function() {
  <td style="padding:10px; text-align:center; font-weight:700; color:${ageColor};">${age}h</td>
  <td style="padding:10px; white-space:nowrap;">
  ${waBtn}
- <button onclick="window.__abSetStatus(${s.id}, 'Completed')" title="Tandai dah bayar (jadi Completed)" style="background:#DBEAFE; border:1px solid #93C5FD; color:#1E40AF; padding:4px 9px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="check" style="width:11px;height:11px;vertical-align:-1px;"></i> Dah Bayar</button>
+ <button onclick="window.__abSetStatus(${s.id}, 'Completed')" title="Tandai dah bayar (jadi Completed)" style="background:#ffedd5; border:1px solid #fdba74; color:#7c4a1a; padding:4px 9px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="check" style="width:11px;height:11px;vertical-align:-1px;"></i> Dah Bayar</button>
  <button onclick="window.__abSetStatus(${s.id}, 'Cancelled')" title="Batalkan order" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:4px 9px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="x" style="width:11px;height:11px;vertical-align:-1px;"></i> Batal</button>
  </td>
  </tr>`;
@@ -15349,7 +15349,7 @@ window.renderFifoListing = function() {
  document.getElementById('fifoStats').innerHTML = `
  <div class="stat-card" style="border-left-color:var(--primary);"><div class="stat-card__label"><i data-lucide="layers" style="width:13px;height:13px; color:var(--primary);"></i> Batch Aktif</div><div class="stat-card__value">${rows.length.toLocaleString()}</div></div>
  <div class="stat-card" style="border-left-color:#16A34A;"><div class="stat-card__label"><i data-lucide="boxes" style="width:13px;height:13px; color:#16A34A;"></i> Jumlah Unit</div><div class="stat-card__value">${totalUnits.toLocaleString()}</div></div>
- <div class="stat-card" style="border-left-color:#0EA5E9;"><div class="stat-card__label"><i data-lucide="banknote" style="width:13px;height:13px; color:#0EA5E9;"></i> Nilai Kos</div><div class="stat-card__value">RM ${totalValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#cd7c32;"><div class="stat-card__label"><i data-lucide="banknote" style="width:13px;height:13px; color:#cd7c32;"></i> Nilai Kos</div><div class="stat-card__value">RM ${totalValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  <div class="stat-card" style="border-left-color:#DC2626;" title="Batch lebih 180 hari — patut diutamakan jual / clearance"><div class="stat-card__label"><i data-lucide="alert-triangle" style="width:13px;height:13px; color:#DC2626;"></i> Batch Lama (>180h)</div><div class="stat-card__value">${aging.toLocaleString()}</div></div>
  `;
  if(!rows.length) {
@@ -15504,7 +15504,7 @@ window.renderMarketplaces = async function() {
  html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px;">';
  html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #CD7C32; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Connected</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + connectedCount + ' / ' + platforms.length + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">platforms active</div></div>';
  html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #10B981; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Total Mapped</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + totalMapped + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">across all platforms</div></div>';
- html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #3B82F6; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Master Catalog</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + mapStats.total + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">products_master rows</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #cd7c32; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Master Catalog</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + mapStats.total + '</div><div style="font-size:11px; color:#9CA3AF; margin-top:2px;">products_master rows</div></div>';
  html += '</div>';
 
  // p1_296 — Markup Harga Marketplace (editable RM/%) + Push Harga
@@ -15667,7 +15667,7 @@ window.__mpOpenChannel = function(key) {
  // Stats strip
  html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">';
  html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid ' + p.color + '; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Products Mapped</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + p.mapped + (p.limit ? ' <span style="font-size:13px; color:#9CA3AF; font-weight:500;">/ ' + p.limit + '</span>' : '') + '</div></div>';
- html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #3B82F6; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Last Sync</div><div style="font-size:16px; font-weight:700; color:#101010; margin-top:8px;">' + fmtTs(p.lastSync) + '</div></div>';
+ html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #cd7c32; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Last Sync</div><div style="font-size:16px; font-weight:700; color:#101010; margin-top:8px;">' + fmtTs(p.lastSync) + '</div></div>';
  html += '<div class="stat-card" style="padding:14px 16px; background:#FFF; border:1px solid #E5E7EB; border-left:4px solid #10B981; border-radius:10px;"><div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:600;">Coverage</div><div style="font-size:24px; font-weight:800; color:#101010; margin-top:4px;">' + pct + '%</div></div>';
  html += '</div>';
 
@@ -15682,7 +15682,7 @@ window.__mpOpenChannel = function(key) {
  html += '<div style="font-size:13px; font-weight:700; color:#101010; margin:4px 0 10px;">Urus ' + p.name + '</div>';
  html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">';
  // Orders → All Orders filtered to this channel
- html += tile('clipboard-list', '#3B82F6', 'Orders', 'Lihat & urus pesanan dari ' + p.name + ' (auto-tapis channel ni).',
+ html += tile('clipboard-list', '#cd7c32', 'Orders', 'Lihat & urus pesanan dari ' + p.name + ' (auto-tapis channel ni).',
  "window.__mpChannelOrders && window.__mpChannelOrders('" + esc(p.channelValue || '') + "')");
  // Products → product database
  html += tile('package', '#10B981', 'Products', 'Urus katalog produk & mapping listing.',
@@ -18079,8 +18079,8 @@ window.renderMgmtInventory = function() {
  const sources = [...new Set(myBatches.map(b => b.po_number).filter(Boolean))];
  const suppliers = [...new Set(myBatches.map(b => b.supplier_name).filter(Boolean))];
  let trace = '';
- if(sources.length) trace += `<br><span style="font-weight:normal; color:#0EA5E9; font-size:10px;"> ${sources.slice(0,2).join(', ')}${sources.length> 2 ? '+' : ''}</span>`;
- if(suppliers.length) trace += `<br><span style="font-weight:normal; color:#7C3AED; font-size:10px;"> ${suppliers.slice(0,2).join(', ')}${suppliers.length> 2 ? '+' : ''}</span>`;
+ if(sources.length) trace += `<br><span style="font-weight:normal; color:#cd7c32; font-size:10px;"> ${sources.slice(0,2).join(', ')}${sources.length> 2 ? '+' : ''}</span>`;
+ if(suppliers.length) trace += `<br><span style="font-weight:normal; color:#a05f22; font-size:10px;"> ${suppliers.slice(0,2).join(', ')}${suppliers.length> 2 ? '+' : ''}</span>`;
  return trace;
  })() : ''}
  </td>
@@ -18218,7 +18218,7 @@ window.renderInventoryLedger = function() {
  let qtyPrefix = (t.transaction_type === 'OUT' || t.qty < 0) && t.qty> 0 ? '-' : (t.qty> 0 ? '+' : '');
  let actionStr = t.transaction_type; 
  
- if(t.transaction_type === 'SALE') { actionStr = '<span style="background:#DBEAFE; color:#1E40AF; padding:2px 6px; border-radius:4px; font-weight:bold;">SALE</span>'; }
+ if(t.transaction_type === 'SALE') { actionStr = '<span style="background:#ffedd5; color:#7c4a1a; padding:2px 6px; border-radius:4px; font-weight:bold;">SALE</span>'; }
  else if(t.transaction_type === 'IN') { actionStr = '<span style="background:#D1FAE5; color:#065F46; padding:2px 6px; border-radius:4px; font-weight:bold;">INBOUND</span>'; }
  else if(t.transaction_type === 'OUT') { actionStr = '<span style="background:#FEE2E2; color:#991B1B; padding:2px 6px; border-radius:4px; font-weight:bold;">OUTBOUND</span>'; }
  else if(t.transaction_type === 'ADJUSTMENT') { actionStr = '<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-weight:bold;">AUDIT ADJUST</span>'; }
@@ -19428,7 +19428,7 @@ window.renderPoSection = function() {
  const statusColor = {
  'Draft': { bg:'#F3F4F6', fg:'#374151' },
  'Pending': { bg:'#FEF3C7', fg:'#92400E' },
- 'Partial': { bg:'#DBEAFE', fg:'#1E40AF' },
+ 'Partial': { bg:'#ffedd5', fg:'#7c4a1a' },
  'Completed': { bg:'#D1FAE5', fg:'#065F46' },
  'Cancelled': { bg:'#FEE2E2', fg:'#991B1B' }
  }[po.status] || { bg:'#F3F4F6', fg:'#374151' };
@@ -19477,8 +19477,8 @@ window.openReceivePOModal = async function(poId) {
  <p style="font-size:12px; color:#666; margin-bottom:14px;">PO <strong>${po.po_number}</strong> · Pembekal: <strong>${po.supplier_name}</strong> · ETA: ${po.eta_date || '-'}</p>
 
  <!-- Scanner input -->
- <div style="background:#EFF6FF; border:2px dashed #60A5FA; padding:10px; border-radius:6px; margin-bottom:12px;">
- <label class="small-lbl" style="color:#1E40AF; font-weight:bold;"> Scan Barcode untuk auto-tick qty (atau taip SKU + Enter)</label>
+ <div style="background:#fff8f0; border:2px dashed #e89348; padding:10px; border-radius:6px; margin-bottom:12px;">
+ <label class="small-lbl" style="color:#7c4a1a; font-weight:bold;"> Scan Barcode untuk auto-tick qty (atau taip SKU + Enter)</label>
  <input type="text" id="grnScannerInput" class="login-input" placeholder="Beep!" style="text-align:center; font-weight:bold; letter-spacing:1px; margin:6px 0 0;" onkeyup="window.handleGrnScan(event)" autofocus>
  <p id="grnScanFeedback" style="font-size:11px; color:#666; margin-top:4px; min-height:14px;"></p>
  </div>
@@ -19495,7 +19495,7 @@ window.openReceivePOModal = async function(poId) {
 
  <div style="display:flex; gap:8px; margin-top:14px;">
  <button onclick="document.getElementById('grnOverlay').remove()" class="login-btn" style="background:#6B7280; flex:1;">Tutup</button>
- <button onclick="window.printGrn(${poId})" class="login-btn" style="background:#0EA5E9; flex:1;"> Print GRN Slip</button>
+ <button onclick="window.printGrn(${poId})" class="login-btn" style="background:#cd7c32; flex:1;"> Print GRN Slip</button>
  <button onclick="window.confirmReceivePO(${poId})" class="login-btn" style="flex:2;"> Sahkan Penerimaan</button>
  </div>
  </div>
@@ -19578,7 +19578,7 @@ window.printGrn = function(poId) {
  <div class="header">
  <h1>${shopName}</h1>
  <p style="margin:0; font-size:11px; color:#666;">${shopAddr}${ssm ? ' · SSM: ' + ssm : ''}</p>
- <h2 style="font-size:18px; margin:12px 0 0; color:#0EA5E9;"> GOODS RECEIVED NOTE (GRN)</h2>
+ <h2 style="font-size:18px; margin:12px 0 0; color:#cd7c32;"> GOODS RECEIVED NOTE (GRN)</h2>
  </div>
  <div class="meta">
  <div><strong>GRN #:</strong> GRN-${po.po_number}-${Date.now().toString(36).slice(-4).toUpperCase()}</div>
@@ -19614,7 +19614,7 @@ window.printGrn = function(poId) {
  <div><strong>Lulus Manager (Approver)</strong><br><br>Nama: ___________________________<br>Tandatangan: ________________________<br>Tarikh: ___________</div>
  </div>
  <p style="margin-top:30px; font-size:10px; color:#999; text-align:center;">Auto-generated by POS10C · GRN-${po.po_number}-${Date.now().toString(36).toUpperCase()}</p>
- <button onclick="window.print()" style="position:fixed; top:20px; right:20px; padding:10px 20px; background:#0EA5E9; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;"> Print</button>
+ <button onclick="window.print()" style="position:fixed; top:20px; right:20px; padding:10px 20px; background:#cd7c32; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;"> Print</button>
  </body></html>`);
  win.document.close();
 };
@@ -19741,7 +19741,7 @@ window.bulkImportBinPreview = function() {
 
  __binImportRows = parsed;
 
- let html = `<div style="background:#EFF6FF; border:1px solid #BFDBFE; padding:10px; border-radius:6px; margin-bottom:8px;">
+ let html = `<div style="background:#fff8f0; border:1px solid #fed7aa; padding:10px; border-radius:6px; margin-bottom:8px;">
  <strong>${parsed.length}</strong> baris valid · <strong>${errors.length}</strong> baris error
  </div>`;
  if(parsed.length> 0) {
@@ -19904,7 +19904,7 @@ window.renderStockReservations = function() {
  const expiringSoon = active.filter(r => r.expires_at && new Date(r.expires_at).getTime() - now < 24*3600*1000).length;
  summaryEl.innerHTML = `
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Active Reservations</div><div style="font-size:18px; font-weight:bold;">${active.length}</div></div>
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Locked Qty</div><div style="font-size:18px; font-weight:bold;">${totalQty}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Locked Qty</div><div style="font-size:18px; font-weight:bold;">${totalQty}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Distinct SKUs</div><div style="font-size:18px; font-weight:bold;">${distinctSkus}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Expiring &lt; 24h</div><div style="font-size:18px; font-weight:bold;">${expiringSoon}</div></div>
  `;
@@ -19995,7 +19995,7 @@ window.renderInventoryAging = function() {
  summaryEl.innerHTML = `
  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Total Stock</div><div style="font-size:18px; font-weight:bold;">${totalQty} unit</div></div>
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Modal Diikat</div><div style="font-size:18px; font-weight:bold;">RM ${totalCost.toFixed(2)}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Modal Diikat</div><div style="font-size:18px; font-weight:bold;">RM ${totalCost.toFixed(2)}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Potensi Jualan</div><div style="font-size:18px; font-weight:bold;">RM ${totalRetail.toFixed(2)}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Dead Stock %</div><div style="font-size:18px; font-weight:bold;">${deadPct}%</div></div>
  </div>
@@ -20184,10 +20184,10 @@ window.renderSalesLedger = function() {
  const summaryEl = document.getElementById('ledgerSummary');
  if(summaryEl) {
  summaryEl.innerHTML = `
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Match</div><div style="font-size:18px; font-weight:bold;">${filtered.length} orders</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Match</div><div style="font-size:18px; font-weight:bold;">${filtered.length} orders</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Revenue</div><div style="font-size:18px; font-weight:bold;">RM ${totalRev.toFixed(2)}</div></div>
  <div style="background:#FEF2F2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Refunds</div><div style="font-size:18px; font-weight:bold;">RM ${refundTotal.toFixed(2)}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Net</div><div style="font-size:18px; font-weight:bold;">RM ${(totalRev + refundTotal).toFixed(2)}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Net</div><div style="font-size:18px; font-weight:bold;">RM ${(totalRev + refundTotal).toFixed(2)}</div></div>
  `;
  }
 
@@ -20444,7 +20444,7 @@ window.renderProductSales = function() {
  const negativeBalance = all.filter(r => r.balance < 0).length;
  const zeroStock = all.filter(r => r.stock === 0).length;
  document.getElementById('prodSalesSummaryStats').innerHTML = `
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Total Unit Sold</div><div style="font-size:18px; font-weight:bold;">${totalSold.toLocaleString()}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Total Unit Sold</div><div style="font-size:18px; font-weight:bold;">${totalSold.toLocaleString()}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Total Revenue</div><div style="font-size:18px; font-weight:bold;">RM ${totalRevenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  <div style="background:#FEF2F2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Negative Balance</div><div style="font-size:18px; font-weight:bold;">${negativeBalance} SKU</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Zero Stock</div><div style="font-size:18px; font-weight:bold;">${zeroStock} SKU</div></div>
@@ -20610,7 +20610,7 @@ window.__aoStatusMeta = function(stRaw){
  if(s.includes('refund')) return { canon:'Refunded', label:'Refunded', bg:'#E0E7FF', fg:'#3730A3' };
  if(s.includes('cancel') || s.includes('void')) return { canon:'Cancelled', label:'Cancelled', bg:'#FEE2E2', fg:'#991B1B' };
  if(s.includes('complete') || s.includes('deliver')) return { canon:'Completed', label:'Completed', bg:'#D1FAE5', fg:'#065F46' };
- if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:'Dah Hantar', bg:'#DBEAFE', fg:'#1E40AF' };
+ if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:'Dah Hantar', bg:'#ffedd5', fg:'#7c4a1a' };
  if(s.includes('fulfil') || s.includes('ready') || s.includes('await')) return { canon:'To Fulfil', label:'Perlu Pack', bg:'#FEF3C7', fg:'#92400E' };
  if(s.includes('pending') || s.includes('unpaid') || s.includes('hold')) return { canon:'Pending', label:'Belum Bayar', bg:'#FEF9C3', fg:'#854D0E' };
  return { canon:'', label: stRaw || '-', bg:'#F3F4F6', fg:'#6B7280' };
@@ -20796,11 +20796,11 @@ window.renderAllOrders = function() {
  document.getElementById('aoStats').innerHTML = `
  <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Jumlah Order</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
  <div class="stat-card" style="border-left-color:#16A34A;" title="Jualan bersih — tidak termasuk order Batal/Refund${deadCount ? ' (' + deadCount + ' order dikecualikan)' : ''}"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Jualan Bersih</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div class="stat-card" style="border-left-color:#0EA5E9;" title="Purata nilai setiap order (jualan bersih)"><div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#0EA5E9;"></i> Purata / Order</div><div class="stat-card__value">RM ${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#cd7c32;" title="Purata nilai setiap order (jualan bersih)"><div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#cd7c32;"></i> Purata / Order</div><div class="stat-card__value">RM ${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> Walk-in</div><div class="stat-card__value">${walkinCount}</div></div>
- <div class="stat-card" style="border-left-color:#3B82F6;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#3B82F6;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
+ <div class="stat-card" style="border-left-color:#cd7c32;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#cd7c32;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
  <div class="stat-card" style="border-left-color:#F59E0B; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='To Fulfil'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang perlu di-pack"><div class="stat-card__label"><i data-lucide="package" style="width:13px;height:13px; color:#F59E0B;"></i> Perlu Pack</div><div class="stat-card__value">${toFulfil}</div></div>
- <div class="stat-card" style="border-left-color:#2563EB; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='Processing'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang dah dihantar"><div class="stat-card__label"><i data-lucide="truck" style="width:13px;height:13px; color:#2563EB;"></i> Dah Hantar</div><div class="stat-card__value">${processing}</div></div>
+ <div class="stat-card" style="border-left-color:#b86a26; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='Processing'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang dah dihantar"><div class="stat-card__label"><i data-lucide="truck" style="width:13px;height:13px; color:#b86a26;"></i> Dah Hantar</div><div class="stat-card__value">${processing}</div></div>
  `;
 
  if(filtered.length === 0) {
@@ -20834,7 +20834,7 @@ window.renderAllOrders = function() {
  const isTest = !!s.is_test;
  const testBadge = isTest ? '<span style="background:#F59E0B; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
  const selChk = window.__aoSelected && window.__aoSelected.has(s.id);
- return `<tr style="border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(37,99,235,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
+ return `<tr style="border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(184, 106, 38,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
  <td style="padding:10px; text-align:center;"><input type="checkbox" onchange="window.__aoToggleSelect(${s.id}, this.checked)" ${selChk ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer;"></td>
  <td style="padding:10px;">${dt}</td>
  ${(() => {
@@ -20845,7 +20845,7 @@ window.renderAllOrders = function() {
  const sub = ref ? ('#' + s.id) : '';
  const sc = window.__aoSellerCentreUrl(s);
  const scIcon = sc ? `<a href="${escHtml(sc.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Buka ${escHtml(sc.label)}${sc.direct ? ' — print Airway Bill' : ' — cari order & print AWB'}" style="margin-left:6px; color:${sc.color}; vertical-align:middle; display:inline-flex;"><i data-lucide="external-link" style="width:12px;height:12px;"></i></a>` : '';
- return `<td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#2563EB; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${scIcon}${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
+ return `<td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#b86a26; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${scIcon}${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
  })()}
  <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
  <td style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
@@ -20866,7 +20866,7 @@ window.renderAllOrders = function() {
  }
  if(isHeic) {
  // p1_255 — HEIC tak render inline dalam Chrome/Safari. Sediakan link download je.
- return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" title="HEIC format — Safari/Chrome tak render inline. Klik untuk download/buka external." style="display:inline-flex; align-items:center; gap:3px; color:#0EA5E9; font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="image-down" style="width:12px;height:12px;"></i> HEIC</a></td>`;
+ return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" title="HEIC format — Safari/Chrome tak render inline. Klik untuk download/buka external." style="display:inline-flex; align-items:center; gap:3px; color:#cd7c32; font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="image-down" style="width:12px;height:12px;"></i> HEIC</a></td>`;
  }
  // p1_255 — guna this.src elak escaping bug (entities decoded by HTML parser breaks JS string literal).
  // onerror fallback link kalau image tak load (storage gone / wrong format detected late).
@@ -20882,7 +20882,7 @@ window.renderAllOrders = function() {
  return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppUploadFor && window.__ppUploadFor(${s.id})" title="Upload bukti bayar (tiada resit dalam DB)" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="upload" style="width:10px;height:10px;vertical-align:-1px;"></i> tiada</button></td>`;
  })()}
  <td style="padding:10px; white-space:nowrap;">
- <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
  </td>
  </tr>`;
  }).join('');
@@ -20964,7 +20964,7 @@ window.__aoViewOrder = function(saleId) {
  const couriers = ['J&T Express','Pos Laju','Ninja Van','Flash Express','City-Link Express','DHL','GDex','Shopee Xpress','TikTok arranged','Self-deliver / COD','Lain-lain'];
  const chips = [];
  if(f.packed_at) chips.push(`<span style="display:inline-flex; align-items:center; gap:4px; background:#D1FAE5; color:#065F46; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;"><i data-lucide="check" style="width:11px;height:11px;"></i> Packed · ${esc(fmtWhen(f.packed_at))}${f.packed_by ? ' · ' + esc(f.packed_by) : ''}</span>`);
- if(f.shipped_at) chips.push(`<span style="display:inline-flex; align-items:center; gap:4px; background:#DBEAFE; color:#1E40AF; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;"><i data-lucide="truck" style="width:11px;height:11px;"></i> Dah Hantar${f.courier ? ' · ' + esc(f.courier) : ''}${f.tracking_no ? ' · ' + esc(f.tracking_no) : ''}</span>`);
+ if(f.shipped_at) chips.push(`<span style="display:inline-flex; align-items:center; gap:4px; background:#ffedd5; color:#7c4a1a; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;"><i data-lucide="truck" style="width:11px;height:11px;"></i> Dah Hantar${f.courier ? ' · ' + esc(f.courier) : ''}${f.tracking_no ? ' · ' + esc(f.tracking_no) : ''}</span>`);
  const chipsHtml = chips.length ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${chips.join('')}</div>` : '';
  const courierSel = `<select id="aoFulCourier" style="flex:1; min-width:120px; padding:8px; border:1px solid #E5E7EB; border-radius:7px; font-size:12px;">${couriers.map(c=>`<option value="${esc(c)}" ${f.courier===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
  const controls = canFulfil ? `
@@ -20974,7 +20974,7 @@ window.__aoViewOrder = function(saleId) {
  </div>
  <div style="display:flex; gap:6px; flex-wrap:wrap;">
  ${!f.packed_at ? `<button onclick="window.__aoSetFulfil(${s.id},'packed')" style="flex:1; min-width:110px; background:#fff; border:1px solid #86EFAC; color:#065F46; padding:9px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700;"><i data-lucide="package-check" style="width:13px;height:13px;vertical-align:-2px;"></i> Tanda Packed</button>` : ''}
- <button onclick="window.__aoSetFulfil(${s.id},'shipped',{courier:(document.getElementById('aoFulCourier')||{}).value, tracking:((document.getElementById('aoFulTracking')||{}).value||'')})" style="flex:2; min-width:130px; background:#2563EB; border:none; color:#fff; padding:9px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700;"><i data-lucide="truck" style="width:13px;height:13px;vertical-align:-2px;"></i> ${f.shipped_at ? 'Kemaskini Hantar' : 'Tanda Dah Hantar'}</button>
+ <button onclick="window.__aoSetFulfil(${s.id},'shipped',{courier:(document.getElementById('aoFulCourier')||{}).value, tracking:((document.getElementById('aoFulTracking')||{}).value||'')})" style="flex:2; min-width:130px; background:#b86a26; border:none; color:#fff; padding:9px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700;"><i data-lucide="truck" style="width:13px;height:13px;vertical-align:-2px;"></i> ${f.shipped_at ? 'Kemaskini Hantar' : 'Tanda Dah Hantar'}</button>
  <button onclick="window.__aoSetFulfil(${s.id},'completed')" style="flex:1; min-width:100px; background:#fff; border:1px solid #6EE7B7; color:#047857; padding:9px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700;"><i data-lucide="check-circle" style="width:13px;height:13px;vertical-align:-2px;"></i> Selesai</button>
  </div>` : `<div style="font-size:12px; color:#6B7280;">Order ni dah <strong>${esc(m.label)}</strong>.</div>`;
  const sc = window.__aoSellerCentreUrl(s);
@@ -21033,7 +21033,7 @@ window.__aoViewOrder = function(saleId) {
  })()) : ''}
  <div style="display:flex; gap:8px;">
  <button onclick="window.__aoPrintPackingSlip && window.__aoPrintPackingSlip(${s.id})" style="flex:1.4; background:#CD7C32; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="printer" style="width:13px;height:13px;vertical-align:-2px;"></i> Cetak Packing Slip</button>
- <button onclick="document.getElementById('aoViewOverlay').remove(); window.__ppEditSale && window.__ppEditSale(${s.id});" style="flex:1; background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="edit-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Edit</button>
+ <button onclick="document.getElementById('aoViewOverlay').remove(); window.__ppEditSale && window.__ppEditSale(${s.id});" style="flex:1; background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="edit-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Edit</button>
  <button onclick="document.getElementById('aoViewOverlay').remove()" style="flex:1; background:#101010; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;">Tutup</button>
  </div>
  </div>
@@ -21496,8 +21496,8 @@ window.renderCustomersV2 = function() {
  <div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Jumlah Belanja</div>
  <div class="stat-card__value">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
  </div>
- <div class="stat-card" style="border-left-color:#0EA5E9;" title="Purata belanja setiap pelanggan yang pernah beli">
- <div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#0EA5E9;"></i> Purata Belanja</div>
+ <div class="stat-card" style="border-left-color:#cd7c32;" title="Purata belanja setiap pelanggan yang pernah beli">
+ <div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#cd7c32;"></i> Purata Belanja</div>
  <div class="stat-card__value">RM ${avgSpend.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
  </div>
  <div class="stat-card" style="border-left-color:var(--secondary);" title="Pelanggan yang ada sekurang-kurangnya 1 order (sisanya belum pernah beli)">
@@ -21608,16 +21608,16 @@ window.openCustomerDetail = function(id) {
  + '</div>'
  // p1_243: Quick Action buttons row
  + '<div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;">'
- + '<button onclick="window.openEditCustomerModal(\'' + cid.replace(/'/g,"\\'") + '\')" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Edit</button>'
+ + '<button onclick="window.openEditCustomerModal(\'' + cid.replace(/'/g,"\\'") + '\')" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Edit</button>'
  + (waLink ? '<a href="' + waLink + '" target="_blank" rel="noopener" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="message-circle" style="width:13px;height:13px;"></i> WhatsApp</a>' : '')
- + (mailLink ? '<a href="' + mailLink + '" style="background:#DBEAFE; border:1px solid #93C5FD; color:#1E3A8A; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="mail" style="width:13px;height:13px;"></i> Email</a>' : '')
+ + (mailLink ? '<a href="' + mailLink + '" style="background:#ffedd5; border:1px solid #fdba74; color:#1E3A8A; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="mail" style="width:13px;height:13px;"></i> Email</a>' : '')
  + (telLink ? '<a href="' + telLink + '" style="background:#FEF3C7; border:1px solid #FCD34D; color:#92400E; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="phone" style="width:13px;height:13px;"></i> Call</a>' : '')
  + '</div>'
  // Stats grid
  + '<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:14px;">'
  + '<div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Belanja / Spent</div><div style="font-size:16px; font-weight:bold;">RM ' + (parseFloat(c.total_spent||0)).toFixed(2) + '</div></div>'
  + '<div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Pesanan / Orders</div><div style="font-size:16px; font-weight:bold;">' + (c.total_orders || 0) + '</div></div>'
- + '<div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Mata / Points</div><div style="font-size:16px; font-weight:bold;">' + (c.points || 0) + '</div></div>'
+ + '<div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Mata / Points</div><div style="font-size:16px; font-weight:bold;">' + (c.points || 0) + '</div></div>'
  + '</div>'
  // Tags display
  + (c.tags ? '<div style="margin-bottom:12px;"><div style="font-size:11px; color:#6B7280; margin-bottom:4px;">Tags:</div>' + (c.tags || '').split(',').map(t => t.trim()).filter(Boolean).map(t => '<span style="background:#E0E7FF; color:#3730A3; padding:3px 8px; border-radius:4px; font-size:11px; margin-right:4px; display:inline-block;">' + escHtml(t) + '</span>').join('') + '</div>' : '')
@@ -22042,9 +22042,9 @@ window.checkoutVipLookup = function() {
  badge.style.display = 'block';
  badge.innerHTML = `⭐ <strong>VIP MEMBER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` — auto-discount <strong>${pct}%</strong> applied` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual)`}`;
  } else {
- badge.style.background = '#EFF6FF';
- badge.style.color = '#1E40AF';
- badge.style.border = '1px solid #BFDBFE';
+ badge.style.background = '#fff8f0';
+ badge.style.color = '#7c4a1a';
+ badge.style.border = '1px solid #fed7aa';
  badge.style.display = 'block';
  badge.innerHTML = ` Customer found · ${match.name} · ${match.total_orders||0} order(s) · RM${(match.total_spent||0).toFixed(0)} spent — needs ${3 - (match.total_orders||0)} more order to unlock VIP`;
  }
@@ -22156,7 +22156,7 @@ function dashSparkline(svgEl, values, opts) {
 function dashDonut(slices) {
  if(!slices.length) return '<svg class="dash-donut__svg" viewBox="0 0 130 130"><circle cx="65" cy="65" r="50" fill="none" stroke="#E5E7EB" stroke-width="20"/></svg>';
  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
- const palette = ['#CD7C32', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EF4444', '#6B7280'];
+ const palette = ['#CD7C32', '#cd7c32', '#10B981', '#cd7c32', '#F59E0B', '#EF4444', '#6B7280'];
  const C = 2 * Math.PI * 50;
  let offset = 0;
  let segs = '';
@@ -22182,7 +22182,7 @@ function dashDonut(slices) {
 function dashAvatarColor(name) {
  let hash = 0;
  for(let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
- const palette = ['#CD7C32', '#3B82F6', '#10B981', '#A855F7', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899'];
+ const palette = ['#CD7C32', '#cd7c32', '#10B981', '#cd7c32', '#F59E0B', '#EF4444', '#cd7c32', '#EC4899'];
  return palette[Math.abs(hash) % palette.length];
 }
 function dashInitials(name) {
@@ -22237,7 +22237,7 @@ window.__renderDashOverviewMemo = function() {
  list.innerHTML = '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Tiada memo aktif buat masa ni.</p>';
  return;
  }
- const deptColor = { general:'#6B7280', sales:'#0EA5E9', inv:'#10B981', admin:'#8B5CF6', hr:'#F59E0B', finance:'#DC2626', marketing:'#EC4899' };
+ const deptColor = { general:'#6B7280', sales:'#cd7c32', inv:'#10B981', admin:'#cd7c32', hr:'#F59E0B', finance:'#DC2626', marketing:'#EC4899' };
  // p1_74 fix #4: escape helper for body preview (avoid XSS via memo body)
  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  list.innerHTML = top.map(m => {
@@ -22281,13 +22281,13 @@ window.__renderDashOverviewRoster = function() {
  return;
  }
  const SHIFT_LABEL = {
- B: { label: T('dash_shift_B'), color:'#0EA5E9' },
+ B: { label: T('dash_shift_B'), color:'#cd7c32' },
  C: { label: T('dash_shift_C'), color:'#0F766E' },
  OFF: { label: T('dash_shift_OFF'), color:'#94A3B8' },
  AL: { label: T('dash_shift_AL'), color:'#F59E0B' },
  MC: { label: T('dash_shift_MC'), color:'#DC2626' },
  EL: { label: T('dash_shift_EL'), color:'#DC2626' },
- PH: { label: T('dash_shift_PH'), color:'#8B5CF6' }
+ PH: { label: T('dash_shift_PH'), color:'#cd7c32' }
  };
  // Group by shift
  const groups = {};
@@ -22967,8 +22967,8 @@ window.renderRosterRecon = async function() {
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">On-Time</div><div style="font-size:18px; font-weight:bold;">${onTime}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Late</div><div style="font-size:18px; font-weight:bold;">${late}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">No-Show</div><div style="font-size:18px; font-weight:bold;">${noShow}</div></div>
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Unscheduled</div><div style="font-size:18px; font-weight:bold;">${unscheduled}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Days</div><div style="font-size:18px; font-weight:bold;">${rows.length}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Unscheduled</div><div style="font-size:18px; font-weight:bold;">${unscheduled}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Days</div><div style="font-size:18px; font-weight:bold;">${rows.length}</div></div>
  `;
 
  if(rows.length === 0) {
@@ -22981,7 +22981,7 @@ window.renderRosterRecon = async function() {
  'ON-TIME': { bg:'#D1FAE5', fg:'#065F46' },
  'LATE': { bg:'#FEF3C7', fg:'#92400E' },
  'NO-SHOW': { bg:'#FEE2E2', fg:'#991B1B' },
- 'UNSCHEDULED': { bg:'#DBEAFE', fg:'#1E40AF' },
+ 'UNSCHEDULED': { bg:'#ffedd5', fg:'#7c4a1a' },
  '-': { bg:'#F3F4F6', fg:'#6B7280' }
  };
  const c = colors[r.status] || colors['-'];
@@ -23067,9 +23067,9 @@ window.checkoutVipLookup = function() {
  } else {
  const orders = match.total_orders || 0;
  const need = 3 - orders;
- badge.style.background = '#EFF6FF';
- badge.style.color = '#1E40AF';
- badge.style.border = '1px solid #BFDBFE';
+ badge.style.background = '#fff8f0';
+ badge.style.color = '#7c4a1a';
+ badge.style.border = '1px solid #fed7aa';
  badge.style.display = 'block';
  badge.innerHTML = ` ${match.name} · ${orders} order(s) · ${need> 0 ? need + ' more order to unlock Bronze' : 'qualifies next checkout'}`;
  }
@@ -23187,18 +23187,18 @@ window.renderSegments = function() {
  const totalOrders = Object.values(customerAgg).reduce((s, c) => s + c.orders, 0);
  const avgAOV = totalOrders> 0 ? totalSpent / totalOrders : 0;
  document.getElementById('segStats').innerHTML = `
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Active Customers</div><div style="font-size:18px; font-weight:bold;">${totalCust}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Active Customers</div><div style="font-size:18px; font-weight:bold;">${totalCust}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Avg Order Value</div><div style="font-size:18px; font-weight:bold;">RM ${avgAOV.toFixed(2)}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Champions</div><div style="font-size:18px; font-weight:bold;">${segmentMap['Champion'].length}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Champions</div><div style="font-size:18px; font-weight:bold;">${segmentMap['Champion'].length}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">At Risk + Hibernating</div><div style="font-size:18px; font-weight:bold;">${segmentMap['At Risk'].length + segmentMap['Hibernating'].length}</div></div>
  `;
 
  // RFM table
  const segColors = {
  'Champion': '#10B981',
- 'Loyal': '#3B82F6',
- 'Potential Loyalist': '#A855F7',
+ 'Loyal': '#cd7c32',
+ 'Potential Loyalist': '#cd7c32',
  'New Customer': '#F59E0B',
  'At Risk': '#EF4444',
  'Hibernating': '#9CA3AF'
@@ -23456,7 +23456,7 @@ window.openEodClose = async function() {
  <p style="font-size:11px;">${result.reason}${result.note ? ' — '+result.note : ''}</p>
 
  <p class="meta" style="margin-top:30px;">Generated by POS10C · ${new Date().toLocaleString()}</p>
- <button onclick="window.print()" style="margin-top:20px; padding:8px 16px; background:#0EA5E9; color:#FFF; border:none; border-radius:4px; cursor:pointer;"> Print Z-Report</button>
+ <button onclick="window.print()" style="margin-top:20px; padding:8px 16px; background:#cd7c32; color:#FFF; border:none; border-radius:4px; cursor:pointer;"> Print Z-Report</button>
  </body></html>`);
  win.document.close();
 
@@ -23561,7 +23561,7 @@ window.openVelocityAnalysis = function() {
  <p style="font-size:12px; color:#666; margin-bottom:14px;">Auto-suggest reorder_point + reorder_qty based on real sales velocity. Window: 6 months recent, fallback to lifetime.</p>
 
  <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:14px;">
- <div style="background:#EFF6FF; padding:10px; border-radius:6px; text-align:center;"><div style="font-size:10px; color:#1E40AF;">Total SKU</div><div style="font-size:18px; font-weight:bold;">${totalUpdate}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px; text-align:center;"><div style="font-size:10px; color:#7c4a1a;">Total SKU</div><div style="font-size:18px; font-weight:bold;">${totalUpdate}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px; text-align:center;"><div style="font-size:10px; color:#166534;">Active (6mo)</div><div style="font-size:18px; font-weight:bold;">${moving}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px; text-align:center;"><div style="font-size:10px; color:#92400E;">Stale (180d+)</div><div style="font-size:18px; font-weight:bold;">${stale}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px; text-align:center;"><div style="font-size:10px; color:#991B1B;"> Urgent (under-stocked)</div><div style="font-size:18px; font-weight:bold;">${urgent}</div></div>
@@ -24234,8 +24234,8 @@ window.cpRefreshProofBadge = function() {
  badge.style.background = '#FEF3C7'; badge.style.borderColor = '#F59E0B'; badge.style.color = '#92400E';
  badge.innerHTML = `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><i data-lucide="alert-circle" style="width:16px;height:16px;"></i> Belum ada resit pembayaran</div>
  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
- <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="background:#1E40AF; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="camera" style="width:13px;height:13px;"></i> Snap Camera</button>
- <button type="button" onclick="document.getElementById('proofFileInput').click(); return false;" style="background:#fff; color:#1E40AF; border:1.5px solid #1E40AF; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> Pilih Fail</button>
+ <button type="button" onclick="document.getElementById('proofCameraInput').click(); return false;" style="background:#7c4a1a; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="camera" style="width:13px;height:13px;"></i> Snap Camera</button>
+ <button type="button" onclick="document.getElementById('proofFileInput').click(); return false;" style="background:#fff; color:#7c4a1a; border:1.5px solid #7c4a1a; padding:10px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> Pilih Fail</button>
  </div>`;
  }
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
@@ -24700,7 +24700,7 @@ window.renderCollections = function() {
 
  const row = (type, g) =>
  `<div onclick="window.__collectionOpen('${type}','${hesc(g.name).replace(/'/g, "\\'")}')" style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px 11px 34px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='#fff'">
- <span style="display:inline-flex; align-items:center; gap:9px; font-size:13.5px; color:#1E40AF; font-weight:600;"><i data-lucide="tag" style="width:14px;height:14px;color:#9CA3AF;"></i>${hesc(g.name)}</span>
+ <span style="display:inline-flex; align-items:center; gap:9px; font-size:13.5px; color:#7c4a1a; font-weight:600;"><i data-lucide="tag" style="width:14px;height:14px;color:#9CA3AF;"></i>${hesc(g.name)}</span>
  <span style="display:inline-flex; align-items:center; gap:16px;"><span style="font-size:10.5px; font-weight:700; color:#16A34A; background:#D1FAE5; padding:2px 8px; border-radius:999px;">${g.live} live</span><span style="font-size:13px; color:#6B7280; min-width:40px; text-align:right;">${g.total}</span></span>
  </div>`;
  const groupHeader = (icon, title, sub) =>
@@ -25086,10 +25086,10 @@ window.renderB2BCustomers = function() {
  const totalCreditLimit = filtered.reduce((s, c) => s + (parseFloat(c.credit_limit)||0), 0);
  const activeCount = filtered.filter(c => realOrders(c) > 0).length;
  statsEl.innerHTML = `
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">B2B Total</div><div style="font-size:18px; font-weight:bold;">${filtered.length}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">B2B Total</div><div style="font-size:18px; font-weight:bold;">${filtered.length}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Active (≥1 order)</div><div style="font-size:18px; font-weight:bold;">${activeCount}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Credit Limits</div><div style="font-size:18px; font-weight:bold;">RM ${totalCreditLimit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Credit Limits</div><div style="font-size:18px; font-weight:bold;">RM ${totalCreditLimit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  `;
  }
 
@@ -25174,8 +25174,8 @@ window.openB2BDetail = async function(id) {
  <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:14px;">
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Belanja (real)</div><div style="font-size:16px; font-weight:bold;">RM ${realSpent.toFixed(2)}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Pesanan (real)</div><div style="font-size:16px; font-weight:bold;">${realOrderCount}</div></div>
- <div style="background:#EFF6FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#1E40AF;">Credit Limit</div><div style="font-size:14px; font-weight:bold;">${c.credit_limit ? 'RM ' + parseFloat(c.credit_limit).toFixed(2) : '-'}</div></div>
- <div style="background:#FAF5FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Top Channel</div><div style="font-size:13px; font-weight:bold;">${topChannel ? escHtml(topChannel[0]) + ' (' + topChannel[1] + ')' : '-'}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Credit Limit</div><div style="font-size:14px; font-weight:bold;">${c.credit_limit ? 'RM ' + parseFloat(c.credit_limit).toFixed(2) : '-'}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Top Channel</div><div style="font-size:13px; font-weight:bold;">${topChannel ? escHtml(topChannel[0]) + ' (' + topChannel[1] + ')' : '-'}</div></div>
  </div>
  <h3 style="font-size:13px; margin:6px 0; color:#111;">10 Pembelian Terakhir</h3>
  <table style="width:100%; font-size:12px; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:6px;">Tarikh</th><th style="text-align:left; padding:6px;">Channel</th><th style="text-align:right; padding:6px;">Jumlah</th></tr></thead><tbody>${salesRows}</tbody></table>
@@ -26564,7 +26564,7 @@ function __aaComputeAnomalies() {
                 title: 'High-value cash sales (> RM 500)',
                 desc: flagged.length + ' cash transaction' + (flagged.length>1?'s':'') + ' above RM 500. Bank deposit needed; risk of staff carrying large cash.',
                 icon: 'banknote',
-                iconBg: '#3B82F6',
+                iconBg: '#cd7c32',
                 count: flagged.length,
                 items,
                 suggestion: 'Encourage card/QR for high-value sales. Bank deposit large cash same-day untuk reduce safe risk.'

@@ -25,7 +25,7 @@
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=51">
- <link rel="stylesheet" href="design-tokens.css?v=73">
+ <link rel="stylesheet" href="design-tokens.css?v=74">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -254,8 +254,8 @@
  <div><label class="small-lbl">+ Upah Buruh (RM)</label><input type="number" id="calcLabor" class="login-input" step="0.01" oninput="window.calcPricing()"></div>
  <div></div>
  <div style="grid-column: 1 / -1; border-top:1px dashed #ccc; padding-top:10px;">
- <label class="small-lbl" style="color:#2563EB;">= Modal Keseluruhan (RM)</label>
- <input type="number" id="calcTotalCost" class="login-input" readonly="" style="background:#EFF6FF; font-weight:bold; color:#1E3A8A;">
+ <label class="small-lbl" style="color:#b86a26;">= Modal Keseluruhan (RM)</label>
+ <input type="number" id="calcTotalCost" class="login-input" readonly="" style="background:#fff8f0; font-weight:bold; color:#1E3A8A;">
  </div>
  
  <div><label class="small-lbl">Margin Untung (%)</label><input type="number" id="calcMarginPct" class="login-input" oninput="window.calcPricing()"></div>
@@ -293,7 +293,7 @@
  <!-- Receipt details go here -->
  </div>
  
- <button id="sendEmailBtn" onclick="dispatchEmailReceipt()" class="login-btn" style="background:#2563EB; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:8px;"><span></span> Hantar Auto-Resit Ke Emel</button>
+ <button id="sendEmailBtn" onclick="dispatchEmailReceipt()" class="login-btn" style="background:#b86a26; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:8px;"><span></span> Hantar Auto-Resit Ke Emel</button>
  <button id="sendWhatsAppBtn" onclick="dispatchWhatsAppReceipt()" class="login-btn" style="background:#25D366; margin-bottom:10px; display:flex; justify-content:center; align-items:center; gap:8px;"> Hantar via WhatsApp</button>
  <button onclick="closeReceipt()" class="login-btn" style="background:#FFF; color:var(--text-main); border:1px solid var(--border-color);">Selesai (Pelanggan Seterusnya)</button>
  </div>
@@ -441,7 +441,7 @@
  <input type="tel" id="customerPhone" class="login-input" style="margin-bottom:0; padding:12px; flex:1;" placeholder="No. Telefon (Pilihan)" onchange="if(typeof checkoutVipLookup==='function')checkoutVipLookup()" onblur="if(typeof checkoutVipLookup==='function')checkoutVipLookup()">
  </div>
  <div id="checkoutVipBadge" style="display:none; padding:8px 12px; border-radius:6px; margin-bottom:8px; font-size:13px; font-weight:bold;"></div>
- <input type="email" id="customerEmail" class="login-input" style="margin-bottom:5px; padding:12px; border-color:#93c5fd; background:#eff6ff;" placeholder="Alamat E-mel (Untuk Auto-Resit)">
+ <input type="email" id="customerEmail" class="login-input" style="margin-bottom:5px; padding:12px; border-color:#fdba74; background:#fff8f0;" placeholder="Alamat E-mel (Untuk Auto-Resit)">
  <input type="text" id="customerBuyerTin" class="login-input" style="margin-top:5px; margin-bottom:5px; padding:12px;" placeholder="Buyer TIN (B2B sahaja — pilihan, untuk e-Invoice)" autocomplete="off">
  <small style="color:#64748b; font-size:10px; display:block;">* TIN diperlukan kalau customer business yang nak claim invoice. Tinggal kosong untuk B2C.</small>
  </div>
@@ -494,16 +494,16 @@
  </div>
 
  <!-- p1_180 — Payment proof upload (shown when non-Cash picked) -->
- <div id="proofUploadSection" style="display:none; padding:14px; background:#EFF6FF; border:1px dashed #93C5FD; border-radius:8px; margin-bottom:14px;">
- <label style="font-size:11.5px; font-weight:700; color:#1E40AF; display:block; margin-bottom:6px;"><i data-lucide="upload-cloud" style="width:13px;height:13px;vertical-align:-2px;"></i> Resit Pembayaran (opsional) — screenshot transfer / receipt printout</label>
+ <div id="proofUploadSection" style="display:none; padding:14px; background:#fff8f0; border:1px dashed #fdba74; border-radius:8px; margin-bottom:14px;">
+ <label style="font-size:11.5px; font-weight:700; color:#7c4a1a; display:block; margin-bottom:6px;"><i data-lucide="upload-cloud" style="width:13px;height:13px;vertical-align:-2px;"></i> Resit Pembayaran (opsional) — screenshot transfer / receipt printout</label>
  <!-- p1_230 — Camera input (capture="environment" force rear camera on mobile) + Snap button -->
  <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" onchange="window.__proofPickFile(this)" style="display:none;">
  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
- <button type="button" onclick="document.getElementById('proofCameraInput').click()" id="proofSnapBtn" style="flex:1; min-width:120px; padding:10px 14px; background:#1E40AF; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="camera" style="width:14px;height:14px;"></i> Snap Resit (Camera)</button>
- <button type="button" onclick="document.getElementById('proofFileInput').click()" style="flex:1; min-width:120px; padding:10px 14px; background:#fff; color:#1E40AF; border:1.5px solid #1E40AF; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="folder" style="width:14px;height:14px;"></i> Pilih dari Fail</button>
+ <button type="button" onclick="document.getElementById('proofCameraInput').click()" id="proofSnapBtn" style="flex:1; min-width:120px; padding:10px 14px; background:#7c4a1a; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="camera" style="width:14px;height:14px;"></i> Snap Resit (Camera)</button>
+ <button type="button" onclick="document.getElementById('proofFileInput').click()" style="flex:1; min-width:120px; padding:10px 14px; background:#fff; color:#7c4a1a; border:1.5px solid #7c4a1a; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="folder" style="width:14px;height:14px;"></i> Pilih dari Fail</button>
  </div>
  <input type="file" id="proofFileInput" accept="image/*,.heic,.heif,application/pdf" onchange="window.__proofPickFile(this)" style="display:none;">
- <div id="proofPreview" style="display:none; margin-top:10px; padding:8px; background:#fff; border:1px solid #DBEAFE; border-radius:6px;">
+ <div id="proofPreview" style="display:none; margin-top:10px; padding:8px; background:#fff; border:1px solid #ffedd5; border-radius:6px;">
  <img id="proofPreviewImg" style="max-width:100%; max-height:180px; display:block; margin:0 auto; border-radius:4px;">
  <div id="proofPreviewMeta" style="font-size:10.5px; color:#6B7280; margin-top:6px; text-align:center;"></div>
  <button type="button" onclick="window.__proofClearFile()" style="background:none; border:none; color:#DC2626; font-size:11px; cursor:pointer; margin-top:4px; display:block; margin-left:auto;"><i data-lucide="x" style="width:11px;height:11px;vertical-align:-1px;"></i> Buang</button>
@@ -2063,7 +2063,7 @@
  <button onclick="(document.querySelector('[data-tab=hr_claim]'))?.click()" class="btn-success" style="display:inline-flex; align-items:center; gap:6px;">
  <i data-lucide="receipt" style="width:14px; height:14px;"></i> <span data-i18n="hr_today_action_submit_claim">Hantar Claim</span>
  </button>
- <button onclick="(document.querySelector('[data-tab=hr_clock_history]'))?.click()" class="btn-primary" style="background:#6366F1; border-color:#6366F1; display:inline-flex; align-items:center; gap:6px;">
+ <button onclick="(document.querySelector('[data-tab=hr_clock_history]'))?.click()" class="btn-primary" style="background:#cd7c32; border-color:#cd7c32; display:inline-flex; align-items:center; gap:6px;">
  <i data-lucide="history" style="width:14px; height:14px;"></i> <span data-i18n="hr_today_action_clock_history">Riwayat Clock</span>
  </button>
  </div>
@@ -2113,7 +2113,7 @@
  <div id="hrcMyBenefits" style="font-size:13px; color:#374151; line-height:1.6;">—</div>
  </div>
  <div class="admin-card" style="padding:14px;">
- <h3 style="font-size:13px; font-weight:800; margin:0 0 8px; display:flex; align-items:center; gap:6px;"><i data-lucide="briefcase" style="width:14px;height:14px;color:#2563EB;"></i> Skop Kerja</h3>
+ <h3 style="font-size:13px; font-weight:800; margin:0 0 8px; display:flex; align-items:center; gap:6px;"><i data-lucide="briefcase" style="width:14px;height:14px;color:#b86a26;"></i> Skop Kerja</h3>
  <div id="hrcMyJobScope" style="font-size:13px; color:#374151; line-height:1.6;">—</div>
  </div>
  </div>
@@ -2192,7 +2192,7 @@
  </div>
  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
  <label style="font-size:11px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="rsMyRowOnly" onchange="window.__rsApplyMyRowFilter && window.__rsApplyMyRowFilter()"> Show My Row Only</label>
- <button onclick="window.__rsPrintSchedule()" style="background:#0EA5E9; color:#fff; border:none; padding:9px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+ <button onclick="window.__rsPrintSchedule()" style="background:#cd7c32; color:#fff; border:none; padding:9px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
  <i data-lucide="printer" style="width:14px; height:14px;"></i> Print Jadual
  </button>
  <button id="btnOpenAdminRoster" onclick="window.openAdminRoster()" style="display:none; background:#6b21a8; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; align-items:center; gap:6px;">
@@ -2229,7 +2229,7 @@
  <p style="font-size:10px; color:#6B7280; margin:3px 0 0;">Note: filename direkod sahaja (storage upload TBD)</p>
  </div>
  <div style="flex:1; min-width:120px;">
- <button class="btn-primary" id="reqScheduleBtn" style="margin:0; width:100%; height:44px; background:#0ea5e9;">Hantar Permohonan</button>
+ <button class="btn-primary" id="reqScheduleBtn" style="margin:0; width:100%; height:44px; background:#cd7c32;">Hantar Permohonan</button>
  </div>
  </div>
  <!-- p1_127 — Cuti balance hint (shown when AL/MC/EL selected) -->
@@ -2258,9 +2258,9 @@
  <div style="margin-top:20px; padding:15px; border:1px solid #eee; background:#FAFAFA; border-radius:6px; display:flex; flex-wrap:wrap; gap:15px; font-size:11px;">
  <div><span style="background:#fde047; padding:2px 8px; border-radius:4px;">A</span> Shift A: 11am-9pm</div>
  <div><span style="background:#86efac; padding:2px 8px; border-radius:4px;">B</span> Shift B: 2pm-8pm</div>
- <div><span style="background:#c4b5fd; padding:2px 8px; border-radius:4px;">C</span> Shift C: 11am-8pm</div>
+ <div><span style="background:#fdba74; padding:2px 8px; border-radius:4px;">C</span> Shift C: 11am-8pm</div>
  <div><span style="color:red; font-weight:bold;">OFF</span> Off Day</div>
- <div><span style="background:#3b82f6; color:white; padding:2px 8px; border-radius:4px;">AL</span> Annual Leave</div>
+ <div><span style="background:#cd7c32; color:white; padding:2px 8px; border-radius:4px;">AL</span> Annual Leave</div>
  <div><span style="background:#fbbf24; padding:2px 8px; border-radius:4px;">MC</span> Sick Leave</div>
  <div><span style="background:#ef4444; color:white; padding:2px 8px; border-radius:4px;">EL</span> Emergency Leave</div>
  <div><span style="background:#f472b6; color:white; padding:2px 8px; border-radius:4px;">PH</span> Public Holiday</div>
@@ -2826,16 +2826,16 @@
  <!-- p1_154 — Progress counter -->
  <span id="stProgressCounter" style="font-size:12px; color:#6B7280; font-weight:700; padding:8px 12px; background:#F3F4F6; border-radius:6px;">— / —</span>
  <button onclick="openBarcodeScannerModal()" class="btn-primary" style="background:#10B981; border:none; margin:0; padding:10px 15px;" data-i18n="st_scan_btn">Scan Barcode/QR</button>
- <button onclick="window.__stBulkSubmit()" class="btn-primary" style="background:#3B82F6; border:none; margin:0; padding:10px 15px;"><i data-lucide="check-check" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit All Drafts</button>
- <button onclick="window.__stSubmitSessionToZack()" class="btn-primary" style="background:#7C3AED; border:none; margin:0; padding:10px 15px;"><i data-lucide="send" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit Session ke Zack</button>
+ <button onclick="window.__stBulkSubmit()" class="btn-primary" style="background:#cd7c32; border:none; margin:0; padding:10px 15px;"><i data-lucide="check-check" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit All Drafts</button>
+ <button onclick="window.__stSubmitSessionToZack()" class="btn-primary" style="background:#a05f22; border:none; margin:0; padding:10px 15px;"><i data-lucide="send" style="width:14px; height:14px; vertical-align:-2px;"></i> Submit Session ke Zack</button>
  </div>
  </div>
  <p style="font-size:13px; color:#888; margin-bottom:20px;" data-i18n="st_subtitle">Kira dan sahkan kuantiti secara teliti. Tekan "Submit" bagi setiap item yang dikira, atau gunakan pengimbas kod.</p>
  <div id="stDraftBanner" hidden></div>
 
- <div style="background:#f0f9ff; border:2px dashed #0284c7; padding:20px; border-radius:8px; text-align:center; margin-bottom:20px;">
- <h3 style="color:#0284c7; margin-bottom:10px; font-size:18px;" data-i18n="st_scanner_focus_title">Tumpu Scanner Anda Di Sini</h3>
- <input type="text" id="mainAuditScanner" onkeyup="handleMainAuditScan(event)" class="login-input" style="font-size:20px; padding:15px; text-align:center; border-color:#0284c7; margin:0 auto; max-width:500px; font-weight:bold; letter-spacing:2px; box-shadow:0 0 10px rgba(2,132,199,0.2);" placeholder="Beep!">
+ <div style="background:#f0f9ff; border:2px dashed #b86a26; padding:20px; border-radius:8px; text-align:center; margin-bottom:20px;">
+ <h3 style="color:#b86a26; margin-bottom:10px; font-size:18px;" data-i18n="st_scanner_focus_title">Tumpu Scanner Anda Di Sini</h3>
+ <input type="text" id="mainAuditScanner" onkeyup="handleMainAuditScan(event)" class="login-input" style="font-size:20px; padding:15px; text-align:center; border-color:#b86a26; margin:0 auto; max-width:500px; font-weight:bold; letter-spacing:2px; box-shadow:0 0 10px rgba(2,132,199,0.2);" placeholder="Beep!">
  <p style="font-size:12px; color:#555; margin-top:10px;" data-i18n="st_scanner_hint">(Pop-up kemaskini kuantiti fizikal akan muncul secara automatik)</p>
  </div>
 
@@ -4084,7 +4084,7 @@
  <div><label class="small-lbl">Dari Tarikh</label><input type="date" id="ledgerDateFrom" class="login-input" style="margin:0;" onchange="renderSalesLedger()"></div>
  <div><label class="small-lbl">Hingga Tarikh</label><input type="date" id="ledgerDateTo" class="login-input" style="margin:0;" onchange="renderSalesLedger()"></div>
  <div style="display:flex; align-items:end;">
- <button class="btn-success" onclick="window.exportSalesLedgerCsv()" style="width:100%; background:#0EA5E9; border-color:#0EA5E9;"> Export CSV (filter)</button>
+ <button class="btn-success" onclick="window.exportSalesLedgerCsv()" style="width:100%; background:#cd7c32; border-color:#cd7c32;"> Export CSV (filter)</button>
  </div>
  </div>
  <p id="ledgerSummaryLine" style="font-size:12px; color:#666; margin-top:10px;"></p>
@@ -4163,7 +4163,7 @@
  </div>
  </div>
  <div style="display:flex; gap:10px; margin-top:10px; align-items:end;">
- <button class="btn-success" onclick="window.exportProductSalesCsv()" style="background:#0EA5E9; border-color:#0EA5E9;"> Export CSV</button>
+ <button class="btn-success" onclick="window.exportProductSalesCsv()" style="background:#cd7c32; border-color:#cd7c32;"> Export CSV</button>
  <p id="prodSalesSummaryLine" style="font-size:12px; color:#666; margin:0;"></p>
  </div>
  </div>
@@ -4257,10 +4257,10 @@
  <h3 id="valTotalCost" style="font-size:24px; color:#991B1B; margin:0;">RM 0.00</h3>
  <p style="font-size:10px; color:#DC2626; margin-top:5px;">Kos stok sedia ada</p>
  </div>
- <div style="background:#EFF6FF; padding:20px; border-radius:8px; border:1px solid #BFDBFE; text-align:center;">
- <p style="font-size:12px; font-weight:bold; color:#2563EB; text-transform:uppercase; margin-bottom:5px;">Total Nilai Runcit</p>
+ <div style="background:#fff8f0; padding:20px; border-radius:8px; border:1px solid #fed7aa; text-align:center;">
+ <p style="font-size:12px; font-weight:bold; color:#b86a26; text-transform:uppercase; margin-bottom:5px;">Total Nilai Runcit</p>
  <h3 id="valTotalRetail" style="font-size:24px; color:#1E3A8A; margin:0;">RM 0.00</h3>
- <p style="font-size:10px; color:#2563EB; margin-top:5px;">Potensi jualan kasar</p>
+ <p style="font-size:10px; color:#b86a26; margin-top:5px;">Potensi jualan kasar</p>
  </div>
  <div style="background:#ECFCCB; padding:20px; border-radius:8px; border:1px solid #D9F99D; text-align:center;">
  <p style="font-size:12px; font-weight:bold; color:#65A30D; text-transform:uppercase; margin-bottom:5px;">Unjuran Keuntungan</p>
@@ -4511,9 +4511,9 @@
  </div>
 
  <!-- p1_331 — bar tindakan bulk (muncul bila ada order dipilih) -->
- <div id="aoBulkBar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; background:#EEF4FD; border:1px solid #BFDBFE; border-radius:10px; padding:10px 14px; margin-bottom:14px;">
- <span style="font-size:13px; font-weight:700; color:#1E40AF;"><strong id="aoBulkCount">0</strong> order dipilih</span>
- <span style="width:1px; height:20px; background:#BFDBFE;"></span>
+ <div id="aoBulkBar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; background:#EEF4FD; border:1px solid #fed7aa; border-radius:10px; padding:10px 14px; margin-bottom:14px;">
+ <span style="font-size:13px; font-weight:700; color:#7c4a1a;"><strong id="aoBulkCount">0</strong> order dipilih</span>
+ <span style="width:1px; height:20px; background:#fed7aa;"></span>
  <label class="small-lbl" style="margin:0;">Tukar status:</label>
  <select id="aoBulkStatusSel" class="login-input" style="margin:0; width:auto; min-width:150px;">
  <option value="To Fulfil">Perlu Pack</option>
@@ -4674,7 +4674,7 @@
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:8px;">
  <h2 style="margin:0;" data-i18n="mk_promo_title">Promotion &amp; Voucher Manager</h2>
  <div style="display:flex; gap:8px;">
- <button class="btn-success" onclick="window.openFestivalTemplates()" style="background:#A855F7; border-color:#A855F7;" data-i18n="mk_promo_festival_btn">Festival Templates</button>
+ <button class="btn-success" onclick="window.openFestivalTemplates()" style="background:#cd7c32; border-color:#cd7c32;" data-i18n="mk_promo_festival_btn">Festival Templates</button>
  <button class="btn-primary" onclick="if(typeof renderPromotionsV2==='function')renderPromotionsV2()" data-i18n="mk_promo_refresh_btn">Refresh</button>
  </div>
  </div>
@@ -5738,13 +5738,13 @@
  </div>
  
  <!-- Velocity Analysis launcher (p8_1+p8_2) -->
- <div class="admin-card" style="padding:14px; margin-bottom:14px; background:linear-gradient(135deg, #F0F9FF, #DBEAFE); border-left:4px solid #0EA5E9;">
+ <div class="admin-card" style="padding:14px; margin-bottom:14px; background:linear-gradient(135deg, #F0F9FF, #ffedd5); border-left:4px solid #cd7c32;">
  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
  <div>
  <h3 style="margin:0 0 4px;" data-i18n="wh_velocity_title">Velocity Analysis (auto-tune reorder points)</h3>
  <p style="font-size:12px; color:#666; margin:0;" data-i18n="wh_velocity_sub">Computes per-SKU sales velocity from history → suggests reorder_point + reorder_qty. Recommend run sebulan sekali.</p>
  </div>
- <button class="btn-primary" onclick="window.openVelocityAnalysis()" style="background:#0EA5E9; border-color:#0EA5E9;" data-i18n="wh_velocity_btn">Run Velocity Analysis</button>
+ <button class="btn-primary" onclick="window.openVelocityAnalysis()" style="background:#cd7c32; border-color:#cd7c32;" data-i18n="wh_velocity_btn">Run Velocity Analysis</button>
  </div>
  </div>
 
@@ -5980,7 +5980,7 @@
  </div>
 
  <!-- STOCK MOVEMENT LEDGER (NEW) -->
- <div class="admin-card" style="border-top:4px solid #6366F1; padding:20px; margin-bottom:20px; animation:fadeIn 0.5s;">
+ <div class="admin-card" style="border-top:4px solid #cd7c32; padding:20px; margin-bottom:20px; animation:fadeIn 0.5s;">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
  <h3 style="margin:0;"> Lejar Pergerakan Stok (Movement History)</h3>
  <button class="btn-success" style="font-size:10px; padding:5px 10px; margin:0; background:#4F46E5; border-color:#4F46E5;" onclick="window.downloadLedgerCsv()"> Eksport CSV</button>
@@ -6069,7 +6069,7 @@
  <div class="admin-card" style="border-top:4px solid var(--primary); margin-top:20px; margin-bottom:20px;">
  <div style="display:flex; justify-content:space-between; align-items:center;">
  <h3> Master System Management</h3>
- <span style="font-size:10px; background:#8B5CF6; color:white; padding:3px 8px; border-radius:12px;">Superior Access Only</span>
+ <span style="font-size:10px; background:#cd7c32; color:white; padding:3px 8px; border-radius:12px;">Superior Access Only</span>
  </div>
  <p style="font-size:12px; color:#888; margin-top:10px; margin-bottom:15px;">Akses sulit pengarah untuk token pangkalan data (Supabase), sandaran keseluruhan, dan pelepasan (override) keselamatan hub lain.</p>
  <div style="display:flex; gap:10px;">
@@ -6137,9 +6137,9 @@
  <div style="padding:15px; border:1px solid #eee; background:#FAFAFA; border-radius:6px; display:flex; flex-wrap:wrap; gap:15px; font-size:11px;">
  <div><span style="background:#fde047; padding:2px 8px; border-radius:4px; font-weight:bold;">A</span> Shift A: 11am-9pm</div>
  <div><span style="background:#86efac; padding:2px 8px; border-radius:4px; font-weight:bold;">B</span> Shift B: 2pm-8pm</div>
- <div><span style="background:#c4b5fd; padding:2px 8px; border-radius:4px; font-weight:bold;">C</span> Shift C: 11am-8pm</div>
+ <div><span style="background:#fdba74; padding:2px 8px; border-radius:4px; font-weight:bold;">C</span> Shift C: 11am-8pm</div>
  <div><span style="color:red; font-weight:bold;">OFF</span> Off Day</div>
- <div><span style="background:#3b82f6; color:white; padding:2px 8px; border-radius:4px; font-weight:bold;">AL</span> Annual Leave</div>
+ <div><span style="background:#cd7c32; color:white; padding:2px 8px; border-radius:4px; font-weight:bold;">AL</span> Annual Leave</div>
  <div><span style="background:#fbbf24; padding:2px 8px; border-radius:4px; font-weight:bold;">MC</span> Sick Leave</div>
  <div><span style="background:#ef4444; color:white; padding:2px 8px; border-radius:4px; font-weight:bold;">EL</span> Emergency Leave</div>
  <div><span style="background:#f472b6; color:white; padding:2px 8px; border-radius:4px; font-weight:bold;">PH</span> Public Holiday</div>
@@ -6161,7 +6161,7 @@
  <!-- GLOBAL STAFF DIRECTORY -->
  <div class="table-responsive" style="border:1px solid var(--border-color); margin-top:20px;">
  <table class="data-table" style="font-size:12px; width:100%; border-collapse:collapse; text-align:left;">
- <thead style="background:#3b82f6; color:#fff;">
+ <thead style="background:#cd7c32; color:#fff;">
  <tr><th>CMP ID</th><th>Tanda Nama (POS)</th><th>Nama Individu Sepenuhnya</th><th>Tarikh Mula Kem</th><th>Tempoh Perkhidmatan (Semasa)</th></tr>
  </thead>
  <tbody id="staffDirectoryTbody">
@@ -6191,16 +6191,16 @@
  </div>
 
  <!-- HR AUDIT LOG -->
- <div class="admin-card" style="border-top:4px solid #8b5cf6; margin-top:20px;">
+ <div class="admin-card" style="border-top:4px solid #cd7c32; margin-top:20px;">
  <div style="display:flex; justify-content:space-between; align-items:center;">
- <h3 style="color:#4c1d95;"> Audit Log HR (Keputusan Jadual)</h3>
- <button onclick="if(typeof renderAuditLogs === 'function') renderAuditLogs()" class="btn-primary" style="font-size:10px; padding:4px 8px; margin:0; background:#8b5cf6; border-color:#8b5cf6;">Refresh Log</button>
+ <h3 style="color:#5a3413;"> Audit Log HR (Keputusan Jadual)</h3>
+ <button onclick="if(typeof renderAuditLogs === 'function') renderAuditLogs()" class="btn-primary" style="font-size:10px; padding:4px 8px; margin:0; background:#cd7c32; border-color:#cd7c32;">Refresh Log</button>
  </div>
  <p style="font-size:12px; color:#888; margin-bottom:15px; margin-top:5px;">Senarai sejarah kelulusan (Approve) atau penolakan (Reject) permohonan staf.</p>
  
- <div class="table-responsive" style="max-height:250px; overflow-y:auto; border:1px solid #ede9fe;">
+ <div class="table-responsive" style="max-height:250px; overflow-y:auto; border:1px solid #ffedd5;">
  <table class="data-table" style="font-size:12px; width:100%; border-collapse:collapse; text-align:left;">
- <thead style="position:sticky; top:0; background:#ede9fe; color:#4c1d95; z-index:1;">
+ <thead style="position:sticky; top:0; background:#ffedd5; color:#5a3413; z-index:1;">
  <tr><th>Masa &amp; Tarikh Tindakan</th><th>Admin Bertugas</th><th>Tindakan / Subjek</th><th>Cuti / Penerangan</th></tr>
  </thead>
  <tbody id="auditLogsTbody">
@@ -6231,15 +6231,15 @@
  </div>
  </div><div id="salesAnalyticsSection" class="tab-section" style="display: none;">
  <!-- Graf Analisis Teras Jualan -->
- <div class="admin-card" style="border-top:4px solid #3b82f6; margin-bottom:20px;">
+ <div class="admin-card" style="border-top:4px solid #cd7c32; margin-bottom:20px;">
  <div style="display:flex; justify-content:space-between; align-items:center;">
  <h3> Graf Prestasi Jualan</h3>
- <button onclick="if(typeof renderSalesGraph === 'function') renderSalesGraph(window.currentGraphMode || '7days')" class="btn-primary" style="font-size:10px; padding:4px 8px; margin:0; background:#3b82f6; border-color:#3b82f6;">⟳ Segarkan Graf</button>
+ <button onclick="if(typeof renderSalesGraph === 'function') renderSalesGraph(window.currentGraphMode || '7days')" class="btn-primary" style="font-size:10px; padding:4px 8px; margin:0; background:#cd7c32; border-color:#cd7c32;">⟳ Segarkan Graf</button>
  </div>
  
  <!-- Chart Filters -->
  <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:15px; margin-bottom:10px; font-size:11px;">
- <button onclick="changeGraphMode('7days')" id="btnGraph7" class="btn-secondary" style="margin:0; padding:4px 10px; color:#fff; background-color:#3b82f6; border-color:#3b82f6;">7 Hari</button>
+ <button onclick="changeGraphMode('7days')" id="btnGraph7" class="btn-secondary" style="margin:0; padding:4px 10px; color:#fff; background-color:#cd7c32; border-color:#cd7c32;">7 Hari</button>
  <button onclick="changeGraphMode('thismonth')" id="btnGraphMonth" class="btn-secondary" style="margin:0; padding:4px 10px;">Bulan Ini</button>
  <button onclick="changeGraphMode('thisyear')" id="btnGraphYear" class="btn-secondary" style="margin:0; padding:4px 10px;">Tahun Ini</button>
  <button onclick="changeGraphMode('custom')" id="btnGraphCustom" class="btn-secondary" style="margin:0; padding:4px 10px;">Custom</button>
@@ -6937,7 +6937,7 @@
  <textarea id="waMessage" class="cp-input" rows="9" style="font-family:monospace; font-size:12px;" oninput="window.__waPreviewMessage(true)"></textarea>
  <div style="margin-top:10px; padding:10px; background:#E0F2FE; border-radius:6px; font-size:12px;">
  <strong data-i18n="mk_wa_sample">Sample for first match:</strong>
- <div id="waSamplePreview" style="margin-top:4px; white-space:pre-wrap; color:#1E40AF;"></div>
+ <div id="waSamplePreview" style="margin-top:4px; white-space:pre-wrap; color:#7c4a1a;"></div>
  </div>
  </div>
  </div>
@@ -7233,6 +7233,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_386', label:'Brand color audit + migration ke Sunset Bronze (Zaid: "audit frontend 10camp POS" + bagi PDF 10 CAMP BRAND IDENTITY 2 sbg panduan warna). Audit dapati app guna ~298 tempat warna BUKAN brand (palet ungu --accent #A855F7/#7C3AED/#4C1D95 + palet biru --info #3B82F6/#2563EB/#1E40AF) sbg tema bahagian (HR ungu, Sales/Analytics biru), sedangkan brand rasmi cuma Sunset Bronze #CD7C32 + Tropical Black #101010 + Cloudy White. Keputusan Zaid: (1) Cloudy White kekal warm-cream override #FAF6EF (bukan #EEEEEE rasmi PDF — atas sebab lembut mata/vibe outdoor). (2) Semua ungu+biru → Sunset Bronze (full brand). Migrasi via scripts/brand_color_migrate.py: petakan hex ikut TON (gelap→primary-700/800/900, sederhana→primary-500/600, cerah→primary-100..400, latar→primary-50) supaya carta berbilang-siri kekal boleh dibeza + on-brand. Status colors (hijau success / merah danger / kuning warning) + neutral grey SENGAJA dikekalkan (isyarat UX universal, brand tak larang). 313 tukaran: index.html 90, app.js 166, design-tokens.css 57 (termasuk repoint nilai token --info-* + --accent-* ke shade bronze; nama token kekal utk back-compat var() refs). rgba() bayang/overlay biru+ungu (15) pun dipetakan. #CD7C32 dlm index.html naik 5→47. Verify: 0 ungu/biru tinggal, node --check app.js OK. Bump cache: app.js?v=458→459, design-tokens.css?v=73→74, sw.js pos-store-v6→v7. Struktur HTML + rule no-emoji disahkan bersih (emoji yg ada cuma dlm teks sejarah ROADMAP, bukan UI).', d:'done' },
  { id:'p1_385', label:'Memo Board: butang Pin/Unpin + Edit (Zaid: "pin dan unpin memo edit button"). PIN/UNPIN: butang toggle pada memo approved (Bos sahaja) -> window.memoTogglePin flip m.pinned + save + upsert remote; memo pinned popup masa staf login. Icon pin/pin-off, highlight kuning bila pinned. EDIT: window.memoEdit(id) prefill form sedia ada (dept/tajuk/isi/pinned) + tukar heading->Edit Memo + butang->Simpan Perubahan + set __memoEditId; memoSubmit branch mod edit (kemaskini memo kekal id/author/status/timestamp + edited_at/by) bukan cipta baru. Akses: Bos boleh edit mana-mana; author boleh edit kalau belum approved. memoOpenSubmit/memoCloseSubmit reset __memoEditId. HTML: id memoFormHeading + memoSubmitBtnLabel. app.js v457->v458.', d:'done' },
  { id:'p1_384', label:'Tambah thumbnail gambar produk dalam senarai cart (Zaid screenshot: cart item takde gambar, nak tambah). renderCart: build map __cartImg (sku->images[0] dari masterProducts, handle array atau string) + fallback SVG window.__cartNoImg. Setiap baris .cart-item kini ada <img> 48x48 object-fit:cover radius8 di kiri (flex-shrink:0, margin-right:10) sebelum nama/harga. .cart-item dah display:flex align-items:center jadi layout [gambar][nama+harga flex:1][qty/buang] kemas. onerror fallback ke __cartNoImg. app.js v456->v457.', d:'done' },
  { id:'p1_383', label:'Snap Resit SIAP-SIAP di skrin cart sebelum checkout (Zaid: "staff nak ambil gambar resit sewaktu checkout, 2 tempat: kalau terlupa edit di all order, tapi bila ingat sebelum checkout nak ambil siap2"). Sebelum: snap cuma dalam panel checkout (lepas tekan Bayar) + edit All Orders. Tambah TEMPAT KE-3 paling awal: butang Snap Resit terus di skrin cart (atas BAYAR SEKARANG) via #cartProofRow + window.__cartProofRefresh() — guna proofCameraInput/proofFileInput global + __proofState sama; bila checkout+confirm, processNewCheckout upload. State: kalau belum snap papar butang biru dashed Snap Resit (+pilih fail); kalau dah papar hijau Resit dah siap + Tukar/Buang. Dipanggil dari __proofPickFile + __proofClearFile + renderCart. PENTING FIX: buang reset __proofClearFile dalam openCheckoutPanel (p1_372) sebab dia padam gambar pre-snap bila buka panel; pindah lifecycle reset ke clearCart (mula sale baru/lepas sale) + post-checkout cleanup sedia ada. Badge panel checkout (cpRefreshProofBadge) baca __proofState jadi auto tunjuk resit dah siap. app.js v455->v456.', d:'done' },
@@ -7359,7 +7360,7 @@
  { id:'p1_247', label:'Fix mobile cart drawer + checkout panel double-visible (Zaid screenshot: "bila buka troli, tekan bayar sekarang dia akan keluar checkout section tanpa tutup cart. flow ni sangatlah tak convinient"). Bug: openCheckoutPanel slide in dari kanan tapi cart drawer (posCartDrawer.drawer-open mobile mode) tak ditutup → dua-dua visible serentak = confusing. Fix simple: dalam openCheckoutPanel (selepas cart-empty guard, sebelum try block), check kalau drawer.classList.contains("drawer-open") → drawer.classList.remove("drawer-open"). closeCheckoutPanel tak perlu re-open drawer — drawer stay tutup unless staff explicitly tap orange Lihat Troli bar lagi. app.js v344→v345.', d:'done' },
  { id:'p1_246', label:'Polish semua via legacy class refresh (Zaid: "ok polish semua"). Realistic approach: 177 inline-styled card patterns + 87 button class usages — manual refactor terlalu risky. Strategy: update existing classes (.btn-primary, .btn-success, etc) supaya AUTO-apply brand polish ke semua usage site tanpa code touch. Refactor (style.css line 179-225 area): (a) Universal button group `.btn-primary, .btn-secondary, .btn-success, .btn-dark, .btn-danger` — padding 12×22 (was 14×24), border 1px solid transparent + brand-aligned border-radius 8px (was pill 50px — pill jadi extreme bila padding kecik), Poppins font + filter:brightness hover + active scale + min-height 40px + display inline-flex with gap 6px untuk icon support, transition smooth. (b) .btn-secondary tukar dari muted gray solid ke white bg + neutral border + lift hover (matches .btn-brand-secondary pattern). (c) .btn-success — BUANG `width:100%` legacy (sebab tu Export CSV full-width pelik) + filter:brightness hover. (d) .btn-dark — tukar #111827 ke var(--secondary) Tropical Black + warm hover #2A2520. (e) .btn-danger BARU ditambah — #DC2626 red. (f) .admin-card consolidate (was duplicate definition — p1_245 + existing line 185 conflict): single rule 12px radius + soft shadow + hover lift transition. Outcome: 87 button + 23 admin-card usage site dapat brand polish AUTOMATIC tanpa refactor inline-style satu-satu. Sections affected: Cashier (BAYAR SEKARANG / Kosongkan), Reports (semua action buttons), Inventory (Daftar/Save), Stock Check (sessions), Pricing Setup, PDP Modal, Customer DB (dah refactor p1_244-p1_245), HR, Marketplace, Settings — semua dapat hover lift + filter brightness + correct min-height + Poppins. Subsequent polish iterations boleh fokus pada pastel BG inline-styled cards (103 occurrences) atau specific micro-UX. style.css v47→v48.', d:'done' },
  { id:'p1_245', label:'10 CAMP Brand Identity foundation (Zaid: "tak nampak professional, tak ikut warna theme 10camp. nah rujukan untuk polish semua visual" + Brand Identity 3.pdf). PDF brand: Sunset Bronze #CD7C32 (dah ada --primary), Tropical Black #101010 (dah --secondary), Cloudy White warm cream ~#FAF6EF (BARU — ganti --bg-color dari cold #EEEEEE). Typography Poppins Regular 400 / Semibold 600 / ExtraBold 800. Root tokens update: --bg-color → #FAF6EF + komen "Cloudy White warm cream". * font-family Poppins primary (sebelum Inter). New universal classes (style.css line 21+): (a) h1/h2/h3/h4 hierarchy — Poppins 800/800/700/600 + letter-spacing negative untuk display. .section-title default 22px weight 800 + inline-flex gap-8 (for icon). (b) .admin-card 12px radius + soft shadow + hover lift transition. (c) .stat-card + .stat-card__label + .stat-card__value — white bg, 3px primary border-left, padding 14×16, uppercase muted label 10.5px weight 700, big number 22px weight 800. (d) .btn-brand-primary — solid Sunset Bronze + filter:brightness hover + active scale. (e) .btn-brand-secondary — white outline + neutral lift hover. (f) .btn-brand-dark — solid Tropical Black + warm hover. Semua 10px radius, 40px tall, gap-6 for icon, Poppins. Customer DB refactor: stats cards inline-style → .stat-card class (semantic border-left tints: primary/green/secondary/amber/slate). Action buttons inline-style → .btn-brand-primary + .btn-brand-secondary. Universal classes ready untuk reuse across all sections (Cashier, Reports, Inventory, etc) in future polish iterations. Brand memory saved sebagai 10camp_brand_identity.md untuk reference future. style.css v46→v47, app.js v343→v344.', d:'done' },
- { id:'p1_244', label:'Customer DB visual polish ikut 10 CAMP theme (Zaid screenshot: "warna dan layout tak nampak professional, dan tak ikut warna theme 10camp. fix"). Identified 3 issues: (a) Stats cards guna pastel BGs (#EFF6FF, #F0FDF4, #FEF3C7, #FAF5FF, #FEE2E2) — random pastels tak themed, looks toy-like. (b) Action buttons guna 3 warna berbeza (#10B981 ijau, #0EA5E9 biru, btn-success ijau full-width) — tiada hierarchy, all compete for attention. (c) Title duplication "Customer Database (CRM) Customer Lookup" — switchHub p1_40 __syncSectionTitles bug: iterate h2 childNodes for TEXT_NODE, tapi h2 ada `<i>` icon + `<span>` (zero text nodes), `replaced` stays false, line 5215 fire `target.appendChild(createTextNode(" " + title))` — APPEND text "Customer Lookup" ke akhir h2 yang dah ada "Customer Database (CRM)". Fix: (1) Stats cards rebuild — white bg, border-left 3px semantic color (Match=primary orange, Spent=green, Orders=indigo, VIP=amber, Email=blue), Lucide icon left of label (users/trending-up/shopping-bag/star/mail-check), label uppercase 10.5px muted, number 22px weight 800 black. (2) Action buttons hierarchy — Add Customer = solid var(--primary) orange + brightness hover (MAIN), Email Blast + Export CSV = white bg + neutral border + neutral hover lift (SECONDARY). All min-height 40px same size, font 13px weight 700, Lucide icons 14px. (3) Add `data-skip-title-sync` attribute pada section h2 — switchHub respects this attr (line 5207 check). H2 kekal "Customer Database (CRM)" tanpa append breadcrumb text. style.css v45→v46, app.js v342→v343.', d:'done' },
+ { id:'p1_244', label:'Customer DB visual polish ikut 10 CAMP theme (Zaid screenshot: "warna dan layout tak nampak professional, dan tak ikut warna theme 10camp. fix"). Identified 3 issues: (a) Stats cards guna pastel BGs (#fff8f0, #F0FDF4, #FEF3C7, #fff8f0, #FEE2E2) — random pastels tak themed, looks toy-like. (b) Action buttons guna 3 warna berbeza (#10B981 ijau, #cd7c32 biru, btn-success ijau full-width) — tiada hierarchy, all compete for attention. (c) Title duplication "Customer Database (CRM) Customer Lookup" — switchHub p1_40 __syncSectionTitles bug: iterate h2 childNodes for TEXT_NODE, tapi h2 ada `<i>` icon + `<span>` (zero text nodes), `replaced` stays false, line 5215 fire `target.appendChild(createTextNode(" " + title))` — APPEND text "Customer Lookup" ke akhir h2 yang dah ada "Customer Database (CRM)". Fix: (1) Stats cards rebuild — white bg, border-left 3px semantic color (Match=primary orange, Spent=green, Orders=indigo, VIP=amber, Email=blue), Lucide icon left of label (users/trending-up/shopping-bag/star/mail-check), label uppercase 10.5px muted, number 22px weight 800 black. (2) Action buttons hierarchy — Add Customer = solid var(--primary) orange + brightness hover (MAIN), Email Blast + Export CSV = white bg + neutral border + neutral hover lift (SECONDARY). All min-height 40px same size, font 13px weight 700, Lucide icons 14px. (3) Add `data-skip-title-sync` attribute pada section h2 — switchHub respects this attr (line 5207 check). H2 kekal "Customer Database (CRM)" tanpa append breadcrumb text. style.css v45→v46, app.js v342→v343.', d:'done' },
  { id:'p1_243', label:'Audit Customer Database UI/UX — 7 fix (Zaid: "audit customer database- ui/ux"). HIGH impact 1-4: (1) Emoji ke Lucide — member badge "⭐ VIP" tukar ke `<i data-lucide="star">` 10x10px; segment dropdown buang ⭐ + 🆕 emojis dari label; consent icons `<span></span>` tukar ke Lucide mail-check + message-square 14px. (2) Mobile responsive — filter bar grid `2fr 1fr 1fr 1fr 1fr` tukar ke `repeat(auto-fit, minmax(180px, 1fr))` + search field span full row (`grid-column: 1 / -1`). Action buttons keluar dari grid cell ke separate row dengan flex wrap, min-height 40px, padding 10px 14px, Lucide icon (user-plus/mail/download) + label. (3) Touch targets — action buttons 28px → 40px tall, font 12 → 13px weight 700. Show More underline link → proper button bg primary-50 border padding 6px 12px min 32px + chevron-down icon. Row checkbox CSS width/height 18px (was browser default ~14px). (4) Detail modal upgrade — quick actions row atas (Edit ungu/WhatsApp ijau/Email biru/Call kuning) dengan tap target 36px + Lucide icons. Sales table 3 col → 5 col (Tarikh/Channel/Items count/Bayar method/Jumlah). NO CAP 10 — show all sales (scrollable max-height 280px container, sticky thead). Tags display block under stats. Consent status footer (Email/SMS) dengan tick atau cross icon. Safe-area-inset padding pada overlay. MED 5-7: (5) Sales lookup edge case — kalau c.phone kosong + c.name === Walk-In skip semua match (sebelum ni phantom match via name). Lookup prefer phone exact match. (6) Tags +N more badge — show first 3 + grey "+2" badge bila tags > 3 (was just slice silent). (7) VIP segment label — buang "(3+ orders)" misleading, ganti "VIP Member" sebab filter logic guna is_member je. New handler: window.openEditCustomerModal reuse Add modal markup, prefill values, tukar title ke "Edit Pelanggan", swap button ke "Update" + onclick=submitEditCustomer. submitEditCustomer UPDATE customers WHERE id, sync in-memory. style.css v44→v45, app.js v341→v342.', d:'done' },
  { id:'p1_242', label:'Audit safe-area-inset untuk iPhone Dynamic Island/notch + home indicator (Zaid: "tolong audit layout untuk phone yang ada island"). viewport-fit=cover dah ada (p1_157), tapi audit ketemu ZERO env(safe-area-inset-*) usage. Pada iPhone 14 Pro/15/16 Pro dengan Dynamic Island: top status bar ~59pt (vs 47pt notch / 20pt non-notch). Home indicator bawah ~34pt. Tanpa safe-area inset, fixed elements terlindung. 7 fix shipped: (a) .app-header — padding-top calc(15px + env(safe-area-inset-top)) supaya header content turun bawah Island. (b) .sidebar — padding-top + padding-bottom safe-area (slide-out menu kiri). (c) #mobileCartFloatingBar — bottom calc(16px + env(safe-area-inset-bottom)) + left/right safe-area-inset untuk landscape orientation. (d) .cart-section > div:last-child (sticky BAYAR SEKARANG dalam drawer) — padding-bottom calc(30px + env(safe-area-inset-bottom)) supaya home indicator tak tutup button. (e) .checkout-panel__header — padding-top calc(space-4 + env(safe-area-inset-top)) untuk panel full-screen pada phone (Dynamic Island intrude). (f) .checkout-panel__footer — padding-bottom safe-area-inset-bottom supaya Sahkan Bayaran button tak terlindung home indicator. (g) .login-overlay — padding-top + padding-bottom safe-area sebab overlay full-screen pada PIN login. style.css v43→v44, design-tokens.css v68→v69.', d:'done' },
  { id:'p1_241', label:'Audit + fix UX kaedah pembayaran di iPad/phone (Zaid: "audit kaedah pembayaran di ipad dan phone"). Ketemu 5 isu, fix semua. (ISU 1) cp-pay-pill icons — HTML guna `<span class="cp-pay-pill__icon"></span>` kosong, CSS set font-size:22px tapi takde content. Pills cuma text-only, tak intuitif. Fix: tukar ke Lucide — Tunai=banknote, QR Pay=qr-code, Kad/Bank=credit-card, E-Wallet=wallet (22px). (ISU 2) cp-walkin-btn padding 4px 10px = ~28px tall, di bawah Apple HIG 44px touch target. Fix: padding 10px 14px + min-height 38px + font 12.5px. (ISU 3) "+ Baru" customer button (p1_234) padding 6px 10px = ~38px tall, sama issue. Fix: padding 10px 14px + min-height 38px + icon naik ke 14px. (ISU 4) cp-payment-grid stay 4-col sampai 480px width — iPad portrait 768px checkout-panel max 480px = 4 col cramped (~120px per pill). Fix: media query 600px breakpoint untuk 2-col (jadi iPad portrait + phone semua 2x2 grid). (ISU 5) cpProofStatusBadge sebelum guna inline flex + flex-wrap, text + underline buttons wrap awkward bila kena snap pada small screen. Fix: block layout + grid 1fr 1fr untuk 2 buttons (Snap Camera + Pilih Fail), tiap button min-height 44px dengan icon visible, separate "Snap Semula" full-width button untuk has-proof state. design-tokens.css v67→v68, style.css v42→v43, app.js v340→v341.', d:'done' },
@@ -7370,7 +7371,7 @@
  { id:'p1_236', label:'Audit fix — inventory_batches schema mismatch + backorder/custom audit trail (Zaid: "nice, now audit"). Audit p1_226→p1_235 ketemu 4 bug latent: (BUG 1 HIGH) saveMasterProduct Initial Quantity insert (p1_226) + pdpAdjustStock (p1_228) pakai column unit_cost_rm/received_at/received_by/note yang TAK WUJUD dalam inventory_batches schema. Verified schema via API: actual columns adalah cost_price/inbound_date/notes (singular dropped received_by). Both silent fail (saveMasterProduct catch+warn, pdpAdjustStock catch+toast). Fix kedua-dua. (BUG 2 MED) processNewCheckout loop deduct batch untuk SEMUA cart items termasuk Custom Sale (sku=CUSTOM-*). Custom items takde batch jadi `batches = []`, loop skip, no harm — TAPI kalau ada match SKU lain (rare), bahaya. Add early-skip kalau isCustom atau sku startsWith CUSTOM-. (BUG 3 MED) OOS allow flow (p1_229) — kalau jual 10 unit tapi sistem ada 5, loop deduct 5 → `needed = 5` after loop → 5 unit "extra" sold but no batches affected. Sale logged correctly tapi inventory variance untracked silent. Sekarang track backorderItems = [{sku, name, qty_short, qty_total}], save dalam sales_history.metadata.backorder=true + .backorder_items. Toast warn staff "AMARAN: N item dijual backorder". (BUG 4 LOW) Custom Sale items tak track separately in metadata. Add saleMeta.has_custom_sale + custom_sale_count untuk reporting. app.js v336→v337.', d:'done' },
  { id:'p1_235', label:'Customer memory + autocomplete dalam Edit Sale modal (Zaid: "masa ariff edit sales, dia tak keluar memori customer lah. tolong add"). Sebelum: ppEditCustName plain text input, no suggestions, Ariff terpaksa type semula nama yang dah ada dalam DB. Fix: tambah autocomplete dropdown pattern sama macam cpCustAutocomplete. Restructure modal Customer section — full-width "Nama Pelanggan" dengan dropdown + button hijau "Cari / Daftar Baru" kanan label. (a) Autocomplete `__ppEditCustAutocomplete()` — oninput/onfocus trigger, blur 180ms timeout close. Empty input tunjuk top spenders 8 max; query filter name+phone+email contain. Card row: name + VIP badge (kuning) + phone + email + orders + RM spend. (b) `__ppEditCustPick(i)` — onmousedown (untuk fire sebelum blur), set ppEditCustName/Phone/Email + close dropdown + toast. (c) "Cari / Daftar Baru" button → `__ppEditOpenPicker()` set flag `window.__ppEditPickerActive = true`, then panggil posAttachCustomer() yang buka existing #customerPickerModal. (d) Intercept dalam cpkPickCustomer + cpkAddNewCustomer — kalau flag aktif, sync ke ppEdit fields ganti posCustomer + clear flag + close picker. Tak ganggu cashier flow biasa. app.js v335→v336.', d:'done' },
  { id:'p1_234', label:'"+ Baru" button untuk add customer dari dalam checkout panel (Zaid: "now dekat irfan pulak, dia pakai phone, tak boleh add new customer waktu checkout"). Issue: cpFormView ada autocomplete cpCustName + auto-insert kalau nama baru (processNewCheckout line 9608 — kalau custNameText !== Walk-In dan tak match existing, db.from(customers).insert). Tapi pada phone, Irfan tak nampak / tak faham autocomplete bila taip nama baru — fikir mesti pilih dari list. Tiada button explicit untuk register. Fix: tambah button hijau "+ Baru" (user-plus icon) di header section Customer cpFormView, sebelah button Walk-in existing. Click panggil window.posAttachCustomer() yang sudah buka #customerPickerModal — modal tu existing dah ada search input + form daftar baru (nama/phone/email/VIP checkbox + Daftar & Attach button dari p1_229). New helper window.cpSyncCustomerFromPos() — selepas cpkPickCustomer atau cpkAddNewCustomer, panggil function ni untuk sync window.posCustomer values ke cpCustName/Phone/Email + trigger cpVipLookup + cpRecomputeTotal (banner refresh + total recalc kalau VIP). Cuma sync kalau checkoutPanel.is-open (kalau picker dipanggil dari cashier page biasa, sync skip). Z-index modal naik dari 3100 ke 4000 supaya layer atas checkout panel slide-in (yg z-index 2000-3000 range). app.js v334→v335.', d:'done' },
- { id:'p1_233', label:'Edit button (purple) tiap row Payment Proofs page (Zaid: "tambah button edit dekat payment proof, setiap payment customer boleh edit"). Sebelum row cuma ada: Resit/WhatsApp/Email/Upload-Tukar. Sekarang tambah button Edit ungu #F3E8FF kanan sekali. Klik buka #ppEditModal — load row dari sales_history.eq(id, saleId).single(). Fields: Nama Pelanggan / No. Telefon / Email (top), Kaedah Bayar (Cash/QR Pay/Card/E-Wallet/SPayLater) + Channel (Walk-in/WhatsApp/Shopee/TikTok/EasyStore), Total Amount RM + Status (Completed/To Fulfil/Cancelled/Refunded), Buyer TIN B2B, Nota Edit (rekod sebab edit). Save handler __ppSaveEdit UPDATE sales_history sekaligus customer_name/customer_phone/customer_email/payment_method/channel/status/buyer_tin/total/total_amount + audit_logs.insert action_type=sale_edit dengan changes JSON. Re-render table lepas save. app.js v333→v334.', d:'done' },
+ { id:'p1_233', label:'Edit button (purple) tiap row Payment Proofs page (Zaid: "tambah button edit dekat payment proof, setiap payment customer boleh edit"). Sebelum row cuma ada: Resit/WhatsApp/Email/Upload-Tukar. Sekarang tambah button Edit ungu #fff8f0 kanan sekali. Klik buka #ppEditModal — load row dari sales_history.eq(id, saleId).single(). Fields: Nama Pelanggan / No. Telefon / Email (top), Kaedah Bayar (Cash/QR Pay/Card/E-Wallet/SPayLater) + Channel (Walk-in/WhatsApp/Shopee/TikTok/EasyStore), Total Amount RM + Status (Completed/To Fulfil/Cancelled/Refunded), Buyer TIN B2B, Nota Edit (rekod sebab edit). Save handler __ppSaveEdit UPDATE sales_history sekaligus customer_name/customer_phone/customer_email/payment_method/channel/status/buyer_tin/total/total_amount + audit_logs.insert action_type=sale_edit dengan changes JSON. Re-render table lepas save. app.js v333→v334.', d:'done' },
  { id:'p1_232', label:'Hide mobile floating cart bar bila checkout panel terbuka (Zaid: Ariff screenshot iPad checkout — bottom orange bar "Lihat Troli · RM 5.00 · Bayar →" overlap dengan green Sahkan Bayaran button. "oren tu pulak tutup button hijau. btw aku rasa benda tu pun redundant. buat satu je lah"). Mobile floating bar #mobileCartFloatingBar (line 2358 index.html) hardcoded position:fixed bottom — guna untuk mobile/tablet portrait quick access. Bila checkout panel slide in, dua-dua punya CTA "Bayar". Redundant. Fix dalam openCheckoutPanel: simpan mfb.dataset.prevDisplay = mfb.style.display, then mfb.style.display="none". closeCheckoutPanel restore display dari dataset + clean up. Sisa CSS media query control actual visibility (desktop tetap hide, mobile tetap show kalau panel tutup). Defensive null checks tambah pada closeCheckoutPanel sekali. app.js v332→v333.', d:'done' },
  { id:'p1_231', label:'Fix redundant customer fill + BAYAR SEKARANG defensive logging (Zaid: "ariff try tekan bayar sekarang, tapi no action dan tak masuk ke payment proof, sebelum tu ada redundant untuk isi maklumat customer"). Bug 1 (redundant customer): openCheckoutPanel sebelum ni hardcoded reset cpCustName/Phone/Email/BuyerTin/EwalletRef/DiscAmt/DiscReason to empty (line 21502). Kalau staff dah attach customer via Customer Picker (p1_229) — picker set window.posCustomer — masa checkout open, fields wipe → staff terpaksa type semula. Fix: split reset list — discount/ewallet inputs masih reset, BUT cpCustName/Phone/Email pre-fill dari window.posCustomer kalau attached, kosongkan kalau tiada. Bug 2 (no action button): unclear root cause — bagi defensive instrumentation: try/catch wrap seluruh openCheckoutPanel, console.log "[checkout] openCheckoutPanel called, cart len=X" entry + "[checkout] panel opened successfully, posCustomer=name/phone" exit, console.error + showToast error message kalau exception. Defensive null checks (fv, sv, ft, dl, chEl, stEl, panel) — kalau mana-mana element missing, log + toast bukan blow up silent. Focus behavior tukar — kalau posCustomer attached, focus cpConfirmBtn (skip customer name typing); kalau tak, focus cpCustName macam dulu. app.js v331→v332.', d:'done' },
  { id:'p1_230', label:'Snap Resit Camera button manual (Zaid first: "automatik call camera untuk simpan pembayaran bila QR" → built auto-trigger via setTimeout click() → recall "tak nak auto buka camera, sediakan button je untuk buka camera dan ambik gambar bukti pembelian"). Removed auto-trigger dalam setPaymentMethod + cpSetPayment. Kept the UI bits. Build: (a) Hidden `<input id="proofCameraInput" type="file" accept="image/*" capture="environment">` — capture attr force rear camera on mobile. (b) proofUploadSection legacy modal dapat 2 button: "Snap Resit (Camera)" biru solid + "Pilih dari Fail" outline. Click button trigger respective hidden input. (c) __proofPickFile refactor accept inputEl arg (camera vs file picker — both onchange call same function). (d) __proofClearFile clear KEDUA-DUA inputs. (e) cpFormView dapat #cpProofStatusBadge: kalau non-Cash, tunjuk status — "Belum ada resit · Snap Camera link · Pilih Fail link" (kuning #FEF3C7); lepas snap tukar hijau #D1FAE5 "Resit ditangkap (XX KB) · snap semula". (f) cpRefreshProofBadge() helper render badge based on __proofState. Auto-call lepas __proofPickFile + __proofClearFile + cpSetPayment. (g) Toast success "Resit ditangkap: filename.jpg (XX KB)" feedback. Save flow lepas Sahkan Bayaran sama macam sebelum ni — processNewCheckout call __proofUploadToStorage upload ke Storage bucket payment-proofs, link kepada sales_history.payment_proof_url. Reports → Payment Proofs page auto reflect. app.js v330→v331.', d:'done' },
@@ -7423,7 +7424,7 @@
  { id:'p1_183', label:'HOTFIX SyntaxError dalam ROADMAP_DATA. Zaid screenshot console: "Uncaught SyntaxError: Unexpected identifier s at (index):6447". Root cause: p1_177 label string had `Z\\\\\\\'s Proposal` (double-backslash + apostrophe + s) — in JS single-quoted string context, `\\\\` decodes to literal `\\`, then the next `\\\'` was supposed to be 3 backslashes but was only 2 = `\\` (literal) + `\\\'` not present, so the apostrophe terminated the string mid-text. Parser then encountered `s Proposal flagged...` as identifier → SyntaxError. The ROADMAP_DATA object never instantiated → cascading failures including Aduan & Cadangan blank screen (other sections relying on ROADMAP_DATA helpers). Fix: change `Z\\\\\\\'s` → `Z\\\\\\\'s` (proper 3-backslash encoding so it parses as `\\\\` + `\\\'` = `\\` + `\\\'` literal in displayed text). Verified via node syntax check on extracted ROADMAP_DATA chunk. Also adds general lesson: never use `\\\\\\\'` (2-bs apostrophe) in inline JS strings; use `\\\\\\\'` (3-bs) or write apostrophe-free text. ROADMAP 182→183.', d:'done' },
  { id:'p1_182', label:'Password eye toggle iPad fix + Aduan section defensive show-guard. (a) Zaid report 1: "iPad login masih tak ada mata" — root cause: previous version used <i data-lucide="eye"> inside btn.innerHTML, but Lucide may not have run yet on first overlay paint (especially Safari/iPad slower JS init). Even if it did, the span wrapper + display:block hack tak reliable for iOS. Fix: (1) inline SVG (window.__PWD_EYE_SVG + __PWD_EYE_OFF_SVG raw 24x24 stroke paths) ganti Lucide — SVG render terus tanpa external lib. (2) <span> → <div> wrapper, lebih reliable cross-browser. (3) Touch target diperbesar 36×36px min (was 28×28 paddings). (4) touchend listener tambahan untuk iOS Safari tap. (5) Boot scans 4 kali (load + DOMContentLoaded + 500ms + 1500ms + 4000ms) untuk catch dynamic modal render. (6) CSS — -webkit-tap-highlight-color transparent, touch-action: manipulation, padding-right input → 44px (was 38). (b) Zaid report 2: "bahagian laporan ada bug — Aduan & Cadangan screen blank". Defensive guard: renderFeedbackSection check kalau feedbackSection.style.display === \\\'none\\\' → force jadi \\\'block\\\'. Also console.warn kalau #fbMyList missing untuk debug. design-tokens.css v64→v65, app.js v282→v283.', d:'done' },
  { id:'p1_181', label:'Password eye toggle (Zaid: "bila key in password buat icon mata untuk view"). Auto-attached to 8 known <input type=password>: emailLoginPassword, pinLoginInput, setPwdNew, setPwdConfirm, mgrPinInput, shManagerPin, myinvoisSecret, rtManagerPin — plus any future ones. Implementation: (a) CSS `.pwd-wrap`+`.pwd-toggle` classes — relative span wrapper, padding-right:38px on input, absolute eye button right:6px center, hover primary tint. (b) JS `window.togglePwd(id, btn)` toggles input.type password↔text, swaps lucide eye↔eye-off, updates aria-label+title BM. (c) `window.__autoAttachPwdToggles()` idempotent (data-pwd-toggled marker) scan: assigns random ID if missing, wraps with .pwd-wrap span, preserves margin-bottom + width:100% inline styles from input, appends button with click handler. (d) Boot: 3 scans (DOMContentLoaded + 1500ms + 4000ms) to catch dynamically-rendered modals. tabIndex=-1 on button keeps tab order natural. design-tokens.css v63→v64, app.js v281→v282.', d:'done' },
- { id:'p1_180', label:'Payment methods expansion + proof upload + Reports monitor (Zaid: "fokus payment method, wujudkan ruangan Cash/QR/Debit/Credit Card/SPayLater. resit auto generate hantar pada email client. upload resit pembayaran dari client. perlu satu ruangan di laporan untuk kami monitor"). Build order pilih via AskUserQuestion = "Ship 3 piece sekarang, email kemudian". Skip email auto-send (perlu Resend setup PARKED). Build: (1) SQL migration sql/2026-06-04_payment_proofs.sql ADD 6 cols to sales_history (payment_proof_url, payment_proof_uploaded_at, payment_proof_uploaded_by, payment_method_detail, email_sent_at, email_status) + INSERT Storage bucket payment-proofs (public read, 5MB cap, JPG/PNG/WEBP/HEIC/PDF whitelist) + 3 RLS policies on storage.objects (authenticated insert/update + public read) + idx_sales_history_proof partial index. (2) Cashier modal restructure — 4-button grid → 6-button grid (3 col × 2 row): Tunai/QR Pay/Debit Card/Credit Card/SPayLater/E-Wallet. data-pay-key attr untuk styling. New section #proofUploadSection (#EFF6FF bg, dashed blue border) shown bila non-Cash picked — file input accept image/* + PDF, preview thumb 180px, file meta line, Buang button. Max 5MB enforced. (3) JS: setPaymentMethod tambah show/hide proofUploadSection toggle. __proofPickFile FileReader.readAsDataURL preview (PDF jadi label "file-text icon + name + KB"). __proofUploadToStorage async — db.storage.from(\\\'payment-proofs\\\').upload dengan filename = `saleId_ISO-ts.ext`, return getPublicUrl. processNewCheckout — call __proofUploadToStorage before sales_history insert, include payment_proof_url/at/by + payment_method_detail dalam payload. Clear proof state lepas checkout. (4) Reports sidebar: new mgmt-only entry "Payment Proofs" (lucide receipt icon) under Laporan group, opens paymentProofsSection. Section HTML: filters row (From/To date defaults -30d/today, Method, Channel, Status=Ada/Tiada), 3 KPI stats card (Jualan total + RM, Ada Resit + % non-Cash uploaded, Tiada Resit count merah), table 8-col (Tarikh/Sale#/Pelanggan+phone/Kaedah/Channel/RM/Resit thumb-or-PDF-link/Upload-or-Tukar button). Click thumb → ppImgModal fullscreen overlay. __ppUploadFor(saleId) accepts late-upload from Reports (create input element, prompt file, upload to Storage, UPDATE sales_history url+at+by). app.js v280→v281.', d:'done' },
+ { id:'p1_180', label:'Payment methods expansion + proof upload + Reports monitor (Zaid: "fokus payment method, wujudkan ruangan Cash/QR/Debit/Credit Card/SPayLater. resit auto generate hantar pada email client. upload resit pembayaran dari client. perlu satu ruangan di laporan untuk kami monitor"). Build order pilih via AskUserQuestion = "Ship 3 piece sekarang, email kemudian". Skip email auto-send (perlu Resend setup PARKED). Build: (1) SQL migration sql/2026-06-04_payment_proofs.sql ADD 6 cols to sales_history (payment_proof_url, payment_proof_uploaded_at, payment_proof_uploaded_by, payment_method_detail, email_sent_at, email_status) + INSERT Storage bucket payment-proofs (public read, 5MB cap, JPG/PNG/WEBP/HEIC/PDF whitelist) + 3 RLS policies on storage.objects (authenticated insert/update + public read) + idx_sales_history_proof partial index. (2) Cashier modal restructure — 4-button grid → 6-button grid (3 col × 2 row): Tunai/QR Pay/Debit Card/Credit Card/SPayLater/E-Wallet. data-pay-key attr untuk styling. New section #proofUploadSection (#fff8f0 bg, dashed blue border) shown bila non-Cash picked — file input accept image/* + PDF, preview thumb 180px, file meta line, Buang button. Max 5MB enforced. (3) JS: setPaymentMethod tambah show/hide proofUploadSection toggle. __proofPickFile FileReader.readAsDataURL preview (PDF jadi label "file-text icon + name + KB"). __proofUploadToStorage async — db.storage.from(\\\'payment-proofs\\\').upload dengan filename = `saleId_ISO-ts.ext`, return getPublicUrl. processNewCheckout — call __proofUploadToStorage before sales_history insert, include payment_proof_url/at/by + payment_method_detail dalam payload. Clear proof state lepas checkout. (4) Reports sidebar: new mgmt-only entry "Payment Proofs" (lucide receipt icon) under Laporan group, opens paymentProofsSection. Section HTML: filters row (From/To date defaults -30d/today, Method, Channel, Status=Ada/Tiada), 3 KPI stats card (Jualan total + RM, Ada Resit + % non-Cash uploaded, Tiada Resit count merah), table 8-col (Tarikh/Sale#/Pelanggan+phone/Kaedah/Channel/RM/Resit thumb-or-PDF-link/Upload-or-Tukar button). Click thumb → ppImgModal fullscreen overlay. __ppUploadFor(saleId) accepts late-upload from Reports (create input element, prompt file, upload to Storage, UPDATE sales_history url+at+by). app.js v280→v281.', d:'done' },
  { id:'p1_179', label:'Product Master rename + white-screen fix (Zaid: "screen putih je dekat browse product" + "aku nak letak nama baru dia iaitu product master"). Root cause analysis: renderProductDatabase() previously triggered hanya via DOMContentLoaded click-listener dgn 100ms setTimeout. switchHub() show/hide section tapi tak panggil render. Race condition kalau setTimeout/section hide-show overlap = empty pdGridView = white screen. Fix: tambah `if(sectionIds.includes(\\\'databaseSection\\\')) renderProductDatabase();` dalam switchHub contextual renders block bersama homeSection/posSection/stockTakeSection/mgmtPlaceholders/rosterSection. Direct call tak race-prone. Rename: sidebar entry "Browse Products" → "Product Master" (BM+EN both), switchHub title arg, db_title i18n value, sb_browse_products i18n value. app.js v279→v280.', d:'done' },
  { id:'p1_178', label:'OutdoorExpo event SKU permanent cleanup (Zaid: "tapis tulisan outdoor expo dan keluarkan terus dari product master"). Pre-flight scan via Supabase Management API SQL: 142 products_master rows matched across 6 parent groups (CHANODUG 28, SHINETRIP 34, LFO 22, MOUNTAINHIKER 17, MOBI-GARDEN 30, VIDALIDO 11) — all RM placeholder catalog mockup prices, only 2 published (CHANODUG yang dulu leak). FK constraint scan: 134 inventory_batches + 1 inventory_transactions both CASCADE ON DELETE. Sales_history items JSONB scan = 156 historical receipts reference expo SKUs tapi snapshotted (sku/name/price/qty baked semasa jual) — receipts kekal readable. Approach pilih (via AskUserQuestion): Hard DELETE (vs soft archive / JS filter-only). Migration: sql/2026-06-04_delete_outdoorexpo.sql wrapped in BEGIN/COMMIT dengan BEFORE/AFTER RAISE NOTICE counts untuk audit trail. Execute via Management API → products_master 963→821 (-142), expo_remaining=0, ib_orphan=0. Memory [[event-skus-business-pattern]] updated: previous "filter only on landing" pattern reversed; new pattern = filter while event live, hard-delete after event ends. ROADMAP 177→178.', d:'done' },
  { id:'p1_177', label:'Pricing Setup Calculator — compact single-panel layout (Zaid: "kemas kini calculator tab" → pilih Compact summary panel via AskUserQuestion). Padat semua dalam satu viewport (no more 3 large rp-section stack scroll). Rewrite jadi 3-row stack dalam `.ps-calc-panel` wrapper (border-radius 12, white card): (a) HERO ROW — product image 84×84 + SKU input inline dengan nama produk + "Harga Skrg RM xxx" divider + besar Apply button kanan (primary, lucide check-circle-2 icon, sub-label "tier_key · RM xxx"). (b) FORMULA ROW — inline mathematical expression: RMB ¥ × Ex + Ship + Hand% = COST BERSIH. Operators × + + = besar warna kelabu antara cell. Final cell dark inverted (background:#0F172A, white text). Background formula row #FBFAF6 warm cream. (c) TIER PILLS ROW — 4 compact pills (`auto-fit minmax 170px`) ganti previous tier cards. Each pill: radio top-left + name + channel sub-label (Baseline retail / Walk-in shop / Online +comm / +5% staff comm) + besar harga + +markup% · profit RM x · delta vs harga skrg (hijau kalau naik, merah kalau turun). Z\'s Proposal flagged "Recommended" badge top-right kuning + warm gradient background. Selected state: inset 2px primary border. __psComputeAll updates `psCurrentPrice` from p.price untuk perbandingan. __psSelectTier updates Apply button sub-label inline. design-tokens.css v62→v63, app.js v278→v279.', d:'done' },
@@ -7475,7 +7476,7 @@
  { id:'p1_131', label:'Cashier UX polish (P3) — Better empty cart state dengan shopping-cart icon + secondary text + inline keyboard shortcut hint "/" focus. Visible kbd chips bawah Bayar button: F9 Bayar / F10 Clear / / Search (smaller font #9CA3AF, font-mono kbd styling). Mobile floating cart bar — added inline "Bayar →" button (green #10B981) yang event.stopPropagation supaya tap "Bayar" tidak buka sheet dulu, terus checkout. Touch-friendly.', d:'done' },
  { id:'p1_130', label:'Quick-Sell pills (P2 speed) — top 5-6 most-sold SKUs last 30d papar sebagai outline pills atas search bar dalam Cashier. zap icon + "Quick-Sell · Top Laku 30 Hari" label. Klik pill → addToCart(sku) qty +1 instant — buang need to search. Hover effect: outline jadi solid (primary bg + white text). __qsRenderPills aggregator scan salesHistory dalam window 30d, tally per-SKU, top 6. Cache via __qsRendered flag supaya tak re-render setiap renderPOS call (only first time). Hidden kalau tiada data.', d:'done' },
  { id:'p1_129', label:'Cashier Floor Price guard (P1 critical — loss prevention). Build SKU→floor_price map dari masterProducts. Cart line items dengan price < floor: add red left-border + rgba red bg tint + "BAWAH FLOOR (RM X.XX)" pill warning. openPaymentModal hijacked dengan check: scan all cart items vs floor map, collect violators array. Kalau ada, show confirm dialog dengan list "SKU: RM X (floor Y) — loss RM Z" + total loss + ask proceed/cancel. Builds on p1_109 Floor Price + p1_117 Margin Watcher. Prevent cashier accidentally jual bawah floor.', d:'done' },
- { id:'p1_128', label:'Roster polish (P3) — "Show My Row Only" toggle for staff yang nak fokus row diri je (wraps renderStaffSchedule auto-apply post-render). Print Jadual button (#0EA5E9 biru, opens new tab dengan inline CSS print stylesheet, auto window.print 300ms later). MC upload note added clarify "filename direkod sahaja, storage upload TBD".', d:'done' },
+ { id:'p1_128', label:'Roster polish (P3) — "Show My Row Only" toggle for staff yang nak fokus row diri je (wraps renderStaffSchedule auto-apply post-render). Print Jadual button (#cd7c32 biru, opens new tab dengan inline CSS print stylesheet, auto window.print 300ms later). MC upload note added clarify "filename direkod sahaja, storage upload TBD".', d:'done' },
  { id:'p1_127', label:'Roster workflow integration (P2) — Confirm dialog untuk leave types AL/MC/EL/PH sebelum submit ("Sahkan permohonan Cuti Tahunan pada YYYY-MM-DD?"). Inline cuti balance hint #reqBalanceHint amber bg yang auto-show bila pilih AL/MC/EL/PH: papar baki AL hari + pending review count tahun ni, MC papar reminder sertakan sijil, kalau quota habis show red warning. __rsToggleBalanceHint reads staff_profiles.leave_balance + scans pendingSchedules untuk per-staff per-year per-shift count. Wired ke onchange dropdown shift selector.', d:'done' },
  { id:'p1_126', label:'Roster critical bugs (P1) — Hardcoded year dropdown 2025/2026/2027 (stale after 2027) → dynamic populated via JS pada openRoster (current ±2 years). Shift code mismatch fixed — legend ada Shift A (11am-9pm) tapi form dropdown takda. Added "Syif A (11:00 AM - 9:00 PM)" option to reqScheduleShift dropdown. Bump app.js v245→v246. ROADMAP_DATA 125→128.', d:'done' },
  { id:'p1_125', label:'Stock Take audit polish (P3) — replace via.placeholder.com external image dengan inline SVG fallback (data URI no network dependency). Audit stamp pill upgraded: papar "Disemak X hari lepas" dalam green pill with age-based color (≤7d hijau, 7-30d gray, >30d amber). Remove mock modelNo display, replace dengan real Brand field. Real scan code (p.barcode || p.sku) used in tally scan input bukan random "884..." anymore. Cache bump v244→v245.', d:'done' },
@@ -7495,7 +7496,7 @@
  { id:'p1_111', label:'Price History Report — Zaid: "aku juga nak report kenaikan harga realtime, rekod tu kau pun boleh extract dan update pada aku". (1) sql/2026-05-25_product_price_history.sql — table product_price_history (BIGSERIAL id, sku TEXT, product_name, old_price + new_price + delta + delta_pct, old_cost + new_cost, changed_by TEXT, changed_at TIMESTAMPTZ, change_source TEXT). RLS service_role + auth read. Indexes sku+changed_at + changed_at standalone. (2) Postgres trigger log_product_price_change on products_master AFTER UPDATE OF price, cost_price — skip kalau tiada perubahan, capture current_user dari session variable app.current_user (fallback "system"), insert delta + delta_pct (% rounded 2dp) + source="trigger". Auto-fire untuk setiap UPDATE — manual edit, bulk edit, sync, dll. Zero JS changes needed for logging. (3) Sidebar item baharu "Price History" dalam Inventory group selepas Stock Check Reports — line-chart icon. __tabToRail map inv_pricehistory → inv. i18n sb_price_history Sejarah Harga BM. (4) Section priceHistorySection: header refresh button, filter bar 3 fields (Period dropdown 7d/30d/90d/YTD/all default 30d, Search SKU input, Type dropdown Semua/Increase/Decrease), KPI grid 4 cards (Jumlah Perubahan/Naik Harga merah/Turun Harga hijau/Purata Δ%), main table 8 columns (Tarikh/SKU/Nama/Harga Lama/Baru/Δ RM coloured/Δ % coloured/Oleh). Color coding: delta > 0 merah (kenaikan), < 0 hijau (penurunan). Limit 100 rows display dengan note total. (5) Period filter modify query timeframe via gte changed_at. Search + Type filter client-side dari fetched rows. (6) Bump app.js v231→v232. ROADMAP_DATA 110/110→111/111. Zaid TODO: run sql/2026-05-25_product_price_history.sql dalam Supabase — trigger auto-active selepas tu. Future enhancement: weekly email digest auto-extract top 10 biggest changes, threshold alert kalau ada SKU naik > 20% (Phase 2).', d:'progress' },
  { id:'p1_110', label:'Stock Check Workflow (Kael→Zack→Bos) — Zaid use case: "Zack terima report stock check daripada Kael, kemudian hantar pada aku". Build full workflow audit trail. (1) sql/2026-05-25_stock_check_reports.sql — table stock_check_reports (BIGSERIAL id, period_start/end DATE, submitted_by_id/name TEXT + submitted_at, summary_text TEXT, items_json JSONB optional structured items, attachments JSONB Drive links, items_checked + items_variance + rm_variance counters denormalized, status submitted|reviewed|approved|rejected default submitted, reviewer_id/name/at/notes, bos_seen_at + bos_action). RLS authenticated read+insert+update + service_role full. Indexes status+submitted_at DESC + submitter. Trigger touch updated_at. (2) Sidebar item baharu "Stock Check Reports" dalam Inventory group (selepas Floor Price) — file-check icon + badge stockCheckBadge yang show pending count untuk Zack/Bos. i18n sb_stock_check BM/EN sama. __tabToRail map inv_stockcheck → inv. (3) Section stockCheckSection: header dengan Submit New Report button (kanan), 5 status filter tabs (Semua/Menunggu Review with count chip/Direview/Bos Acknowledged/Rejected), list area renders per-report cards dengan period + status badge + submitter + counter strip (checked/variance/rm) + summary preview 300 chars + Zack review notes inline kalau ada + Bos Acknowledge button kalau status=reviewed dan user=Bos. (4) Submit modal: 2-col period date + 3-col counters (checked/variance/rm) + summary textarea 6 rows + attachment URL field. Submit via INSERT to stock_check_reports dengan status=submitted. (5) Review modal (Zack/Bos): papar full report read-only + review notes textarea + 2 action buttons (Reject red, Forward to Bos gold). UPDATE record dengan reviewer_id/name/at/notes + status. (6) Bos action: button "Acknowledge" pada card status=reviewed, set status=approved + bos_seen_at + bos_action=acknowledged. (7) Access control: Kael (CMP011) + others boleh Submit, Zack (CMP005) + Bos boleh Review, Bos sahaja boleh Acknowledge. (8) Sidebar badge auto-populate for Zack/Bos showing pending submitted count. Bump app.js v230→v231. ROADMAP_DATA 109/109→110/110. Zaid TODO: run sql/2026-05-25_stock_check_reports.sql dalam Supabase. Continue p1_111 Price History Report + p1_112 SysMgmt template.', d:'progress' },
  { id:'p1_109', label:'Floor Price Calculator — Zack workflow Phase 1A. Zaid: "bila produk masuk Zack akan create new product dan calculate floor price". Build: (1) sql/2026-05-25_floor_price.sql — ALTER masterProducts ADD COLUMN floor_price NUMERIC(10,2) + floor_margin_pct NUMERIC(5,2) + floor_set_by TEXT + floor_set_at TIMESTAMPTZ + partial index on floor_price WHERE NOT NULL. (2) Sidebar menu item baharu "Floor Price" dalam Inventory group (selepas Barcode Labels) — trending-down icon, data-tab=inv_floorprice, switchHub floorPriceSection. __tabToRail map inv_floorprice → inv rail. i18n sb_floor_price BM/EN. (3) New section floorPriceSection HTML — header descriptive, lookup form 4-field grid (SKU input dengan datalist autocomplete, Cost Price RM, Margin % default 30%, Floor Price auto-compute readonly green bg), product info card papar nama + current price + current floor + warning red bila current price < floor, action row Reset + Save. Overview KPI grid 4 cards (Total Produk, Floor SET hijau, BELUM SET amber, Below Floor red). Below-floor warning table list 20 SKU sample yang sold cheaper than floor + Loss/Unit. (4) JS handlers: renderFloorPrice (populate datalist + compute KPI + below list), __fpLookup on SKU input (auto-fill cost from cost_price + margin from floor_margin_pct kalau dah ada + show product info), __fpCompute (cost × (1 + margin/100)), __fpReset clear form, __fpSave UPDATE masterProducts via Supabase db.from + sync in-memory masterProducts array + toast success + re-render KPI. (5) Margin Watcher hint built-in — overview table auto-flag SKU jual bawah floor (cashier accidentally over-discount). Real-time visibility tanpa email alerts (Phase 2 boleh tambah notification banner top bar). Bump app.js v228→v229. ROADMAP_DATA 108/108→109/109. Zaid TODO: run sql/2026-05-25_floor_price.sql dalam Supabase. Continue p1_110 (Stock Check Workflow Kael→Zack→Bos) + p1_111 (Price History Report) + p1_112 (SysMgmt template).', d:'progress' },
- { id:'p1_108', label:'BizDev Reports template (Farhan CMP010). Hybrid auto + manual sebab POS tak ada visibility ke leads/pipeline. (1) renderMyReport dispatcher tambah branch tpl === "bizdev" → __rpRenderBizdevTemplate. (2) Auto KPI section — derive dari existing data: New B2B accounts (filter customersData where is_b2b OR tags match /b2b/i AND created_at in period), B2B Deals Closed (cross-match sales_history where channel includes "b2b" OR customer_phone in b2bPhones set + sum revenue). (3) Manual Pipeline form — grid 6 number inputs (Leads Dihubungi, Followups Buat, Pipeline Value RM, Meeting/Demo, Partnership Outreach, Event/Expo Hadir). Save button hantar all values ke localStorage bizdevData_<staff_id>_<period> with __updated_at timestamp. Status pill flash "data disimpan" 2.5s + toast notification. (4) My Claims section (BizDev biasa claim parking/petrol/meals untuk client meetings — sub-text mention). (5) Narrative notes section — bigger textarea (min-height 140px) untuk deals/blockers/weekly plan narrative. Save terpisah dari pipeline data via existing __rpSaveManual handler. (6) Purple theme banner top (color #6D28D9) explain hybrid auto+manual nature. (7) Bos perspective: read pipeline numbers + narrative untuk weekly review tanpa tanya BizDev manually. Bump app.js v227→v228. ROADMAP_DATA 107/107→108/108. Phase 1B remaining: Marketing pure (currently mapped to sales via Irfan interim), SysMgmt (Zack), Posted Reports inbox (Bos).', d:'progress' },
+ { id:'p1_108', label:'BizDev Reports template (Farhan CMP010). Hybrid auto + manual sebab POS tak ada visibility ke leads/pipeline. (1) renderMyReport dispatcher tambah branch tpl === "bizdev" → __rpRenderBizdevTemplate. (2) Auto KPI section — derive dari existing data: New B2B accounts (filter customersData where is_b2b OR tags match /b2b/i AND created_at in period), B2B Deals Closed (cross-match sales_history where channel includes "b2b" OR customer_phone in b2bPhones set + sum revenue). (3) Manual Pipeline form — grid 6 number inputs (Leads Dihubungi, Followups Buat, Pipeline Value RM, Meeting/Demo, Partnership Outreach, Event/Expo Hadir). Save button hantar all values ke localStorage bizdevData_<staff_id>_<period> with __updated_at timestamp. Status pill flash "data disimpan" 2.5s + toast notification. (4) My Claims section (BizDev biasa claim parking/petrol/meals untuk client meetings — sub-text mention). (5) Narrative notes section — bigger textarea (min-height 140px) untuk deals/blockers/weekly plan narrative. Save terpisah dari pipeline data via existing __rpSaveManual handler. (6) Purple theme banner top (color #a05f22) explain hybrid auto+manual nature. (7) Bos perspective: read pipeline numbers + narrative untuk weekly review tanpa tanya BizDev manually. Bump app.js v227→v228. ROADMAP_DATA 107/107→108/108. Phase 1B remaining: Marketing pure (currently mapped to sales via Irfan interim), SysMgmt (Zack), Posted Reports inbox (Bos).', d:'progress' },
  { id:'p1_107', label:'Inventory Reports template (Kael CMP011 Chief, Fahmi CMP009 Assistant). Phase 1B continue. (1) renderMyReport dispatcher add branch tpl === "inventory" → __rpRenderInventoryTemplate. (2) Aggregator scan salesHistory dalam period: count packed (metadata.ff_packed_at within range), shipped (ff_shipped_at), avg pack time (packed_at - created_at in minutes), pending pack (online channel + no ff_packed_at, current state not period-filtered). Tally items packed by SKU untuk top 5 movement. (3) Team-wide note banner blue di atas — explain KPI ini shared antara Kael + Fahmi, individual contribution measured via Roadmap + Manual notes. Chief vs Assistant badge (amber CHIEF untuk Kael, biru ASSISTANT untuk Fahmi). (4) Sections: KPI grid 4 cards (Dipack/Dihantar/Purata Masa Pack/Backlog dengan warning border kalau >5), Top 5 SKU Bergerak table, Tugas Tambahan Phase 2 placeholder (PO diterima/Stock take accuracy/Bin updates/Damage handling), My Claims (own filter), Manual notes (encourage tulis individual achievements). (5) Backlog kad ada warning visual (border amber) kalau pending > 5 — staff nampak quickly kalau kerja menumpuk. Bump app.js v226→v227. ROADMAP_DATA 106/106→107/107. Phase 1B remaining: Marketing pure, BizDev (Farhan), SysMgmt (Zack) templates + Posted Reports inbox.', d:'progress' },
  { id:'p1_106', label:'Sales Reports template (Ariff CMP006, Irfan CMP003 primary) — Phase 1B continue dari Aliff Admin template (p1_96). Holiday window 26-30 May 2026 — intensive build. (1) Mapping update __rpTemplateForDept: dept "Marketing Interim" sekarang map ke "sales" (sebab Irfan primary role = Sales, Marketing tu interim). Pure marketing dept (kalau ada hire future) kekal map "marketing". (2) renderMyReport dispatcher: tambah branch tpl === "sales" → __rpRenderSalesTemplate. (3) __rpRenderSalesTemplate aggregator: scan salesHistory dalam period range, filter by staff_id atau cashier_name match. Compute: myOrders count, myRevenue total, AOV, customer set unique count, sku tally untuk top 5 list. (4) Section 1 — KPI grid 4 cards: Pesanan Saya (count + revenue subtitle), AOV (per order avg), Pelanggan Unik (set size), Top SKU (sku code + qty + revenue). (5) Section 2 — Top 5 SKU table (kalau ada data): SKU code bold + product name + qty + revenue per row. Skip kalau tiada sales. (6) Section 3 — My Commission: read commissionDraft_<period> localStorage scratchpad yang Aliff fill dalam Admin template (p1_96). Papar rate + estimated amount + note "menunggu approval Bos". Kalau belum ada draft → message tunggu Aliff/Bos process hujung bulan. (7) Section 4 — My Claims: aggregate _hrcLoadClaims filter staff_id sendiri + status. Diluluskan total RM bulan ni + pending count. (8) Section 5 — Manual notes (reuse pattern Admin template — same localStorage key + textarea + save button). (9) Marketing Interim banner: kalau dept includes "marketing interim", render pink banner di atas semua section explaining Irfan interim role + suggest tulis Marketing achievements dalam Catatan Manual. Phase 2 akan add Marketing-specific KPIs (social posts, views, engagement) bila feature collection siap. (10) Sales staff Ariff (Sales & Product Department) dapat clean Sales view. Irfan (Marketing Interim) dapat Sales view + pink banner. Tester (External Demo) dapat Sales template juga (empty data). Bump app.js v225→v226. ROADMAP_DATA 105/105→106/106. Phase 1B remaining: Inventory (Kael+Fahmi), Marketing pure, BizDev (Farhan), SysMgmt (Zack) templates + Posted Reports inbox (Bos).', d:'progress' },
  { id:'p1_105', label:'TikTok cutover ke direct API — Fasa 2 dari plan Zaid 3-fasa migrate dari EasyStore. (1) Step 1 SQL: UPDATE tiktok_tokens SET direct_sync_cutover = now() — Zaid run dalam Supabase SQL Editor. Effect: tiktok-sync.js safety guard pass (cutover not null), import refuse dilumpuhkan, orders selepas timestamp ni import via direct API. (2) Step 2 manual: Zaid disable TikTok channel dalam EasyStore admin (10camp.easystore.co/admin → Channels → TikTok Shop → Disconnect). Effect: TikTok orders baru takkan masuk EasyStore lagi, hanya direct API yang catch. (3) Step 3 code: netlify.toml uncomment [functions."tiktok-sync-cron"] schedule "*/15 * * * *" — activate cron auto-sync 15 min. Combine dengan webhook EasyStore yang masih running untuk safety net. (4) Dedup: cutover act as natural floor — orders sebelum cutover ada dalam sales_history via EasyStore (metadata.easystore_source_name=tiktok-shop). Orders selepas cutover masuk via direct API (metadata.source=tiktok_direct + metadata.tiktok_order_id). Sales_history filter on tiktok_order_id IN (...) untuk dedup direct-API duplicates. No collision dengan EasyStore-sourced records sebab time-based separation. (5) Monitoring: tiktok_sync_log table track cron runs. UI status panel dalam Marketplace card auto-refresh. Bila cron jalan first time (dalam 15 min lepas deploy), patut dapat 0-N orders depending on activity. ROADMAP_DATA 104/104→105/105. Phase 3 follow-up: removed EasyStore entirely lepas TikTok + Shopee stable.', d:'progress' },
@@ -7895,14 +7896,14 @@
  background:var(--bg-color); border:2px solid var(--border-color);
  border-radius:12px; padding:16px;
  }
-.sy-sim-pane.user-a { border-color:#3B82F6; }
+.sy-sim-pane.user-a { border-color:#cd7c32; }
 .sy-sim-pane.user-b { border-color:#EC4899; }
 .sy-sim-pane.pane-head {
  display:flex; align-items:center; justify-content:space-between;
  font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
  margin-bottom:10px;
  }
-.sy-sim-pane.user-a.pane-head { color:#3B82F6; }
+.sy-sim-pane.user-a.pane-head { color:#cd7c32; }
 .sy-sim-pane.user-b.pane-head { color:#EC4899; }
 .sy-sim-pane.version-tag {
  font-size:10px; padding:2px 8px; border-radius:50px;
@@ -7959,7 +7960,7 @@
  transition:all.15s; line-height:1.3;
  }
 .sy-resolve-btns button:hover { border-color:var(--primary); }
-.sy-resolve-btns button.theirs { border-color:#3B82F6; color:#3B82F6; }
+.sy-resolve-btns button.theirs { border-color:#cd7c32; color:#cd7c32; }
 .sy-resolve-btns button.mine { border-color:#EC4899; color:#EC4899; }
 .sy-resolve-btns button.merge { border-color:var(--success); color:var(--success); }
 
@@ -7970,7 +7971,7 @@
  font-size:10px; padding:2px 7px; border-radius:50px; font-weight:700;
  text-transform:uppercase; letter-spacing:.3px;
  }
-.sy-log-table.resolution-pill.theirs { background:rgba(59,130,246,.12); color:#3B82F6; }
+.sy-log-table.resolution-pill.theirs { background:rgba(205, 124, 50,.12); color:#cd7c32; }
 .sy-log-table.resolution-pill.mine { background:rgba(236,72,153,.12); color:#EC4899; }
 .sy-log-table.resolution-pill.merge { background:rgba(16,185,129,.12); color:var(--success); }
 
@@ -8094,8 +8095,8 @@
  <h3> The Problem</h3>
  <p class="sub">Tanpa sync guard:</p>
  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:12.5px;">
- <div style="padding:14px; background:rgba(59,130,246,.06); border-radius:10px; border-left:3px solid #3B82F6;">
- <strong style="color:#3B82F6;">10:00 — Aiman</strong><br>
+ <div style="padding:14px; background:rgba(205, 124, 50,.06); border-radius:10px; border-left:3px solid #cd7c32;">
+ <strong style="color:#cd7c32;">10:00 — Aiman</strong><br>
  Loads customer "Faris" record on his iPad
  </div>
  <div style="padding:14px; background:rgba(236,72,153,.06); border-radius:10px; border-left:3px solid #EC4899;">
@@ -8425,7 +8426,7 @@
  + '<p id="sgcfSub" style="color:#6F6F6F; font-size:13px; margin-bottom:14px;"></p>'
  + '<table id="sgcfDiff" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;"></table>'
  + '<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">'
- + '<button id="sgcfTheirs" style="padding:11px 12px; border:1px solid #3B82F6; color:#3B82F6; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Theirs<br><span style="font-size:10px; opacity:.8; font-weight:500;">Discard your changes</span></button>'
+ + '<button id="sgcfTheirs" style="padding:11px 12px; border:1px solid #cd7c32; color:#cd7c32; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Theirs<br><span style="font-size:10px; opacity:.8; font-weight:500;">Discard your changes</span></button>'
  + '<button id="sgcfMine" style="padding:11px 12px; border:1px solid #EC4899; color:#EC4899; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Mine<br><span style="font-size:10px; opacity:.8; font-weight:500;">Force overwrite</span></button>'
  + '<button id="sgcfMerge" style="padding:11px 12px; border:1px solid #10B981; color:#10B981; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Smart Merge<br><span style="font-size:10px; opacity:.8; font-weight:500;">Keep both, mine wins</span></button>'
  + '</div></div>';
@@ -8437,7 +8438,7 @@
  const theirs = opts.theirs || {};
  const mine = opts.mine || {};
  const allKeys = Array.from(new Set([...Object.keys(theirs),...Object.keys(mine)])).filter(k => k !== 'version' && k !== 'created_at' && k !== 'updated_at');
- let html = '<thead><tr><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6F6F6F; text-align:left;">Field</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#3B82F6; text-align:left;">Theirs (server)</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#EC4899; text-align:left;">Yours (you)</th></tr></thead><tbody>';
+ let html = '<thead><tr><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6F6F6F; text-align:left;">Field</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#cd7c32; text-align:left;">Theirs (server)</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#EC4899; text-align:left;">Yours (you)</th></tr></thead><tbody>';
  allKeys.forEach(k => {
  const tv = theirs[k];
  const mv = mine[k];
@@ -8590,7 +8591,7 @@
  };
  function flashSimToast(label, msg){
  const flash = document.createElement('div');
- const bg = label==='A' ? '#3B82F6' : '#EC4899';
+ const bg = label==='A' ? '#cd7c32' : '#EC4899';
  flash.style.cssText = 'position:fixed; top:20px; right:20px; background:'+bg+'; color:#fff; padding:10px 16px; border-radius:8px; z-index:9999; font-weight:700; box-shadow:0 4px 16px rgba(0,0,0,.2); font-size:13px;';
  flash.textContent = 'User '+label+': '+msg;
  document.body.appendChild(flash);
@@ -8885,7 +8886,7 @@
 .sh-stat.sub { font-size:11px; color:var(--text-muted); margin-top:3px; }
 .sh-stat[data-pm="cash"] { border-left:3px solid var(--success); }
 .sh-stat[data-pm="card"] { border-left:3px solid var(--info); }
-.sh-stat[data-pm="ewallet"] { border-left:3px solid #7C3AED; }
+.sh-stat[data-pm="ewallet"] { border-left:3px solid #a05f22; }
 .sh-stat[data-pm="online"] { border-left:3px solid var(--warning); }
 .sh-stat[data-pm="total"] { border-left:3px solid var(--primary); background:linear-gradient(135deg, #fff, var(--primary-soft, #FBEFE2)); }
 
@@ -8923,7 +8924,7 @@
  font-size:11px; font-weight:800;
  }
 .sh-variance-pill.zero { background:rgba(16,185,129,.12); color:var(--success); }
-.sh-variance-pill.over { background:rgba(59,130,246,.12); color:var(--info); }
+.sh-variance-pill.over { background:rgba(205, 124, 50,.12); color:var(--info); }
 .sh-variance-pill.short { background:rgba(239,68,68,.12); color:var(--danger); }
 
  /* Modal */
@@ -8965,7 +8966,7 @@
  margin-top:10px;
  }
 .sh-variance-display.zero { background:rgba(16,185,129,.1); color:var(--success); }
-.sh-variance-display.over { background:rgba(59,130,246,.1); color:var(--info); }
+.sh-variance-display.over { background:rgba(205, 124, 50,.1); color:var(--info); }
 .sh-variance-display.short { background:rgba(239,68,68,.1); color:var(--danger); }
 .sh-variance-display.label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; opacity:.8; margin-bottom:4px; display:block; }
 
@@ -9519,7 +9520,7 @@
  }
 .sm-stat.num { font-size:24px; font-weight:800; color:var(--primary); line-height:1; letter-spacing:-1px; }
 .sm-stat.lbl { font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
-.sm-stat[data-role="superior"].num { color:#7C3AED; }
+.sm-stat[data-role="superior"].num { color:#a05f22; }
 .sm-stat[data-role="mgmt"].num { color:var(--info); }
 .sm-stat[data-role="inventory"].num { color:var(--warning); }
 .sm-stat[data-role="sales"].num { color:var(--success); }
@@ -9564,8 +9565,8 @@
  font-size:10px; font-weight:800; letter-spacing:.5px;
  text-transform:uppercase;
  }
-.sm-table.role-pill[data-r="superior"] { background:rgba(124,58,237,.12); color:#7C3AED; }
-.sm-table.role-pill[data-r="mgmt"] { background:rgba(59,130,246,.12); color:var(--info); }
+.sm-table.role-pill[data-r="superior"] { background:rgba(124,58,237,.12); color:#a05f22; }
+.sm-table.role-pill[data-r="mgmt"] { background:rgba(205, 124, 50,.12); color:var(--info); }
 .sm-table.role-pill[data-r="inventory"] { background:rgba(245,158,11,.12); color:var(--warning); }
 .sm-table.role-pill[data-r="sales"] { background:rgba(16,185,129,.12); color:var(--success); }
 .sm-table.source-tag {
@@ -9789,14 +9790,14 @@
  <label class="sm-mode-row" data-mode="operations" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#FFF; border:1px solid #E5E7EB; border-radius:6px; cursor:pointer;">
  <input type="checkbox" id="smfMode_operations" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
  <span>
- <strong style="color:#3B82F6;"> Operasi</strong>
+ <strong style="color:#cd7c32;"> Operasi</strong>
  <div style="font-size:11px; color:#6B7280; margin-top:2px;">Inventory, PO, stock take, valuation</div>
  </span>
  </label>
  <label class="sm-mode-row" data-mode="manager" style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:#FFF; border:1px solid #E5E7EB; border-radius:6px; cursor:pointer;">
  <input type="checkbox" id="smfMode_manager" style="width:16px; height:16px; margin-top:2px; cursor:pointer;">
  <span>
- <strong style="color:#8B5CF6;"> Pengurus</strong>
+ <strong style="color:#cd7c32;"> Pengurus</strong>
  <div style="font-size:11px; color:#6B7280; margin-top:2px;">Dashboard, CRM, promo, AI, settings</div>
  </span>
  </label>
@@ -10369,7 +10370,7 @@
  display:flex; gap:12px; align-items:flex-start;
  margin-bottom:14px;
  }
-.compl-banner.info { background:rgba(59,130,246,.08); color:#1E40AF; border:1px solid rgba(59,130,246,.2); }
+.compl-banner.info { background:rgba(205, 124, 50,.08); color:#7c4a1a; border:1px solid rgba(205, 124, 50,.2); }
 .compl-banner.warn { background:rgba(245,158,11,.08); color:#92400E; border:1px solid rgba(245,158,11,.2); }
 .compl-banner.warn b { color:#78350F; }
 .compl-banner i { flex-shrink:0; margin-top:2px; }
@@ -12065,7 +12066,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=458"></script>
+ <script src="app.js?v=459"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

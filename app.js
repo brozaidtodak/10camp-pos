@@ -18717,6 +18717,7 @@ const BULK_FIELD_DEFS = [
  { g:'Harga',     key:'compare',  label:'Compared',     type:'num',   f:'compare_at_price' },
  { g:'Harga',     key:'cost',     label:'Kos',          type:'num',   f:'cost_price' },
  { g:'Harga',     key:'floor',    label:'Floor Price',  type:'num',   f:'floor_price' },
+ { g:'Inventori', key:'skuedit',  label:'SKU (boleh tukar)', type:'skuedit' },
  { g:'Inventori', key:'stock',    label:'Stok',         type:'stock' },
  { g:'Inventori', key:'bin',      label:'Slot / Lokasi',type:'text',  f:'location_bin' },
  { g:'Inventori', key:'barcode',  label:'Barcode',      type:'text',  f:'erp_barcode' },
@@ -18729,7 +18730,7 @@ const BULK_FIELD_DEFS = [
 const BULK_FIELD_BY_KEY = {}; BULK_FIELD_DEFS.forEach(d => BULK_FIELD_BY_KEY[d.key] = d);
 const BULK_COLS_DEFAULT = ['brand','category','price','compare','cost','stock','status'];
 window.__bulkCols = (function(){ try { const s = JSON.parse(localStorage.getItem('bulk_cols_v1')); if(Array.isArray(s) && s.length) { const v = s.filter(k => BULK_FIELD_BY_KEY[k]); if(v.length) return v; } } catch(e){} return BULK_COLS_DEFAULT.slice(); })();
-window.__bulkColCount = function(){ return 4 + (window.__bulkCols || []).length; }; // checkbox+Img+SKU+Nama + dynamic
+window.__bulkColCount = function(){ return 4 + (window.__bulkCols || []).filter(k => (BULK_FIELD_BY_KEY[k] || {}).type !== 'skuedit').length; }; // checkbox+Img+SKU+Nama + dynamic (skuedit toggles the core SKU cell, no extra column)
 
 // Build the dynamic table header to match active columns
 window.bulkBuildHead = function(){
@@ -18738,6 +18739,7 @@ window.bulkBuildHead = function(){
  + '<th style="width:60px;">Img</th><th>SKU</th><th>Nama Produk</th>';
  (window.__bulkCols || []).forEach(k => {
  const d = BULK_FIELD_BY_KEY[k]; if(!d) return;
+ if(d.type === 'skuedit') return; // toggles core SKU cell, not a new column
  const right = (d.type === 'num' || d.type === 'int' || d.type === 'stock');
  const align = right ? 'text-align:right;' : (d.key === 'status' ? 'text-align:center;' : '');
  row.innerHTML; // noop to keep linter calm
@@ -18749,6 +18751,7 @@ window.bulkBuildHead = function(){
 // One <td> for product p under column def d
 window.bulkCellHtml = function(p, d){
  const sku = hesc(p.sku);
+ if(d.type === 'skuedit') return ''; // handled by the core SKU cell, not a separate column
  if(d.type === 'disp'){
  if(d.key === 'brand') return `<td>${hesc(p.brand || '-')}</td>`;
  if(d.key === 'category') return `<td>${hesc(p.category || '-')}</td>`;
@@ -18885,9 +18888,13 @@ window.renderBulkOps = function() {
  const stockTakeBadge = (p.description || '').includes('STOK BELUM DISAHKAN')
  ? ' <span title="Stock-take pending" style="background:#FEF3C7; color:#92400E; padding:1px 5px; border-radius:3px; font-weight:bold; font-size:9px;"></span>'
  : '';
+ const skuEditable = cols.includes('skuedit');
+ const skuCell = skuEditable
+ ? `<td><input id="bk_sku_${hesc(p.sku)}" type="text" value="${hesc(p.sku)}" data-orig="${hesc(p.sku)}" title="Tukar SKU — semua rekod stok/jualan/stock-take akan dipindah automatik ke SKU baru" style="width:160px; padding:4px 6px; border:1px solid #FCD9B6; background:#FFF8F0; border-radius:5px; font-size:11px; font-family:monospace;"></td>`
+ : `<td style="font-family:monospace; font-size:11px;">${hesc(p.sku)}</td>`;
  let cells = `<td><input type="checkbox" data-sku="${hesc(p.sku)}" ${checked} onchange="bulkToggleRow('${p.sku.replace(/'/g, "\\'")}', this.checked)"></td>`
  + `<td><img src="${thumb}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; background:#F3F4F6;" loading="lazy" onerror="this.src='https://placehold.co/40x40?text=?'"></td>`
- + `<td style="font-family:monospace; font-size:11px;">${hesc(p.sku)}</td>`
+ + skuCell
  + `<td>${hesc((p.name || '').slice(0, 90))}${stockTakeBadge}</td>`;
  cols.forEach(k => { const d = BULK_FIELD_BY_KEY[k]; if(d) cells += window.bulkCellHtml(p, d); });
  return `<tr>${cells}</tr>`;
@@ -18910,11 +18917,36 @@ window.bulkSaveEdits = async function() {
  for(const sku of skus) {
  const p = (masterProducts || []).find(x => x.sku === sku);
  if(!p) continue;
+ // p1_389 — SKU rename (cascade) FIRST so the rest targets the new SKU.
+ // Inputs are still keyed by the render-time sku; DB ops use curSku after rename.
+ let curSku = sku;
+ if((window.__bulkCols || []).includes('skuedit')) {
+ const skuEl = document.getElementById('bk_sku_' + sku);
+ if(skuEl) {
+ const newSku = (skuEl.value || '').trim();
+ if(newSku && newSku !== sku) {
+ if((masterProducts || []).some(x => x.sku === newSku)) {
+ errs.push(sku + ': SKU "' + newSku + '" dah wujud');
+ } else {
+ try {
+ const { error } = await db.rpc('rename_sku', { p_old: sku, p_new: newSku });
+ if(error) throw error;
+ p.sku = newSku; // p is the in-memory object
+ (inventoryBatches || []).forEach(b => { if(b.sku === sku) b.sku = newSku; });
+ (masterProducts || []).forEach(x => { if(x.parent_sku === sku) x.parent_sku = newSku; });
+ if(bulkSelected.has(sku)) { bulkSelected.delete(sku); bulkSelected.add(newSku); }
+ curSku = newSku;
+ changed++;
+ } catch(e) { errs.push(sku + ' tukar SKU: ' + e.message); }
+ }
+ }
+ }
+ }
  // p1_388 — product_master fields driven by active columns (Pilih Field)
  const payload = {};
  for(const k of (window.__bulkCols || [])) {
  const d = BULK_FIELD_BY_KEY[k];
- if(!d || d.type === 'disp' || d.type === 'stock') continue; // display + stock handled separately
+ if(!d || d.type === 'disp' || d.type === 'stock' || d.type === 'skuedit') continue; // display/stock/sku handled separately
  const el = document.getElementById('bk_' + k + '_' + sku);
  if(!el) continue;
  const raw = (el.value || '').trim();
@@ -18931,22 +18963,21 @@ window.bulkSaveEdits = async function() {
  }
  if(Object.keys(payload).length) {
  try {
- const { error } = await db.from('products_master').update(payload).eq('sku', sku);
+ const { error } = await db.from('products_master').update(payload).eq('sku', curSku);
  if(error) throw error;
- const idx = masterProducts.findIndex(x => x.sku === sku);
- if(idx >= 0) Object.assign(masterProducts[idx], payload);
+ Object.assign(p, payload); // p is the in-memory masterProducts object
  changed++;
- if('price' in payload) pushedSkus.push(sku);
- } catch(e) { errs.push(sku + ': ' + e.message); }
+ if('price' in payload) pushedSkus.push(curSku);
+ } catch(e) { errs.push(curSku + ': ' + e.message); }
  }
  // stock (set via FIFO delta adjustment, like variant editor) — only if Stok column active
  const stEl = (window.__bulkCols || []).includes('stock') ? document.getElementById('bk_stock_' + sku) : null;
  if(stEl && stEl.value.trim() !== '') {
  const target = parseInt(stEl.value, 10);
- const cur = (typeof bulkComputeStock === 'function') ? bulkComputeStock(sku) : 0;
+ const cur = (typeof bulkComputeStock === 'function') ? bulkComputeStock(curSku) : 0;
  if(!isNaN(target) && target !== cur) {
- try { await window.__applyStockDelta(sku, target - cur, 'Bulk edit by ' + uName); changed++; stockChanged = true; }
- catch(e) { errs.push(sku + ' stok: ' + e.message); }
+ try { await window.__applyStockDelta(curSku, target - cur, 'Bulk edit by ' + uName); changed++; stockChanged = true; }
+ catch(e) { errs.push(curSku + ' stok: ' + e.message); }
  }
  }
  if(hint) hint.textContent = `Menyimpan... ${changed}`;

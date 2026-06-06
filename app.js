@@ -3294,6 +3294,11 @@ window.__psListFilter = function() {
  const start = (page - 1) * PER;
  const slice = rows.slice(start, start + PER);
  window.__psPageSkus = slice.map(p => p.sku);
+ // p1_355 — formula global (kira tier semua baris)
+ const EX = parseFloat(document.getElementById('psListEx')?.value) || 0.60;
+ const SHIP = parseFloat(document.getElementById('psListShip')?.value) || 0;
+ const HANDraw = document.getElementById('psListHand')?.value;
+ const HAND = (HANDraw === '' || HANDraw == null || isNaN(parseFloat(HANDraw))) ? 5 : parseFloat(HANDraw);
  // Single-quote SVG fallback (window.__psNoImg) — safe in onerror without escaping
  if(!window.__psNoImg) window.__psNoImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F9FAFB'/><text x='40' y='44' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='10'>No Img</text></svg>";
  // p1_354 — input editable (stopPropagation supaya tak trigger load-calc bila taip)
@@ -3311,6 +3316,8 @@ window.__psListFilter = function() {
  const skuArg = skuRaw.replace(/'/g, "\\'");
  const imgSrc = (p.images && p.images[0]) ? p.images[0] : window.__psNoImg;
  const loc = (p.location_bin || '').trim();
+ const t = window.__psTiers(cost, EX, SHIP, HAND);
+ const tcell = (id, val) => `<td class="ps-list-cell" style="padding:8px 10px; text-align:right; cursor:pointer; color:#0F766E; font-weight:600;" onclick="event.stopPropagation(); window.__psUseTier(${i}, '${id}')" title="Klik untuk guna sebagai Harga POS"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
  return `<tr class="ps-list-row" onclick="window.__psLoadFromList('${skuArg}')">`
  + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
  + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono', Menlo, ui-monospace, monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
@@ -3318,7 +3325,12 @@ window.__psListFilter = function() {
  + `<td class="ps-list-cell" style="padding:10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
  + `<td class="ps-list-cell" style="padding:10px;">${loc ? `<span style="display:inline-block; padding:2px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; font-size:10.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(loc)}</span>` : `<span style="color:#D1D5DB; font-size:11px;">—</span>`}</td>`
  + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_price', price, 'RM')}</td>`
- + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_cost', cost, '¥')}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();"><input id="psr_${i}_cost" type="number" step="0.01" inputmode="decimal" value="${cost > 0 ? cost : ''}" placeholder="¥" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:90px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`
+ + `<td class="ps-list-cell" style="padding:8px 10px; text-align:right; color:#374151; font-weight:600;"><span id="psr_${i}_costfinal">${t.costFinal > 0 ? t.costFinal.toFixed(2) : '—'}</span></td>`
+ + tcell('psr_' + i + '_rrp', t.rrp)
+ + tcell('psr_' + i + '_kedai', t.kedai)
+ + tcell('psr_' + i + '_mkt', t.marketplace)
+ + tcell('psr_' + i + '_prop', t.proposal)
  + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'}; font-weight:600;">${stock}</td>`
  + `<td class="ps-list-cell" style="padding:10px; text-align:center;">${badge}</td></tr>`;
  }).join('');
@@ -3335,12 +3347,55 @@ window.__psListFilter = function() {
  + '<th style="text-align:left;">Lokasi</th>'
  + '<th style="text-align:right;">Harga POS</th>'
  + '<th style="text-align:right;">Cost RMB</th>'
+ + '<th style="text-align:right;">Cost Final</th>'
+ + '<th style="text-align:right;">RRP</th>'
+ + '<th style="text-align:right;">Kedai</th>'
+ + '<th style="text-align:right;">TT/Shopee</th>'
+ + '<th style="text-align:right;">Z Prop</th>'
  + '<th style="text-align:right;">Stok</th>'
  + '<th style="text-align:center;">Status</th>'
  + '</tr></thead><tbody>' + body + '</tbody></table>'
  + `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:10px 12px; border-top:1px solid var(--border-color);"><span style="font-size:11.5px; color:#6B7280;">Papar <strong>${from}-${to}</strong> dari <strong>${rows.length}</strong>${pager} · <em style="color:#9CA3AF;">Simpan dulu sebelum tukar halaman</em></span><button onclick="window.__psSaveList()" class="btn-brand-primary" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; padding:7px 14px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Simpan Perubahan</button></div>`;
  wrap.innerHTML = html;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_355 — formula tier (sama dengan Pricing Calculator): Cost Final + 4 tier
+window.__psTiers = function(rmb, ex, ship, hand) {
+ const base = (Number(rmb) || 0) * (Number(ex) || 0);
+ const costFinal = base + (Number(ship) || 0) + base * ((Number(hand) || 0) / 100);
+ return {
+ costFinal: costFinal,
+ rrp: costFinal * 1.30,
+ kedai: costFinal * 1.60 * 0.80,
+ marketplace: costFinal * 1.80,
+ proposal: costFinal * 1.35
+ };
+};
+// p1_355 — recompute tier satu baris (bila Cost RMB ditaip) tanpa re-render penuh
+window.__psRowCalc = function(i) {
+ const cEl = document.getElementById('psr_' + i + '_cost');
+ const rmb = parseFloat(cEl && cEl.value) || 0;
+ const ex = parseFloat(document.getElementById('psListEx')?.value) || 0.60;
+ const ship = parseFloat(document.getElementById('psListShip')?.value) || 0;
+ const hraw = document.getElementById('psListHand')?.value;
+ const hand = (hraw === '' || hraw == null || isNaN(parseFloat(hraw))) ? 5 : parseFloat(hraw);
+ const t = window.__psTiers(rmb, ex, ship, hand);
+ const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v > 0 ? v.toFixed(2) : '—'; };
+ set('psr_' + i + '_costfinal', t.costFinal);
+ set('psr_' + i + '_rrp', t.rrp);
+ set('psr_' + i + '_kedai', t.kedai);
+ set('psr_' + i + '_mkt', t.marketplace);
+ set('psr_' + i + '_prop', t.proposal);
+};
+// p1_355 — klik sel tier → salin nilai ke input Harga POS baris tu
+window.__psUseTier = function(i, cellId) {
+ const el = document.getElementById(cellId);
+ const v = el ? parseFloat(el.textContent) : NaN;
+ if(!isNaN(v) && v > 0) {
+ const pEl = document.getElementById('psr_' + i + '_price');
+ if(pEl) { pEl.value = v.toFixed(2); pEl.style.background = '#FEF9C3'; setTimeout(() => { pEl.style.background = ''; }, 600); }
+ }
 };
 
 // p1_354 — tukar halaman senarai Price Calculator

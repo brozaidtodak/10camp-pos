@@ -20114,21 +20114,16 @@ window.__aoGoPage = function(target){
  const top = document.getElementById('aoStats') || document.getElementById('allOrdersSection');
  if(top && top.scrollIntoView) try { top.scrollIntoView({ behavior:'smooth', block:'start' }); } catch(e){}
 };
-
-window.renderAllOrders = function() {
- const tbody = document.getElementById('aoTbody');
- if(!tbody) return;
- if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
- tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
- return;
- }
+// p1_331 — filter + sort order ikut input toolbar (guna-semula: render + export CSV)
+window.__aoGetFiltered = function(){
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return [];
  const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
  const channel = document.getElementById('aoChannel')?.value || '';
  const status = document.getElementById('aoStatus')?.value || '';
  const dr = window.__aoDateRange();
  const hideTest = !!document.getElementById('aoHideTest')?.checked;
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
- let filtered = salesHistory.filter(s => {
+ const filtered = salesHistory.filter(s => {
  if(hideTest && s.is_test) return false;
  if(s.created_at) { const t = new Date(s.created_at).getTime(); if(t < dr.from || t > dr.to) return false; }
  const chLower = (s.channel || '').toLowerCase();
@@ -20146,6 +20141,89 @@ window.renderAllOrders = function() {
  return true;
  });
  filtered.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+ return filtered;
+};
+
+// p1_331 — pilih banyak order (bulk): state + UI sync
+window.__aoSelected = window.__aoSelected || new Set();
+window.__aoToggleSelect = function(id, checked){
+ if(checked) window.__aoSelected.add(id); else window.__aoSelected.delete(id);
+ window.__aoSyncSelectionUI();
+};
+window.__aoSelectAllPage = function(checked){
+ (window.__aoPageIds || []).forEach(id => { if(checked) window.__aoSelected.add(id); else window.__aoSelected.delete(id); });
+ window.renderAllOrders && window.renderAllOrders();
+};
+window.__aoClearSelect = function(){
+ window.__aoSelected.clear();
+ window.renderAllOrders && window.renderAllOrders();
+};
+window.__aoSyncSelectionUI = function(){
+ const n = window.__aoSelected.size;
+ const bar = document.getElementById('aoBulkBar'); if(bar) bar.style.display = n > 0 ? 'flex' : 'none';
+ const cnt = document.getElementById('aoBulkCount'); if(cnt) cnt.textContent = n;
+ const sa = document.getElementById('aoSelectAll');
+ if(sa){ const ids = window.__aoPageIds || []; sa.checked = ids.length > 0 && ids.every(id => window.__aoSelected.has(id)); }
+};
+// p1_331 — tukar status banyak order sekali gus
+window.__aoBulkStatus = async function(){
+ const ids = Array.from(window.__aoSelected);
+ if(!ids.length) return;
+ const newStatus = document.getElementById('aoBulkStatusSel')?.value || '';
+ if(!newStatus) { if(typeof showToast==='function') showToast('Pilih status dulu.', 'warn'); return; }
+ if(!confirm(`Tukar status ${ids.length} order kepada "${newStatus}"?\n\nNota: ubah status dalam POS sahaja — tak sync ke Shopee/TikTok.`)) return;
+ if(typeof db === 'undefined' || !db) return;
+ try {
+ const { error } = await db.from('sales_history').update({ status: newStatus }).in('id', ids);
+ if(error) throw error;
+ ids.forEach(id => { const s = salesHistory.find(x => x.id === id); if(s) s.status = newStatus; });
+ if(typeof showToast === 'function') showToast(`${ids.length} order ditukar status: ${newStatus}.`, 'success');
+ window.__aoSelected.clear();
+ window.renderAllOrders && window.renderAllOrders();
+ window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
+ } catch(e) { if(typeof showToast === 'function') showToast('Gagal tukar status: ' + (e.message || e), 'error'); }
+};
+// p1_331 — export CSV (order dipilih, atau semua yang ditapis)
+window.__aoExportCsv = function(selectedOnly){
+ let rows;
+ if(selectedOnly) rows = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => window.__aoSelected.has(s.id));
+ else rows = window.__aoGetFiltered();
+ if(!rows.length) { if(typeof showToast === 'function') showToast('Tiada order untuk export.', 'info'); return; }
+ const cols = ['Order Ref','POS ID','Tarikh','Channel','Status','Pelanggan','Phone','Email','Items','Total (RM)','Bayar','Kurier','Tracking'];
+ const esc = (v) => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+ const lines = [cols.join(',')];
+ rows.forEach(s => {
+ const md = s.metadata || {}; const f = md.fulfilment || {};
+ const ref = md.shopee_order_sn || md.tiktok_order_id || md.online_order_ref || ('#' + s.id);
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY') : '';
+ const items = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
+ const total = (parseFloat(s.total_amount || s.total || 0) || 0).toFixed(2);
+ lines.push([ref, s.id, dt, s.channel || '', window.__aoStatusMeta(s.status).label, s.customer_name || '', s.customer_phone || '', s.customer_email || md.buyer_email || '', items, total, s.payment_method || '', f.courier || md.shipping_carrier || md.shipping_provider || '', f.tracking_no || ''].map(esc).join(','));
+ });
+ const csv = '﻿' + lines.join('\n');
+ const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ const stamp = new Date().toISOString().slice(0, 10);
+ a.href = url; a.download = `orders_${selectedOnly ? 'dipilih_' : ''}${stamp}.csv`;
+ document.body.appendChild(a); a.click(); document.body.removeChild(a);
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+ if(typeof showToast === 'function') showToast(`${rows.length} order di-export ke CSV.`, 'success');
+};
+
+window.renderAllOrders = function() {
+ const tbody = document.getElementById('aoTbody');
+ if(!tbody) return;
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
+ tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
+ return;
+ }
+ const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
+ const channel = document.getElementById('aoChannel')?.value || '';
+ const status = document.getElementById('aoStatus')?.value || '';
+ const hideTest = !!document.getElementById('aoHideTest')?.checked;
+ const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
+ let filtered = window.__aoGetFiltered();
 
  const total = filtered.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
  const walkinCount = filtered.filter(s => { const c = (s.channel || '').toLowerCase(); return c.includes('walk') || c.includes('cashier'); }).length;
@@ -20163,7 +20241,7 @@ window.renderAllOrders = function() {
  `;
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
  document.getElementById('aoSummaryLine').textContent = '';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  return;
@@ -20183,6 +20261,7 @@ window.renderAllOrders = function() {
  const aoPage = window.__aoPage;
  const aoStart = (aoPage - 1) * AO_PAGE_SIZE;
  const slice = filtered.slice(aoStart, aoStart + AO_PAGE_SIZE);
+ window.__aoPageIds = slice.map(s => s.id);
  tbody.innerHTML = slice.map(s => {
  const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
  const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
@@ -20191,7 +20270,9 @@ window.renderAllOrders = function() {
  // p1_250 — Test badge + Test toggle button. is_test column dah exist + __ordMarkTest handler dah exist (line 5868).
  const isTest = !!s.is_test;
  const testBadge = isTest ? '<span style="background:#F59E0B; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
- return `<tr style="border-bottom:1px solid #F3F4F6; ${isTest ? 'background:rgba(254,243,199,.18);' : ''}">
+ const selChk = window.__aoSelected && window.__aoSelected.has(s.id);
+ return `<tr style="border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(37,99,235,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
+ <td style="padding:10px; text-align:center;"><input type="checkbox" onchange="window.__aoToggleSelect(${s.id}, this.checked)" ${selChk ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer;"></td>
  <td style="padding:10px;">${dt}</td>
  ${(() => {
  // p1_321 — kolum Order boleh diklik (ganti butang Lihat). Papar no ref marketplace + #id POS
@@ -20254,6 +20335,7 @@ window.renderAllOrders = function() {
  document.getElementById('aoSummaryLine').innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;"><span>Memaparkan <strong>${aoFrom}-${aoTo}</strong> dari <strong>${filtered.length.toLocaleString()}</strong> order.</span>${pager}</div>`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
+ window.__aoSyncSelectionUI && window.__aoSyncSelectionUI();
 };
 
 // p1_250 — Toggle test flag dari All Orders table

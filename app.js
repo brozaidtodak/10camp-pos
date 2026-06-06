@@ -5534,8 +5534,11 @@ async function initApp() {
  let { data: quotes } = await db.from('quotations_log').select('*').order('created_at', {ascending: false});
  if(quotes) quoteHistoryLogs = quotes;
 
- let { data: sales } = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(100000);
- if(sales) salesHistory = [...salesHistory,...sales];
+ // p1_329 — muat SEMUA order berperingkat (elak had PostgREST 1000 baris yang sorok order lama)
+ let sales = [];
+ try { sales = await window.__aoFetchAllSales(); }
+ catch(e) { try { const r = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000); sales = r.data || []; } catch(_){} }
+ if(sales && sales.length) salesHistory = [...salesHistory,...sales];
  // p3_10: refresh fulfillment KPIs + sidebar badge once orders are loaded
  if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
  // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
@@ -20599,6 +20602,20 @@ window.__aoPrintPickingList = function() {
  win.document.close();
 };
 
+// p1_329 — muat SEMUA sales_history berperingkat 1000-1000 (PostgREST max-rows ~1000 walau limit besar)
+window.__aoFetchAllSales = async function() {
+ const all = [];
+ const PAGE = 1000;
+ for(let start = 0; start < 500000; start += PAGE) {
+ const { data, error } = await db.from('sales_history').select('*').order('created_at', { ascending: false }).range(start, start + PAGE - 1);
+ if(error) throw error;
+ if(!data || !data.length) break;
+ all.push(...data);
+ if(data.length < PAGE) break;
+ }
+ return all;
+};
+
 // p1_324 — badge "order baru / perlu pack" di sidebar (Orders parent + All Orders sub-item)
 window.__aoUpdateOrderBadge = function() {
  if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
@@ -20620,8 +20637,7 @@ window.__aoRefresh = async function(silent) {
  if(btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
  try {
  const prevIds = new Set(salesHistory.map(s => s.id));
- const { data, error } = await db.from('sales_history').select('*').order('created_at', { ascending: false }).limit(100000);
- if(error) throw error;
+ const data = await window.__aoFetchAllSales();
  if(Array.isArray(data)) {
  salesHistory.length = 0;
  for(const d of data) salesHistory.push(d);

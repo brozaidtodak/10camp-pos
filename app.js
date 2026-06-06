@@ -18710,10 +18710,117 @@ window.bulkPopulateFilters = function() {
  cats.map(c => `<option value="${c}"${c === prevC ? ' selected' : ''}>${c}</option>`).join('');
 };
 
+// p1_388 — Bulk Edit "Pilih Field" (EasyStore-style column picker).
+// Core columns (checkbox/Img/SKU/Nama) sentiasa ada. Selebihnya boleh toggle.
+const BULK_FIELD_DEFS = [
+ { g:'Harga',     key:'price',    label:'Harga',        type:'num',   f:'price' },
+ { g:'Harga',     key:'compare',  label:'Compared',     type:'num',   f:'compare_at_price' },
+ { g:'Harga',     key:'cost',     label:'Kos',          type:'num',   f:'cost_price' },
+ { g:'Harga',     key:'floor',    label:'Floor Price',  type:'num',   f:'floor_price' },
+ { g:'Inventori', key:'stock',    label:'Stok',         type:'stock' },
+ { g:'Inventori', key:'bin',      label:'Slot / Lokasi',type:'text',  f:'location_bin' },
+ { g:'Inventori', key:'barcode',  label:'Barcode',      type:'text',  f:'erp_barcode' },
+ { g:'Inventori', key:'reorder',  label:'Reorder Point',type:'int',   f:'reorder_point' },
+ { g:'Maklumat',  key:'brand',    label:'Brand',        type:'disp' },
+ { g:'Maklumat',  key:'category', label:'Kategori',     type:'disp' },
+ { g:'Maklumat',  key:'weight',   label:'Berat (kg)',   type:'num',   f:'weight_kg' },
+ { g:'Maklumat',  key:'status',   label:'Status',       type:'disp' },
+];
+const BULK_FIELD_BY_KEY = {}; BULK_FIELD_DEFS.forEach(d => BULK_FIELD_BY_KEY[d.key] = d);
+const BULK_COLS_DEFAULT = ['brand','category','price','compare','cost','stock','status'];
+window.__bulkCols = (function(){ try { const s = JSON.parse(localStorage.getItem('bulk_cols_v1')); if(Array.isArray(s) && s.length) { const v = s.filter(k => BULK_FIELD_BY_KEY[k]); if(v.length) return v; } } catch(e){} return BULK_COLS_DEFAULT.slice(); })();
+window.__bulkColCount = function(){ return 4 + (window.__bulkCols || []).length; }; // checkbox+Img+SKU+Nama + dynamic
+
+// Build the dynamic table header to match active columns
+window.bulkBuildHead = function(){
+ const row = document.getElementById('bulkHeadRow'); if(!row) return;
+ let h = '<th style="width:36px;"><input type="checkbox" id="bulkSelectAll" onchange="bulkToggleAll(this)"></th>'
+ + '<th style="width:60px;">Img</th><th>SKU</th><th>Nama Produk</th>';
+ (window.__bulkCols || []).forEach(k => {
+ const d = BULK_FIELD_BY_KEY[k]; if(!d) return;
+ const right = (d.type === 'num' || d.type === 'int' || d.type === 'stock');
+ const align = right ? 'text-align:right;' : (d.key === 'status' ? 'text-align:center;' : '');
+ row.innerHTML; // noop to keep linter calm
+ h += `<th style="${align} min-width:80px;">${hesc(d.label)}</th>`;
+ });
+ row.innerHTML = h;
+};
+
+// One <td> for product p under column def d
+window.bulkCellHtml = function(p, d){
+ const sku = hesc(p.sku);
+ if(d.type === 'disp'){
+ if(d.key === 'brand') return `<td>${hesc(p.brand || '-')}</td>`;
+ if(d.key === 'category') return `<td>${hesc(p.category || '-')}</td>`;
+ if(d.key === 'status'){
+ const pub = isPublished(p);
+ const badge = pub
+ ? '<span style="background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">PUBLISHED</span>'
+ : '<span style="background:#FEE2E2; color:#991B1B; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">DRAFT</span>';
+ return `<td style="text-align:center;">${badge}</td>`;
+ }
+ return '<td>-</td>';
+ }
+ if(d.type === 'stock'){
+ const stock = bulkComputeStock(p.sku);
+ return `<td><input id="bk_stock_${sku}" type="number" step="1" value="${stock}" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}"></td>`;
+ }
+ if(d.type === 'text'){
+ const v = p[d.f]; const val = (v != null ? String(v) : '');
+ return `<td><input id="bk_${d.key}_${sku}" type="text" value="${hesc(val)}" placeholder="-" style="width:110px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px;"></td>`;
+ }
+ // num / int
+ const v = p[d.f];
+ const step = d.type === 'int' ? '1' : '0.01';
+ return `<td><input id="bk_${d.key}_${sku}" type="number" step="${step}" value="${v != null ? v : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`;
+};
+
+// "Pilih Field" dropdown panel
+window.bulkOpenFieldPanel = function(){
+ const panel = document.getElementById('bulkFieldPanel'); if(!panel) return;
+ if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
+ window.__bulkColsDraft = (window.__bulkCols || []).slice();
+ window.bulkRenderFieldPanel();
+ panel.style.display = 'block';
+};
+window.bulkRenderFieldPanel = function(){
+ const wrap = document.getElementById('bulkFieldPanelBody'); if(!wrap) return;
+ const draft = window.__bulkColsDraft || window.__bulkCols || [];
+ const groups = {};
+ BULK_FIELD_DEFS.forEach(d => { (groups[d.g] = groups[d.g] || []).push(d); });
+ let h = '';
+ Object.keys(groups).forEach(g => {
+ h += `<div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; margin:12px 0 7px;">${hesc(g)}</div><div style="display:flex; flex-wrap:wrap; gap:7px;">`;
+ groups[g].forEach(d => {
+ const on = draft.includes(d.key);
+ h += `<button type="button" onclick="bulkToggleField('${d.key}')" style="padding:6px 12px; font-size:12px; border-radius:7px; cursor:pointer; border:1px solid ${on ? '#CD7C32' : '#E5E7EB'}; background:${on ? '#FFF1E2' : '#F3F4F6'}; color:${on ? '#A05F22' : '#374151'}; font-weight:${on ? '700' : '500'};">${hesc(d.label)}</button>`;
+ });
+ h += '</div>';
+ });
+ wrap.innerHTML = h;
+};
+window.bulkToggleField = function(key){
+ if(!BULK_FIELD_BY_KEY[key]) return;
+ if(!window.__bulkColsDraft) window.__bulkColsDraft = (window.__bulkCols || []).slice();
+ const d = window.__bulkColsDraft;
+ const i = d.indexOf(key);
+ if(i >= 0) d.splice(i, 1); else d.push(key);
+ window.bulkRenderFieldPanel();
+};
+window.bulkConfirmFields = function(){
+ const order = BULK_FIELD_DEFS.map(x => x.key);
+ const draft = window.__bulkColsDraft || window.__bulkCols || [];
+ window.__bulkCols = order.filter(k => draft.includes(k));
+ try { localStorage.setItem('bulk_cols_v1', JSON.stringify(window.__bulkCols)); } catch(e){}
+ const panel = document.getElementById('bulkFieldPanel'); if(panel) panel.style.display = 'none';
+ if(typeof renderBulkOps === 'function') renderBulkOps();
+};
+
 window.renderBulkOps = function() {
  const tbody = document.getElementById('bulkOpsTbody');
  if(!tbody) return;
  bulkPopulateFilters();
+ if(typeof window.bulkBuildHead === 'function') window.bulkBuildHead();
 
  const q = (document.getElementById('bulkSearchInput').value || '').trim().toLowerCase();
  const filterBrand = document.getElementById('bulkFilterBrand').value;
@@ -18766,37 +18873,24 @@ window.renderBulkOps = function() {
  </div>`;
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:30px; color:#999;">Tiada produk match filter. Cuba tukar Status ke "Semua".</td></tr>';
+ tbody.innerHTML = `<tr><td colspan="${window.__bulkColCount()}" style="text-align:center; padding:30px; color:#999;">Tiada produk match filter. Cuba tukar Status ke "Semua".</td></tr>`;
  bulkUpdateActionBar();
  return;
  }
 
+ const cols = window.__bulkCols || BULK_COLS_DEFAULT;
  const html = filtered.map(p => {
- const stock = bulkComputeStock(p.sku);
  const checked = bulkSelected.has(p.sku) ? 'checked' : '';
  const thumb = (p.images && p.images[0]) ? p.images[0] : 'https://placehold.co/40x40?text=?';
- const pub = isPublished(p);
- const statusBadge = pub
- ? '<span style="background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">PUBLISHED</span>'
- : '<span style="background:#FEE2E2; color:#991B1B; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">DRAFT</span>';
  const stockTakeBadge = (p.description || '').includes('STOK BELUM DISAHKAN')
  ? ' <span title="Stock-take pending" style="background:#FEF3C7; color:#92400E; padding:1px 5px; border-radius:3px; font-weight:bold; font-size:9px;"></span>'
  : '';
- return `
- <tr>
- <td><input type="checkbox" data-sku="${p.sku}" ${checked} onchange="bulkToggleRow('${p.sku.replace(/'/g, "\\'")}', this.checked)"></td>
- <td><img src="${thumb}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; background:#F3F4F6;" loading="lazy" onerror="this.src='https://placehold.co/40x40?text=?'"></td>
- <td style="font-family:monospace; font-size:11px;">${hesc(p.sku)}</td>
- <td>${hesc((p.name || '').slice(0, 90))}${stockTakeBadge}</td>
- <td>${hesc(p.brand || '-')}</td>
- <td>${hesc(p.category || '-')}</td>
- <td><input id="bk_price_${hesc(p.sku)}" type="number" step="0.01" value="${p.price != null ? p.price : ''}" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
- <td><input id="bk_cmp_${hesc(p.sku)}" type="number" step="0.01" value="${p.compare_at_price != null ? p.compare_at_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
- <td><input id="bk_cost_${hesc(p.sku)}" type="number" step="0.01" value="${p.cost_price != null ? p.cost_price : ''}" placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
- <td><input id="bk_stock_${hesc(p.sku)}" type="number" step="1" value="${stock}" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}"></td>
- <td style="text-align:center;">${statusBadge}</td>
- </tr>
- `;
+ let cells = `<td><input type="checkbox" data-sku="${hesc(p.sku)}" ${checked} onchange="bulkToggleRow('${p.sku.replace(/'/g, "\\'")}', this.checked)"></td>`
+ + `<td><img src="${thumb}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; background:#F3F4F6;" loading="lazy" onerror="this.src='https://placehold.co/40x40?text=?'"></td>`
+ + `<td style="font-family:monospace; font-size:11px;">${hesc(p.sku)}</td>`
+ + `<td>${hesc((p.name || '').slice(0, 90))}${stockTakeBadge}</td>`;
+ cols.forEach(k => { const d = BULK_FIELD_BY_KEY[k]; if(d) cells += window.bulkCellHtml(p, d); });
+ return `<tr>${cells}</tr>`;
  }).join('');
  tbody.innerHTML = html;
  bulkUpdateActionBar();
@@ -18816,11 +18910,25 @@ window.bulkSaveEdits = async function() {
  for(const sku of skus) {
  const p = (masterProducts || []).find(x => x.sku === sku);
  if(!p) continue;
- // product_master fields (price/compared/cost)
+ // p1_388 — product_master fields driven by active columns (Pilih Field)
  const payload = {};
- const np = numOrNull('bk_price_' + sku); if(np !== undefined && Number(np) !== Number(p.price)) payload.price = np;
- const nc = numOrNull('bk_cmp_' + sku); if(nc !== undefined && Number(nc) !== Number(p.compare_at_price)) payload.compare_at_price = nc;
- const nk = numOrNull('bk_cost_' + sku); if(nk !== undefined && Number(nk) !== Number(p.cost_price)) payload.cost_price = nk;
+ for(const k of (window.__bulkCols || [])) {
+ const d = BULK_FIELD_BY_KEY[k];
+ if(!d || d.type === 'disp' || d.type === 'stock') continue; // display + stock handled separately
+ const el = document.getElementById('bk_' + k + '_' + sku);
+ if(!el) continue;
+ const raw = (el.value || '').trim();
+ if(d.type === 'text') {
+ const nv = raw === '' ? null : raw;
+ if((p[d.f] || '') !== (nv || '')) payload[d.f] = nv;
+ } else {
+ const nv = raw === '' ? null : (isFinite(parseFloat(raw)) ? (d.type === 'int' ? parseInt(raw, 10) : parseFloat(raw)) : undefined);
+ if(nv === undefined) continue;
+ const cur = p[d.f];
+ const same = (nv === null && cur == null) || (Number(nv) === Number(cur));
+ if(!same) payload[d.f] = nv;
+ }
+ }
  if(Object.keys(payload).length) {
  try {
  const { error } = await db.from('products_master').update(payload).eq('sku', sku);
@@ -18831,8 +18939,8 @@ window.bulkSaveEdits = async function() {
  if('price' in payload) pushedSkus.push(sku);
  } catch(e) { errs.push(sku + ': ' + e.message); }
  }
- // stock (set via FIFO delta adjustment, like variant editor)
- const stEl = document.getElementById('bk_stock_' + sku);
+ // stock (set via FIFO delta adjustment, like variant editor) — only if Stok column active
+ const stEl = (window.__bulkCols || []).includes('stock') ? document.getElementById('bk_stock_' + sku) : null;
  if(stEl && stEl.value.trim() !== '') {
  const target = parseInt(stEl.value, 10);
  const cur = (typeof bulkComputeStock === 'function') ? bulkComputeStock(sku) : 0;

@@ -20084,8 +20084,9 @@ window.__aoDateRange = function(){
  if(period === 'custom'){
  const fv = document.getElementById('aoDateFrom')?.value;
  const tv = document.getElementById('aoDateTo')?.value;
- const from = fv ? new Date(fv + 'T00:00:00').getTime() : 0;
- const to = tv ? new Date(tv + 'T23:59:59.999').getTime() : Infinity;
+ let from = fv ? new Date(fv + 'T00:00:00').getTime() : 0;
+ let to = tv ? new Date(tv + 'T23:59:59.999').getTime() : Infinity;
+ if(from > to) { const tmp = from; from = to; to = tmp; } // kalau Zaid masuk tarikh terbalik, tukar
  return { from, to };
  }
  const days = parseInt(period, 10);

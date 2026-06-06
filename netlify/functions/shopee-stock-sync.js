@@ -127,6 +127,44 @@ exports.handler = async (event) => {
         const tok = await getValidToken();
         out.shop_id = tok.shop_id;
 
+        // p1_364 — dryrun/push guna MAPPING TERSIMPAN (metadata.shopee_item_id + shopee_model_id),
+        // bukan re-list katalog (yang cap 100 item + miss produk variant + timeout). Reliable + laju.
+        // Stok absolute (POS = sumber kebenaran). update_stock idempotent.
+        if (mode === 'dryrun' || mode === 'push') {
+            const posStock = await loadPosStock();
+            out.pos_skus_total = Object.keys(posStock).length;
+            const mappedRows = await sb('GET', "/products_master?select=sku,smid:metadata->>shopee_item_id,smod:metadata->>shopee_model_id&metadata->>shopee_item_id=not.is.null&limit=10000");
+            out.shopee_mapped = (mappedRows || []).length;
+            const byItem = {};
+            for (const r of (mappedRows || [])) {
+                const sku = (r.sku || '').toUpperCase().trim();
+                const itemId = r.smid;
+                if (!sku || !itemId) continue;
+                if (!byItem[itemId]) byItem[itemId] = [];
+                byItem[itemId].push({ model_id: Number(r.smod) || 0, sku, pos_qty: posStock[sku] || 0 });
+            }
+            const itemEntries = Object.entries(byItem).slice(0, limit);
+            out.matched = itemEntries.reduce((s, e) => s + e[1].length, 0);
+            out.items_to_push = itemEntries.length;
+            out.sample = itemEntries.reduce((a, e) => a.concat(e[1]), []).slice(0, 10).map(x => ({ sku: x.sku, pos_qty: x.pos_qty }));
+            if (mode === 'dryrun') {
+                out.note = 'DRYRUN — guna mapping tersimpan; push akan set stok Shopee = stok POS (absolute).';
+                return json(200, out);
+            }
+            let pushed = 0; const errors = [];
+            for (const e of itemEntries) {
+                const itemId = e[0], list = e[1];
+                const stockList = list.map(d => ({ model_id: d.model_id, seller_stock: [{ stock: d.pos_qty }] }));
+                const r = await shopeePost('/api/v2/product/update_stock', {}, { item_id: Number(itemId), stock_list: stockList }, tok.access_token, tok.shop_id);
+                if (r.error) errors.push({ item_id: itemId, error: r.error, message: r.message });
+                else pushed += list.length;
+            }
+            out.pushed = pushed;
+            if (errors.length) out.errors = errors.slice(0, 10);
+            out.ok = errors.length === 0;
+            return json(200, out);
+        }
+
         // 1. List Shopee items
         const itemIds = [];
         let offset = 0;

@@ -20073,6 +20073,33 @@ window.__aoStatusMeta = function(stRaw){
 // p1_319 — kira qty merentas channel (POS Cashier guna `quantity`, Shopee/TikTok guna `qty`)
 window.__aoItemQty = function(it){ return parseInt(it && (it.qty != null ? it.qty : it.quantity)) || 0; };
 
+// p1_325 — julat tarikh dari dropdown aoPeriod (today/yesterday/N hari/custom/all)
+window.__aoDateRange = function(){
+ const period = document.getElementById('aoPeriod')?.value || 'all';
+ const now = Date.now();
+ const sod = new Date(); sod.setHours(0,0,0,0); const startToday = sod.getTime();
+ if(period === 'all') return { from:0, to:Infinity };
+ if(period === 'today') return { from:startToday, to:Infinity };
+ if(period === 'yesterday') return { from:startToday - 86400000, to:startToday };
+ if(period === 'custom'){
+ const fv = document.getElementById('aoDateFrom')?.value;
+ const tv = document.getElementById('aoDateTo')?.value;
+ const from = fv ? new Date(fv + 'T00:00:00').getTime() : 0;
+ const to = tv ? new Date(tv + 'T23:59:59.999').getTime() : Infinity;
+ return { from, to };
+ }
+ const days = parseInt(period, 10);
+ if(days) return { from: now - days*86400000, to:Infinity };
+ return { from:0, to:Infinity };
+};
+// p1_325 — tukar dropdown tempoh: papar/sorok input julat custom + render semula
+window.__aoPeriodChange = function(){
+ const wrap = document.getElementById('aoCustomRange');
+ const isCustom = (document.getElementById('aoPeriod')?.value === 'custom');
+ if(wrap) wrap.style.display = isCustom ? 'flex' : 'none';
+ window.renderAllOrders && window.renderAllOrders();
+};
+
 window.renderAllOrders = function() {
  const tbody = document.getElementById('aoTbody');
  if(!tbody) return;
@@ -20083,13 +20110,12 @@ window.renderAllOrders = function() {
  const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
  const channel = document.getElementById('aoChannel')?.value || '';
  const status = document.getElementById('aoStatus')?.value || '';
- const period = document.getElementById('aoPeriod')?.value || 'all';
- const cutoff = period === 'all' ? 0 : (Date.now() - parseInt(period, 10) * 86400000);
+ const dr = window.__aoDateRange();
  const hideTest = !!document.getElementById('aoHideTest')?.checked;
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
  let filtered = salesHistory.filter(s => {
  if(hideTest && s.is_test) return false;
- if(cutoff && s.created_at && new Date(s.created_at).getTime() < cutoff) return false;
+ if(s.created_at) { const t = new Date(s.created_at).getTime(); if(t < dr.from || t > dr.to) return false; }
  const chLower = (s.channel || '').toLowerCase();
  if(channel === 'walkin') { if(!(chLower.includes('walk') || chLower.includes('cashier'))) return false; }
  else if(channel === 'online') { if(!ONLINE_CHANNELS.some(c => chLower.includes(c))) return false; }
@@ -20471,14 +20497,13 @@ window.__aoPrintPickingList = function() {
  if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
  const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
  const channel = document.getElementById('aoChannel')?.value || '';
- const period = document.getElementById('aoPeriod')?.value || 'all';
- const cutoff = period === 'all' ? 0 : (Date.now() - parseInt(period, 10) * 86400000);
+ const dr = window.__aoDateRange();
  const hideTest = !!document.getElementById('aoHideTest')?.checked;
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
  const orders = salesHistory.filter(s => {
  if(window.__aoStatusMeta(s.status).canon !== 'To Fulfil') return false;
  if(hideTest && s.is_test) return false;
- if(cutoff && s.created_at && new Date(s.created_at).getTime() < cutoff) return false;
+ if(s.created_at) { const t = new Date(s.created_at).getTime(); if(t < dr.from || t > dr.to) return false; }
  const chLower = (s.channel || '').toLowerCase();
  if(channel === 'walkin') { if(!(chLower.includes('walk') || chLower.includes('cashier'))) return false; }
  else if(channel === 'online') { if(!ONLINE_CHANNELS.some(c => chLower.includes(c))) return false; }

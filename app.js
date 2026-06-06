@@ -23366,7 +23366,9 @@ window.setMode = function(mode) {
  // p1_251 — sales_all_orders ditambah ke whitelist (Zaid: "visiblekan all orders dekat semua orang")
  // p1_262 — inv_database (Product Master) ditambah ke whitelist
  // p1_267 — Product Master group + 3 sub-items (Collection / Inventory / Purchase Orders) visible semua role
- if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup' || dataTab === 'feedback_inbox' || dataTab === 'sales_all_orders' || dataTab === 'inv_database' || dataTab === 'inv_warehouse_hub' || dataTab === 'inv_po' || groupToggle === 'product_master' || it.getAttribute('data-group') === 'product_master') { it.classList.remove('mode-hidden'); return; }
+ // p1_339 — sidebar restruktur (p1_280) guna data-tab baru nav_* + group Orders/Products (nav-parent).
+ // Tambah ke whitelist supaya staff bukan-mgmt (inventory/sales) nampak group ni — sebelum ni sidebar kosong sebab nama tab lama (inv_database/sales_all_orders) tak match.
+ if(it.id === 'sidebarRoadmapBtn' || dataTab === 'memo_board' || dataTab === 'report_my' || dataTab === 'staff_feedback' || dataTab === 'payment_proofs' || dataTab === 'customers_all' || dataTab === 'customers_b2b' || dataTab === 'sales_customer_lookup' || dataTab === 'feedback_inbox' || dataTab === 'sales_all_orders' || dataTab === 'inv_database' || dataTab === 'inv_warehouse_hub' || dataTab === 'inv_po' || groupToggle === 'product_master' || it.getAttribute('data-group') === 'product_master' || it.hasAttribute('data-nav-parent') || (dataTab && dataTab.indexOf('nav_') === 0)) { it.classList.remove('mode-hidden'); return; }
  // p1_45: Superior bypass — Bos always sees everything, mode-class hiding skipped entirely
  if(__isSuperior) { it.classList.remove('mode-hidden'); return; }
 

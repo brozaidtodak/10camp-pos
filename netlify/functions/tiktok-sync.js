@@ -218,9 +218,11 @@ exports.handler = async (event) => {
 
     const params = event.queryStringParameters || {};
     const mode = params.mode === 'import' ? 'import' : 'dryrun';
+    // p1_343 — default lookback 7 hari (dulu 2) supaya re-sync status tangkap perubahan lebih lama
+    // (cth order dibatalkan 3-5 hari selepas dibuat masih auto-betul di POS).
     const sinceMs = params.since
         ? Date.parse(params.since)
-        : Date.now() - 2 * 24 * 60 * 60 * 1000;
+        : Date.now() - 7 * 24 * 60 * 60 * 1000;
     if (isNaN(sinceMs)) return json(400, { error: 'invalid ?since date (use YYYY-MM-DD or ISO datetime)' });
 
     const out = { mode };

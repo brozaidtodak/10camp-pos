@@ -23376,17 +23376,10 @@ window.setMode = function(mode) {
  // ada access (bukan hanya current mode). Setiap staff nampak semua items yang dia
  // berhak akses tanpa perlu manual switch mode. setMode() masih lari untuk auto-jump
  // landing redirect tapi `mode` arg tak digunakan untuk filter sidebar lagi.
- const accessUnion = (typeof window.getModesAccess === 'function') ? window.getModesAccess(__u) : { cashier:false, operations:false, manager:false, hq:false };
- let show = false;
- // p1_93: Manager sekarang grant HQ access secara otomatik (getModesAccess sync HQ↔Manager).
- // Manager-mode = wide-view termasuk HQ items (Settings, Permissions, Test Guide).
- if(accessUnion.manager && !isInvestor) show = true;
- // Cashier-mode items: sales-only class OR group-toggle="sales"
- if(!show && accessUnion.cashier && (isSales || groupToggle === 'sales')) show = true;
- // Operations-mode items: inv-only class OR group-toggle="inv"
- if(!show && accessUnion.operations && (isInv || groupToggle === 'inv')) show = true;
- // HQ alias for back-compat (manager flag dah grant ni anyway).
- if(!show && accessUnion.hq && isHq) show = true;
+ // p1_340 — Zaid: "tak nak hidden mode; account aku sandaran je; apa aku nampak semua staf nampak".
+ // POS staff-facing — SEMUA staf nampak sidebar PENUH sama macam Bos (kecuali investor-only yang dah defunct).
+ // Logik akses-per-mode (accessUnion cashier/operations/manager) dikekalkan dalam git history kalau nak re-enable.
+ const show = !isInvestor;
  it.classList.toggle('mode-hidden', !show);
  });
 

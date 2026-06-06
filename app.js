@@ -9554,6 +9554,7 @@ function renderCart() {
  const subLabel = document.getElementById("cartSubtotalVal");
  const btnPay = document.getElementById("btnOpenPayment");
  if(!container) return; container.innerHTML = ""; let total = 0; let totalItems = 0;
+ if(typeof window.__cartProofRefresh === 'function') window.__cartProofRefresh(); // p1_383 — snap-resit row
  
  // safe update helper for mobile bar
  const updateMobileBar = (t, i) => {
@@ -9813,6 +9814,7 @@ window.__proofPickFile = function(inputEl) {
  }
  // p1_230 — sync cpFormView badge + toast feedback
  if(typeof window.cpRefreshProofBadge === 'function') window.cpRefreshProofBadge();
+ if(typeof window.__cartProofRefresh === 'function') window.__cartProofRefresh(); // p1_383 cart-screen row
  if(typeof showToast === 'function') showToast(`Resit ditangkap: ${f.name} (${(f.size / 1024).toFixed(0)} KB)`, 'success');
  };
  reader.readAsDataURL(f);
@@ -9827,6 +9829,31 @@ window.__proofClearFile = function() {
  window.__proofState = { file: null, dataUrl: null };
  // p1_230 — sync cpFormView badge
  if(typeof window.cpRefreshProofBadge === 'function') window.cpRefreshProofBadge();
+ // p1_383 — sync cart-screen snap row
+ if(typeof window.__cartProofRefresh === 'function') window.__cartProofRefresh();
+};
+
+// p1_383 — Snap Resit SIAP-SIAP di skrin cart (sebelum checkout). Guna proofCameraInput
+// global + __proofState yang sama; bila checkout + confirm, processNewCheckout upload.
+window.__cartProofRefresh = function() {
+ const row = document.getElementById('cartProofRow');
+ if(!row) return;
+ const f = window.__proofState && window.__proofState.file;
+ if(f) {
+ row.innerHTML = `<div style="display:flex; align-items:center; gap:8px; background:#D1FAE5; border:1px solid #10B981; color:#065F46; padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:700;">
+ <i data-lucide="camera" style="width:16px;height:16px;flex-shrink:0;"></i>
+ <span style="flex:1;">Resit dah siap <span style="font-weight:500; opacity:0.75;">(${(f.size/1024).toFixed(0)} KB)</span></span>
+ <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="background:#fff; border:1px solid #10B981; color:#065F46; padding:6px 10px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700;">Tukar</button>
+ <button type="button" onclick="window.__proofClearFile()" title="Buang resit" style="background:none; border:none; color:#991B1B; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+ </div>`;
+ } else {
+ row.innerHTML = `<button type="button" onclick="document.getElementById('proofCameraInput').click()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:#EFF6FF; border:1px dashed #93C5FD; color:#1E40AF; padding:11px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;">
+ <i data-lucide="camera" style="width:16px;height:16px;"></i> Snap Resit (sebelum bayar)
+ <span style="font-weight:500; opacity:0.7; font-size:11px;">· opsional</span>
+ </button>
+ <div style="text-align:center; margin-top:5px;"><button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:none; color:#6B7280; cursor:pointer; font-size:11px; text-decoration:underline;">atau pilih dari fail</button></div>`;
+ }
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 
 // Upload to Supabase Storage payment-proofs bucket. Returns public URL or null.
@@ -9892,6 +9919,8 @@ window.clearCart = function() {
  cart = [];
  // p1_79 fix #2: also detach customer when clearing cart
  try { window.posDetachCustomer(); } catch(e){}
+ // p1_383 — reset resit pre-snap bila cart clear (mula sale baru / lepas sale siap)
+ try { if(typeof window.__proofClearFile === 'function') window.__proofClearFile(); } catch(e){}
  renderCart();
 }
 
@@ -24023,8 +24052,9 @@ window.openCheckoutPanel = function() {
  }
  const chEl = document.getElementById('cpChannel'); if(chEl) chEl.value = 'POS Cashier';
  const stEl = document.getElementById('cpStatus'); if(stEl) stEl.value = 'Completed';
- // p1_372 — reset resit state setiap checkout baru (elak resit sale lepas terbawa)
- if(typeof window.__proofClearFile === 'function') window.__proofClearFile();
+ // p1_383 — JANGAN reset resit state di sini lagi (dulu p1_372): staff boleh snap
+ // resit SIAP-SIAP di skrin cart sebelum checkout; reset hanya bila cart clear /
+ // lepas sale siap (clearCart + post-checkout cleanup). Badge panel baca __proofState.
  cpSetPayment('Cash');
 
  // Compute & show total

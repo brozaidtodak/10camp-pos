@@ -15277,15 +15277,11 @@ window.__mpPushPrices = async function() {
  const skus = prods.filter(p => p && p.metadata && p.metadata.shopee_item_id).map(p => p.sku);
  if(!skus.length) { setS('Tiada produk mapped untuk push.'); return; }
  const chunk = (a,n) => { const o=[]; for(let i=0;i<a.length;i+=n) o.push(a.slice(i,i+n)); return o; };
- let okShopee = 0, okTiktok = 0;
+ let okTiktok = 0;
  const batches = chunk(skus, 20);
- for(let i=0;i<batches.length;i++) {
- setS(`Push Shopee... batch ${i+1}/${batches.length}`);
- try {
- const r = await fetch('/api/marketplace-price-push?mode=push&channel=shopee&skus=' + batches[i].join(','));
- const j = await r.json(); okShopee += (j.shopee && j.shopee.pushed) || 0;
- } catch(e) {}
- }
+ // p1_347 — Shopee SENGAJA dilangkau dari auto-push. Dasar "misleading"/restriction Shopee boleh
+ // flag + kunci ~7 hari bila harga berubah (terutama naik). Harga Shopee diurus MANUAL di Seller
+ // Centre (di mana amaran Shopee nampak). POS push TikTok sahaja (lenient, takde risiko kunci).
  for(let i=0;i<batches.length;i++) {
  setS(`Push TikTok... batch ${i+1}/${batches.length}`);
  try {
@@ -15293,8 +15289,8 @@ window.__mpPushPrices = async function() {
  const j = await r.json(); okTiktok += (j.tiktok && j.tiktok.pushed) || 0;
  } catch(e) {}
  }
- setS(`Siap — Shopee ${okShopee}, TikTok ${okTiktok} harga dipush.`);
- if(typeof showToast === 'function') showToast(`Harga dipush: Shopee ${okShopee}, TikTok ${okTiktok}`, 'success');
+ setS(`Siap — TikTok ${okTiktok} harga dipush. (Shopee tak dipush — urus manual di Seller Centre.)`);
+ if(typeof showToast === 'function') showToast(`Harga dipush ke TikTok: ${okTiktok}. Shopee diurus manual (elak flag misleading).`, 'success');
 };
 
 // p1_289 — human-readable "last sync" timestamp (global so detail view reuses it)
@@ -16615,7 +16611,7 @@ window.saveMasterProduct = async function() {
 
  // p1_297 — push this product's price to Shopee + TikTok (custom price or markup
  // fallback). Single SKU = fast, fire-and-forget, never blocks the save.
- try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
+ try { fetch('/api/marketplace-price-push?mode=push&channel=tiktok&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
 
  // p1_226 — Initial Quantity → inventory_batches insert (only for NEW products + qty > 0)
  // p1_236 — fix schema columns: was unit_cost_rm/received_at/received_by/note → actual: cost_price/inbound_date/notes
@@ -17556,7 +17552,7 @@ window.__pdpSaveVariants = async function(parentSku) {
  }
  } catch(e) { errs.push('harga marketplace: ' + e.message); }
  // push updated prices to marketplaces (fire-and-forget, single batch)
- try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
+ try { fetch('/api/marketplace-price-push?mode=push&channel=tiktok&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
  if(errs.length) console.warn('Variant save errors:', errs);
  // Reload batches so the stock display reflects the adjustments, then re-render
  // the variant table IN PLACE. Resets inputs to true current stock so pressing
@@ -17679,7 +17675,7 @@ window.savePdpData = async function() {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);
  if(error) throw error;
  // p1_297b — push this product's price to Shopee + TikTok (fire-and-forget)
- try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
+ try { fetch('/api/marketplace-price-push?mode=push&channel=tiktok&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
  if(typeof showToast === 'function') showToast(`${sku} saved. Harga dipush ke marketplace.`, 'success');
  else alert("Product saved successfully.");
  document.getElementById('pdpModal').style.display = 'none';
@@ -18501,7 +18497,7 @@ window.bulkSaveEdits = async function() {
  // push changed prices to marketplaces (batched, fire-and-forget)
  if(pushedSkus.length) {
  const chunk = (a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
- for(const c of chunk(pushedSkus, 25)) { try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(c.join(','))).catch(()=>{}); } catch(e){} }
+ for(const c of chunk(pushedSkus, 25)) { try { fetch('/api/marketplace-price-push?mode=push&channel=tiktok&skus=' + encodeURIComponent(c.join(','))).catch(()=>{}); } catch(e){} }
  }
  // reload batches so stock display reflects adjustments
  if(stockChanged) { try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){} }

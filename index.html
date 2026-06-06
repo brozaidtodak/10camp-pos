@@ -6593,23 +6593,38 @@
  <h2 class="section-title" style="margin-top:20px;"><i data-lucide="pie-chart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Customer Segments &amp; RFM Analytics</h2>
  <p style="font-size:13px; color:#666; margin-bottom:14px;">RFM (Recency / Frequency / Monetary) — kenal pasti customer mana yang loyal, mana yang dah hilang, mana yang VIP.</p>
 
- <div id="segStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:14px;"></div>
+         <!-- p1_382 — Segments tables dikemas: rows/columns berpadding + garis + zebra + header seragam; grid collapse atas phone -->
+         <style>
+            #segmentsSection .seg-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+            @media (max-width: 820px) { #segmentsSection .seg-grid { grid-template-columns:1fr; } }
+            #segmentsSection table { width:100%; border-collapse:collapse; font-size:12px; }
+            #segmentsSection thead th { text-align:left; padding:9px 11px; background:#FAF6EF; color:#6F6256; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; border-bottom:2px solid #ECE6DE; white-space:nowrap; }
+            #segmentsSection tbody td { padding:9px 11px; border-bottom:1px solid #F1ECE4; color:#374151; vertical-align:middle; }
+            #segmentsSection tbody tr:nth-child(even) { background:#FCFAF6; }
+            #segmentsSection tbody tr:hover { background:#FBF4EA; }
+            #segmentsSection tbody tr:last-child td { border-bottom:none; }
+            #segmentsSection .admin-card { padding:0; overflow:hidden; margin-bottom:14px; }
+            #segmentsSection .admin-card > h3 { margin:0; padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border-color); background:#FFFDFA; display:flex; align-items:center; gap:7px; }
+            #segmentsSection .seg-tbl-wrap { overflow-x:auto; }
+         </style>
 
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px;">
- <div class="admin-card" style="padding:14px;">
- <h3 style="margin:0 0 10px; font-size:14px;"> RFM Buckets</h3>
- <table style="width:100%; font-size:12px;"><thead><tr><th style="text-align:left;">Segment</th><th style="text-align:right;">Customers</th><th style="text-align:right;">Spend Total (RM)</th><th style="text-align:right;">Avg Order Value</th></tr></thead><tbody id="segRfmTbody"></tbody></table>
- </div>
- <div class="admin-card" style="padding:14px;">
- <h3 style="margin:0 0 10px; font-size:14px;"> Cohort: New Customers × Total Spend</h3>
- <table style="width:100%; font-size:11px;"><thead><tr><th>Bulan Daftar</th><th style="text-align:right;">New</th><th style="text-align:right;">Total Spend</th><th style="text-align:right;">Avg/Customer</th></tr></thead><tbody id="segCohortTbody"></tbody></table>
- </div>
- </div>
+         <div id="segStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:14px;"></div>
 
- <div class="admin-card" style="padding:14px;">
- <h3 style="margin:0 0 10px; font-size:14px;"> Top 20 Customers by Lifetime Value</h3>
- <div class="table-responsive"><table class="data-table" style="font-size:12px;"><thead style="background:#FAFAFA;"><tr><th>Rank</th><th>Name</th><th>Phone</th><th>Tier</th><th style="text-align:right;">Total Orders</th><th style="text-align:right;">Total Spent (RM)</th><th style="text-align:right;">AOV (RM)</th><th>Last Order</th></tr></thead><tbody id="segTopTbody"></tbody></table></div>
- </div>
+         <div class="seg-grid">
+            <div class="admin-card">
+               <h3><i data-lucide="layers" style="width:15px;height:15px;"></i> RFM Buckets</h3>
+               <div class="seg-tbl-wrap"><table><thead><tr><th style="text-align:left;">Segment</th><th style="text-align:right;">Customers</th><th style="text-align:right;">Spend Total (RM)</th><th style="text-align:right;">Avg Order Value</th></tr></thead><tbody id="segRfmTbody"></tbody></table></div>
+            </div>
+            <div class="admin-card">
+               <h3><i data-lucide="calendar-range" style="width:15px;height:15px;"></i> Cohort: New Customers &times; Total Spend</h3>
+               <div class="seg-tbl-wrap"><table><thead><tr><th style="text-align:left;">Bulan Daftar</th><th style="text-align:right;">New</th><th style="text-align:right;">Total Spend</th><th style="text-align:right;">Avg/Customer</th></tr></thead><tbody id="segCohortTbody"></tbody></table></div>
+            </div>
+         </div>
+
+         <div class="admin-card">
+            <h3><i data-lucide="trophy" style="width:15px;height:15px;"></i> Top 20 Customers by Lifetime Value</h3>
+            <div class="seg-tbl-wrap"><table class="data-table"><thead><tr><th>Rank</th><th>Name</th><th>Phone</th><th>Tier</th><th style="text-align:right;">Total Orders</th><th style="text-align:right;">Total Spent (RM)</th><th style="text-align:right;">AOV (RM)</th><th>Last Order</th></tr></thead><tbody id="segTopTbody"></tbody></table></div>
+         </div>
  </div>
 
  <!-- ============================================== -->
@@ -7216,6 +7231,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_382', label:'Customer Segments dikemas jadi rows/columns teratur (Zaid: "fokus customer segments wujudkan rows dan column supaya lebih teratur"). Sebelum: jadual RFM Buckets + Cohort guna <table> kosong (takde border/padding/zebra = bersepah), grid 2-kolum 1fr 1fr tak collapse atas phone. FIX (HTML/CSS inline scoped #segmentsSection): semua thead th seragam (bg cream #FAF6EF, uppercase, border bawah), tbody td padding 9x11 + garis halus + zebra (nth-child even) + hover; admin-card jadi header-strip + jadual penuh (padding:0 overflow:hidden, h3 jadi tajuk strip dengan icon Lucide); .seg-grid collapse 1 kolum bawah 820px; .seg-tbl-wrap overflow-x auto (jadual lebar boleh scroll sendiri, tak overflow page). Top 20 kekal .data-table. JS render tak berubah (id sama). HTML sahaja, no asset version bump.', d:'done' },
  { id:'p1_381', label:'Fix overflow mendatar dashboard atas phone (Zaid screenshot IMG_0833: page boleh geser tepi, kad memo terpotong; IMG_0832 header dah OK lepas p1_380). PUNCA: #homeSection .dash-hero = CSS grid 4-kolum (1.6fr 1fr 1fr 1fr, design-tokens 3571) TANPA responsive override -> atas iPhone kad KPI + carta TRAJEKTORI tersepit melebihi lebar skrin (grid item min-width:auto = min-content tak mengecil) -> #main-content jadi lebih lebar dari viewport -> seluruh page boleh pan mendatar, kad memo (width 100% container terlebih lebar) terpotong. FIX: @media 1100px -> dash-hero 2 kolum; 600px -> 1 kolum; .dash-hero-card min-width:0 (benarkan mengecil) + canvas/svg max-width:100%. design-tokens.css v72->v73.', d:'done' },
  { id:'p1_380', label:'Fix header rosak atas phone (iPhone 15 Pro Max) (Zaid screenshot: header bar gelap cuma ~60% lebar, content terpotong, item tak sampai tepi kanan). DAPATAN: (1) selector collapse Search button rosak — `header.app-header.btn` (header takde class btn) jadi text Search + kbd ⌘K tak hilang pada mobile -> header melebar/sesak. (2) header nampak shrink-wrap (~258px). FIX dalam @media(max-width:720px): .app-header width:100% + box-sizing:border-box + flex-wrap:wrap + row-gap (paksa full-width, wrap elak potong); betulkan selector jadi .app-header .btn span/.kbd (collapse Search jadi icon je); breadcrumb min-width:0 flex-shrink:1. design-tokens.css v71->v72.', d:'done' },
  { id:'p1_379', label:'PUNCA SEBENAR zoom resit tak buka: modal bersarang dalam section display:none (Zaid audit: "hover keluar magnifying glass tapi tekan takde zoom, dekat laptop"). DAPATAN: #ppImgModal (modal zoom) terletak DALAM #paymentProofsSection (class tab-section, display:none kecuali kat page Payment Proofs). Bila tekan resit dari ALL ORDERS / panel order detail, __ppOpenImg set display:flex TAPI parent section display:none -> modal kekal hidden -> nampak macam takde apa jadi (walaupun semua handler zoom betul). Sebab tu jalan kat page Payment Proofs je, tak jalan tempat lain. FIX: alih blok ppImgModal KELUAR ke paras <body> (sebelum </body></html>) supaya position:fixed z-4000 boleh muncul dari mana-mana section. HTML-only (struktur sahaja). build stamp 454->455. app.js v454->v455.', d:'done' },

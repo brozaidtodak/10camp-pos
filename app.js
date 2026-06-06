@@ -18511,9 +18511,10 @@ window.renderBulkOps = function() {
  const filterBrand = document.getElementById('bulkFilterBrand').value;
  const filterCat = document.getElementById('bulkFilterCategory').value;
  const filterStatus = document.getElementById('bulkFilterStatus').value;
+ const sortBy = (document.getElementById('bulkFilterSort') || {}).value || 'sku';
  const pageSize = parseInt(document.getElementById('bulkPageSize').value) || 100;
  // p1_313 — reset to page 1 whenever the filter/search changes
- const __sig = [q, filterBrand, filterCat, filterStatus, pageSize].join('|');
+ const __sig = [q, filterBrand, filterCat, filterStatus, sortBy, pageSize].join('|');
  if(window.__bulkLastSig !== __sig) { window.__bulkPage = 1; window.__bulkLastSig = __sig; }
 
  let filtered = masterProducts.filter(p => {
@@ -18527,6 +18528,15 @@ window.renderBulkOps = function() {
  }
  return true;
  });
+
+ // p1_366 — susun supaya SKU tak bersepah. Natural sort: prefix huruf + nombor turutan
+ // (cth BD001 < BD002 < BD010 < CD001), bukan turutan database rawak.
+ const __skuParts = (s) => { const m = String(s||'').toUpperCase().match(/^([A-Z]+)0*(\d+)/); return m ? [m[1], parseInt(m[2],10)] : [String(s||'').toUpperCase(), Infinity]; };
+ const __bySku = (a,b) => { const pa=__skuParts(a.sku), pb=__skuParts(b.sku); if(pa[0]!==pb[0]) return pa[0]<pb[0]?-1:1; if(pa[1]!==pb[1]) return pa[1]-pb[1]; return String(a.sku||'').localeCompare(String(b.sku||'')); };
+ if(sortBy === 'brand') filtered.sort((a,b)=>{ const ba=(a.brand||'').toLowerCase(), bb=(b.brand||'').toLowerCase(); if(ba!==bb) return ba<bb?-1:1; return __bySku(a,b); });
+ else if(sortBy === 'stock_asc') filtered.sort((a,b)=> (bulkComputeStock(a.sku)-bulkComputeStock(b.sku)) || __bySku(a,b));
+ else if(sortBy === 'price_desc') filtered.sort((a,b)=> ((Number(b.price)||0)-(Number(a.price)||0)) || __bySku(a,b));
+ else filtered.sort(__bySku);
 
  // p1_313 — paginate so ALL skus reachable (page through, avoids huge-DOM crash)
  const total = filtered.length;
@@ -25297,6 +25307,11 @@ window.I18N = {
  inv_btn_inv_sewa: { bm: 'JANA PDF INV. SEWA', en: 'GENERATE PDF RENTAL INV.' },
 
  // Bulk Product Edit (bk_*)
+ bk_filter_sort: { bm: 'Susun', en: 'Sort' },
+ bk_sort_sku: { bm: 'SKU (A→Z)', en: 'SKU (A→Z)' },
+ bk_sort_brand: { bm: 'Brand → SKU', en: 'Brand → SKU' },
+ bk_sort_stock: { bm: 'Stok rendah → tinggi', en: 'Stock low → high' },
+ bk_sort_price: { bm: 'Harga tinggi → rendah', en: 'Price high → low' },
  bk_title: { bm: 'Bulk Edit Produk', en: 'Bulk Edit Products' },
  bk_sub: { bm: 'Edit Harga / Compared / Kos terus dalam jadual, tekan Simpan Perubahan. Atau tick produk untuk bulk Publish / Category.', en: 'Edit Price / Compared / Cost inline in the table, then Save Changes. Or tick products for bulk Publish / Category.' },
  bk_bin_title: { bm: 'Bulk Import Lokasi Bin', en: 'Bulk Import Bin Location' },

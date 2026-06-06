@@ -4453,8 +4453,14 @@ window.__ppImgZoomBy = function(delta) {
  if(z.scale === 1) { z.tx = 0; z.ty = 0; }
  window.__ppApplyZoom();
 };
-// Tap gambar: kalau Fit → zoom masuk 2.5x; kalau dah zoom → biar (pan guna seret, Fit utk reset)
-window.__ppImgTapZoom = function() { if(window.__ppZoom.scale <= 1.01) { window.__ppZoom.scale = 2.5; window.__ppApplyZoom(); } };
+// Tap gambar: toggle masuk/keluar — Fit → 2.5x, kalau dah zoom → reset. Jamin jalan
+// atas SEMUA device walau pinch tak disokong (cuma satu tap).
+window.__ppImgTapZoom = function() {
+ const z = window.__ppZoom;
+ if(z.scale <= 1.01) { z.scale = 2.5; }
+ else { z.scale = 1; z.tx = 0; z.ty = 0; }
+ window.__ppApplyZoom();
+};
 // Bind gesture sekali sahaja (pinch 2-jari, seret 1-jari/mouse, wheel)
 window.__ppBindZoomGestures = function() {
  if(window.__ppZoomBound) return;
@@ -4474,6 +4480,16 @@ window.__ppBindZoomGestures = function() {
  }, { passive: false });
  scroll.addEventListener('touchend', () => { mode = null; });
  scroll.addEventListener('wheel', (e) => { e.preventDefault(); window.__ppImgZoomBy(e.deltaY < 0 ? 0.3 : -0.3); }, { passive: false });
+ // iOS Safari guna gesture events untuk pinch (touchmove 2-jari tak reliable + Safari
+ // rampas jadi page-zoom). Handle sini + preventDefault supaya page tak zoom.
+ let gStartScale = 1;
+ const modalOpen = () => { const m = document.getElementById('ppImgModal'); return m && m.style.display !== 'none'; };
+ scroll.addEventListener('gesturestart', (e) => { e.preventDefault(); gStartScale = window.__ppZoom.scale; }, { passive: false });
+ scroll.addEventListener('gesturechange', (e) => { e.preventDefault(); const z = window.__ppZoom; z.scale = Math.min(6, Math.max(1, gStartScale * e.scale)); if(z.scale === 1) { z.tx = 0; z.ty = 0; } window.__ppApplyZoom(); }, { passive: false });
+ scroll.addEventListener('gestureend', (e) => { e.preventDefault(); }, { passive: false });
+ // Halang Safari page-zoom global SEMASA modal resit terbuka (iPad)
+ document.addEventListener('gesturestart', (e) => { if(modalOpen()) e.preventDefault(); }, { passive: false });
+ document.addEventListener('gesturechange', (e) => { if(modalOpen()) e.preventDefault(); }, { passive: false });
  // Mouse drag pan (desktop)
  let dragging = false, mX = 0, mY = 0, mTx = 0, mTy = 0;
  img.addEventListener('mousedown', (e) => { if(window.__ppZoom.scale > 1) { dragging = true; mX = e.clientX; mY = e.clientY; mTx = window.__ppZoom.tx; mTy = window.__ppZoom.ty; e.preventDefault(); } });

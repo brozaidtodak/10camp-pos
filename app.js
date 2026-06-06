@@ -14592,12 +14592,48 @@ window.memoOpenSubmit = function() {
  document.getElementById('memoFormTitle').value = '';
  document.getElementById('memoFormBody').value = '';
  document.getElementById('memoFormPinned').checked = false;
+ // p1_385 — mod CIPTA baru (bukan edit)
+ window.__memoEditId = null;
+ const hd = document.getElementById('memoFormHeading'); if(hd) hd.textContent = (typeof window.t==='function' ? window.t('mb_sub_title') : '') || 'Hantar Memo Baru';
+ const bl = document.getElementById('memoSubmitBtnLabel'); if(bl) bl.textContent = (typeof window.t==='function' ? window.t('mb_sub_send') : '') || 'Hantar untuk Kelulusan';
+ document.getElementById('memoSubmitOverlay').style.display = 'flex';
+ setTimeout(()=>document.getElementById('memoFormTitle').focus(), 100);
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+// p1_385 — Edit memo sedia ada: prefill form + tukar ke mod edit
+window.memoEdit = function(id) {
+ const u = window.memoCurrentUser();
+ const m = window.memoLoad().find(x => x.id === id);
+ if(!m) return;
+ const canEdit = u && (window.isBoss(u) || (m.posted_by_id === u.staff_id && m.status !== 'approved'));
+ if(!canEdit) { if(typeof showToast==='function') showToast('Tiada akses edit memo ni', 'warn'); return; }
+ document.getElementById('memoFormDept').value = m.department || 'general';
+ document.getElementById('memoFormTitle').value = m.title || '';
+ document.getElementById('memoFormBody').value = m.body || '';
+ document.getElementById('memoFormPinned').checked = !!m.pinned;
+ window.__memoEditId = id;
+ const hd = document.getElementById('memoFormHeading'); if(hd) hd.textContent = 'Edit Memo';
+ const bl = document.getElementById('memoSubmitBtnLabel'); if(bl) bl.textContent = 'Simpan Perubahan';
  document.getElementById('memoSubmitOverlay').style.display = 'flex';
  setTimeout(()=>document.getElementById('memoFormTitle').focus(), 100);
  if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 window.memoCloseSubmit = function() {
  document.getElementById('memoSubmitOverlay').style.display = 'none';
+ window.__memoEditId = null; // p1_385
+};
+// p1_385 — Pin/Unpin toggle (Bos sahaja, memo approved). Memo pinned popup masa staf login.
+window.memoTogglePin = function(id) {
+ const u = window.memoCurrentUser();
+ if(!window.isBoss(u)) { if(typeof showToast==='function') showToast('Hanya Bos boleh pin memo', 'warn'); return; }
+ const memos = window.memoLoad();
+ const m = memos.find(x => x.id === id);
+ if(!m) return;
+ m.pinned = !m.pinned;
+ window.memoSaveAll(memos);
+ if(typeof window.memoUpsertRemote === 'function') window.memoUpsertRemote(m);
+ if(typeof showToast==='function') showToast(m.pinned ? 'Memo dipin — popup masa staf login' : 'Memo unpin', 'success');
+ window.renderMemoBoard();
 };
 window.memoSubmit = function() {
  const u = window.memoCurrentUser();
@@ -14611,6 +14647,22 @@ window.memoSubmit = function() {
 
  const memos = window.memoLoad();
  const isSuperior = window.isBoss(u);
+
+ // p1_385 — MOD EDIT: kemaskini memo sedia ada (kekal id/author/status/timestamp)
+ if(window.__memoEditId) {
+ const m = memos.find(x => x.id === window.__memoEditId);
+ if(m) {
+ m.department = dept; m.title = title; m.body = body; m.pinned = pinned;
+ m.edited_at = new Date().toISOString(); m.edited_by_name = u.name;
+ window.memoSaveAll(memos);
+ if(typeof window.memoUpsertRemote === 'function') window.memoUpsertRemote(m);
+ }
+ window.__memoEditId = null;
+ window.memoCloseSubmit();
+ if(typeof showToast === 'function') showToast('Memo dikemaskini.', 'success');
+ window.renderMemoBoard();
+ return;
+ }
  const memo = {
  id: 'm' + Date.now() + Math.floor(Math.random()*1000),
  department: dept,
@@ -14876,11 +14928,16 @@ window.renderMemoBoard = function() {
  (m.status === 'rejected' ? ' memo-card--rejected' : '');
  const canApprove = isSuperior && m.status === 'pending';
  const canDelete = u && (window.isBoss(u) || (m.posted_by_id === u.staff_id && m.status === 'pending'));
+ // p1_385 — edit: Bos mana-mana memo; author kalau belum approved. Pin/unpin: Bos, memo approved.
+ const canEdit = u && (window.isBoss(u) || (m.posted_by_id === u.staff_id && m.status !== 'approved'));
+ const canPin = isSuperior && m.status === 'approved';
  const actions = [];
  if(canApprove) {
  actions.push('<button class="memo-card__act memo-card__act--approve" onclick="window.memoApprove(\''+m.id+'\')"><i data-lucide="check" style="width:12px; height:12px;"></i> '+escapeHtml(T('mb_card_approve','Approve'))+'</button>');
  actions.push('<button class="memo-card__act memo-card__act--reject" onclick="window.memoOpenReject(\''+m.id+'\')"><i data-lucide="x" style="width:12px; height:12px;"></i> '+escapeHtml(T('mb_card_reject','Reject'))+'</button>');
  }
+ if(canPin) actions.push('<button class="memo-card__act" onclick="window.memoTogglePin(\''+m.id+'\')" title="'+(m.pinned?'Unpin memo':'Pin memo (popup masa staf login)')+'" style="'+(m.pinned?'background:#FEF3C7; color:#92400E; border-color:#FCD34D;':'')+'"><i data-lucide="'+(m.pinned?'pin-off':'pin')+'" style="width:13px; height:13px;"></i> '+(m.pinned?'Unpin':'Pin')+'</button>');
+ if(canEdit) actions.push('<button class="memo-card__act" onclick="window.memoEdit(\''+m.id+'\')" title="Edit memo"><i data-lucide="edit-3" style="width:13px; height:13px;"></i> Edit</button>');
  if(canDelete) actions.push('<button class="memo-card__act memo-card__act--delete" onclick="window.memoDelete(\''+m.id+'\')" title="'+escapeHtml(T('mb_card_delete','Padam'))+'"><i data-lucide="trash-2" style="width:13px; height:13px;"></i></button>');
 
  let reasonHtml = '';

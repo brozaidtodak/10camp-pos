@@ -239,11 +239,17 @@ function render() {
     subtotalEl.textContent = fmt(subtotal);
 
     let final = subtotal;
-    if (vip && vip.discount_pct) {
+    // p1_369 — auto-discount hanya kira kalau master switch ON (ikut payload.autoDiscount).
+    // Bila OFF: VIP masih dikenali (badge papar) tapi harga tak ditolak automatik.
+    if (vip && vip.discount_pct && payload.autoDiscount) {
         const discAmt = subtotal * vip.discount_pct / 100;
         final = subtotal - discAmt;
         vipLine.style.display = 'block';
         vipLine.innerHTML = `⭐ VIP discount: −RM ${fmt(discAmt)} (${vip.discount_pct}% off)`;
+        vipBadge.style.display = 'block';
+        vipBadge.innerHTML = `<span class="vip-badge">⭐ ${vip.tier || 'VIP'} MEMBER</span>`;
+    } else if (vip) {
+        vipLine.style.display = 'none';
         vipBadge.style.display = 'block';
         vipBadge.innerHTML = `<span class="vip-badge">⭐ ${vip.tier || 'VIP'} MEMBER</span>`;
     } else {

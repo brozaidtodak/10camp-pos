@@ -9576,10 +9576,12 @@ function renderCart() {
  if(subLabel) subLabel.textContent = total.toFixed(2);
 
  // p1_79 fix #3: apply VIP discount preview if posCustomer is a member
+ // p1_369 — Zaid: tak nak auto-discount. Gated oleh window.VIP_AUTO_DISCOUNT (default OFF).
+ // VIP masih dikenali (badge papar), tapi harga TAK ditolak automatik — staff bagi diskaun manual.
  let discount = 0;
  const cust = window.posCustomer;
  const discLine = document.getElementById('cartDiscountLine');
- if(cust && cust.is_member && typeof getVipDiscountPercent === 'function') {
+ if(window.VIP_AUTO_DISCOUNT && cust && cust.is_member && typeof getVipDiscountPercent === 'function') {
  try {
  const pct = parseFloat(getVipDiscountPercent()) || 0;
  if(pct > 0) {
@@ -9607,6 +9609,7 @@ window.writeCustomerDisplayCart = function() {
  const payload = {
  items: cart,
  vip: window.__currentCheckoutVip || null,
+ autoDiscount: !!window.VIP_AUTO_DISCOUNT, // p1_369 — skrin pelanggan ikut flag yang sama
  updatedAt: new Date().toISOString()
  };
  localStorage.setItem('customerDisplayCart_v1', JSON.stringify(payload));
@@ -10135,10 +10138,11 @@ window.processNewCheckout = async function() {
  const afterCustomDisc = round2(totalVal - customDiscount);
 
  // VIP auto-discount: apply on top of custom discount if window.__currentCheckoutVip is set
+ // p1_369 — gated OFF (Zaid: nak custom discount je, bukan auto).
  let vipDiscountAmt = 0;
  let finalTotal = afterCustomDisc;
  const vip = window.__currentCheckoutVip;
- if(vip && vip.discount_pct> 0) {
+ if(window.VIP_AUTO_DISCOUNT && vip && vip.discount_pct> 0) {
  vipDiscountAmt = round2(afterCustomDisc * vip.discount_pct / 100);
  finalTotal = round2(afterCustomDisc - vipDiscountAmt);
  }
@@ -10149,8 +10153,9 @@ window.processNewCheckout = async function() {
  saleMeta.ewallet_ref = ewalletRef;
  }
  if(vip) {
- saleMeta.vip_discount_applied = true;
- saleMeta.vip_discount_pct = vip.discount_pct;
+ // p1_369 — rekod hanya kalau auto-discount betul-betul apply (sekarang OFF → 0).
+ saleMeta.vip_discount_applied = vipDiscountAmt > 0;
+ saleMeta.vip_discount_pct = vipDiscountAmt > 0 ? vip.discount_pct : 0;
  saleMeta.vip_discount_amount = vipDiscountAmt;
  saleMeta.vip_subtotal_before_discount = totalVal;
  saleMeta.vip_customer_id = vip.customer_id;
@@ -21781,6 +21786,11 @@ window.generateEmailBlast = function() {
 // ===================================
 // VIP AUTO-DISCOUNT
 // ===================================
+// p1_369 — Zaid: "aku tak nak auto discount, aku nak boleh custom discount".
+// Master switch OFF — VIP/tier masih dikenali (badge + cadangan %), tapi harga
+// TIDAK ditolak automatik. Staff bagi diskaun ikut budi bicara via "Diskaun Custom".
+// Tukar ke true kalau nak hidupkan balik auto-discount.
+window.VIP_AUTO_DISCOUNT = false;
 window.__currentCheckoutVip = null;
 
 function getVipDiscountPercent() {
@@ -21841,7 +21851,7 @@ window.checkoutVipLookup = function() {
  badge.style.color = '#92400E';
  badge.style.border = '2px solid #FCD34D';
  badge.style.display = 'block';
- badge.innerHTML = `⭐ <strong>VIP MEMBER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent — auto-discount <strong>${pct}%</strong> applied`;
+ badge.innerHTML = `⭐ <strong>VIP MEMBER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` — auto-discount <strong>${pct}%</strong> applied` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual)`}`;
  } else {
  badge.style.background = '#EFF6FF';
  badge.style.color = '#1E40AF';
@@ -21861,7 +21871,7 @@ window.recomputeCheckoutTotal = function() {
  cart.forEach(it => { raw += (it.qty || 1) * (parseFloat(it.price) || 0); });
  let final = raw;
  let discountAmt = 0;
- if(window.__currentCheckoutVip) {
+ if(window.VIP_AUTO_DISCOUNT && window.__currentCheckoutVip) {
  discountAmt = round2(raw * window.__currentCheckoutVip.discount_pct / 100);
  final = round2(raw - discountAmt);
  }
@@ -22864,7 +22874,7 @@ window.checkoutVipLookup = function() {
  badge.style.color = c.fg;
  badge.style.border = `2px solid ${c.fg}`;
  badge.style.display = 'block';
- badge.innerHTML = `${c.emoji} <strong>${tier.toUpperCase()} TIER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent — auto-discount <strong>${pct}%</strong> applied`;
+ badge.innerHTML = `${c.emoji} <strong>${tier.toUpperCase()} TIER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` — auto-discount <strong>${pct}%</strong> applied` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual)`}`;
  } else {
  const orders = match.total_orders || 0;
  const need = 3 - orders;
@@ -24068,8 +24078,9 @@ window.cpRecomputeTotal = function() {
  if(customDiscount > raw) customDiscount = raw;
  const afterCustom = round2(raw - customDiscount);
  // VIP discount applied on top of custom-discounted amount
+ // p1_369 — auto-discount gated OFF (Zaid). VIP dikenali tapi harga tak tolak sendiri.
  let vipDiscount = 0;
- if(window.__currentCheckoutVip && window.__currentCheckoutVip.discount_pct) {
+ if(window.VIP_AUTO_DISCOUNT && window.__currentCheckoutVip && window.__currentCheckoutVip.discount_pct) {
  vipDiscount = round2(afterCustom * window.__currentCheckoutVip.discount_pct / 100);
  }
  final = round2(afterCustom - vipDiscount);
@@ -24149,7 +24160,7 @@ window.cpVipLookup = function() {
  const tierClass = tier.toLowerCase();
  banner.className = `cp-vip-banner is-shown cp-vip-banner--${tierClass}`;
  const emoji = (typeof getTierColor === 'function') ? getTierColor(tier).emoji : '⭐';
- banner.innerHTML = `${emoji} <strong>${tier} TIER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent → auto-discount <strong>${pct}% applied</strong>`;
+ banner.innerHTML = `${emoji} <strong>${tier} TIER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` → auto-discount <strong>${pct}% applied</strong>` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual di Diskaun Custom)`}`;
  // auto-fill email if empty
  if(match.email && !document.getElementById('cpCustEmail').value) {
  document.getElementById('cpCustEmail').value = match.email;

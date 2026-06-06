@@ -20141,7 +20141,14 @@ window.renderAllOrders = function() {
  const testBadge = isTest ? '<span style="background:#F59E0B; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
  return `<tr style="border-bottom:1px solid #F3F4F6; ${isTest ? 'background:rgba(254,243,199,.18);' : ''}">
  <td style="padding:10px;">${dt}</td>
- <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">#${s.id}${testBadge}</td>
+ ${(() => {
+ // p1_321 — kolum Order boleh diklik (ganti butang Lihat). Papar no ref marketplace + #id POS
+ const omd = s.metadata || {};
+ const ref = omd.shopee_order_sn || omd.tiktok_order_id || omd.online_order_ref || '';
+ const main = ref || ('#' + s.id);
+ const sub = ref ? ('#' + s.id) : '';
+ return `<td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#2563EB; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
+ })()}
  <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
  <td style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
  <td style="padding:10px; font-size:11.5px;">${escHtml(s.payment_method || '-')}</td>
@@ -20177,9 +20184,7 @@ window.renderAllOrders = function() {
  return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppUploadFor && window.__ppUploadFor(${s.id})" title="Upload bukti bayar (tiada resit dalam DB)" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="upload" style="width:10px;height:10px;vertical-align:-1px;"></i> tiada</button></td>`;
  })()}
  <td style="padding:10px; white-space:nowrap;">
- <button onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Lihat butiran order + senarai barang untuk pack" style="background:#E0F2FE; border:1px solid #7DD3FC; color:#075985; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="eye" style="width:10px;height:10px;vertical-align:-1px;"></i> Lihat</button>
- <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
- <button onclick="window.__aoToggleTest && window.__aoToggleTest(${s.id}, ${!isTest})" title="${isTest ? 'Tandai semula sebagai REAL sale (akan masuk laporan)' : 'Tandai sebagai TEST (tak masuk laporan sales sebenar)'}" style="background:${isTest ? '#D1FAE5' : '#FEF3C7'}; border:1px solid ${isTest ? '#86EFAC' : '#FCD34D'}; color:${isTest ? '#065F46' : '#92400E'}; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="${isTest ? 'check-circle' : 'flask-conical'}" style="width:10px;height:10px;vertical-align:-1px;"></i> ${isTest ? 'Real' : 'Test'}</button>
+ <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
  </td>
  </tr>`;
  }).join('');

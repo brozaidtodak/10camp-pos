@@ -3294,8 +3294,7 @@ window.__psListFilter = function() {
  const start = (page - 1) * PER;
  const slice = rows.slice(start, start + PER);
  window.__psPageSkus = slice.map(p => p.sku);
- // p1_355 — formula global (kira tier semua baris)
- const EX = parseFloat(document.getElementById('psListEx')?.value) || 0.60;
+ // p1_361 — SF% global (Exchange kini per-baris)
  const HANDraw = document.getElementById('psListHand')?.value;
  const HAND = (HANDraw === '' || HANDraw == null || isNaN(parseFloat(HANDraw))) ? 5 : parseFloat(HANDraw);
  // p1_358 — stok SEBENAR dari inventory_batches (sum qty_remaining), sync dengan stok produk
@@ -3308,38 +3307,41 @@ window.__psListFilter = function() {
  // p1_354 — input editable (stopPropagation supaya tak trigger load-calc bila taip)
  const numInp = (id, val, ph) => `<input id="${id}" type="number" step="0.01" inputmode="decimal" value="${val > 0 ? val : ''}" placeholder="${ph}" onclick="event.stopPropagation();" style="width:90px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;">`;
  const body = slice.map((p, i) => {
- const price = Number(p.price || 0);
  const cost = Number(p.cost_rmb || 0);
+ const ex = (p.exchange_rate != null && p.exchange_rate !== '') ? Number(p.exchange_rate) : 0.60;
+ const ship = Number(p.shipping_cost_rm || 0);
+ const markup = (p.rrp_markup_pct != null && p.rrp_markup_pct !== '') ? Number(p.rrp_markup_pct) : 30;
+ const base = cost * ex;
+ const sf = base * (HAND / 100);
+ const costBersih = base + ship + sf;
+ const basedPrice = costBersih * (1 + markup / 100);
+ const komisen = basedPrice * 0.05;
  const stock = __psStock[p.sku] || 0;
- let badge = '';
- if(price > 0 && cost > 0) badge = '<span style="background:#D1FAE5; color:#065F46; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">Set</span>';
- else if(price > 0) badge = '<span style="background:#FEF3C7; color:#92400E; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">No Cost</span>';
- else badge = '<span style="background:#FEE2E2; color:#991B1B; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700;">Belum Set</span>';
- const skuRaw = p.sku || '';
- const skuSafe = escHtml(skuRaw);
- const skuArg = skuRaw.replace(/'/g, "\\'");
+ const pub = (typeof isPublished === 'function') ? isPublished(p) : !!p.is_published;
+ const statusBadge = pub ? '<span style="background:#D1FAE5; color:#065F46; padding:3px 9px; border-radius:999px; font-size:10px; font-weight:700;">Live</span>' : '<span style="background:#F3F4F6; color:#6B7280; padding:3px 9px; border-radius:999px; font-size:10px; font-weight:700;">Draft</span>';
+ const skuSafe = escHtml(p.sku || '');
  const imgSrc = (p.images && p.images[0]) ? p.images[0] : window.__psNoImg;
- const loc = (p.location_bin || '').trim();
- const shipRow = Number(p.shipping_cost_rm || 0);
- const rrpRate = (p.rrp_markup_pct != null && p.rrp_markup_pct !== '') ? Number(p.rrp_markup_pct) : 30;
- const baseR = cost * EX;
- const costFinalR = baseR + shipRow + baseR * (HAND / 100);
- const rrpVal = costFinalR * (1 + rrpRate / 100);
- const tcell = (id, val) => `<td class="ps-list-cell" style="padding:8px 10px; text-align:right; cursor:pointer; color:#0F766E; font-weight:600;" onclick="event.stopPropagation(); window.__psUseTier(${i}, '${id}')" title="Klik untuk guna sebagai Harga POS"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
+ const calcInp = (id, val, ph, w) => `<input id="${id}" type="number" step="0.01" inputmode="decimal" value="${val > 0 ? val : ''}" placeholder="${ph}" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:${w}px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;">`;
+ const calcCell = (id, val, strong) => `<td class="ps-list-cell" style="padding:9px 10px; text-align:right; color:#374151;${strong ? ' font-weight:700; color:#0F766E;' : ''}"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
  return `<tr class="ps-list-row">`
- + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
- + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono', Menlo, ui-monospace, monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
- + `<td class="ps-list-cell" style="padding:10px; line-height:1.4;">${escHtml((p.name || '').slice(0, 80))}</td>`
- + `<td class="ps-list-cell" style="padding:10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
- + `<td class="ps-list-cell" style="padding:10px;">${loc ? `<span style="display:inline-block; padding:2px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; font-size:10.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(loc)}</span>` : `<span style="color:#D1D5DB; font-size:11px;">—</span>`}</td>`
- + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_price', price, 'RM')}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
+ + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; color:#D1D5DB; font-size:11px;">—</td>`
+ + `<td class="ps-list-cell" style="padding:10px; color:#6B7280; font-size:11.5px;">${escHtml(p.category || '—')}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; text-align:center;">${statusBadge}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; line-height:1.4;">${escHtml((p.name || '').slice(0, 55))}</td>`
+ + `<td class="ps-list-cell" style="padding:10px; color:#6B7280; font-size:11.5px;">${escHtml(p.model_no || '—')}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();"><input id="psr_${i}_cost" type="number" step="0.01" inputmode="decimal" value="${cost > 0 ? cost : ''}" placeholder="¥" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:82px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${calcInp('psr_' + i + '_ex', ex, '0.60', 62)}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${calcInp('psr_' + i + '_ship', ship, 'RM', 72)}</td>`
+ + calcCell('psr_' + i + '_sf', sf)
+ + calcCell('psr_' + i + '_bersih', costBersih)
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${calcInp('psr_' + i + '_markup', markup, '30', 58)}</td>`
+ + calcCell('psr_' + i + '_based', basedPrice, true)
+ + calcCell('psr_' + i + '_komisen', komisen)
  + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_shopee', Number(p.shopee_price || 0), 'RM')}</td>`
  + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_tiktok', Number(p.tiktok_price || 0), 'RM')}</td>`
- + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();"><input id="psr_${i}_cost" type="number" step="0.01" inputmode="decimal" value="${cost > 0 ? cost : ''}" placeholder="¥" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:88px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`
- + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();"><input id="psr_${i}_ship" type="number" step="0.01" inputmode="decimal" value="${shipRow > 0 ? shipRow : ''}" placeholder="RM" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:80px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`
- + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();"><input id="psr_${i}_rrprate" type="number" step="1" inputmode="decimal" value="${rrpRate}" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:64px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`
- + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'}; font-weight:600;">${stock}</td>`
- + `<td class="ps-list-cell" style="padding:10px; text-align:center;">${badge}</td></tr>`;
+ + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'}; font-weight:600;">${stock}</td></tr>`;
  }).join('');
  const from = rows.length ? start + 1 : 0, to = start + slice.length;
  const bs = "padding:5px 11px; border:1px solid #E5E7EB; background:#fff; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:#374151;";
@@ -3347,19 +3349,24 @@ window.__psListFilter = function() {
  const pager = totalPages > 1 ? `<span style="display:inline-flex; align-items:center; gap:8px; margin-left:10px;"><button ${page <= 1 ? 'disabled style="' + bd + '"' : 'onclick="window.__psListGoPage(' + (page - 1) + ')" style="' + bs + '"'}>‹ Prev</button><span style="font-weight:700;">Hlmn ${page}/${totalPages}</span><button ${page >= totalPages ? 'disabled style="' + bd + '"' : 'onclick="window.__psListGoPage(' + (page + 1) + ')" style="' + bs + '"'}>Next ›</button></span>` : '';
  const html = '<table class="ps-list-table">'
  + '<thead><tr>'
- + '<th style="width:96px;"></th>'
+ + '<th style="width:72px;"></th>'
  + '<th style="text-align:left;">SKU</th>'
- + '<th style="text-align:left;">Nama</th>'
- + '<th style="text-align:left;">Brand</th>'
- + '<th style="text-align:left;">Lokasi</th>'
- + '<th style="text-align:right;">Harga POS</th>'
+ + '<th style="text-align:left;">Delivery Order</th>'
+ + '<th style="text-align:left;">Category</th>'
+ + '<th style="text-align:center;">Status</th>'
+ + '<th style="text-align:left;">Product Name</th>'
+ + '<th style="text-align:left;">Model No</th>'
+ + '<th style="text-align:right;">Cost (RMB)</th>'
+ + '<th style="text-align:right;">Exchange</th>'
+ + '<th style="text-align:right;">Shipping</th>'
+ + '<th style="text-align:right;">5% SF</th>'
+ + '<th style="text-align:right;">Cost Bersih (RM)</th>'
+ + '<th style="text-align:right;">Markup %</th>'
+ + '<th style="text-align:right;">Based Price</th>'
+ + '<th style="text-align:right;">Komisen 5%</th>'
  + '<th style="text-align:right;">Shopee</th>'
  + '<th style="text-align:right;">TikTok</th>'
- + '<th style="text-align:right;">Cost RMB</th>'
- + '<th style="text-align:right;">Shipping</th>'
- + '<th style="text-align:right;">RRP %</th>'
  + '<th style="text-align:right;">Stok</th>'
- + '<th style="text-align:center;">Status</th>'
  + '</tr></thead><tbody>' + body + '</tbody></table>'
  + `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:10px 12px; border-top:1px solid var(--border-color);"><span style="font-size:11.5px; color:#6B7280;">Papar <strong>${from}-${to}</strong> dari <strong>${rows.length}</strong>${pager} · <em style="color:#9CA3AF;">Simpan dulu sebelum tukar halaman</em></span><button onclick="window.__psSaveList()" class="btn-brand-primary" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; padding:7px 14px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Simpan Perubahan</button></div>`;
  wrap.innerHTML = html;
@@ -3378,20 +3385,26 @@ window.__psTiers = function(rmb, ex, ship, hand) {
  proposal: costFinal * 1.35
  };
 };
-// p1_359 — recompute RRP satu baris (bila Cost RMB / Shipping / RRP% ditaip) tanpa re-render
+// p1_361 — recompute satu baris: 5% SF, Cost Bersih, Based Price, Komisen 5% (live, tanpa re-render)
 window.__psRowCalc = function(i) {
  const rmb = parseFloat(document.getElementById('psr_' + i + '_cost')?.value) || 0;
+ const exr = document.getElementById('psr_' + i + '_ex')?.value;
+ const ex = (exr === '' || exr == null || isNaN(parseFloat(exr))) ? 0.60 : parseFloat(exr);
  const ship = parseFloat(document.getElementById('psr_' + i + '_ship')?.value) || 0;
- const rraw = document.getElementById('psr_' + i + '_rrprate')?.value;
- const rate = (rraw === '' || rraw == null || isNaN(parseFloat(rraw))) ? 30 : parseFloat(rraw);
- const ex = parseFloat(document.getElementById('psListEx')?.value) || 0.60;
+ const mkr = document.getElementById('psr_' + i + '_markup')?.value;
+ const markup = (mkr === '' || mkr == null || isNaN(parseFloat(mkr))) ? 30 : parseFloat(mkr);
  const hraw = document.getElementById('psListHand')?.value;
- const hand = (hraw === '' || hraw == null || isNaN(parseFloat(hraw))) ? 5 : parseFloat(hraw);
+ const sfPct = (hraw === '' || hraw == null || isNaN(parseFloat(hraw))) ? 5 : parseFloat(hraw);
  const base = rmb * ex;
- const costFinal = base + ship + base * (hand / 100);
- const rrp = costFinal * (1 + rate / 100);
- const el = document.getElementById('psr_' + i + '_rrp');
- if(el) el.textContent = rrp > 0 ? rrp.toFixed(2) : '—';
+ const sf = base * (sfPct / 100);
+ const costBersih = base + ship + sf;
+ const based = costBersih * (1 + markup / 100);
+ const komisen = based * 0.05;
+ const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v > 0 ? v.toFixed(2) : '—'; };
+ set('psr_' + i + '_sf', sf);
+ set('psr_' + i + '_bersih', costBersih);
+ set('psr_' + i + '_based', based);
+ set('psr_' + i + '_komisen', komisen);
 };
 // p1_355 — klik sel tier → salin nilai ke input Harga POS baris tu
 window.__psUseTier = function(i, cellId) {
@@ -3422,10 +3435,10 @@ window.__psSaveList = async function() {
  const prod = (masterProducts || []).find(x => x.sku === sku);
  if(!prod) continue;
  const payload = {};
- const pEl = document.getElementById('psr_' + i + '_price');
  const cEl = document.getElementById('psr_' + i + '_cost');
- if(pEl) { const nv = pEl.value.trim() === '' ? null : (parseFloat(pEl.value) || 0); const ov = prod.price == null ? null : Number(prod.price); if(String(ov) !== String(nv)) payload.price = nv; }
+ const exEl = document.getElementById('psr_' + i + '_ex');
  if(cEl) { const nv = cEl.value.trim() === '' ? null : (parseFloat(cEl.value) || 0); const ov = prod.cost_rmb == null ? null : Number(prod.cost_rmb); if(String(ov) !== String(nv)) payload.cost_rmb = nv; }
+ if(exEl) { const nv = exEl.value.trim() === '' ? null : (parseFloat(exEl.value) || null); const ov = prod.exchange_rate == null ? null : Number(prod.exchange_rate); if(String(ov) !== String(nv)) payload.exchange_rate = nv; }
  // p1_357 — Harga Shopee + TikTok dipisahkan (kosong=null→fallback markup; isi→harga tetap mode rm)
  const sEl = document.getElementById('psr_' + i + '_shopee');
  const tEl = document.getElementById('psr_' + i + '_tiktok');
@@ -3433,7 +3446,7 @@ window.__psSaveList = async function() {
  if(tEl) { const nv = tEl.value.trim() === '' ? null : (parseFloat(tEl.value) || null); const ov = prod.tiktok_price == null ? null : Number(prod.tiktok_price); if(String(ov) !== String(nv)) { payload.tiktok_price = nv; payload.tiktok_price_mode = 'rm'; } }
  // p1_359 — Shipping kos + RRP markup % per produk
  const shEl = document.getElementById('psr_' + i + '_ship');
- const rrEl = document.getElementById('psr_' + i + '_rrprate');
+ const rrEl = document.getElementById('psr_' + i + '_markup');
  if(shEl) { const nv = shEl.value.trim() === '' ? null : (parseFloat(shEl.value) || 0); const ov = prod.shipping_cost_rm == null ? null : Number(prod.shipping_cost_rm); if(String(ov) !== String(nv)) payload.shipping_cost_rm = nv; }
  if(rrEl) { const nv = rrEl.value.trim() === '' ? null : (parseFloat(rrEl.value) || 0); const ov = prod.rrp_markup_pct == null ? null : Number(prod.rrp_markup_pct); if(String(ov) !== String(nv)) payload.rrp_markup_pct = nv; }
  if(Object.keys(payload).length) {

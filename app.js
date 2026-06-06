@@ -15654,6 +15654,25 @@ window.openOrdersHub = function(event) {
  if(typeof window.renderAllOrders === 'function') window.renderAllOrders();
 };
 
+// p1_371 — Cashier parent: tekan = buka POS register + expand sub-items (POS / Commission);
+// tekan lagi = collapse je (boleh tutup/buka). Corak sama macam openOrdersHub.
+window.openCashierHub = function(event) {
+ if(event && event.stopPropagation) event.stopPropagation();
+ const parent = document.querySelector('[data-nav-parent="cashier"]');
+ const willOpen = !(parent && parent.classList.contains('is-expanded'));
+ if(parent) {
+ parent.classList.toggle('is-expanded', willOpen);
+ try {
+ const st = JSON.parse(localStorage.getItem('navGroupState') || '{}');
+ st.cashier = willOpen;
+ localStorage.setItem('navGroupState', JSON.stringify(st));
+ } catch(e){}
+ }
+ if(!willOpen) return; // collapsing — don't navigate
+ const posItem = document.querySelector('[data-nav-children="cashier"] [data-tab="nav_cashier"]');
+ if(typeof switchHub === 'function') switchHub(['posSection'], 'POS / Cashier', posItem || null);
+};
+
 window.restoreNavGroupState = function() {
  let state = {};
  try { state = JSON.parse(localStorage.getItem('navGroupState') || '{}'); } catch(e){}

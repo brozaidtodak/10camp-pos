@@ -3318,7 +3318,7 @@ window.__psListFilter = function() {
  const loc = (p.location_bin || '').trim();
  const t = window.__psTiers(cost, EX, SHIP, HAND);
  const tcell = (id, val) => `<td class="ps-list-cell" style="padding:8px 10px; text-align:right; cursor:pointer; color:#0F766E; font-weight:600;" onclick="event.stopPropagation(); window.__psUseTier(${i}, '${id}')" title="Klik untuk guna sebagai Harga POS"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
- return `<tr class="ps-list-row" onclick="window.__psLoadFromList('${skuArg}')">`
+ return `<tr class="ps-list-row">`
  + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
  + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono', Menlo, ui-monospace, monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
  + `<td class="ps-list-cell" style="padding:10px; line-height:1.4;">${escHtml((p.name || '').slice(0, 80))}</td>`

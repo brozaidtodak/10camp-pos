@@ -20934,32 +20934,36 @@ window.renderCustomersV2 = function() {
  return 0;
  });
 
+ // p1_335 — audit info card CRM: label BM jelas + metrik boleh-tindakan (purata belanja, pernah beli)
  const totalSpent = filtered.reduce((s, c) => s + (c.total_spent||0), 0);
- const totalOrders = filtered.reduce((s, c) => s + (c.total_orders||0), 0);
+ const buyers = filtered.filter(c => (c.total_orders||0) > 0).length;
+ const avgSpend = buyers ? totalSpent / buyers : 0;
  const vipCount = filtered.filter(c => c.is_member).length;
  const emailConsent = filtered.filter(c => c.accepts_email_marketing).length;
 
- // p1_245 — Stats cards guna universal .stat-card brand class (consistent dengan sections lain)
- // border-left semantic colors: primary brand (Match), brand-aligned bronze tints + neutral colors.
  document.getElementById('crmStats').innerHTML = `
  <div class="stat-card">
- <div class="stat-card__label"><i data-lucide="users" style="width:13px;height:13px; color:var(--primary);"></i> Match</div>
+ <div class="stat-card__label"><i data-lucide="users" style="width:13px;height:13px; color:var(--primary);"></i> Pelanggan</div>
  <div class="stat-card__value">${filtered.length.toLocaleString()}</div>
  </div>
- <div class="stat-card" style="border-left-color:#16A34A;">
- <div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Total Spent</div>
+ <div class="stat-card" style="border-left-color:#16A34A;" title="Jumlah lifetime belanja semua pelanggan yang ditapis">
+ <div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Jumlah Belanja</div>
  <div class="stat-card__value">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
  </div>
- <div class="stat-card" style="border-left-color:var(--secondary);">
- <div class="stat-card__label"><i data-lucide="shopping-bag" style="width:13px;height:13px; color:var(--secondary);"></i> Total Orders</div>
- <div class="stat-card__value">${totalOrders.toLocaleString()}</div>
+ <div class="stat-card" style="border-left-color:#0EA5E9;" title="Purata belanja setiap pelanggan yang pernah beli">
+ <div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#0EA5E9;"></i> Purata Belanja</div>
+ <div class="stat-card__value">RM ${avgSpend.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
  </div>
- <div class="stat-card" style="border-left-color:#F59E0B;">
- <div class="stat-card__label"><i data-lucide="star" style="width:13px;height:13px; color:#F59E0B;"></i> VIP Members</div>
+ <div class="stat-card" style="border-left-color:var(--secondary);" title="Pelanggan yang ada sekurang-kurangnya 1 order (sisanya belum pernah beli)">
+ <div class="stat-card__label"><i data-lucide="shopping-bag" style="width:13px;height:13px; color:var(--secondary);"></i> Pernah Beli</div>
+ <div class="stat-card__value">${buyers.toLocaleString()}</div>
+ </div>
+ <div class="stat-card" style="border-left-color:#F59E0B;" title="Pelanggan yang jadi ahli (member)">
+ <div class="stat-card__label"><i data-lucide="star" style="width:13px;height:13px; color:#F59E0B;"></i> Ahli VIP</div>
  <div class="stat-card__value">${vipCount.toLocaleString()}</div>
  </div>
- <div class="stat-card" style="border-left-color:#475569;">
- <div class="stat-card__label"><i data-lucide="mail-check" style="width:13px;height:13px; color:#475569;"></i> Email Consent</div>
+ <div class="stat-card" style="border-left-color:#475569;" title="Pelanggan yang setuju terima email marketing">
+ <div class="stat-card__label"><i data-lucide="mail-check" style="width:13px;height:13px; color:#475569;"></i> Setuju Email</div>
  <div class="stat-card__value">${emailConsent.toLocaleString()}</div>
  </div>
  `;

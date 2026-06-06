@@ -3345,16 +3345,20 @@ window.scLoadArchive = async function(){
  tb.innerHTML='<tr><td colspan="8" style="text-align:center; padding:20px; color:#9CA3AF;">Memuatkan…</td></tr>';
  try {
  const { data: ships } = await db.from('cost_shipments').select('*').order('order_date',{ascending:false, nullsFirst:false}).order('updated_at',{ascending:false}).limit(500);
- const { data: items } = await db.from('cost_shipment_items').select('shipment_id,cost_rmb,qty').limit(100000);
+ const { data: items } = await db.from('cost_shipment_items').select('shipment_id,sku,cost_rmb,qty,sort_idx').order('sort_idx',{ascending:true}).limit(100000);
  const byShip = {};
  (items||[]).forEach(it=>{ (byShip[it.shipment_id] = byShip[it.shipment_id] || []).push(it); });
  window.__scArchive = (ships||[]).map(s=>{
  const its = byShip[s.id] || [];
+ const ex = Number(s.exchange_rate)||0, sfp = Number(s.sf_pct)||0;
+ const ship = Number(s.shipping_cost_rm)||0, pt = Number(s.parttimer_cost_rm)||0;
  const goodsRmb = its.reduce((sum,it)=> sum + (Number(it.cost_rmb)||0)*(parseInt(it.qty,10)||0), 0);
- const goods = goodsRmb * (Number(s.exchange_rate)||0);
- const sf = goods * (Number(s.sf_pct)||0)/100;
- const landed = goods + sf + (Number(s.shipping_cost_rm)||0) + (Number(s.parttimer_cost_rm)||0);
- return { id:s.id, label:s.label, supplier:s.supplier, order_date:s.order_date, updated_at:s.updated_at, created_by:s.created_by, items:its.length, goods, landed };
+ const goods = goodsRmb * ex;
+ const sf = goods * sfp/100;
+ const landed = goods + sf + ship + pt;
+ return { id:s.id, label:s.label, supplier:s.supplier, order_date:s.order_date, updated_at:s.updated_at, created_by:s.created_by,
+ items:its.length, goods, landed, ex, sf_pct:sfp, shipping:ship, parttimer:pt,
+ rows: its.map(it=>({ sku:it.sku||'', rmb:Number(it.cost_rmb)||0, qty:parseInt(it.qty,10)||0 })) };
  });
  scRenderArchive();
  } catch(e){ tb.innerHTML='<tr><td colspan="8" style="text-align:center; padding:20px; color:#EF4444;">Error: '+(e.message||e)+'</td></tr>'; }
@@ -3369,8 +3373,8 @@ window.scRenderArchive = function(){
  if(!rows.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center; padding:24px; color:#9CA3AF;">Tiada rekod.</td></tr>'; const sum=document.getElementById('scArchiveSummary'); if(sum) sum.textContent=''; return; }
  tb.innerHTML = rows.map(r=>{
  const dt = r.order_date ? r.order_date : (r.updated_at ? new Date(r.updated_at).toLocaleDateString('en-MY') : '—');
- return `<tr>
- <td>${hesc(dt)}</td>
+ return `<tr onclick="scToggleArchiveDetail(${r.id})" style="cursor:pointer;" title="Klik untuk buka detail item">
+ <td><span id="scCaret_${r.id}" style="color:#CD7C32; font-size:10px;">&#9656;</span> ${hesc(dt)}</td>
  <td>${hesc(r.supplier||'—')}</td>
  <td>${hesc(r.label||('Shipment #'+r.id))}</td>
  <td style="text-align:right;">${r.items}</td>
@@ -3378,13 +3382,57 @@ window.scRenderArchive = function(){
  <td style="text-align:right; font-weight:700;">${fmt(r.landed)}</td>
  <td style="font-size:11px; color:#6B7280;">${hesc(r.created_by||'—')}</td>
  <td style="text-align:center; white-space:nowrap;">
- <button onclick="scOpenArchived(${r.id})" style="padding:4px 10px; font-size:11px; font-weight:600; background:#FFF1E2; color:#A05F22; border:1px solid #CD7C32; border-radius:6px; cursor:pointer;">Buka</button>
- <button onclick="scDeleteArchived(${r.id})" style="padding:4px 8px; font-size:11px; font-weight:600; background:#fff; color:#DC2626; border:1px solid #FECACA; border-radius:6px; cursor:pointer; margin-left:4px;">Padam</button>
+ <button onclick="event.stopPropagation(); scOpenArchived(${r.id})" style="padding:4px 10px; font-size:11px; font-weight:600; background:#FFF1E2; color:#A05F22; border:1px solid #CD7C32; border-radius:6px; cursor:pointer;">Buka</button>
+ <button onclick="event.stopPropagation(); scDeleteArchived(${r.id})" style="padding:4px 8px; font-size:11px; font-weight:600; background:#fff; color:#DC2626; border:1px solid #FECACA; border-radius:6px; cursor:pointer; margin-left:4px;">Padam</button>
  </td>
- </tr>`;
+ </tr>
+ <tr id="scDetail_${r.id}" style="display:none;"><td colspan="8" style="padding:0; background:#FCFAF7;"><div id="scDetailBody_${r.id}" style="padding:12px 16px;"></div></td></tr>`;
  }).join('');
  const totalLanded = rows.reduce((s,r)=> s + (r.landed||0), 0);
  const sum=document.getElementById('scArchiveSummary'); if(sum) sum.textContent = `${rows.length} rekod · jumlah landed semua: ${fmt(totalLanded)}`;
+};
+
+// p1_394 — grid detail item untuk satu shipment (expand dalam Arkib)
+window.scArchiveDetailGrid = function(a){
+ const fmt = (n)=> 'RM' + (Number(n)||0).toFixed(2);
+ const totalQty = a.rows.reduce((s,r)=> s + (r.qty||0), 0);
+ const totalValue = a.rows.reduce((s,r)=> s + (r.rmb||0)*a.ex*(r.qty||0), 0);
+ const ptPU = totalQty>0 ? a.parttimer/totalQty : 0;
+ if(!a.rows.length) return '<div style="color:#9CA3AF; font-size:12px;">Tiada item dalam shipment ni.</div>';
+ const body = a.rows.map(r=>{
+ const goods = (r.rmb||0)*a.ex;
+ const sf = (r.rmb||0)*(a.sf_pct/100)*a.ex;
+ const ship = totalValue>0 ? (goods/totalValue)*a.shipping : 0;
+ const landed = goods + sf + ship + ptPU;
+ return `<tr>
+ <td style="font-family:monospace; font-size:11px;">${hesc(r.sku||'-')}</td>
+ <td style="text-align:right;">${(r.rmb||0).toFixed(2)}</td>
+ <td style="text-align:right;">${r.qty||0}</td>
+ <td style="text-align:right;">${fmt(goods)}</td>
+ <td style="text-align:right;">${fmt(sf)}</td>
+ <td style="text-align:right;">${fmt(ship)}</td>
+ <td style="text-align:right;">${fmt(ptPU)}</td>
+ <td style="text-align:right; font-weight:800; color:#101010;">${fmt(landed)}</td>
+ </tr>`;
+ }).join('');
+ return `<div style="font-size:11px; color:#6B7280; margin-bottom:8px;">Exchange ${a.ex} · SF ${a.sf_pct}% (ikut nilai) · Shipping ${fmt(a.shipping)} (ikut nilai) · Part-timer ${fmt(a.parttimer)} (ikut kuantiti) · ${totalQty} unit</div>
+ <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+ <thead><tr style="background:#F3EEE7;">
+ <th style="text-align:left; padding:6px;">SKU</th><th style="text-align:right; padding:6px;">RMB/u</th><th style="text-align:right; padding:6px;">Qty</th><th style="text-align:right; padding:6px;">Goods</th><th style="text-align:right; padding:6px;">SF</th><th style="text-align:right; padding:6px;">Shipping</th><th style="text-align:right; padding:6px;">P/timer</th><th style="text-align:right; padding:6px;">Landed/u</th>
+ </tr></thead><tbody>${body}</tbody></table>`;
+};
+
+window.scToggleArchiveDetail = function(id){
+ const dr = document.getElementById('scDetail_'+id); if(!dr) return;
+ const caret = document.getElementById('scCaret_'+id);
+ const open = (dr.style.display === 'none' || dr.style.display === '');
+ dr.style.display = open ? 'table-row' : 'none';
+ if(caret) caret.innerHTML = open ? '&#9662;' : '&#9656;';
+ if(open && !dr.dataset.filled){
+ const a = (window.__scArchive||[]).find(x=> String(x.id) === String(id));
+ const body = document.getElementById('scDetailBody_'+id);
+ if(a && body){ body.innerHTML = window.scArchiveDetailGrid(a); dr.dataset.filled = '1'; }
+ }
 };
 
 window.scOpenArchived = async function(id){

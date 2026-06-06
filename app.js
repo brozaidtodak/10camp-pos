@@ -20063,6 +20063,63 @@ window.__updateCrmSegmentCounts = function() {
  });
 };
 
+// p1_336 — Segarkan Total: kira semula total_spent/total_orders pelanggan dari sales_history sebenar.
+// Padan ikut nombor telefon (utama), fallback nama (sama logik openCustomerDetail). Kecuali test + batal/refund.
+window.__crmRefreshTotals = async function(){
+ if(typeof db === 'undefined' || !db) { if(typeof showToast==='function') showToast('DB tak available', 'error'); return; }
+ if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return;
+ const sales = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) ? salesHistory : [];
+ if(!sales.length) { if(typeof showToast==='function') showToast('Data jualan belum dimuat — cuba lagi sekejap.', 'warn'); return; }
+ if(!confirm('Kira semula total belanja & bilangan order SEMUA pelanggan dari rekod jualan sebenar?\n\nIkut nombor telefon, kecuali order test + batal/refund. Selamat — boleh ulang bila-bila.')) return;
+ const dead = (st) => { const c = window.__aoStatusMeta(st).canon; return c === 'Cancelled' || c === 'Refunded'; };
+ const skipName = (nm) => { const n = (nm||'').trim().toLowerCase(); return !n || n === 'walk-in' || n === 'walk in' || n === 'online customer' || n === 'shopee buyer' || n === 'tiktok buyer'; };
+ // 1) index jualan ikut phone + nama
+ const byPhone = {}, byName = {};
+ for(const s of sales){
+ if(s.is_test) continue;
+ if(dead(s.status)) continue;
+ const amt = parseFloat(s.total_amount || s.total || 0) || 0;
+ if(s.customer_phone){
+ const k = String(s.customer_phone).trim();
+ if(k){ (byPhone[k] = byPhone[k] || {spent:0, orders:0}); byPhone[k].spent += amt; byPhone[k].orders += 1; }
+ }
+ const nm = (s.customer_name||'').trim().toLowerCase();
+ if(!skipName(nm)){ (byName[nm] = byName[nm] || {spent:0, orders:0}); byName[nm].spent += amt; byName[nm].orders += 1; }
+ }
+ // 2) kira per pelanggan, kumpul yang berubah
+ const updates = [];
+ for(const c of customersData){
+ let agg = {spent:0, orders:0};
+ if(c.phone && byPhone[String(c.phone).trim()]) agg = byPhone[String(c.phone).trim()];
+ else if(c.name && !skipName(c.name) && byName[c.name.trim().toLowerCase()]) agg = byName[c.name.trim().toLowerCase()];
+ const newSpent = Math.round(agg.spent * 100) / 100;
+ const newOrders = agg.orders;
+ if(newSpent !== (Math.round((c.total_spent||0)*100)/100) || newOrders !== (c.total_orders||0)){
+ updates.push({ id: c.id, total_spent: newSpent, total_orders: newOrders, c });
+ }
+ }
+ const btn = document.getElementById('crmRefreshBtn');
+ if(!updates.length){ if(typeof showToast==='function') showToast('Semua total dah tepat — tiada perubahan.', 'info'); return; }
+ if(btn){ btn.disabled = true; btn.style.opacity = '0.6'; }
+ // 3) tulis batch (10 serentak)
+ let done = 0, failed = 0;
+ const CONC = 10;
+ for(let i = 0; i < updates.length; i += CONC){
+ const chunk = updates.slice(i, i + CONC);
+ const res = await Promise.all(chunk.map(u =>
+ db.from('customers').update({ total_spent: u.total_spent, total_orders: u.total_orders }).eq('id', u.id)
+ .then(r => { if(r.error) return false; u.c.total_spent = u.total_spent; u.c.total_orders = u.total_orders; return true; })
+ .catch(() => false)
+ ));
+ res.forEach(ok => { if(ok) done++; else failed++; });
+ if(btn) btn.innerHTML = `<i data-lucide="loader" style="width:14px;height:14px;"></i> ${done}/${updates.length}`;
+ }
+ if(btn){ btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = '<i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Segarkan Total'; }
+ if(typeof showToast === 'function') showToast(`Segar siap — ${done} pelanggan dikemaskini${failed ? ', ' + failed + ' gagal' : ''}.`, failed ? 'warn' : 'success');
+ if(typeof renderCustomersV2 === 'function') renderCustomersV2();
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
 // p1_249 — All Orders section (walk-in + online entry + list)
 // p1_319 — Status kanonik merentas channel. Marketplace sync simpan pelbagai status
 // (Pending/To Fulfil/Processing/Voided/Completed) — selaraskan ke 6 bucket + warna konsisten.

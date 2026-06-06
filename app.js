@@ -5544,8 +5544,11 @@ async function initApp() {
  // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
  if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
 
- let { data: custs } = await db.from('customers').select('*');
- if(custs) customersData = custs;
+ // p1_330 — muat SEMUA customer berperingkat (2946 rows > had 1000 PostgREST)
+ let custs = [];
+ try { custs = await window.__fetchAllRows('customers'); }
+ catch(e) { try { const r = await db.from('customers').select('*'); custs = r.data || []; } catch(_){} }
+ if(custs && custs.length) customersData = custs;
  
  let { data: fin } = await db.from('finance_records').select('*').order('year', {ascending: false});
  if(fin) financeRecords = fin;
@@ -20602,12 +20605,14 @@ window.__aoPrintPickingList = function() {
  win.document.close();
 };
 
-// p1_329 — muat SEMUA sales_history berperingkat 1000-1000 (PostgREST max-rows ~1000 walau limit besar)
-window.__aoFetchAllSales = async function() {
+// p1_329/p1_330 — muat SEMUA baris berperingkat 1000-1000 (PostgREST max-rows ~1000 walau limit besar)
+window.__fetchAllRows = async function(table, orderCol, ascending) {
  const all = [];
  const PAGE = 1000;
- for(let start = 0; start < 500000; start += PAGE) {
- const { data, error } = await db.from('sales_history').select('*').order('created_at', { ascending: false }).range(start, start + PAGE - 1);
+ for(let start = 0; start < 1000000; start += PAGE) {
+ let q = db.from(table).select('*');
+ if(orderCol) q = q.order(orderCol, { ascending: !!ascending });
+ const { data, error } = await q.range(start, start + PAGE - 1);
  if(error) throw error;
  if(!data || !data.length) break;
  all.push(...data);
@@ -20615,6 +20620,7 @@ window.__aoFetchAllSales = async function() {
  }
  return all;
 };
+window.__aoFetchAllSales = function() { return window.__fetchAllRows('sales_history', 'created_at', false); };
 
 // p1_324 — badge "order baru / perlu pack" di sidebar (Orders parent + All Orders sub-item)
 window.__aoUpdateOrderBadge = function() {
@@ -24651,9 +24657,11 @@ window.saveB2BCustomer = async function() {
  if(data && data[0] && Array.isArray(customersData)) customersData.push(data[0]);
  if(typeof showToast==='function') showToast('B2B customer saved ', 'success');
  }
- // Reload list
- const { data: fresh } = await db.from('customers').select('*');
- if(fresh) window.customersData = fresh;
+ // Reload list (p1_330 — muat semua, elak had 1000)
+ let fresh = [];
+ try { fresh = await window.__fetchAllRows('customers'); }
+ catch(e) { try { const r = await db.from('customers').select('*'); fresh = r.data || []; } catch(_){} }
+ if(fresh && fresh.length) window.customersData = fresh;
  document.getElementById('b2bModal').style.display = 'none';
  window.renderB2BCustomers();
  } catch(e) {

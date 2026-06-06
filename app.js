@@ -25079,7 +25079,7 @@ window.I18N = {
  sb_stock_take: { bm: 'Kiraan Stok', en: 'Stock Take' },
  sb_smart_picking: { bm: 'Picking Pintar', en: 'Smart Picking' },
  sb_barcode_labels: { bm: 'Label Barcode', en: 'Barcode Labels' },
- sb_floor_price: { bm: 'Pricing Setup', en: 'Pricing Setup' },
+ sb_floor_price: { bm: 'Price Calculator', en: 'Price Calculator' },
  sb_stock_check: { bm: 'Stock Check Reports', en: 'Stock Check Reports' },
  sb_price_history: { bm: 'Sejarah Harga', en: 'Price History' },
  sb_reorder: { bm: 'Reorder Suggest', en: 'Reorder Suggest' },

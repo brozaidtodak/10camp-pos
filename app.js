@@ -15004,6 +15004,57 @@ window.__abSetStatus = async function(id, newStatus) {
  } catch(e) { if(typeof showToast === 'function') showToast('Gagal: ' + (e.message || e), 'error'); }
 };
 
+// p1_341 — FIFO Listing: batch stok aktif disusun ikut inbound_date (lama dulu = FIFO)
+window.renderFifoListing = function() {
+ const tbody = document.getElementById('fifoTbody');
+ if(!tbody) return;
+ if(typeof inventoryBatches === 'undefined' || !Array.isArray(inventoryBatches)) {
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
+ return;
+ }
+ const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ const q = (document.getElementById('fifoSearch')?.value || '').trim().toLowerCase();
+ const nameOf = (sku) => { const p = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts.find(x => x.sku === sku) : null; return p ? (p.name || '') : ''; };
+ const ageDays = (iso) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0;
+ let rows = inventoryBatches.filter(b => (Number(b.qty_remaining) || 0) > 0);
+ if(q) rows = rows.filter(b => (b.sku || '').toLowerCase().includes(q) || nameOf(b.sku).toLowerCase().includes(q));
+ rows.sort((a, b) => (a.inbound_date || '').localeCompare(b.inbound_date || '')); // lama dahulu = FIFO
+ const totalUnits = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0), 0);
+ const totalValue = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0) * (Number(b.cost_price || b.landed_cost) || 0), 0);
+ const aging = rows.filter(b => ageDays(b.inbound_date) >= 180).length;
+ document.getElementById('fifoStats').innerHTML = `
+ <div class="stat-card" style="border-left-color:var(--primary);"><div class="stat-card__label"><i data-lucide="layers" style="width:13px;height:13px; color:var(--primary);"></i> Batch Aktif</div><div class="stat-card__value">${rows.length.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#16A34A;"><div class="stat-card__label"><i data-lucide="boxes" style="width:13px;height:13px; color:#16A34A;"></i> Jumlah Unit</div><div class="stat-card__value">${totalUnits.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#0EA5E9;"><div class="stat-card__label"><i data-lucide="banknote" style="width:13px;height:13px; color:#0EA5E9;"></i> Nilai Kos</div><div class="stat-card__value">RM ${totalValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#DC2626;" title="Batch lebih 180 hari — patut diutamakan jual / clearance"><div class="stat-card__label"><i data-lucide="alert-triangle" style="width:13px;height:13px; color:#DC2626;"></i> Batch Lama (>180h)</div><div class="stat-card__value">${aging.toLocaleString()}</div></div>
+ `;
+ if(!rows.length) {
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:32px;">Tiada batch stok aktif' + (q ? ' untuk carian ni' : '') + '.</td></tr>';
+ document.getElementById('fifoSummaryLine').textContent = '';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ return;
+ }
+ tbody.innerHTML = rows.slice(0, 500).map(b => {
+ const age = ageDays(b.inbound_date);
+ const ageColor = age >= 180 ? '#DC2626' : (age >= 90 ? '#92400E' : '#6B7280');
+ const dt = b.inbound_date ? new Date(b.inbound_date).toLocaleDateString('en-MY', {day:'2-digit', month:'short', year:'numeric'}) : '-';
+ const cost = Number(b.cost_price || b.landed_cost) || 0;
+ const poSup = [b.po_number, b.supplier_name].filter(Boolean).join(' · ');
+ return `<tr>
+ <td style="padding:10px; white-space:nowrap;">${esc(dt)}</td>
+ <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(b.sku || '-')}</td>
+ <td style="padding:10px;">${esc(nameOf(b.sku).slice(0, 45) || '-')}</td>
+ <td style="padding:10px; text-align:right; font-weight:700;">${Number(b.qty_remaining) || 0}</td>
+ <td style="padding:10px; text-align:right; color:#6B7280;">${Number(b.qty_received) || 0}</td>
+ <td style="padding:10px; text-align:right;">RM ${cost.toFixed(2)}</td>
+ <td style="padding:10px; text-align:center; font-weight:700; color:${ageColor};">${age}h</td>
+ <td style="padding:10px; font-size:11.5px; color:#6B7280;">${esc(poSup || '-')}</td>
+ </tr>`;
+ }).join('');
+ document.getElementById('fifoSummaryLine').innerHTML = `${rows.length.toLocaleString()} batch aktif${rows.length > 500 ? ' (papar 500 teratas)' : ''}. Disusun lama dahulu (FIFO).`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
 // p1_274 — Stock Transfer stub (build flow later)
 window.renderStockTransfer = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}

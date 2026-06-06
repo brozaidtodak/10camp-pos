@@ -4469,16 +4469,32 @@ window.__ppBindZoomGestures = function() {
  if(!scroll || !img) return;
  window.__ppZoomBound = true;
  let mode = null, startDist = 0, startScale = 1, lastX = 0, lastY = 0, startTx = 0, startTy = 0;
+ // Tap detection (iOS standalone PWA selalu TAK trigger onclick pada <img>; handle via touch)
+ let tapX = 0, tapY = 0, tapT = 0, tapValid = false, lastTouchTap = 0;
  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
  scroll.addEventListener('touchstart', (e) => {
- if(e.touches.length === 2) { mode = 'pinch'; startDist = dist(e.touches) || 1; startScale = window.__ppZoom.scale; }
- else if(e.touches.length === 1 && window.__ppZoom.scale > 1) { mode = 'pan'; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; startTx = window.__ppZoom.tx; startTy = window.__ppZoom.ty; }
+ if(e.touches.length === 2) { mode = 'pinch'; startDist = dist(e.touches) || 1; startScale = window.__ppZoom.scale; tapValid = false; }
+ else if(e.touches.length === 1) {
+ tapX = e.touches[0].clientX; tapY = e.touches[0].clientY; tapT = Date.now(); tapValid = true;
+ if(window.__ppZoom.scale > 1) { mode = 'pan'; lastX = tapX; lastY = tapY; startTx = window.__ppZoom.tx; startTy = window.__ppZoom.ty; }
+ }
  }, { passive: false });
  scroll.addEventListener('touchmove', (e) => {
+ if(e.touches.length === 1 && (Math.abs(e.touches[0].clientX - tapX) > 10 || Math.abs(e.touches[0].clientY - tapY) > 10)) tapValid = false;
  if(mode === 'pinch' && e.touches.length === 2) { e.preventDefault(); const z = window.__ppZoom; z.scale = Math.min(6, Math.max(1, startScale * (dist(e.touches) / startDist))); if(z.scale === 1) { z.tx = 0; z.ty = 0; } window.__ppApplyZoom(); }
  else if(mode === 'pan' && e.touches.length === 1) { e.preventDefault(); const z = window.__ppZoom; z.tx = startTx + (e.touches[0].clientX - lastX); z.ty = startTy + (e.touches[0].clientY - lastY); window.__ppApplyZoom(); }
  }, { passive: false });
- scroll.addEventListener('touchend', () => { mode = null; });
+ scroll.addEventListener('touchend', (e) => {
+ // Tap pendek tanpa gerak = toggle zoom (jamin jalan iPad walau onclick tak fire)
+ if(tapValid && mode !== 'pinch' && (Date.now() - tapT) < 350) {
+ e.preventDefault();
+ lastTouchTap = Date.now();
+ window.__ppImgTapZoom();
+ }
+ mode = null; tapValid = false;
+ }, { passive: false });
+ // Desktop click (guard supaya tap touch tak double-fire dgn synthetic click)
+ img.addEventListener('click', (e) => { e.stopPropagation(); if(Date.now() - lastTouchTap > 500) window.__ppImgTapZoom(); });
  scroll.addEventListener('wheel', (e) => { e.preventDefault(); window.__ppImgZoomBy(e.deltaY < 0 ? 0.3 : -0.3); }, { passive: false });
  // iOS Safari guna gesture events untuk pinch (touchmove 2-jari tak reliable + Safari
  // rampas jadi page-zoom). Handle sini + preventDefault supaya page tak zoom.

@@ -20243,15 +20243,21 @@ window.renderAllOrders = function() {
  const ONLINE_CHANNELS = ['shopee', 'tiktok', 'whatsapp', 'easystore'];
  let filtered = window.__aoGetFiltered();
 
- const total = filtered.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
+ // p1_334 — Jualan BERSIH: tolak order Batal/Voided + Refund (dulu kira semua, angka kembung)
+ const isDeadSale = (st) => { const c = window.__aoStatusMeta(st).canon; return c === 'Cancelled' || c === 'Refunded'; };
+ const liveOrders = filtered.filter(s => !isDeadSale(s.status));
+ const total = liveOrders.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
+ const deadCount = filtered.length - liveOrders.length;
  const walkinCount = filtered.filter(s => { const c = (s.channel || '').toLowerCase(); return c.includes('walk') || c.includes('cashier'); }).length;
  const onlineCount = filtered.filter(s => ONLINE_CHANNELS.some(c => (s.channel || '').toLowerCase().includes(c))).length;
  const toFulfil = filtered.filter(s => window.__aoStatusMeta(s.status).canon === 'To Fulfil').length;
  const processing = filtered.filter(s => window.__aoStatusMeta(s.status).canon === 'Processing').length;
+ const aov = liveOrders.length ? total / liveOrders.length : 0;
 
  document.getElementById('aoStats').innerHTML = `
- <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Total Orders</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
- <div class="stat-card" style="border-left-color:#16A34A;"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Total Sales</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Jumlah Order</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#16A34A;" title="Jualan bersih — tidak termasuk order Batal/Refund${deadCount ? ' (' + deadCount + ' order dikecualikan)' : ''}"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Jualan Bersih</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#0EA5E9;" title="Purata nilai setiap order (jualan bersih)"><div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#0EA5E9;"></i> Purata / Order</div><div class="stat-card__value">RM ${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> Walk-in</div><div class="stat-card__value">${walkinCount}</div></div>
  <div class="stat-card" style="border-left-color:#3B82F6;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#3B82F6;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
  <div class="stat-card" style="border-left-color:#F59E0B; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='To Fulfil'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang perlu di-pack"><div class="stat-card__label"><i data-lucide="package" style="width:13px;height:13px; color:#F59E0B;"></i> Perlu Pack</div><div class="stat-card__value">${toFulfil}</div></div>

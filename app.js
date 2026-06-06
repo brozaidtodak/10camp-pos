@@ -20056,6 +20056,21 @@ window.__updateCrmSegmentCounts = function() {
 };
 
 // p1_249 — All Orders section (walk-in + online entry + list)
+// p1_319 — Status kanonik merentas channel. Marketplace sync simpan pelbagai status
+// (Pending/To Fulfil/Processing/Voided/Completed) — selaraskan ke 6 bucket + warna konsisten.
+window.__aoStatusMeta = function(stRaw){
+ const s = String(stRaw == null ? '' : stRaw).toLowerCase();
+ if(s.includes('refund')) return { canon:'Refunded', label:'Refunded', bg:'#E0E7FF', fg:'#3730A3' };
+ if(s.includes('cancel') || s.includes('void')) return { canon:'Cancelled', label:'Cancelled', bg:'#FEE2E2', fg:'#991B1B' };
+ if(s.includes('complete') || s.includes('deliver')) return { canon:'Completed', label:'Completed', bg:'#D1FAE5', fg:'#065F46' };
+ if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:'Dah Hantar', bg:'#DBEAFE', fg:'#1E40AF' };
+ if(s.includes('fulfil') || s.includes('ready') || s.includes('await')) return { canon:'To Fulfil', label:'Perlu Pack', bg:'#FEF3C7', fg:'#92400E' };
+ if(s.includes('pending') || s.includes('unpaid') || s.includes('hold')) return { canon:'Pending', label:'Belum Bayar', bg:'#FEF9C3', fg:'#854D0E' };
+ return { canon:'', label: stRaw || '-', bg:'#F3F4F6', fg:'#6B7280' };
+};
+// p1_319 — kira qty merentas channel (POS Cashier guna `quantity`, Shopee/TikTok guna `qty`)
+window.__aoItemQty = function(it){ return parseInt(it && (it.qty != null ? it.qty : it.quantity)) || 0; };
+
 window.renderAllOrders = function() {
  const tbody = document.getElementById('aoTbody');
  if(!tbody) return;
@@ -20077,10 +20092,12 @@ window.renderAllOrders = function() {
  if(channel === 'walkin') { if(!(chLower.includes('walk') || chLower.includes('cashier'))) return false; }
  else if(channel === 'online') { if(!ONLINE_CHANNELS.some(c => chLower.includes(c))) return false; }
  else if(channel && s.channel !== channel) return false;
- if(status && s.status !== status) return false;
+ if(status && window.__aoStatusMeta(s.status).canon !== status) return false;
  if(q) {
  const itemsTxt = Array.isArray(s.items) ? s.items.map(i => (i.sku || '') + ' ' + (i.name || '')).join(' ') : '';
- const hay = `${s.customer_name||''} ${s.customer_phone||''} ${s.customer_email||''} ${itemsTxt}`.toLowerCase();
+ const md = s.metadata || {};
+ const refTxt = `${md.shopee_order_sn||''} ${md.tiktok_order_id||''} ${md.online_order_ref||''}`;
+ const hay = `${s.customer_name||''} ${s.customer_phone||''} ${s.customer_email||''} ${itemsTxt} ${refTxt} #${s.id}`.toLowerCase();
  if(!hay.includes(q)) return false;
  }
  return true;
@@ -20090,15 +20107,16 @@ window.renderAllOrders = function() {
  const total = filtered.reduce((s, r) => s + (parseFloat(r.total_amount || r.total || 0)), 0);
  const walkinCount = filtered.filter(s => { const c = (s.channel || '').toLowerCase(); return c.includes('walk') || c.includes('cashier'); }).length;
  const onlineCount = filtered.filter(s => ONLINE_CHANNELS.some(c => (s.channel || '').toLowerCase().includes(c))).length;
- const completed = filtered.filter(s => s.status === 'Completed').length;
- const toFulfil = filtered.filter(s => s.status === 'To Fulfil').length;
+ const toFulfil = filtered.filter(s => window.__aoStatusMeta(s.status).canon === 'To Fulfil').length;
+ const processing = filtered.filter(s => window.__aoStatusMeta(s.status).canon === 'Processing').length;
 
  document.getElementById('aoStats').innerHTML = `
  <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Total Orders</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
  <div class="stat-card" style="border-left-color:#16A34A;"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Total Sales</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> Walk-in</div><div class="stat-card__value">${walkinCount}</div></div>
  <div class="stat-card" style="border-left-color:#3B82F6;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#3B82F6;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
- <div class="stat-card" style="border-left-color:#F59E0B;"><div class="stat-card__label"><i data-lucide="clock" style="width:13px;height:13px; color:#F59E0B;"></i> To Fulfil</div><div class="stat-card__value">${toFulfil}</div></div>
+ <div class="stat-card" style="border-left-color:#F59E0B; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='To Fulfil'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang perlu di-pack"><div class="stat-card__label"><i data-lucide="package" style="width:13px;height:13px; color:#F59E0B;"></i> Perlu Pack</div><div class="stat-card__value">${toFulfil}</div></div>
+ <div class="stat-card" style="border-left-color:#2563EB; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='Processing'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang dah dihantar"><div class="stat-card__label"><i data-lucide="truck" style="width:13px;height:13px; color:#2563EB;"></i> Dah Hantar</div><div class="stat-card__value">${processing}</div></div>
  `;
 
  if(filtered.length === 0) {
@@ -20109,17 +20127,13 @@ window.renderAllOrders = function() {
  }
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
  const statusBadge = (st) => {
- const map = {
- 'Completed': '#D1FAE5;#065F46', 'To Fulfil': '#FEF3C7;#92400E',
- 'Cancelled': '#FEE2E2;#991B1B', 'Refunded': '#E0E7FF;#3730A3'
- };
- const colors = (map[st] || '#F3F4F6;#6B7280').split(';');
- return `<span style="background:${colors[0]}; color:${colors[1]}; padding:2px 8px; border-radius:4px; font-size:10.5px; font-weight:700;">${escHtml(st || '-')}</span>`;
+ const m = window.__aoStatusMeta(st);
+ return `<span style="background:${m.bg}; color:${m.fg}; padding:2px 8px; border-radius:4px; font-size:10.5px; font-weight:700;">${escHtml(m.label || '-')}</span>`;
  };
  const slice = filtered.slice(0, 200);
  tbody.innerHTML = slice.map(s => {
  const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
- const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + (parseInt(it.quantity) || 0), 0) : 0;
+ const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
  const ch = (s.channel || '').toLowerCase();
  const chIcon = (ch.includes('walk') || ch.includes('cashier')) ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
  // p1_250 — Test badge + Test toggle button. is_test column dah exist + __ordMarkTest handler dah exist (line 5868).
@@ -20156,9 +20170,14 @@ window.renderAllOrders = function() {
  if(pm === 'Cash') {
  return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Cash</td>';
  }
+ // p1_319 — order marketplace prepaid (Shopee/TikTok) bayar dikendali platform; jangan flag "tiada resit" merah
+ if(/shopee|tiktok/i.test(s.channel || '')) {
+ return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Platform</td>';
+ }
  return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppUploadFor && window.__ppUploadFor(${s.id})" title="Upload bukti bayar (tiada resit dalam DB)" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="upload" style="width:10px;height:10px;vertical-align:-1px;"></i> tiada</button></td>`;
  })()}
  <td style="padding:10px; white-space:nowrap;">
+ <button onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Lihat butiran order + senarai barang untuk pack" style="background:#E0F2FE; border:1px solid #7DD3FC; color:#075985; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="eye" style="width:10px;height:10px;vertical-align:-1px;"></i> Lihat</button>
  <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
  <button onclick="window.__aoToggleTest && window.__aoToggleTest(${s.id}, ${!isTest})" title="${isTest ? 'Tandai semula sebagai REAL sale (akan masuk laporan)' : 'Tandai sebagai TEST (tak masuk laporan sales sebenar)'}" style="background:${isTest ? '#D1FAE5' : '#FEF3C7'}; border:1px solid ${isTest ? '#86EFAC' : '#FCD34D'}; color:${isTest ? '#065F46' : '#92400E'}; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="${isTest ? 'check-circle' : 'flask-conical'}" style="width:10px;height:10px;vertical-align:-1px;"></i> ${isTest ? 'Real' : 'Test'}</button>
  </td>
@@ -20189,6 +20208,90 @@ window.__aoToggleTest = async function(saleId, isTest) {
  } catch(e) {
  if(typeof showToast === 'function') showToast('Toggle gagal: ' + e.message, 'error');
  }
+};
+
+// p1_319 — Panel detail order (klik "Lihat"). Read-only: butiran + senarai barang untuk pack.
+window.__aoViewOrder = function(saleId) {
+ if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
+ const s = salesHistory.find(x => x.id === saleId);
+ if(!s) { if(typeof showToast === 'function') showToast('Order tak jumpa dalam ingatan — cuba Refresh.', 'warn'); return; }
+ const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+ const md = s.metadata || {};
+ const m = window.__aoStatusMeta(s.status);
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+ const orderRef = md.shopee_order_sn || md.tiktok_order_id || md.online_order_ref || null;
+ const carrier = md.shipping_carrier || md.shipping_provider || null;
+ const items = Array.isArray(s.items) ? s.items : [];
+ let itemsSub = 0;
+ const itemRows = items.length ? items.map(it => {
+ const qty = window.__aoItemQty(it);
+ const price = parseFloat(it.price || 0) || 0;
+ const line = qty * price;
+ itemsSub += line;
+ return `<tr style="border-bottom:1px solid #F3F4F6;">
+ <td style="padding:8px 10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; color:#374151;">${esc(it.sku || '-')}</td>
+ <td style="padding:8px 10px; font-size:12px;">${esc(it.name || '-')}</td>
+ <td style="padding:8px 10px; text-align:center; font-weight:800; font-size:13px; color:var(--primary);">${qty}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#6B7280;">RM ${price.toFixed(2)}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:12px; font-weight:700;">RM ${line.toFixed(2)}</td>
+ </tr>`;
+ }).join('') : '<tr><td colspan="5" style="text-align:center; color:#9CA3AF; padding:18px; font-size:12px;">Tiada senarai barang direkod untuk order ni.</td></tr>';
+ const totalItems = items.reduce((n, it) => n + window.__aoItemQty(it), 0);
+ const grandTotal = parseFloat(s.total_amount || s.total || 0) || 0;
+ const proof = s.payment_proof_url || '';
+ const isMarketplace = /shopee|tiktok/i.test(s.channel || '');
+ const infoRow = (label, val) => val ? `<div style="display:flex; gap:8px; font-size:12.5px; padding:3px 0;"><span style="color:#6B7280; min-width:120px;">${label}</span><span style="font-weight:600; color:#111827;">${esc(val)}</span></div>` : '';
+ const html = `<div id="aoViewOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3800; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;" onclick="if(event.target===this) this.remove();">
+ <div style="background:#fff; max-width:680px; width:100%; border-radius:14px; padding:0; margin:auto; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+ <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 22px; border-bottom:1px solid #F0F0F0; background:linear-gradient(135deg,#FAF6EF,#fff);">
+ <div>
+ <div style="font-size:18px; font-weight:800; color:#101010;">Order #${s.id} <span style="background:${m.bg}; color:${m.fg}; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:700; margin-left:6px; vertical-align:2px;">${esc(m.label)}</span></div>
+ <div style="font-size:12px; color:#6B7280; margin-top:3px;"><i data-lucide="calendar" style="width:11px;height:11px;vertical-align:-1px;"></i> ${dt} &nbsp;·&nbsp; <i data-lucide="store" style="width:11px;height:11px;vertical-align:-1px;"></i> ${esc(s.channel || '-')}</div>
+ </div>
+ <button onclick="document.getElementById('aoViewOverlay').remove()" style="background:none; border:none; font-size:26px; cursor:pointer; color:#999; line-height:1;">×</button>
+ </div>
+ <div style="padding:18px 22px;">
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+ <div>
+ <div style="font-size:10.5px; font-weight:800; letter-spacing:0.5px; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;">Pelanggan</div>
+ ${infoRow('Nama', s.customer_name || 'Walk-In')}
+ ${infoRow('Phone', s.customer_phone)}
+ ${infoRow('Email', s.customer_email || md.buyer_email)}
+ ${isMarketplace && !s.customer_phone ? '<div style="font-size:11px; color:#9CA3AF; padding-top:4px;">Alamat penuh ada di seller centre ' + esc(s.channel) + '.</div>' : ''}
+ </div>
+ <div>
+ <div style="font-size:10.5px; font-weight:800; letter-spacing:0.5px; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;">Order</div>
+ ${infoRow('No. Ref', orderRef)}
+ ${infoRow('Bayar', s.payment_method)}
+ ${infoRow('Kurier', carrier)}
+ ${infoRow('Staff', s.staff_name)}
+ </div>
+ </div>
+ <div style="font-size:10.5px; font-weight:800; letter-spacing:0.5px; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;"><i data-lucide="package" style="width:12px;height:12px;vertical-align:-2px;"></i> Barang untuk Pack (${totalItems})</div>
+ <div style="border:1px solid #F0F0F0; border-radius:10px; overflow:hidden; margin-bottom:14px;">
+ <table style="width:100%; border-collapse:collapse;">
+ <thead><tr style="background:#FAFAFA; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">
+ <th style="text-align:left; padding:7px 10px;">SKU</th><th style="text-align:left; padding:7px 10px;">Nama</th><th style="text-align:center; padding:7px 10px;">Qty</th><th style="text-align:right; padding:7px 10px;">Harga</th><th style="text-align:right; padding:7px 10px;">Jumlah</th>
+ </tr></thead>
+ <tbody>${itemRows}</tbody>
+ </table>
+ </div>
+ <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#FAF6EF; border-radius:10px; margin-bottom:14px;">
+ <span style="font-size:12px; color:#6B7280;">${items.length} jenis barang · ${totalItems} unit${itemsSub && Math.abs(itemsSub - grandTotal) > 0.01 ? ' · subtotal barang RM ' + itemsSub.toFixed(2) : ''}</span>
+ <span style="font-size:18px; font-weight:800; color:#101010;">RM ${grandTotal.toFixed(2)}</span>
+ </div>
+ ${proof ? `<div style="margin-bottom:14px;"><span style="font-size:12px; color:#6B7280;">Bukti bayar: </span><a href="${esc(proof)}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700; font-size:12px; text-decoration:none;"><i data-lucide="external-link" style="width:12px;height:12px;vertical-align:-1px;"></i> Buka</a></div>` : ''}
+ <div style="display:flex; gap:8px;">
+ <button onclick="document.getElementById('aoViewOverlay').remove(); window.__ppEditSale && window.__ppEditSale(${s.id});" style="flex:1; background:#F3E8FF; border:1px solid #C4B5FD; color:#5B21B6; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="edit-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Edit Order</button>
+ <button onclick="document.getElementById('aoViewOverlay').remove()" style="flex:1; background:#101010; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;">Tutup</button>
+ </div>
+ </div>
+ </div>
+ </div>`;
+ const tmp = document.createElement('div');
+ tmp.innerHTML = html;
+ document.body.appendChild(tmp.firstChild);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 
 window.openAddWalkinOrder = function() {
@@ -20459,7 +20562,7 @@ window.openCustomerDetail = function(id) {
  // p1_243 fix #4 — sales table 5 col: Tarikh + Channel + Items + Payment + Jumlah
  const salesRows = sales.length
  ? sales.map(s => {
- const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + (parseInt(it.quantity) || 0), 0) : 0;
+ const itemsCount = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
  return '<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:6px 8px; font-size:11.5px;">' + (s.created_at ? new Date(s.created_at).toLocaleDateString('en-MY', {day:'2-digit', month:'short', year:'2-digit'}) : '-') + '</td><td style="padding:6px 8px; font-size:11.5px;">' + escHtml(s.channel || '-') + '</td><td style="padding:6px 8px; text-align:center; font-size:11.5px;">' + (itemsCount || '-') + '</td><td style="padding:6px 8px; font-size:11.5px;">' + escHtml(s.payment_method || '-') + '</td><td style="padding:6px 8px; text-align:right; font-size:11.5px; font-weight:700;">RM ' + (parseFloat(s.total||s.total_amount||0)).toFixed(2) + '</td></tr>';
  }).join('')
  : '<tr><td colspan="5" style="text-align:center; color:#999; padding:12px;">Tiada pembelian / No purchases yet</td></tr>';

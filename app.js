@@ -3173,9 +3173,12 @@ window.__scParams = function(){
  const pt = parseFloat((document.getElementById('scParttimer')||{}).value) || 0;
  const rows = window.__scRows || [];
  const totalQty = rows.reduce((s,r)=> s + (parseInt(r.qty,10)||0), 0);
- return { ex, sfPct, shipping, pt, rows, totalQty,
- shipPerUnit: totalQty>0 ? shipping/totalQty : 0,
- ptPerUnit: totalQty>0 ? pt/totalQty : 0 };
+ // p1_393 — Shipping diagih ikut NILAI (goods RM share); Part-timer ikut KUANTITI (rata/unit).
+ const totalValue = rows.reduce((s,r)=> s + (parseFloat(r.rmb)||0)*ex*(parseInt(r.qty,10)||0), 0);
+ return { ex, sfPct, shipping, pt, rows, totalQty, totalValue,
+ ptPerUnit: totalQty>0 ? pt/totalQty : 0,
+ // shipping per unit untuk satu baris = (goods unit / jumlah nilai) × kos shipping
+ shipPU: (rmb)=> totalValue>0 ? (((parseFloat(rmb)||0)*ex) / totalValue) * shipping : 0 };
 };
 
 window.scCompute = function(){
@@ -3187,16 +3190,16 @@ window.scCompute = function(){
  const s = document.getElementById('sc_sf_'+i); if(s) s.textContent = fmt(rmb*(P.sfPct/100)*P.ex);
  });
  const tq = document.getElementById('scTotalQty'); if(tq) tq.textContent = 'Jumlah Qty: ' + P.totalQty;
- const sp = document.getElementById('scShipPerUnit'); if(sp) sp.textContent = 'Shipping/unit: ' + fmt(P.shipPerUnit);
- const pp = document.getElementById('scPtPerUnit'); if(pp) pp.textContent = 'Part-timer/unit: ' + fmt(P.ptPerUnit);
+ const sp = document.getElementById('scShipPerUnit'); if(sp) sp.textContent = 'Shipping: ' + fmt(P.shipping) + ' · diagih ikut NILAI produk (mahal tanggung lebih)';
+ const pp = document.getElementById('scPtPerUnit'); if(pp) pp.textContent = 'Part-timer/unit: ' + fmt(P.ptPerUnit) + ' · rata ikut kuantiti';
  const lb = document.getElementById('scLandedBody');
  if(lb){
  if(!P.rows.length){ lb.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:18px; color:#9CA3AF;">—</td></tr>'; }
  else lb.innerHTML = P.rows.map(r=>{
  const rmb = parseFloat(r.rmb)||0; const qty = parseInt(r.qty,10)||0;
- const goods = rmb*P.ex; const sf = rmb*(P.sfPct/100)*P.ex;
- const landed = goods + sf + P.shipPerUnit + P.ptPerUnit;
- return `<tr><td style="font-family:monospace; font-size:11px;">${hesc(r.sku||'-')}</td><td style="text-align:right;">${fmt(goods)}</td><td style="text-align:right;">${fmt(sf)}</td><td style="text-align:right;">${fmt(P.shipPerUnit)}</td><td style="text-align:right;">${fmt(P.ptPerUnit)}</td><td style="text-align:right; font-weight:800; color:#101010;">${fmt(landed)}</td><td style="text-align:right;">${qty}</td></tr>`;
+ const goods = rmb*P.ex; const sf = rmb*(P.sfPct/100)*P.ex; const ship = P.shipPU(rmb);
+ const landed = goods + sf + ship + P.ptPerUnit;
+ return `<tr><td style="font-family:monospace; font-size:11px;">${hesc(r.sku||'-')}</td><td style="text-align:right;">${fmt(goods)}</td><td style="text-align:right;">${fmt(sf)}</td><td style="text-align:right;">${fmt(ship)}</td><td style="text-align:right;">${fmt(P.ptPerUnit)}</td><td style="text-align:right; font-weight:800; color:#101010;">${fmt(landed)}</td><td style="text-align:right;">${qty}</td></tr>`;
  }).join('');
  }
 };
@@ -3205,8 +3208,8 @@ window.__scLanded = function(){
  const P = window.__scParams();
  return P.rows.map(r=>{
  const rmb = parseFloat(r.rmb)||0; const qty = parseInt(r.qty,10)||0;
- const goods = rmb*P.ex; const sf = rmb*(P.sfPct/100)*P.ex;
- return { sku:(r.sku||'').trim(), qty, landed: +(goods+sf+P.shipPerUnit+P.ptPerUnit).toFixed(2) };
+ const goods = rmb*P.ex; const sf = rmb*(P.sfPct/100)*P.ex; const ship = P.shipPU(rmb);
+ return { sku:(r.sku||'').trim(), qty, landed: +(goods+sf+ship+P.ptPerUnit).toFixed(2) };
  });
 };
 

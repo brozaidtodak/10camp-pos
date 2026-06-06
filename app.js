@@ -20079,15 +20079,20 @@ window.__aoStatusMeta = function(stRaw){
 // p1_319 — kira qty merentas channel (POS Cashier guna `quantity`, Shopee/TikTok guna `qty`)
 window.__aoItemQty = function(it){ return parseInt(it && (it.qty != null ? it.qty : it.quantity)) || 0; };
 
-// p1_332 — link terus ke order di seller centre platform (untuk print Airway Bill di sana)
+// p1_332/p1_333 — link ke order di seller centre platform (untuk print Airway Bill di sana).
+// TikTok: link TERUS ke order (ada tiktok_order_id). Shopee: takde ID dalaman dalam data
+// (semua order Shopee = migrasi EasyStore), jadi link ke SENARAI order — staff cari + print AWB.
 window.__aoSellerCentreUrl = function(s){
  const md = (s && s.metadata) || {};
  const ch = (s && s.channel || '').toLowerCase();
- if(ch.includes('shopee') && md.shopee_order_sn){
- return { url: `https://seller.shopee.com.my/portal/sale/order/${encodeURIComponent(md.shopee_order_sn)}`, label: 'Shopee Seller Centre', short: 'Shopee', color: '#EE4D2D' };
+ if(md.tiktok_order_id){
+ return { url: `https://seller-my.tiktok.com/order/detail?order_no=${encodeURIComponent(md.tiktok_order_id)}`, label: 'TikTok Seller Centre', short: 'TikTok', color: '#111111', direct: true };
  }
- if(ch.includes('tiktok') && md.tiktok_order_id){
- return { url: `https://seller-my.tiktok.com/order/detail?order_no=${encodeURIComponent(md.tiktok_order_id)}`, label: 'TikTok Seller Centre', short: 'TikTok', color: '#111111' };
+ if(ch.includes('shopee')){
+ return { url: 'https://seller.shopee.com.my/portal/sale/order', label: 'Shopee Seller Centre', short: 'Shopee', color: '#EE4D2D', direct: false };
+ }
+ if(ch.includes('tiktok')){
+ return { url: 'https://seller-my.tiktok.com/order', label: 'TikTok Seller Centre', short: 'TikTok', color: '#111111', direct: false };
  }
  return null;
 };
@@ -20294,7 +20299,7 @@ window.renderAllOrders = function() {
  const main = ref || ('#' + s.id);
  const sub = ref ? ('#' + s.id) : '';
  const sc = window.__aoSellerCentreUrl(s);
- const scIcon = sc ? `<a href="${escHtml(sc.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Buka di ${escHtml(sc.label)} — print Airway Bill" style="margin-left:6px; color:${sc.color}; vertical-align:middle; display:inline-flex;"><i data-lucide="external-link" style="width:12px;height:12px;"></i></a>` : '';
+ const scIcon = sc ? `<a href="${escHtml(sc.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Buka ${escHtml(sc.label)}${sc.direct ? ' — print Airway Bill' : ' — cari order & print AWB'}" style="margin-left:6px; color:${sc.color}; vertical-align:middle; display:inline-flex;"><i data-lucide="external-link" style="width:12px;height:12px;"></i></a>` : '';
  return `<td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#2563EB; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${scIcon}${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
  })()}
  <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
@@ -20428,7 +20433,7 @@ window.__aoViewOrder = function(saleId) {
  <button onclick="window.__aoSetFulfil(${s.id},'completed')" style="flex:1; min-width:100px; background:#fff; border:1px solid #6EE7B7; color:#047857; padding:9px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:700;"><i data-lucide="check-circle" style="width:13px;height:13px;vertical-align:-2px;"></i> Selesai</button>
  </div>` : `<div style="font-size:12px; color:#6B7280;">Order ni dah <strong>${esc(m.label)}</strong>.</div>`;
  const sc = window.__aoSellerCentreUrl(s);
- const mpNote = isMarketplace ? `${sc ? `<a href="${esc(sc.url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:7px; background:${sc.color}; color:#fff; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:700; text-decoration:none; margin-bottom:8px;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka di ${esc(sc.label)} — print Airway Bill</a>` : ''}<div style="font-size:11px; color:#92400E; margin-bottom:8px; line-height:1.5;"><i data-lucide="info" style="width:11px;height:11px;vertical-align:-1px;"></i> AWB / label penghantaran dijana di seller centre platform. Tanda status di sini untuk rekod POS sahaja.</div>` : '';
+ const mpNote = isMarketplace ? `${sc ? `<a href="${esc(sc.url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:7px; background:${sc.color}; color:#fff; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:700; text-decoration:none; margin-bottom:8px;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka ${esc(sc.label)}${sc.direct ? ' — print Airway Bill' : ' — cari order & print AWB'}</a>` : ''}<div style="font-size:11px; color:#92400E; margin-bottom:8px; line-height:1.5;"><i data-lucide="info" style="width:11px;height:11px;vertical-align:-1px;"></i> ${sc && !sc.direct ? 'Order Shopee = migrasi EasyStore, takde ID Shopee dalam data — buka senarai To-Ship, cari order ni, print AWB. ' : ''}AWB / label penghantaran dijana di seller centre platform.</div>` : '';
  const fulfilHtml = `<div style="border:1px solid #FDE68A; background:#FFFBEB; border-radius:10px; padding:14px; margin-bottom:14px;">
  <div style="font-size:10.5px; font-weight:800; letter-spacing:0.5px; color:#92400E; text-transform:uppercase; margin-bottom:8px;"><i data-lucide="truck" style="width:12px;height:12px;vertical-align:-2px;"></i> Fulfilment / Penghantaran</div>
  ${chipsHtml}${mpNote}${controls}

@@ -3283,11 +3283,22 @@ window.__psListFilter = function() {
  if(sumEl) sumEl.innerHTML = `Tunjuk <strong>${rows.length}</strong> / ${all.length} produk · <span style="color:#10B981;">${totalSet} dah set</span> · <span style="color:#F59E0B;">${totalNoCost} tiada cost</span> · <span style="color:#EF4444;">${totalNoPrice} belum set price</span>`;
  if(!rows.length) { wrap.innerHTML = '<p style="padding:24px; text-align:center; color:#9CA3AF;">Tiada padanan.</p>'; return; }
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
- const MAX = 300;
- const slice = rows.slice(0, MAX);
+ // p1_354 — pagination 50/page (elak sangkut) + reset ke halaman 1 bila filter berubah
+ const PER = 50;
+ const sig = [q, brand, status, loc].join('|');
+ if(window.__psLastSig !== sig) { window.__psPage = 1; window.__psLastSig = sig; }
+ const totalPages = Math.max(1, Math.ceil(rows.length / PER));
+ if(!window.__psPage || window.__psPage < 1) window.__psPage = 1;
+ if(window.__psPage > totalPages) window.__psPage = totalPages;
+ const page = window.__psPage;
+ const start = (page - 1) * PER;
+ const slice = rows.slice(start, start + PER);
+ window.__psPageSkus = slice.map(p => p.sku);
  // Single-quote SVG fallback (window.__psNoImg) — safe in onerror without escaping
  if(!window.__psNoImg) window.__psNoImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F9FAFB'/><text x='40' y='44' text-anchor='middle' fill='%23D1D5DB' font-family='sans-serif' font-size='10'>No Img</text></svg>";
- const body = slice.map(p => {
+ // p1_354 — input editable (stopPropagation supaya tak trigger load-calc bila taip)
+ const numInp = (id, val, ph) => `<input id="${id}" type="number" step="0.01" inputmode="decimal" value="${val > 0 ? val : ''}" placeholder="${ph}" onclick="event.stopPropagation();" style="width:90px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;">`;
+ const body = slice.map((p, i) => {
  const price = Number(p.price || 0);
  const cost = Number(p.cost_rmb || 0);
  const stock = Number(p.stock || 0);
@@ -3306,11 +3317,15 @@ window.__psListFilter = function() {
  + `<td class="ps-list-cell" style="padding:10px; line-height:1.4;">${escHtml((p.name || '').slice(0, 80))}</td>`
  + `<td class="ps-list-cell" style="padding:10px; color:#6B7280;">${escHtml(p.brand || '—')}</td>`
  + `<td class="ps-list-cell" style="padding:10px;">${loc ? `<span style="display:inline-block; padding:2px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; font-size:10.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(loc)}</span>` : `<span style="color:#D1D5DB; font-size:11px;">—</span>`}</td>`
- + `<td class="ps-list-cell" style="padding:10px; text-align:right; font-weight:${price > 0 ? '700' : '400'}; color:${price > 0 ? '#111827' : '#9CA3AF'};">${price > 0 ? 'RM ' + price.toFixed(2) : '—'}</td>`
- + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${cost > 0 ? '#111827' : '#9CA3AF'};">${cost > 0 ? '¥ ' + cost.toFixed(2) : '—'}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_price', price, 'RM')}</td>`
+ + `<td class="ps-list-cell" style="padding:6px 10px; text-align:right;" onclick="event.stopPropagation();">${numInp('psr_' + i + '_cost', cost, '¥')}</td>`
  + `<td class="ps-list-cell" style="padding:10px; text-align:right; color:${stock <= 0 ? '#EF4444' : '#111827'}; font-weight:600;">${stock}</td>`
  + `<td class="ps-list-cell" style="padding:10px; text-align:center;">${badge}</td></tr>`;
  }).join('');
+ const from = rows.length ? start + 1 : 0, to = start + slice.length;
+ const bs = "padding:5px 11px; border:1px solid #E5E7EB; background:#fff; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:#374151;";
+ const bd = "padding:5px 11px; border:1px solid #F3F4F6; background:#F9FAFB; border-radius:7px; font-size:12px; font-weight:700; color:#D1D5DB; cursor:not-allowed;";
+ const pager = totalPages > 1 ? `<span style="display:inline-flex; align-items:center; gap:8px; margin-left:10px;"><button ${page <= 1 ? 'disabled style="' + bd + '"' : 'onclick="window.__psListGoPage(' + (page - 1) + ')" style="' + bs + '"'}>‹ Prev</button><span style="font-weight:700;">Hlmn ${page}/${totalPages}</span><button ${page >= totalPages ? 'disabled style="' + bd + '"' : 'onclick="window.__psListGoPage(' + (page + 1) + ')" style="' + bs + '"'}>Next ›</button></span>` : '';
  const html = '<table class="ps-list-table">'
  + '<thead><tr>'
  + '<th style="width:96px;"></th>'
@@ -3318,13 +3333,50 @@ window.__psListFilter = function() {
  + '<th style="text-align:left;">Nama</th>'
  + '<th style="text-align:left;">Brand</th>'
  + '<th style="text-align:left;">Lokasi</th>'
- + '<th style="text-align:right;">Harga Skrg</th>'
+ + '<th style="text-align:right;">Harga POS</th>'
  + '<th style="text-align:right;">Cost RMB</th>'
  + '<th style="text-align:right;">Stok</th>'
  + '<th style="text-align:center;">Status</th>'
  + '</tr></thead><tbody>' + body + '</tbody></table>'
- + (rows.length > MAX ? `<p style="padding:12px; text-align:center; color:#9CA3AF; font-size:11.5px; border-top:1px solid var(--border-color);">Tunjuk ${MAX} pertama daripada ${rows.length}. Tapis lebih halus untuk lihat selebihnya.</p>` : '');
+ + `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:10px 12px; border-top:1px solid var(--border-color);"><span style="font-size:11.5px; color:#6B7280;">Papar <strong>${from}-${to}</strong> dari <strong>${rows.length}</strong>${pager} · <em style="color:#9CA3AF;">Simpan dulu sebelum tukar halaman</em></span><button onclick="window.__psSaveList()" class="btn-brand-primary" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; padding:7px 14px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Simpan Perubahan</button></div>`;
  wrap.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_354 — tukar halaman senarai Price Calculator
+window.__psListGoPage = function(t) {
+ window.__psPage = t;
+ window.__psListFilter && window.__psListFilter();
+ const w = document.getElementById('psListWrap');
+ if(w && w.scrollIntoView) try { w.scrollIntoView({ behavior:'smooth', block:'start' }); } catch(e){}
+};
+
+// p1_354 — simpan edit Harga POS + Cost RMB untuk baris halaman semasa
+window.__psSaveList = async function() {
+ if(typeof db === 'undefined' || !db) { if(typeof showToast === 'function') showToast('DB tak available', 'error'); return; }
+ const skus = window.__psPageSkus || [];
+ if(!skus.length) return;
+ let changed = 0; const errs = [];
+ for(let i = 0; i < skus.length; i++) {
+ const sku = skus[i];
+ const prod = (masterProducts || []).find(x => x.sku === sku);
+ if(!prod) continue;
+ const payload = {};
+ const pEl = document.getElementById('psr_' + i + '_price');
+ const cEl = document.getElementById('psr_' + i + '_cost');
+ if(pEl) { const nv = pEl.value.trim() === '' ? null : (parseFloat(pEl.value) || 0); const ov = prod.price == null ? null : Number(prod.price); if(String(ov) !== String(nv)) payload.price = nv; }
+ if(cEl) { const nv = cEl.value.trim() === '' ? null : (parseFloat(cEl.value) || 0); const ov = prod.cost_rmb == null ? null : Number(prod.cost_rmb); if(String(ov) !== String(nv)) payload.cost_rmb = nv; }
+ if(Object.keys(payload).length) {
+ try {
+ const { error } = await db.from('products_master').update(payload).eq('sku', sku);
+ if(error) throw error;
+ Object.assign(prod, payload);
+ changed++;
+ } catch(e) { errs.push(sku + ': ' + e.message); }
+ }
+ }
+ if(typeof showToast === 'function') showToast(changed ? `${changed} produk dikemaskini${errs.length ? ', ' + errs.length + ' gagal' : ''}.` : 'Tiada perubahan.', errs.length ? 'warn' : 'success');
+ window.__psListFilter && window.__psListFilter();
 };
 
 window.__psLoadFromList = function(sku) {

@@ -2936,12 +2936,13 @@ window.__phApplyFilter = function() {
  <td style="text-align:right;"><strong>${fmtRM(r.new_price)}</strong></td>
  <td style="text-align:right; color:${deltaColor}; font-weight:700;">${deltaSign}${fmtRM(delta).replace('RM ','')}</td>
  <td style="text-align:right; color:${deltaColor}; font-weight:700;">${deltaSign}${(r.delta_pct == null) ? '—' : Number(r.delta_pct).toFixed(1) + '%'}</td>
- <td style="font-size:11px; color:#6B7280;">${escAttr(r.changed_by || '—')}</td>
+ <td style="font-size:11px;">${(function(){ const by = r.changed_by || ''; if(!by || by.toLowerCase() === 'system') return '<span style="color:#9CA3AF; font-style:italic;">Sistem (auto)</span>'; return `<span style="color:#374151; font-weight:600;"><i data-lucide="user" style="width:11px;height:11px;vertical-align:-1px;"></i> ${escAttr(by)}</span>`; })()}</td>
  </tr>`;
  }).join('')}
  </tbody>
  </table>
  ${rows.length > 100 ? `<p style="font-size:11px; color:#9CA3AF; text-align:center; margin-top:10px;">Papar 100 pertama dari ${rows.length} rows. Narrow filter untuk lihat selebihnya.</p>` : ''}`;
+ if(typeof lucide !== 'undefined') lucide.createIcons();
 };
 
 // p1_110 — Stock Check Reports workflow (Kael→Zack→Bos)
@@ -3668,7 +3669,8 @@ window.__fpSave = async function() {
  floor_price: floor,
  floor_margin_pct: margin,
  floor_set_by: u.name || 'Unknown',
- floor_set_at: new Date().toISOString()
+ floor_set_at: new Date().toISOString(),
+ last_modified_by: u.name || 'Unknown'
  };
  try {
  if(typeof db !== 'undefined' && db && db.from) {
@@ -18003,6 +18005,7 @@ window.savePdpData = async function() {
  variant_color: get('pdpVariantColor') || null,
  variant_size: get('pdpVariantSize') || null,
  erp_barcode: get('pdpErpBarcode') || null,
+ last_modified_by: (window.currentUser||{}).name || 'System',
  metadata
  };
 
@@ -18961,6 +18964,8 @@ window.bulkSaveEdits = async function() {
  if(!same) payload[d.f] = nv;
  }
  }
+ // p1_390 — stamp who changed it so price history shows the real name
+ if('price' in payload || 'cost_price' in payload) payload.last_modified_by = uName;
  if(Object.keys(payload).length) {
  try {
  const { error } = await db.from('products_master').update(payload).eq('sku', curSku);
@@ -19109,7 +19114,7 @@ window.bulkApplyPrice = async function(mode, val) {
  else if(mode === '2') newPrice = Number((p.price * (1 + val/100)).toFixed(2));
  else if(mode === '3') newPrice = Number((p.price * (1 - val/100)).toFixed(2));
  try {
- const { error } = await db.from('products_master').update({ price: newPrice }).eq('sku', sku);
+ const { error } = await db.from('products_master').update({ price: newPrice, last_modified_by: (window.currentUser||{}).name || 'System' }).eq('sku', sku);
  if(error) { fail++; continue; }
  p.price = newPrice;
  ok++;

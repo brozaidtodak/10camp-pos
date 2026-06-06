@@ -2175,9 +2175,12 @@
  #modeHint { display: none !important; }
 .breadcrumb { font-size: 12px; }
 .breadcrumb__item { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
- /* Header search button — icon only on mobile */
- header.app-header.btn span:not(.mode-tab__icon) { display: none; }
- header.app-header.btn kbd { display: none; }
+ /* p1_380 — Header phone fix: paksa full-width (elak shrink-wrap ~60% bar) + wrap elak potong */
+.app-header { width: 100%; box-sizing: border-box; flex-wrap: wrap; row-gap: 8px; gap: 10px; padding-left: 14px; padding-right: 14px; }
+.app-header .breadcrumb { min-width: 0; flex-shrink: 1; }
+ /* Header search button — icon only on mobile (selector lama header.app-header.btn SALAH — header takde class btn) */
+.app-header .btn span:not(.mode-tab__icon) { display: none; }
+.app-header .btn kbd { display: none; }
  /* Cmdk overlay full-screen on mobile */
 .cmdk-overlay { padding: 16px 8px; align-items: flex-start; }
 .cmdk { max-width: 100%; }

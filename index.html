@@ -25,7 +25,7 @@
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=54">
- <link rel="stylesheet" href="design-tokens.css?v=82">
+ <link rel="stylesheet" href="design-tokens.css?v=83">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -2407,6 +2407,44 @@
  <input type="date" id="stTo" onchange="window.renderSalesTrajectory && window.renderSalesTrajectory()" style="flex:1; min-width:0; font-size:10.5px; padding:3px 5px; border:1px solid var(--border-color); border-radius:5px; margin:0;">
  </div>
  <canvas id="salesChart"></canvas>
+ </div>
+ </div>
+
+ <!-- p1_440 — Sales Analytics: readable trend + channel breakdown -->
+ <div class="dash-section-label">Analisis Jualan</div>
+ <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
+ <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+ <div style="font-weight:800; font-size:15px; color:var(--text-main);">Trend Jualan</div>
+ <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+ <select id="saMode" onchange="window.__saSetMode && window.__saSetMode(this.value)" title="Tempoh graf" style="font-size:12px; padding:5px 8px; border:1px solid var(--border-color); border-radius:7px; background:#F9FAFB; color:#374151; cursor:pointer;">
+ <option value="daily">Harian (30 hari)</option>
+ <option value="weekly">Mingguan (12 mgg)</option>
+ <option value="monthly">Bulanan (12 bln)</option>
+ <option value="custom">Custom (pilih tarikh)</option>
+ </select>
+ <div id="saCustomRow" style="display:none; gap:6px; align-items:center;">
+ <input type="date" id="saFrom" onchange="window.renderSalesAnalytics && window.renderSalesAnalytics()" style="font-size:11px; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; margin:0;">
+ <span style="color:#9CA3AF;">→</span>
+ <input type="date" id="saTo" onchange="window.renderSalesAnalytics && window.renderSalesAnalytics()" style="font-size:11px; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; margin:0;">
+ </div>
+ </div>
+ </div>
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+ <div class="sa-kpi"><div class="sa-kpi__lbl">Jumlah Jualan</div><div class="sa-kpi__val" id="saKpiTotal">RM 0</div></div>
+ <div class="sa-kpi"><div class="sa-kpi__lbl">Bil. Order</div><div class="sa-kpi__val" id="saKpiOrders">0</div></div>
+ <div class="sa-kpi"><div class="sa-kpi__lbl">Purata / Order</div><div class="sa-kpi__val" id="saKpiAov">RM 0</div></div>
+ <div class="sa-kpi"><div class="sa-kpi__lbl">Channel Teratas</div><div class="sa-kpi__val" id="saKpiTopCh" style="font-size:15px;">—</div></div>
+ </div>
+ <div style="height:300px; margin-bottom:20px;"><canvas id="saTrendChart"></canvas></div>
+ <div class="sa-charts" style="display:grid; grid-template-columns:1.5fr 1fr; gap:18px;">
+ <div>
+ <div style="font-weight:700; font-size:13px; margin-bottom:8px; color:var(--text-main);">Jualan ikut Channel (trend)</div>
+ <div style="height:260px;"><canvas id="saChannelChart"></canvas></div>
+ </div>
+ <div>
+ <div style="font-weight:700; font-size:13px; margin-bottom:8px; color:var(--text-main);">Bahagian Hasil ikut Channel</div>
+ <div style="height:260px;"><canvas id="saShareChart"></canvas></div>
+ </div>
  </div>
  </div>
 
@@ -7431,7 +7469,8 @@
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
  { id:'p1_408', label:'POS grid — i18n "Jimat→Save" + butang OOS professional (Zaid screenshot English: "patutnya Save RM145 instead, lepastu Jual (Backorder) tak professional"). (1) "Jimat" dari CSS .price__off::before → pindah ke JS window.t (cs_save); CSS content dikosongkan. (2) Butang OOS "Jual (Backorder)" → "Add to Cart" (cs_add_to_cart, professional + konsisten) + kekal peach + tooltip cs_oos_hint; sama di PDP modal. (3) Stock text i18n. renderPOS ditambah ke setLang. app.js v479→v480, style.css v52→v53, sw v31→v32.', d:'done' },
  { id:'p1_439', label:'Mobile app shell (Capacitor) — bungkus 10camp.com jadi app Android + iOS guna Capacitor server.url (live URL, jadi update Netlify terus muncul dalam app tanpa hantar semula ke store). Tambah deep-link boot: bila app dibuka di #staff dan tiada sesi aktif, auto-panggil handleLogin() supaya app phone terus papar skrin login POS (bukan katalog customer). Visitor biasa tanpa #staff langsung tak terkesan. App scope target: Cashier, Commission stats, Stock-take session (halusi kemudian). app.js v501→v502.', d:'done' },
- { id:'p1_439', label:'Sales Trajectory: graf analitik Daily/Weekly/Monthly/Custom (Zaid: "pada sales trajectory, masukkan graph analytic Daily, weekly, monthly, custom date"). Hero card Overview tambah dropdown #stMode (Harian 30h / Mingguan 12mgg / Bulanan 12bln / Custom) + baris tarikh custom (#stFrom/#stTo). Fungsi baru window.renderSalesTrajectory: tapis salesHistory (buang test/void/cancel/refund), tentukan tetingkap ikut mode, agregat RM ikut hari/minggu(isnin)/bulan, redraw Chart.js salesChart (kekal gaya line bronze). __stSetMode tukar mode + papar/sembunyi baris custom. renderDashboard blok lukis chart lama diganti panggil renderSalesTrajectory (decouple dari range dashboard). app.js v501→v502, sw v58→v59.', d:'done' },
+ { id:'p1_441', label:'Analisis Jualan penuh — graf readable + sales by channel (Zaid: "improve graph and add more chart untuk proper view for sales; sales by shopee/tiktok/walk in; buat graph readable"). Tambah blok "Analisis Jualan" di Overview (bawah hero cards): dropdown #saMode (Harian/Mingguan/Bulanan/Custom) + KPI (Jumlah Jualan/Bil Order/Purata-Order/Channel Teratas) + (1) Trend Jualan line BESAR readable (paksi x label + paksi y RM + gridlines). (2) "Jualan ikut Channel" multi-line (Shopee oren/TikTok hitam/Walk-in bronze/WhatsApp hijau/EasyStore-Web/Lain) + legend. (3) Doughnut "Bahagian Hasil ikut Channel" (% share). window.renderSalesAnalytics agregat per hari/minggu/bulan, map channel ikut keyword, 3 Chart.js instance. responsive (1-kolum <760px) + dark KPI. Hero sparkline kekal sbg glance. app.js v502→v503, design-tokens.css v82→v83, sw v59→v60.', d:'done' },
+ { id:'p1_440', label:'Sales Trajectory hero sparkline: toggle Daily/Weekly/Monthly/Custom (Zaid: "pada sales trajectory, masukkan graph analytic"). Hero card Overview tambah dropdown #stMode + baris tarikh custom; window.renderSalesTrajectory tapis salesHistory (buang test/void/cancel/refund), agregat RM ikut hari/minggu(isnin)/bulan, redraw salesChart bronze. __stSetMode tukar mode. (Dilanjutkan p1_441 — blok Analisis Jualan penuh.) app.js v501→v502, sw v58→v59. NOTA: asal silap guna id 439 (tindih Capacitor), dinombor semula 440.', d:'done' },
  { id:'p1_438', label:'FIX teks search cashier tak nampak di fon dark-mode (Zaid screenshot fon: "kat search kalau type tak keluar tulisan"). PUNCA: tiada color-scheme diisytihar → bila FON dlm dark appearance tapi APP dlm light mode, iOS Safari auto-gelapkan latar input (hitam) tapi teks kekal gelap (#101010) → tak nampak. FIX: (1) :root color-scheme:light + [data-theme=dark] color-scheme:dark → iOS ikut tema app. (2) Rule eksplisit #searchInput bg/color + -webkit-text-fill-color (light & dark) + tambah -webkit-text-fill-color ke rule dark input umum. style.css v53→v54, design-tokens.css v81→v82, sw v57→v58.', d:'done' },
  { id:'p1_437', label:'Filter SUSUN (sort) untuk All Orders (Zaid screenshot bulatkan no. order melompat #5001/#4997...: "boleh tambah filter sorting, nak tengok dari order #0000"). Tambah dropdown "Susun" dlm filter bar (sebelah Status): Tarikh terbaru dulu (default), Tarikh terlama dulu, Order # menaik (#0000 ke atas), Order # menurun. __aoGetFiltered baca #aoSort → sort ikut created_at asc/desc atau parseInt(id) asc/desc. aoSort ditambah ke aoSig (tukar susun reset page 1). app.js v500→v501, sw v56→v57.', d:'done' },
  { id:'p1_436', label:'Butang Back/Next pada modal detail order (All Orders) (Zaid screenshot bulatkan ruang header sebelah ×: "tambah button Next/Back pada preview pop-up, pergi ke next order tanpa keluar pop-up"). renderAllOrders simpan window.__aoNavIds = senarai PENUH order ditapis (bukan satu page je). __aoViewOrder header tambah 2 butang: Back (chevron-left) + Next (chevron-right), disabled di hujung senarai. Klik → window.__aoNavOrder(currentId, dir): cari index dlm __aoNavIds, remove overlay semasa, buka order seterusnya/sebelum. Navigasi merentas semua order ditapis (cross-page). app.js v499→v500, sw v55→v56.', d:'done' },
@@ -12318,7 +12357,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=502"></script>
+ <script src="app.js?v=503"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

@@ -3630,6 +3630,12 @@ a:focus-visible {
 #homeSection .dash-hero-card.primary .val { color:#fff; }
 #homeSection .dash-hero-card .lbl { font-size:11.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); font-weight:700; margin-bottom:6px; }
 #homeSection .dash-hero-card .val { font-size:28px; font-weight:900; color:#111; line-height:1.1; }
+/* p1_440 — Sales Analytics block */
+.sa-kpi { background:#FAFAFA; border:1px solid var(--border-color); border-radius:10px; padding:11px 13px; }
+.sa-kpi__lbl { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; margin-bottom:3px; }
+.sa-kpi__val { font-size:19px; font-weight:800; color:var(--text-main); letter-spacing:-.5px; line-height:1.15; }
+@media (max-width: 760px) { .sa-charts { grid-template-columns: 1fr !important; } }
+[data-theme="dark"] .sa-kpi { background:#27272A; border-color:#3F3F46; }
 #homeSection .dash-hero-card .sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
 #homeSection .dash-hero-card.primary .sub { color:rgba(255,255,255,.85); }
 #homeSection .dash-hero-chart { padding:12px 14px; }

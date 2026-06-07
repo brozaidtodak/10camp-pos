@@ -6400,8 +6400,9 @@ window.renderDashboard = function() {
  </tr>`).join('');
  }
 
- // 6. Sales Trajectory chart — p1_439 ada toggle Daily/Weekly/Monthly/Custom sendiri
+ // 6. Sales Trajectory (hero sparkline) + full Sales Analytics block (p1_439/p1_440)
  if(typeof window.renderSalesTrajectory === 'function') window.renderSalesTrajectory();
+ if(typeof window.renderSalesAnalytics === 'function') window.renderSalesAnalytics();
 
  // Freshness timestamp
  const stamp = document.getElementById('dashFreshStamp');
@@ -6467,6 +6468,114 @@ window.renderSalesTrajectory = function() {
  scales: { x: { display: false }, y: { display: false, beginAtZero: true } }
  }
  });
+};
+
+// p1_440 — Sales Analytics: readable trend + sales-by-channel + channel share
+window.__saTrendInst = window.__saTrendInst || null;
+window.__saChannelInst = window.__saChannelInst || null;
+window.__saShareInst = window.__saShareInst || null;
+window.__saMode = window.__saMode || 'daily';
+window.__SA_CHANNELS = [
+ { key:'shopee',   label:'Shopee',        color:'#EE4D2D', match:(c)=>c.includes('shopee') },
+ { key:'tiktok',   label:'TikTok',        color:'#111827', match:(c)=>c.includes('tiktok') },
+ { key:'walkin',   label:'Walk-in (Kedai)', color:'#CD7C32', match:(c)=>c.includes('cashier')||c.includes('walk')||c.includes('pos') },
+ { key:'whatsapp', label:'WhatsApp',      color:'#25D366', match:(c)=>c.includes('whatsapp') },
+ { key:'web',      label:'EasyStore/Web', color:'#FF6B35', match:(c)=>c.includes('easystore')||c.includes('web') },
+ { key:'other',    label:'Lain-lain',     color:'#9CA3AF', match:()=>true }
+];
+window.__saSetMode = function(mode) {
+ window.__saMode = mode || 'daily';
+ const cr = document.getElementById('saCustomRow');
+ if(cr) cr.style.display = (window.__saMode === 'custom') ? 'flex' : 'none';
+ window.renderSalesAnalytics();
+};
+window.renderSalesAnalytics = function() {
+ if(typeof Chart === 'undefined') return;
+ const trendCtx = document.getElementById('saTrendChart');
+ if(!trendCtx) return;
+ const mode = window.__saMode || 'daily';
+ const sales = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory) ? salesHistory : []).filter(s => {
+ if(!s || !s.created_at || s.is_test) return false;
+ const st = (s.status || '').toLowerCase();
+ if(st.includes('void') || st.includes('cancel') || st.includes('refund')) return false;
+ return true;
+ });
+ const now = new Date();
+ let from, to = now;
+ if(mode === 'custom') {
+ const f = document.getElementById('saFrom'), t = document.getElementById('saTo');
+ from = (f && f.value) ? new Date(f.value + 'T00:00:00') : new Date(now.getTime() - 30*864e5);
+ to = (t && t.value) ? new Date(t.value + 'T23:59:59') : now;
+ } else if(mode === 'weekly') { from = new Date(now.getTime() - 12*7*864e5); }
+ else if(mode === 'monthly') { from = new Date(now.getFullYear(), now.getMonth() - 11, 1); }
+ else { from = new Date(now.getTime() - 29*864e5); }
+ const fromMs = from.getTime(), toMs = to.getTime();
+ const pad = (n) => String(n).padStart(2, '0');
+ const keyOf = (d) => {
+ if(mode === 'monthly') return d.getFullYear() + '-' + pad(d.getMonth()+1);
+ if(mode === 'weekly') { const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate()); }
+ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+ };
+ const chanKey = (ch) => { const c = (ch || '').toLowerCase(); return (window.__SA_CHANNELS.find(x => x.match(c)) || window.__SA_CHANNELS[5]).key; };
+ const periodSet = {}; const total = {}; const byChan = {}; const share = {};
+ let grand = 0, orders = 0;
+ sales.forEach(s => {
+ const d = new Date(s.created_at); const t = d.getTime();
+ if(t < fromMs || t > toMs) return;
+ const k = keyOf(d); const amt = Number(s.total || s.total_amount || 0) || 0; const ck = chanKey(s.channel);
+ periodSet[k] = 1; total[k] = round2((total[k]||0) + amt);
+ (byChan[ck] = byChan[ck] || {})[k] = round2((byChan[ck][k]||0) + amt);
+ share[ck] = round2((share[ck]||0) + amt);
+ grand = round2(grand + amt); orders++;
+ });
+ const keys = Object.keys(periodSet).sort();
+ const labelOf = (k) => { const p = k.split('-'); if(mode === 'monthly') return new Date(+p[0], +p[1]-1, 1).toLocaleDateString('en-MY',{month:'short',year:'2-digit'}); return (mode==='weekly'?'mgg ':'') + p[2] + '/' + p[1]; };
+ const labels = keys.map(labelOf);
+ const fmtRM = (v) => 'RM ' + Number(v).toLocaleString('en-MY', {minimumFractionDigits:0, maximumFractionDigits:0});
+
+ // KPIs
+ const setT = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+ setT('saKpiTotal', 'RM ' + grand.toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2}));
+ setT('saKpiOrders', orders.toLocaleString());
+ setT('saKpiAov', 'RM ' + (orders ? (grand/orders) : 0).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2}));
+ const topCh = Object.keys(share).sort((a,b)=>share[b]-share[a])[0];
+ const topMeta = window.__SA_CHANNELS.find(x => x.key === topCh);
+ setT('saKpiTopCh', topMeta ? topMeta.label.replace(' (Kedai)','') : '—');
+
+ const axisOpts = {
+ responsive:true, maintainAspectRatio:false,
+ interaction:{ mode:'index', intersect:false },
+ plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=> (c.dataset.label?c.dataset.label+': ':'') + 'RM ' + Number(c.parsed.y).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}) } } },
+ scales:{ x:{ display:true, grid:{ display:false }, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:10, font:{ size:10 } } }, y:{ display:true, beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ font:{ size:10 }, callback:(v)=>fmtRM(v) } } }
+ };
+ // Trend (readable)
+ if(window.__saTrendInst) window.__saTrendInst.destroy();
+ window.__saTrendInst = new Chart(trendCtx.getContext('2d'), {
+ type:'line',
+ data:{ labels, datasets:[{ label:'Jumlah', data:keys.map(k=>total[k]||0), borderColor:'#CD7C32', backgroundColor:'rgba(205,124,50,0.12)', borderWidth:2.5, fill:true, tension:0.32, pointRadius:keys.length>20?0:3, pointHoverRadius:5 }] },
+ options: axisOpts
+ });
+ // Sales by channel (multi-line)
+ const chCanvas = document.getElementById('saChannelChart');
+ if(chCanvas) {
+ const datasets = window.__SA_CHANNELS.filter(c => byChan[c.key]).map(c => ({ label:c.label, data:keys.map(k=>(byChan[c.key]||{})[k]||0), borderColor:c.color, backgroundColor:c.color, borderWidth:2, fill:false, tension:0.3, pointRadius:keys.length>20?0:2, pointHoverRadius:4 }));
+ if(window.__saChannelInst) window.__saChannelInst.destroy();
+ window.__saChannelInst = new Chart(chCanvas.getContext('2d'), {
+ type:'line', data:{ labels, datasets },
+ options: Object.assign({}, axisOpts, { plugins:{ legend:{ display:true, position:'bottom', labels:{ boxWidth:10, font:{size:10}, padding:8 } }, tooltip: axisOpts.plugins.tooltip } })
+ });
+ }
+ // Channel share (doughnut)
+ const shCanvas = document.getElementById('saShareChart');
+ if(shCanvas) {
+ const shKeys = window.__SA_CHANNELS.filter(c => share[c.key]);
+ if(window.__saShareInst) window.__saShareInst.destroy();
+ window.__saShareInst = new Chart(shCanvas.getContext('2d'), {
+ type:'doughnut',
+ data:{ labels: shKeys.map(c=>c.label), datasets:[{ data: shKeys.map(c=>share[c.key]), backgroundColor: shKeys.map(c=>c.color), borderWidth:2, borderColor:'#fff' }] },
+ options:{ responsive:true, maintainAspectRatio:false, cutout:'58%', plugins:{ legend:{ display:true, position:'bottom', labels:{ boxWidth:10, font:{size:10}, padding:8 } }, tooltip:{ callbacks:{ label:(c)=> c.label + ': RM ' + Number(c.parsed).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' (' + (grand? Math.round(c.parsed/grand*100):0) + '%)' } } } }
+ });
+ }
 };
 
 // p1_159 — Test/Real management state

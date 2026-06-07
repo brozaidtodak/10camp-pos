@@ -9866,6 +9866,56 @@ document.addEventListener('keydown', function(e) {
     else if(e.key === 'ArrowRight' && window.__pdState.images.length > 1) { window.posCycleImg(1); }
 });
 
+// p1_399 — per-item discount terus dari baris cart (walk-in: bagi diskaun tiap item, bukan total je)
+window.__cartDiscState = { sku:null, type:'rm' };
+window.openCartItemDiscount = function(sku){
+ const item = (typeof cart !== 'undefined' ? cart : []).find(c=>c.sku===sku);
+ if(!item) return;
+ window.__cartDiscState = { sku, type: item.discount_type || 'rm' };
+ const base = (item.original_price != null) ? item.original_price : item.price;
+ const nameEl = document.getElementById('cartDiscName'); if(nameEl) nameEl.textContent = '['+item.sku+'] '+(item.name||'');
+ const baseEl = document.getElementById('cartDiscBase'); if(baseEl) baseEl.textContent = 'Harga asal: RM '+Number(base).toFixed(2)+' / unit';
+ const amtEl = document.getElementById('cartDiscAmt'); if(amtEl) amtEl.value = (item.discount_amount > 0 && item.discount_input != null) ? item.discount_input : '';
+ const reasonEl = document.getElementById('cartDiscReason'); if(reasonEl) reasonEl.value = item.discount_reason || '';
+ cartDiscSetType(item.discount_type || 'rm');
+ const modal = document.getElementById('cartDiscModal'); if(modal) modal.style.display = 'flex';
+ setTimeout(()=>{ const a=document.getElementById('cartDiscAmt'); if(a){ a.focus(); a.select(); } }, 50);
+};
+window.cartDiscSetType = function(t){
+ window.__cartDiscState.type = t;
+ const on = 'flex:1; padding:9px; border:1px solid #CD7C32; border-radius:8px; font-weight:700; cursor:pointer; background:#CD7C32; color:#fff;';
+ const off = 'flex:1; padding:9px; border:1px solid #E5E7EB; border-radius:8px; font-weight:700; cursor:pointer; background:#fff; color:#374151;';
+ const rm = document.getElementById('cartDiscTypeRM'); if(rm) rm.setAttribute('style', t==='rm'?on:off);
+ const pct = document.getElementById('cartDiscTypePct'); if(pct) pct.setAttribute('style', t==='pct'?on:off);
+ const suf = document.getElementById('cartDiscSuffix'); if(suf) suf.textContent = (t==='pct') ? '% / unit' : 'RM / unit';
+};
+window.closeCartItemDiscount = function(){ const m=document.getElementById('cartDiscModal'); if(m) m.style.display='none'; };
+window.applyCartItemDiscount = function(){
+ const sku = window.__cartDiscState.sku, type = window.__cartDiscState.type || 'rm';
+ const item = (typeof cart !== 'undefined' ? cart : []).find(c=>c.sku===sku);
+ if(!item){ closeCartItemDiscount(); return; }
+ const base = (item.original_price != null) ? item.original_price : item.price;
+ const amt = parseFloat((document.getElementById('cartDiscAmt')||{}).value) || 0;
+ const reason = ((document.getElementById('cartDiscReason')||{}).value || '').trim();
+ let discount = 0;
+ if(amt > 0) discount = (type==='pct') ? round2(base*amt/100) : round2(amt);
+ if(discount > base) discount = base;
+ if(discount <= 0){
+ item.price = base; delete item.original_price; item.discount_amount = 0; item.discount_type=null; item.discount_input=null; item.discount_reason=null;
+ } else {
+ item.original_price = base; item.discount_amount = discount; item.discount_type = type; item.discount_input = amt; item.discount_reason = reason || null; item.price = round2(base - discount);
+ }
+ closeCartItemDiscount();
+ if(typeof renderCart==='function') renderCart();
+ if(typeof showToast==='function') showToast(discount>0 ? ('Diskaun -RM '+discount.toFixed(2)+'/unit: '+(item.name||sku)) : 'Diskaun dibuang', discount>0?'success':'info');
+};
+window.removeCartItemDiscount = function(){
+ const item = (typeof cart !== 'undefined' ? cart : []).find(c=>c.sku===window.__cartDiscState.sku);
+ if(item){ const base=(item.original_price!=null)?item.original_price:item.price; item.price=base; delete item.original_price; item.discount_amount=0; item.discount_type=null; item.discount_input=null; item.discount_reason=null; }
+ closeCartItemDiscount();
+ if(typeof renderCart==='function') renderCart();
+};
+
 window.addToCart = function(sku) {
  const p = masterProducts.find(x => x.sku === sku);
  if(!p) return;
@@ -9986,7 +10036,8 @@ function renderCart() {
  <button onclick="decreaseQuantity('${item.sku}')" style="background:#eee; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold;">-</button>
  <span style="font-weight:bold;">${item.quantity}</span>
  <button onclick="addToCart('${item.sku}')" style="background:#eee; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold;">+</button>
- <button onclick="removeFromCart('${item.sku}')" style="color:#EF4444; background:#fee2e2; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold; margin-left:5px;">X</button>
+ <button onclick="openCartItemDiscount('${item.sku}')" title="Diskaun untuk item ni" style="background:${(item.discount_amount > 0) ? '#FDE68A' : '#F3F4F6'}; color:#92400E; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold; font-size:13px; margin-left:5px;">%</button>
+ <button onclick="removeFromCart('${item.sku}')" style="color:#EF4444; background:#fee2e2; border:none; width:25px; height:25px; border-radius:5px; font-weight:bold; margin-left:2px;">X</button>
  </div>
  </div>`;
  }).join('');

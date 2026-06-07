@@ -29,6 +29,42 @@ document.addEventListener('DOMContentLoaded', () => {
  })();
 });
 
+// p1_440: Mobile app (Cashier-only) scope. The native shell appends "TenCampPOSApp"
+// to the user-agent (capacitor.config.json appendUserAgent). On the web/desktop POS
+// this token is absent, so none of the scoping below ever runs there — web stays full.
+window.__isPOSApp = /TenCampPOSApp/.test(navigator.userAgent || '');
+(function __initPosAppScopeCss(){
+ if(!window.__isPOSApp) return;
+ const css = [
+ 'body.pos-app-cashier-only #sidebarRail{display:none!important;}',
+ 'body.pos-app-cashier-only #sidebarMain .menu-item,',
+ 'body.pos-app-cashier-only #sidebarMain .nav-parent,',
+ 'body.pos-app-cashier-only #sidebarMain .nav-children{display:none!important;}',
+ 'body.pos-app-cashier-only #sidebarMain .nav-parent[data-nav-parent="cashier"],',
+ 'body.pos-app-cashier-only #sidebarMain .menu-item[data-tab="nav_cashier"]{display:flex!important;}',
+ 'body.pos-app-cashier-only #sidebarMain .nav-children[data-nav-children="cashier"]{display:block!important;}'
+ ].join('');
+ const add = () => {
+ if(document.getElementById('__posAppScopeCss')) return;
+ const st = document.createElement('style');
+ st.id = '__posAppScopeCss';
+ st.textContent = css;
+ (document.head || document.documentElement).appendChild(st);
+ };
+ if(document.head) add(); else document.addEventListener('DOMContentLoaded', add);
+})();
+// Lock the mobile app to the Cashier screen: hide other nav (CSS above) + jump to POS.
+// Logout stays reachable in the sidebar header. Called after every login.
+window.__applyPosAppScope = function(){
+ if(!window.__isPOSApp) return;
+ try {
+ document.body.classList.add('pos-app-cashier-only');
+ const btn = document.querySelector('.menu-item[data-tab="nav_cashier"]');
+ if(btn) btn.click();
+ else if(typeof switchHub === 'function') switchHub(['posSection'], 'POS / Cashier');
+ } catch(e){ console.warn('applyPosAppScope failed', e); }
+};
+
 // p1_75: Auto-login on refresh — Supabase persists session in localStorage by default.
 // On boot, fetch active session; if user matches authUsers, loginAs silent
 // (skip welcome modal flash). Staff stays logged in across refresh.
@@ -11936,6 +11972,8 @@ function loginAs(user, opts) {
  if(overviewBtn) { if(typeof window.setActiveRail === 'function') window.setActiveRail('overview'); overviewBtn.click(); }
  }
  try { if(typeof window.refreshRailBadges === 'function') window.refreshRailBadges(); } catch(e){}
+ // p1_440: in the mobile app, override the default landing — lock to Cashier only.
+ try { if(window.__isPOSApp && typeof window.__applyPosAppScope === 'function') window.__applyPosAppScope(); } catch(e){}
  }, 200);
 }
 
@@ -21755,9 +21793,9 @@ window.__aoStatusMeta = function(stRaw){
  if(s.includes('refund')) return { canon:'Refunded', label:'Refunded', bg:'#E0E7FF', fg:'#3730A3' };
  if(s.includes('cancel') || s.includes('void')) return { canon:'Cancelled', label:'Cancelled', bg:'#FEE2E2', fg:'#991B1B' };
  if(s.includes('complete') || s.includes('deliver')) return { canon:'Completed', label:'Completed', bg:'#D1FAE5', fg:'#065F46' };
- if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:'Dah Hantar', bg:'#ffedd5', fg:'#7c4a1a' };
- if(s.includes('fulfil') || s.includes('ready') || s.includes('await')) return { canon:'To Fulfil', label:'Perlu Pack', bg:'#FEF3C7', fg:'#92400E' };
- if(s.includes('pending') || s.includes('unpaid') || s.includes('hold')) return { canon:'Pending', label:'Belum Bayar', bg:'#FEF9C3', fg:'#854D0E' };
+ if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:((window.t&&window.t('ao_badge_shipped'))||'Dah Hantar'), bg:'#ffedd5', fg:'#7c4a1a' };
+ if(s.includes('fulfil') || s.includes('ready') || s.includes('await')) return { canon:'To Fulfil', label:((window.t&&window.t('ao_badge_tofulfil'))||'Perlu Pack'), bg:'#FEF3C7', fg:'#92400E' };
+ if(s.includes('pending') || s.includes('unpaid') || s.includes('hold')) return { canon:'Pending', label:((window.t&&window.t('ao_badge_pending'))||'Belum Bayar'), bg:'#FEF9C3', fg:'#854D0E' };
  return { canon:'', label: stRaw || '-', bg:'#F3F4F6', fg:'#6B7280' };
 };
 // p1_319 — kira qty merentas channel (POS Cashier guna `quantity`, Shopee/TikTok guna `qty`)
@@ -21922,6 +21960,7 @@ window.__aoExportCsv = function(selectedOnly){
 window.renderAllOrders = function() {
  const tbody = document.getElementById('aoTbody');
  if(!tbody) return;
+ const _t = (k, d) => (window.t && window.t(k)) || d; // p1_443 — i18n helper for JS-rendered labels
  if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
  return;
@@ -21945,13 +21984,13 @@ window.renderAllOrders = function() {
  const aov = liveOrders.length ? total / liveOrders.length : 0;
 
  document.getElementById('aoStats').innerHTML = `
- <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> Jumlah Order</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
- <div class="stat-card" style="border-left-color:#16A34A;" title="Jualan bersih — tidak termasuk order Batal/Refund${deadCount ? ' (' + deadCount + ' order dikecualikan)' : ''}"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> Jualan Bersih</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div class="stat-card" style="border-left-color:#cd7c32;" title="Purata nilai setiap order (jualan bersih)"><div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#cd7c32;"></i> Purata / Order</div><div class="stat-card__value">RM ${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> Walk-in</div><div class="stat-card__value">${walkinCount}</div></div>
- <div class="stat-card" style="border-left-color:#cd7c32;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#cd7c32;"></i> Online</div><div class="stat-card__value">${onlineCount}</div></div>
- <div class="stat-card" style="border-left-color:#F59E0B; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='To Fulfil'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang perlu di-pack"><div class="stat-card__label"><i data-lucide="package" style="width:13px;height:13px; color:#F59E0B;"></i> Perlu Pack</div><div class="stat-card__value">${toFulfil}</div></div>
- <div class="stat-card" style="border-left-color:#b86a26; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='Processing'; window.renderAllOrders&&window.renderAllOrders();}})()" title="Klik untuk tapis order yang dah dihantar"><div class="stat-card__label"><i data-lucide="truck" style="width:13px;height:13px; color:#b86a26;"></i> Dah Hantar</div><div class="stat-card__value">${processing}</div></div>
+ <div class="stat-card"><div class="stat-card__label"><i data-lucide="receipt" style="width:13px;height:13px; color:var(--primary);"></i> ${_t('ao_kpi_orders','Jumlah Order')}</div><div class="stat-card__value">${filtered.length.toLocaleString()}</div></div>
+ <div class="stat-card" style="border-left-color:#16A34A;" title="${_t('ao_kpi_netsales_t','Jualan bersih — tidak termasuk order Batal/Refund')}${deadCount ? ' (' + deadCount + ')' : ''}"><div class="stat-card__label"><i data-lucide="trending-up" style="width:13px;height:13px; color:#16A34A;"></i> ${_t('ao_kpi_netsales','Jualan Bersih')}</div><div class="stat-card__value">RM ${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:#cd7c32;" title="${_t('ao_kpi_aov_t','Purata nilai setiap order')}"><div class="stat-card__label"><i data-lucide="bar-chart-3" style="width:13px;height:13px; color:#cd7c32;"></i> ${_t('ao_kpi_aov','Purata / Order')}</div><div class="stat-card__value">RM ${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div class="stat-card" style="border-left-color:var(--secondary);"><div class="stat-card__label"><i data-lucide="store" style="width:13px;height:13px; color:var(--secondary);"></i> ${_t('ao_kpi_walkin','Walk-in')}</div><div class="stat-card__value">${walkinCount}</div></div>
+ <div class="stat-card" style="border-left-color:#cd7c32;"><div class="stat-card__label"><i data-lucide="globe" style="width:13px;height:13px; color:#cd7c32;"></i> ${_t('ao_kpi_online','Online')}</div><div class="stat-card__value">${onlineCount}</div></div>
+ <div class="stat-card" style="border-left-color:#F59E0B; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='To Fulfil'; window.renderAllOrders&&window.renderAllOrders();}})()" title="${_t('ao_kpi_tofulfil_t','Klik untuk tapis order yang perlu di-pack')}"><div class="stat-card__label"><i data-lucide="package" style="width:13px;height:13px; color:#F59E0B;"></i> ${_t('ao_kpi_tofulfil','Perlu Pack')}</div><div class="stat-card__value">${toFulfil}</div></div>
+ <div class="stat-card" style="border-left-color:#b86a26; cursor:pointer;" onclick="(function(){var e=document.getElementById('aoStatus'); if(e){e.value='Processing'; window.renderAllOrders&&window.renderAllOrders();}})()" title="${_t('ao_kpi_shipped_t','Klik untuk tapis order yang dah dihantar')}"><div class="stat-card__label"><i data-lucide="truck" style="width:13px;height:13px; color:#b86a26;"></i> ${_t('ao_kpi_shipped','Dah Hantar')}</div><div class="stat-card__value">${processing}</div></div>
  `;
 
  if(filtered.length === 0) {
@@ -26605,6 +26644,63 @@ window.I18N = {
  // p1_415 — BUGFIX i18n: key dirujuk dlm HTML tapi tertinggal dari dict (label tak translate dlm BM)
  dept_product_master: { bm: 'Master Produk', en: 'Product Master' },
  sb_all_orders: { bm: 'Semua Pesanan', en: 'All Orders' },
+ // p1_443 — All Orders page i18n
+ ao_search_label: { bm: 'Cari (customer / sku / phone)', en: 'Search (customer / SKU / phone)' },
+ ao_channel: { bm: 'Channel', en: 'Channel' },
+ ao_status: { bm: 'Status', en: 'Status' },
+ ao_sort: { bm: 'Susun', en: 'Sort' },
+ ao_period: { bm: 'Tempoh', en: 'Period' },
+ ao_opt_all: { bm: 'Semua', en: 'All' },
+ ao_ch_walkin: { bm: 'POS Cashier (kedai)', en: 'POS Cashier (store)' },
+ ao_ch_online: { bm: 'Online (semua)', en: 'Online (all)' },
+ ao_st_pending: { bm: 'Belum Bayar', en: 'Unpaid' },
+ ao_st_tofulfil: { bm: 'Perlu Pack', en: 'To Pack' },
+ ao_st_shipped: { bm: 'Dah Hantar', en: 'Shipped' },
+ ao_st_completed: { bm: 'Completed', en: 'Completed' },
+ ao_st_cancelled: { bm: 'Cancelled / Batal', en: 'Cancelled' },
+ ao_st_refunded: { bm: 'Refunded', en: 'Refunded' },
+ ao_sort_date_desc: { bm: 'Tarikh terbaru dulu', en: 'Newest date first' },
+ ao_sort_date_asc: { bm: 'Tarikh terlama dulu', en: 'Oldest date first' },
+ ao_sort_id_asc: { bm: 'Order # menaik (#0000 ke atas)', en: 'Order # ascending (#0000 up)' },
+ ao_sort_id_desc: { bm: 'Order # menurun (terbaru dulu)', en: 'Order # descending (newest)' },
+ ao_pd_today: { bm: 'Hari Ini', en: 'Today' },
+ ao_pd_yesterday: { bm: 'Semalam', en: 'Yesterday' },
+ ao_pd_7: { bm: '7 hari', en: '7 days' },
+ ao_pd_30: { bm: '30 hari', en: '30 days' },
+ ao_pd_90: { bm: '90 hari', en: '90 days' },
+ ao_pd_12mo: { bm: '12 bulan', en: '12 months' },
+ ao_pd_custom: { bm: 'Julat tarikh...', en: 'Date range...' },
+ ao_from: { bm: 'Dari', en: 'From' },
+ ao_to: { bm: 'Hingga', en: 'To' },
+ ao_filter: { bm: 'Tapis', en: 'Filter' },
+ ao_add_walkin: { bm: 'Tambah Walk-in', en: 'Add Walk-in' },
+ ao_add_online: { bm: 'Tambah Online Order', en: 'Add Online Order' },
+ ao_print_pick: { bm: 'Cetak Senarai Pick', en: 'Print Pick List' },
+ ao_refresh: { bm: 'Refresh', en: 'Refresh' },
+ ao_export: { bm: 'Export CSV', en: 'Export CSV' },
+ ao_hide_test: { bm: 'Hide Test', en: 'Hide Test' },
+ ao_kpi_orders: { bm: 'Jumlah Order', en: 'Total Orders' },
+ ao_kpi_netsales: { bm: 'Jualan Bersih', en: 'Net Sales' },
+ ao_kpi_netsales_t: { bm: 'Jualan bersih — tidak termasuk order Batal/Refund', en: 'Net sales — excludes Cancelled/Refunded orders' },
+ ao_kpi_aov: { bm: 'Purata / Order', en: 'Avg / Order' },
+ ao_kpi_aov_t: { bm: 'Purata nilai setiap order', en: 'Average value per order' },
+ ao_kpi_walkin: { bm: 'Walk-in', en: 'Walk-in' },
+ ao_kpi_online: { bm: 'Online', en: 'Online' },
+ ao_kpi_tofulfil: { bm: 'Perlu Pack', en: 'To Pack' },
+ ao_kpi_tofulfil_t: { bm: 'Klik untuk tapis order yang perlu di-pack', en: 'Click to filter orders needing packing' },
+ ao_kpi_shipped: { bm: 'Dah Hantar', en: 'Shipped' },
+ ao_kpi_shipped_t: { bm: 'Klik untuk tapis order yang dah dihantar', en: 'Click to filter shipped orders' },
+ ao_th_date: { bm: 'Tarikh', en: 'Date' },
+ ao_th_customer: { bm: 'Pelanggan', en: 'Customer' },
+ ao_th_channel: { bm: 'Channel', en: 'Channel' },
+ ao_th_method: { bm: 'Kaedah', en: 'Method' },
+ ao_th_status: { bm: 'Status', en: 'Status' },
+ ao_th_items: { bm: 'Items', en: 'Items' },
+ ao_th_receipt: { bm: 'Resit', en: 'Receipt' },
+ ao_th_action: { bm: 'Aksi', en: 'Action' },
+ ao_badge_shipped: { bm: 'Dah Hantar', en: 'Shipped' },
+ ao_badge_tofulfil: { bm: 'Perlu Pack', en: 'To Pack' },
+ ao_badge_pending: { bm: 'Belum Bayar', en: 'Unpaid' },
  sb_pm_collection: { bm: 'Koleksi', en: 'Collection' },
  sb_pm_inventory: { bm: 'Inventori', en: 'Inventory' },
  sb_pm_purchase_orders: { bm: 'Pesanan Belian', en: 'Purchase Orders' },
@@ -27511,6 +27607,8 @@ window.setLang = function(lang) {
  try { if(typeof window.renderCart === 'function') window.renderCart(); } catch(e){}
  // p1_408 — re-render POS grid (Save/stock/button labels via i18n)
  try { if(typeof window.renderPOS === 'function') window.renderPOS(); } catch(e){}
+ // p1_443 — re-render All Orders (KPI / headers / status badges via i18n)
+ try { if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection') && document.getElementById('allOrdersSection').style.display !== 'none') window.renderAllOrders(); } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }

@@ -2,6 +2,7 @@
   "appId": "com.tencamp.pos",
   "appName": "10 CAMP POS",
   "webDir": "mobile-shell",
+  "appendUserAgent": "TenCampPOSApp",
   "server": {
     "url": "https://10camp.com/#staff",
     "cleartext": false

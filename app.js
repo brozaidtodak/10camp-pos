@@ -17525,7 +17525,63 @@ window.saveMasterProduct = async function() {
  showToast(`${isEdit ? 'Update' : 'Daftar'} "${name}" (${sku}) berjaya!`, 'success');
  window.clearMpForm();
  if(typeof window.refreshMpDatalists === 'function') window.refreshMpDatalists();
+ // p1_409 — if opened from Products "+ Baru" modal, close it & refresh the product grid
+ // (masterProducts array already updated in-memory above, so just re-render)
+ const mpModal = document.getElementById('masterProductModal');
+ if(mpModal && mpModal.style.display !== 'none'){
+ window.closeMasterProductModal && window.closeMasterProductModal();
+ try { if(typeof window.renderProductDatabase === 'function') window.renderProductDatabase(); }
+ catch(e){ console.warn('grid refresh after master save:', e); }
+ }
 };
+
+// p1_409 — open the full Master Product registration form as a modal from Products "+ Baru".
+// The form card lives inside warehouseConfigSection; we relocate it into the modal body on first open.
+window.openMasterProductModal = function(){
+ const card = document.getElementById('masterProductFormCard');
+ const body = document.getElementById('masterProductModalBody');
+ if(card && body && card.parentElement !== body){
+ body.innerHTML = '';
+ body.appendChild(card);
+ card.style.marginTop = '0';
+ card.style.marginBottom = '0';
+ card.style.borderTop = 'none';
+ }
+ try { window.clearMpForm && window.clearMpForm(); } catch(e){}
+ try { window.refreshMpDatalists && window.refreshMpDatalists(); } catch(e){}
+ const m = document.getElementById('masterProductModal');
+ if(m) m.style.display = 'flex';
+ try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){}
+ setTimeout(()=>{ const n = document.getElementById('mpName'); if(n) n.focus(); }, 80);
+};
+window.closeMasterProductModal = function(){
+ const m = document.getElementById('masterProductModal');
+ if(m) m.style.display = 'none';
+};
+// p1_409 — relocate the master form card into the modal at boot so the Warehouse Hub
+// no longer shows it (truly "moved", not duplicated). Backdrop click closes the modal.
+(function mpRelocateInit(){
+ function relocate(){
+ try {
+ const card = document.getElementById('masterProductFormCard');
+ const body = document.getElementById('masterProductModalBody');
+ if(card && body && card.parentElement !== body){
+ body.innerHTML = '';
+ body.appendChild(card);
+ card.style.marginTop = '0';
+ card.style.marginBottom = '0';
+ card.style.borderTop = 'none';
+ }
+ const m = document.getElementById('masterProductModal');
+ if(m && !m.__mpBackdrop){
+ m.__mpBackdrop = true;
+ m.addEventListener('click', function(e){ if(e.target === m) window.closeMasterProductModal(); });
+ }
+ } catch(e){}
+ }
+ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', relocate);
+ else relocate();
+})();
 
 // p1_226 — Load existing product into form for edit
 window.loadMasterProductForEdit = async function() {

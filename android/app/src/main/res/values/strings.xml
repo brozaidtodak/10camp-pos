@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">10 CAMP POS</string>
+    <string name="title_activity_main">10 CAMP POS</string>
+    <string name="package_name">com.tencamp.pos</string>
+    <string name="custom_url_scheme">com.tencamp.pos</string>
+</resources>

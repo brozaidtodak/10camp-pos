@@ -12192,37 +12192,18 @@ window.lpSelectVariant = function(cardId, sku, btn) {
         if (parsed.variantName) { labelEl.textContent = parsed.variantName; labelEl.style.display = ''; }
         else { labelEl.style.display = 'none'; }
     }
-    // p1_160 — buy row replaces single Add to Cart button (no checkout flow on landing)
-    const buyRow = card.querySelector('.lp-product-card__buy');
+    // p1_434 — buy row dibuang dari card. Cuma urus badge Sold Out ikut stok variant.
     const soldOutLbl = (window.t ? window.t('lp_card_soldout') : 'Sold Out');
     const myBatches = (typeof inventoryBatches !== 'undefined') ? inventoryBatches.filter(b => b.sku === sku && b.qty_remaining > 0) : [];
     const totalStock = myBatches.reduce((s, b) => s + b.qty_remaining, 0);
     if (totalStock <= 0) {
-        // Replace buy row with sold-out button
-        const oldBuyRow = card.querySelector('.lp-product-card__buy, [data-role="add-btn"]');
-        if (oldBuyRow) oldBuyRow.outerHTML = `<button class="lp-product-card__btn" data-role="add-btn" disabled>${soldOutLbl}</button>`;
-    } else if (buyRow) {
-        const waMsg = encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || sku) + ' (SKU ' + sku + ')');
-        const skuParam = encodeURIComponent(sku);
-        buyRow.innerHTML = `<span class="lp-product-card__buy-label">Beli di</span>
-            <a href="https://shopee.com.my/10camp.os?searchKeyword=${skuParam}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee" title="Cari ${sku} di Shopee 10 CAMP"><i data-lucide="shopping-bag"></i>Shopee</a>
-            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok" title="Buka TikTok Shop 10 CAMP (cari ${sku})"><i data-lucide="music-2"></i>TikTok</a>
-            <a href="https://wa.me/601133109547?text=${waMsg}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa" title="Tanya kedai via WhatsApp"><i data-lucide="message-circle"></i>WhatsApp</a>`;
-        if(window.lucide && lucide.createIcons) lucide.createIcons();
+        // ensure a Sold Out button is shown (replace any leftover buy row / add-btn)
+        const old = card.querySelector('.lp-product-card__buy, [data-role="add-btn"]');
+        if (old) old.outerHTML = `<button class="lp-product-card__btn" data-role="add-btn" disabled>${soldOutLbl}</button>`;
     } else {
-        // Card didn't have buy row (e.g. previously sold-out), inject one
-        const oldAddBtn = card.querySelector('[data-role="add-btn"]');
-        if (oldAddBtn) {
-            const waMsg = encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || sku) + ' (SKU ' + sku + ')');
-            const skuParam = encodeURIComponent(sku);
-            oldAddBtn.outerHTML = `<div class="lp-product-card__buy">
-                <span class="lp-product-card__buy-label">Beli di</span>
-                <a href="https://shopee.com.my/10camp.os?searchKeyword=${skuParam}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee"><i data-lucide="shopping-bag"></i>Shopee</a>
-                <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok"><i data-lucide="music-2"></i>TikTok</a>
-                <a href="https://wa.me/601133109547?text=${waMsg}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa"><i data-lucide="message-circle"></i>WhatsApp</a>
-            </div>`;
-            if(window.lucide && lucide.createIcons) lucide.createIcons();
-        }
+        // in-stock: no buy row, no sold-out button — drop any leftover
+        const oldBtn = card.querySelector('[data-role="add-btn"]'); if (oldBtn) oldBtn.remove();
+        const oldBuyRow = card.querySelector('.lp-product-card__buy'); if (oldBuyRow) oldBuyRow.remove();
     }
 };
 
@@ -12667,15 +12648,10 @@ function renderPublicStorefront() {
                     <p class="lp-product-card__variant" data-role="variant-label" style="${parsed.variantName ? '' : 'display:none'}">${parsed.variantName || ''}</p>
                     <p class="lp-product-card__price" data-role="price">${onSale ? `<span class="lp-product-card__price--sale">${fmt(price)}</span><span class="lp-product-card__price--was">${fmt(compareAt)}</span><span class="lp-product-card__price--off">${fmt(compareAt - price)}</span>` : fmt(price)}</p>
                     ${chipsHtml}
-                    <!-- p1_165 — Editorial text links (competitor reference). No buttons, no boxes. -->
+                    <!-- p1_434 — buy row dibuang dari card (Zaid); customer klik card → PDP untuk beli. Sold-out badge kekal. -->
                     ${totalStock <= 0
                         ? `<button class="lp-product-card__btn" data-role="add-btn" disabled>${soldOutLabel}</button>`
-                        : `<div class="lp-product-card__buy">
-                            <span class="lp-product-card__buy-label">Beli di</span>
-                            <a href="https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(skuEsc)}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--shopee" title="Cari ${skuEsc} di Shopee 10 CAMP"><i data-lucide="shopping-bag"></i>Shopee</a>
-                            <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--tiktok" title="Buka TikTok Shop 10 CAMP (cari ${skuEsc})"><i data-lucide="music-2"></i>TikTok</a>
-                            <a href="https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (parsed.title || skuEsc) + ' (SKU ' + skuEsc + ')')}" target="_blank" rel="noopener" class="lp-product-card__buy-btn lp-product-card__buy-btn--wa" title="Tanya kedai via WhatsApp"><i data-lucide="message-circle"></i>WhatsApp</a>
-                        </div>`
+                        : ''
                     }
                 </div>
             </div>

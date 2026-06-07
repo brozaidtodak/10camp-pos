@@ -1,0 +1,9 @@
+{
+  "appId": "com.tencamp.pos",
+  "appName": "10 CAMP POS",
+  "webDir": "mobile-shell",
+  "server": {
+    "url": "https://10camp.com",
+    "cleartext": false
+  }
+}

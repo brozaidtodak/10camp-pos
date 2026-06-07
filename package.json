@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "@supabase/supabase-js": "^2.105.1",
     "cheerio": "^1.2.0",
     "jsdom": "^29.1.0"

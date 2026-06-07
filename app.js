@@ -6318,6 +6318,15 @@ window.renderDashboard = function() {
  return sd>= range.start && sd <= range.end;
  });
  }
+ // p1_449 — JUALAN TEPAT: buang order test + void/cancel/refund dari KPI hero.
+ // Dulu hero kira mentah → terlebih ~RM10k vs jualan sebenar (Zaid: "perlukan data sales tepat").
+ // Tapisan SAMA dgn blok Analisis Jualan supaya hero & analisis padan.
+ filteredSales = filteredSales.filter(s => {
+ if(!s || s.is_test) return false;
+ const st = (s.status || '').toLowerCase();
+ if(st.includes('void') || st.includes('cancel') || st.includes('refund')) return false;
+ return true;
+ });
  const rangeLabelEl = document.getElementById('dashRangeLabel');
  if (rangeLabelEl) rangeLabelEl.textContent = '— ' + range.label;
 
@@ -6480,15 +6489,19 @@ window.renderSalesTrajectory = function() {
  if(st.includes('void') || st.includes('cancel') || st.includes('refund')) return false;
  return true;
  });
+ // p1_449 — tetingkap selaras kalendar penuh (start-of-day → end-of-day) supaya
+ // "Harian (30 hari)" = hero pill "30 days" (dulu rolling 29×24jam jadi tak padan).
  const now = new Date();
- let from, to = now;
+ const _sod = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+ const _eod = (d) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
+ let from, to = _eod(now);
  if(mode === 'custom') {
  const f = document.getElementById('stFrom'), t = document.getElementById('stTo');
- from = (f && f.value) ? new Date(f.value + 'T00:00:00') : new Date(now.getTime() - 30*864e5);
- to = (t && t.value) ? new Date(t.value + 'T23:59:59') : now;
- } else if(mode === 'weekly') { from = new Date(now.getTime() - 12*7*864e5); }
- else if(mode === 'monthly') { from = new Date(now.getFullYear(), now.getMonth() - 11, 1); }
- else { from = new Date(now.getTime() - 29*864e5); } // daily = 30 hari
+ from = (f && f.value) ? new Date(f.value + 'T00:00:00') : _sod(new Date(now.getTime() - 29*864e5));
+ to = (t && t.value) ? new Date(t.value + 'T23:59:59') : _eod(now);
+ } else if(mode === 'weekly') { const s = new Date(now); s.setDate(s.getDate() - 7*11); from = _sod(s); }
+ else if(mode === 'monthly') { from = _sod(new Date(now.getFullYear(), now.getMonth() - 11, 1)); }
+ else { const s = new Date(now); s.setDate(s.getDate() - 29); from = _sod(s); } // daily = 30 hari kalendar
  const fromMs = from.getTime(), toMs = to.getTime();
  const pad = (n) => String(n).padStart(2, '0');
  const keyOf = (d) => {
@@ -6558,15 +6571,18 @@ window.renderSalesAnalytics = function() {
  if(st.includes('void') || st.includes('cancel') || st.includes('refund')) return false;
  return true;
  });
+ // p1_449 — tetingkap selaras kalendar penuh (sama dgn trajectory + hero pill)
  const now = new Date();
- let from, to = now;
+ const _sod = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+ const _eod = (d) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
+ let from, to = _eod(now);
  if(mode === 'custom') {
  const f = document.getElementById('saFrom'), t = document.getElementById('saTo');
- from = (f && f.value) ? new Date(f.value + 'T00:00:00') : new Date(now.getTime() - 30*864e5);
- to = (t && t.value) ? new Date(t.value + 'T23:59:59') : now;
- } else if(mode === 'weekly') { from = new Date(now.getTime() - 12*7*864e5); }
- else if(mode === 'monthly') { from = new Date(now.getFullYear(), now.getMonth() - 11, 1); }
- else { from = new Date(now.getTime() - 29*864e5); }
+ from = (f && f.value) ? new Date(f.value + 'T00:00:00') : _sod(new Date(now.getTime() - 29*864e5));
+ to = (t && t.value) ? new Date(t.value + 'T23:59:59') : _eod(now);
+ } else if(mode === 'weekly') { const s = new Date(now); s.setDate(s.getDate() - 7*11); from = _sod(s); }
+ else if(mode === 'monthly') { from = _sod(new Date(now.getFullYear(), now.getMonth() - 11, 1)); }
+ else { const s = new Date(now); s.setDate(s.getDate() - 29); from = _sod(s); }
  const fromMs = from.getTime(), toMs = to.getTime();
  const pad = (n) => String(n).padStart(2, '0');
  const keyOf = (d) => {

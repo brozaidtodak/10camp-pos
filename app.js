@@ -16498,6 +16498,7 @@ window.renderPersonalCommission = function() {
 
  // Filter sales by date range
  const sales = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => {
+ if (s.is_test) return false; // p1_405 — test order tak masuk komisen staff
  if (!range.start || !range.end) return true;
  const t = s.created_at ? new Date(s.created_at).getTime() : 0;
  return t>= range.start.getTime() && t <= range.end.getTime();
@@ -21424,6 +21425,7 @@ window.renderAllOrders = function() {
  })()}
  <td style="padding:10px; white-space:nowrap;">
  <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>
+ <button onclick="window.__aoToggleTest && window.__aoToggleTest(${s.id}, ${s.is_test ? 'false' : 'true'})" title="${s.is_test ? 'Tanda sebagai jualan SEBENAR (masuk balik komisen/laporan)' : 'Tanda sebagai TEST order — tak masuk komisen staff & laporan'}" style="display:inline-flex; align-items:center; gap:5px; width:auto; white-space:nowrap; background:${s.is_test ? '#FCD34D' : '#fff'}; border:1px solid ${s.is_test ? '#F59E0B' : '#E5E7EB'}; color:${s.is_test ? '#7C2D12' : '#6B7280'}; padding:4px 12px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-left:5px;"><i data-lucide="flask-conical" style="width:11px;height:11px;"></i> ${s.is_test ? 'Marked as test order' : 'Identify as test order'}</button>
  </td>
  </tr>`;
  }).join('');

@@ -5841,7 +5841,59 @@ window.refreshRailBadges = function() {
  } catch(e){}
 };
 
+// p1_453 — Gate PIN untuk DATA SULIT (PNC): untung/margin, kos, leaderboard staf.
+// Buka dengan PIN 1999, unlock kekal utk sesi ni sahaja. (managerDashboardSection
+// TIDAK digate sebab ia sebahagian Home; commission manager-view digate berasingan.)
+window.__CONFIDENTIAL_SECTIONS = ['channelProfitSection','brandPerfSection','salesMgmtSection'];
+window.__CONF_PIN = '1999';
+window.__confIsUnlocked = function() {
+ try { return sessionStorage.getItem('confUnlocked_v1') === '1'; } catch(e) { return window.__confUnlockedMem === true; }
+};
+window.__confSetUnlocked = function() {
+ try { sessionStorage.setItem('confUnlocked_v1','1'); } catch(e){}
+ window.__confUnlockedMem = true;
+};
+window.__confidentialGate = function(onSuccess) {
+ const old = document.getElementById('confGateModal'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'confGateModal';
+ ov.setAttribute('style','position:fixed; inset:0; z-index:9500; background:rgba(16,16,16,.7); display:flex; align-items:center; justify-content:center; padding:20px;');
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ ov.innerHTML = '<div style="background:#fff; border-radius:16px; max-width:360px; width:100%; padding:26px 24px; box-shadow:0 24px 60px rgba(0,0,0,.35); text-align:center;">'
+ + '<div style="width:54px;height:54px;border-radius:50%;background:#FDF0E2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;"><i data-lucide="lock" style="width:26px;height:26px;color:var(--primary);"></i></div>'
+ + '<h3 style="margin:0 0 4px; font-weight:800; font-size:18px;">Data Sulit (PNC)</h3>'
+ + '<p style="margin:0 0 16px; font-size:12.5px; color:#6B7280;">Bahagian ini ada maklumat kewangan sensitif (untung, kos, komisen). Masukkan PIN untuk buka.</p>'
+ + '<input id="confGateInput" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" autocomplete="off" style="width:100%; box-sizing:border-box; text-align:center; letter-spacing:6px; font-size:20px; padding:12px; border:1px solid #E2E2E2; border-radius:10px; margin:0 0 10px;">'
+ + '<div id="confGateErr" style="display:none; color:#c0392b; font-size:12px; margin-bottom:10px;">PIN salah. Cuba lagi.</div>'
+ + '<div style="display:flex; gap:8px;">'
+ + '<button onclick="document.getElementById(\'confGateModal\').remove()" style="flex:0 0 auto; padding:12px 16px; background:#fff; color:#6F6F6F; border:1px solid #E2E2E2; border-radius:8px; font-weight:700; cursor:pointer;">Batal</button>'
+ + '<button id="confGateBtn" style="flex:1; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Buka</button>'
+ + '</div></div>';
+ document.body.appendChild(ov);
+ if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){}
+ const input = document.getElementById('confGateInput');
+ const submit = function() {
+ if(input && input.value === window.__CONF_PIN) {
+ window.__confSetUnlocked();
+ ov.remove();
+ if(typeof onSuccess === 'function') onSuccess();
+ } else {
+ const err = document.getElementById('confGateErr'); if(err) err.style.display='block';
+ if(input){ input.value=''; input.focus(); }
+ }
+ };
+ const btn = document.getElementById('confGateBtn'); if(btn) btn.onclick = submit;
+ if(input) input.onkeydown = function(e){ if(e.key === 'Enter') submit(); };
+ setTimeout(function(){ if(input) input.focus(); }, 60);
+};
+
 function switchHub(sectionIds, title, btnElement) {
+ // p1_453 — Gate data sulit: kalau section confidential & belum unlock, minta PIN dulu.
+ if (!window.__confIsUnlocked() && Array.isArray(sectionIds)
+ && sectionIds.some(function(id){ return (window.__CONFIDENTIAL_SECTIONS||[]).indexOf(id) !== -1; })) {
+ window.__confidentialGate(function(){ if(btnElement && btnElement.click) btnElement.click(); else switchHub(sectionIds, title, btnElement); });
+ return;
+ }
  // p1_188 — Auto-exit Landing preview mode. previewLanding() hides posAppLayout
  // which contains all .tab-section. Without this, switching sections from
  // landing-preview keeps content invisible (parent hidden). Same fix as
@@ -16936,7 +16988,17 @@ window.renderPersonalCommission = function() {
  // === Manager view: all staff ===
  const mgrWrap = document.getElementById('cmManagerWrap');
  if (mgrWrap) mgrWrap.style.display = isManager ? 'block' : 'none';
- if (isManager) {
+ // p1_453 — jadual komisen SEMUA-staff = data sulit (PNC). Personal view kekal terbuka.
+ if (isManager && !window.__confIsUnlocked()) {
+ const mgrTbody0 = document.getElementById('cmManagerTbody');
+ if (mgrTbody0) mgrTbody0.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:26px; color:var(--text-muted);">'
+ + '<i data-lucide="lock" style="width:22px;height:22px;color:var(--primary);"></i>'
+ + '<div style="margin:8px 0 12px; font-weight:700;">Data komisen semua staf adalah SULIT (PNC).</div>'
+ + '<button onclick="window.__confidentialGate(function(){ if(window.renderPersonalCommission) window.renderPersonalCommission(); })" style="padding:10px 18px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Buka dengan PIN</button>'
+ + '</td></tr>';
+ if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
+ }
+ if (isManager && window.__confIsUnlocked()) {
  const mgrTbody = document.getElementById('cmManagerTbody');
  if (mgrTbody) {
  const allStaff = (typeof authUsers !== 'undefined') ? authUsers : [];

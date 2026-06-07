@@ -12404,10 +12404,13 @@ window.lpRenderPdp = function() {
     const SHOPEE_SHOP_ID = '1220376590';
     const mmeta = (current.metadata && typeof current.metadata === 'object') ? current.metadata : {};
     const shopeeItemId = mmeta.shopee_item_id || '';
-    const shopeeUrl = shopeeItemId
-        ? `https://shopee.com.my/product/${SHOPEE_SHOP_ID}/${shopeeItemId}`
-        : `https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}`;
-    const tiktokUrl = 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop';
+    // p1_417 — prefer the editable direct link; else build from item_id; else store search.
+    const shopeeUrl = mmeta.shopee_url
+        ? mmeta.shopee_url
+        : (shopeeItemId
+            ? `https://shopee.com.my/product/${SHOPEE_SHOP_ID}/${shopeeItemId}`
+            : `https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}`);
+    const tiktokUrl = mmeta.tiktok_url || 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop';
     const waBuyUrl = `https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}`;
     const shareUrl = `https://10camp.com/?p=${encodeURIComponent(current.sku)}`;
     const shareText = encodeURIComponent((parsed.title || current.sku) + ' — 10 CAMP');
@@ -18294,6 +18297,9 @@ window.openPdpModal = function(sku) {
  // p1_263 — Marketplace integration IDs
  set('pdpShopeeItemId', m.shopee_item_id);
  set('pdpTiktokProductId', m.tiktok_product_id);
+ // p1_417 — direct buy links (editable). Auto-fill Shopee from item_id kalau belum diisi.
+ set('pdpShopeeUrl', m.shopee_url || (m.shopee_item_id ? ('https://shopee.com.my/product/1220376590/' + m.shopee_item_id) : ''));
+ set('pdpTiktokUrl', m.tiktok_url || '');
  // Sync status line — show last sync timestamps
  const syncEl = document.getElementById('pdpSyncStatus');
  if(syncEl) {
@@ -18661,7 +18667,10 @@ window.savePdpData = async function() {
  metafields: currentPdpMetafields || {},
  // p1_263 — Marketplace integration IDs (manual entry from PDP modal)
  shopee_item_id: get('pdpShopeeItemId') || null,
- tiktok_product_id: get('pdpTiktokProductId') || null
+ tiktok_product_id: get('pdpTiktokProductId') || null,
+ // p1_417 — direct buy links (editable; used by customer landing buy buttons)
+ shopee_url: get('pdpShopeeUrl') || null,
+ tiktok_url: get('pdpTiktokUrl') || null
  };
 
  const updatePayload = {

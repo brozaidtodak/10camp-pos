@@ -823,13 +823,13 @@
 .lp-pill--active { background: #1F2937; color: #FFF; border-color: #1F2937; }
 /* p1_420/p1_421 — fixed 5 cards per row (Zaid), responsive. ID selector so it wins over
    the base .products-grid (minmax 140px) in BOTH the public landing and Preview Mode. */
-#publicProductsList.lp-products-grid { padding: 0 24px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; align-items: start; }
+#publicProductsList.lp-products-grid { padding: 0 24px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; align-items: stretch; }
 @media (max-width: 1200px) { #publicProductsList.lp-products-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 900px)  { #publicProductsList.lp-products-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px)  { #publicProductsList.lp-products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 14px; } }
 
 /* p1_51: card is flex column so button always sits at bottom; grid default align-items:stretch equalises row height */
-.lp-product-card { background: #FFF; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid transparent; transition: 0.2s; position: relative; display: flex; flex-direction: column; }
+.lp-product-card { background: #FFF; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid transparent; transition: 0.2s; position: relative; display: flex; flex-direction: column; height: 100%; }
 .lp-product-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.1); border-color: #E5E7EB; transform: translateY(-2px); }
 .lp-product-card__media { position: relative; aspect-ratio: 1/1; overflow: hidden; background: #F9FAFB; }
 .lp-product-card__media img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }

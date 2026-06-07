@@ -16019,6 +16019,27 @@ window.__mpPushPrices = async function() {
  }
  setS(`Siap — Shopee ${okShopee}, TikTok ${okTiktok} harga dipush.`);
  if(typeof showToast === 'function') showToast(`Harga dipush: Shopee ${okShopee}, TikTok ${okTiktok}`, 'success');
+ if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
+};
+
+// p1_413 — Shopee misleading-price reminder. Auto-push ke marketplace ON balik;
+// reminder ni muncul bila harga dipush, supaya Zaid pastikan harga/compare-at tak
+// kelihatan misleading di Shopee (flag ambil ~7 hari untuk pulih). Dedupe + auto-dismiss.
+window.__shopeePriceReminder = function(){
+ if(document.getElementById('shopeePriceReminder')) return; // jangan bertindih
+ const el = document.createElement('div');
+ el.id = 'shopeePriceReminder';
+ el.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#FFF7ED; border:1px solid #F59E0B; border-left:5px solid #EA580C; color:#7C2D12; padding:14px 18px; border-radius:10px; z-index:10000; max-width:460px; box-shadow:0 12px 32px rgba(0,0,0,.20); font-size:13px; line-height:1.55;';
+ el.innerHTML = '<div style="display:flex; gap:12px; align-items:flex-start;">'
+ + '<i data-lucide="alert-triangle" style="width:20px; height:20px; flex:0 0 auto; color:#EA580C; margin-top:1px;"></i>'
+ + '<div>'
+ + '<strong style="display:block; margin-bottom:3px;">Reminder harga Shopee</strong>'
+ + 'Harga dah di-push ke marketplace. Bila update di Shopee, pastikan harga &amp; compare-at TAK nampak misleading (jangan lambung harga asal untuk fake diskaun). Shopee boleh flag listing &mdash; ambil lebih kurang <b>7 hari</b> untuk pulih.'
+ + '<div style="margin-top:10px; text-align:right;"><button onclick="var n=document.getElementById(\'shopeePriceReminder\'); if(n) n.remove();" style="background:#EA580C; color:#fff; border:none; padding:7px 16px; border-radius:7px; font-weight:700; font-size:12px; cursor:pointer;">Faham</button></div>'
+ + '</div></div>';
+ document.body.appendChild(el);
+ try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){}
+ setTimeout(()=>{ const n=document.getElementById('shopeePriceReminder'); if(n) n.remove(); }, 12000);
 };
 
 // p1_289 — human-readable "last sync" timestamp (global so detail view reuses it)
@@ -17500,6 +17521,7 @@ window.saveMasterProduct = async function() {
  // p1_297 — push this product's price to Shopee + TikTok (custom price or markup
  // fallback). Single SKU = fast, fire-and-forget, never blocks the save.
  try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
+ if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
 
  // p1_226 — Initial Quantity → inventory_batches insert (only for NEW products + qty > 0)
  // p1_236 — fix schema columns: was unit_cost_rm/received_at/received_by/note → actual: cost_price/inbound_date/notes
@@ -18489,6 +18511,7 @@ window.__pdpSaveVariants = async function(parentSku) {
  // Blok lama p1_346 (simpan field utama ke curSku) dibuang sebab tindih dengan kolum per-variant.
  // push updated prices to marketplaces (fire-and-forget, single batch)
  try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(skus.join(','))).catch(()=>{}); } catch(e){}
+ if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
  if(errs.length) console.warn('Variant save errors:', errs);
  // Reload batches so the stock display reflects the adjustments, then re-render
  // the variant table IN PLACE. Resets inputs to true current stock so pressing
@@ -18615,6 +18638,7 @@ window.savePdpData = async function() {
  // p1_297b — push this product's price to Shopee + TikTok (fire-and-forget)
  try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(sku)).catch(()=>{}); } catch(e){}
  if(typeof showToast === 'function') showToast(`${sku} saved. Harga dipush ke marketplace.`, 'success');
+ if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
  else alert("Product saved successfully.");
  document.getElementById('pdpModal').style.display = 'none';
  await window.initApp(); // reload everything
@@ -19594,6 +19618,7 @@ window.bulkSaveEdits = async function() {
  if(pushedSkus.length) {
  const chunk = (a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
  for(const c of chunk(pushedSkus, 25)) { try { fetch('/api/marketplace-price-push?mode=push&skus=' + encodeURIComponent(c.join(','))).catch(()=>{}); } catch(e){} }
+ if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
  }
  // reload batches so stock display reflects adjustments
  if(stockChanged) { try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){} }

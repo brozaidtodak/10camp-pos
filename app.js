@@ -12447,7 +12447,7 @@ window.lpRenderPdp = function() {
             <h2 class="lp-pdp__title" id="lpPdpTitle">${escHtml(parsed.title)}</h2>
             <div class="lp-pdp__price-row">
                 <span class="lp-pdp__price">${fmt(price)}</span>
-                ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span><span class="lp-pdp__discount">${fmt(compareAt - price)}</span>` : ''}
+                ${onSale ? `<span class="lp-pdp__price-was">${fmt(compareAt)}</span>` : ''}
             </div>
             ${stockBadge}
             ${quickHtml}

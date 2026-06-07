@@ -68,20 +68,6 @@ exports.handler = async (event) => {
         if (!rows || !rows.length) return json(404, { error: `SKU ${sku} not found in products_master` });
         const meta = (rows[0].metadata && typeof rows[0].metadata === 'object') ? rows[0].metadata : {};
 
-        if (q.debug === 'tt' && meta.tiktok_product_id) {
-            const tok = await tiktok.getValidToken();
-            const cipher = await tiktok.ensureShopCipher(tok);
-            const r = await tiktok.ttRequest('GET', `/product/${tiktok.VERSION}/products/${meta.tiktok_product_id}`,
-                { accessToken: tok.access_token, shopCipher: cipher });
-            return json(200, {
-                code: r.code, message: r.message,
-                skus: ((r.data && r.data.skus) || []).map(s => ({
-                    id: s.id, seller_sku: s.seller_sku,
-                    sku_img_url: (s.sku_img && s.sku_img.urls && s.sku_img.urls[0]) || (((s.sales_attributes || []).find(a => a.sku_img) || {}).sku_img || {}).urls && (((s.sales_attributes || []).find(a => a.sku_img) || {}).sku_img.urls[0]) || null
-                }))
-            });
-        }
-
         const all = [];
         if (channel === 'both' || channel === 'shopee') all.push(...await importShopee(meta, out));
         if (channel === 'both' || channel === 'tiktok') all.push(...await importTiktok(meta, out));

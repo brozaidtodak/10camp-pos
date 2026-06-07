@@ -16022,24 +16022,19 @@ window.__mpPushPrices = async function() {
  if(typeof window.__shopeePriceReminder === 'function') window.__shopeePriceReminder();
 };
 
-// p1_413 — Shopee misleading-price reminder. Auto-push ke marketplace ON balik;
-// reminder ni muncul bila harga dipush, supaya Zaid pastikan harga/compare-at tak
-// kelihatan misleading di Shopee (flag ambil ~7 hari untuk pulih). Dedupe + auto-dismiss.
+// p1_413 — Shopee misleading-price reminder. Auto-push ke marketplace ON balik.
+// p1_414 — Zaid tak nak popup; hantar reminder ke notification center (icon bell) sahaja.
+// notify.add auto-dedupe (title+body sama dlm 30s) jadi bulk push tak spam.
 window.__shopeePriceReminder = function(){
- if(document.getElementById('shopeePriceReminder')) return; // jangan bertindih
- const el = document.createElement('div');
- el.id = 'shopeePriceReminder';
- el.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#FFF7ED; border:1px solid #F59E0B; border-left:5px solid #EA580C; color:#7C2D12; padding:14px 18px; border-radius:10px; z-index:10000; max-width:460px; box-shadow:0 12px 32px rgba(0,0,0,.20); font-size:13px; line-height:1.55;';
- el.innerHTML = '<div style="display:flex; gap:12px; align-items:flex-start;">'
- + '<i data-lucide="alert-triangle" style="width:20px; height:20px; flex:0 0 auto; color:#EA580C; margin-top:1px;"></i>'
- + '<div>'
- + '<strong style="display:block; margin-bottom:3px;">Reminder harga Shopee</strong>'
- + 'Harga dah di-push ke marketplace. Bila update di Shopee, pastikan harga &amp; compare-at TAK nampak misleading (jangan lambung harga asal untuk fake diskaun). Shopee boleh flag listing &mdash; ambil lebih kurang <b>7 hari</b> untuk pulih.'
- + '<div style="margin-top:10px; text-align:right;"><button onclick="var n=document.getElementById(\'shopeePriceReminder\'); if(n) n.remove();" style="background:#EA580C; color:#fff; border:none; padding:7px 16px; border-radius:7px; font-weight:700; font-size:12px; cursor:pointer;">Faham</button></div>'
- + '</div></div>';
- document.body.appendChild(el);
- try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){}
- setTimeout(()=>{ const n=document.getElementById('shopeePriceReminder'); if(n) n.remove(); }, 12000);
+ try {
+ if(window.notify && window.notify.add){
+ window.notify.add({
+ title: 'Reminder harga Shopee',
+ body: 'Harga dah di-push ke marketplace. Bila update di Shopee, pastikan harga & compare-at tak nampak misleading (jangan lambung harga asal untuk fake diskaun). Shopee boleh flag listing — ambil lebih kurang 7 hari untuk pulih.',
+ type: 'warning'
+ });
+ }
+ } catch(e){}
 };
 
 // p1_289 — human-readable "last sync" timestamp (global so detail view reuses it)

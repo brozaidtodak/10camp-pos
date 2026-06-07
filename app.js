@@ -21957,10 +21957,23 @@ window.__aoExportCsv = function(selectedOnly){
  if(typeof showToast === 'function') showToast(`${rows.length} order di-export ke CSV.`, 'success');
 };
 
+// p1_445 — klik header kolum untuk susun (toggle naik/turun)
+window.__aoSortBy = function(col) {
+ const sel = document.getElementById('aoSort'); if(!sel) return;
+ const cur = sel.value;
+ if(col === 'date') sel.value = (cur === 'date_desc') ? 'date_asc' : 'date_desc';
+ else if(col === 'id') sel.value = (cur === 'id_desc') ? 'id_asc' : 'id_desc';
+ window.renderAllOrders();
+};
 window.renderAllOrders = function() {
  const tbody = document.getElementById('aoTbody');
  if(!tbody) return;
  const _t = (k, d) => (window.t && window.t(k)) || d; // p1_443 — i18n helper for JS-rendered labels
+ // p1_445 — header sort arrows reflect current sort
+ const _sv = (document.getElementById('aoSort') || {}).value || 'id_desc';
+ const _arrow = (id, asc, desc) => { const e = document.getElementById(id); if(e) e.textContent = (_sv === asc) ? ' ▲' : (_sv === desc ? ' ▼' : ''); };
+ _arrow('aoSortDateArrow', 'date_asc', 'date_desc');
+ _arrow('aoSortIdArrow', 'id_asc', 'id_desc');
  if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
  return;
@@ -26691,6 +26704,7 @@ window.I18N = {
  ao_kpi_shipped: { bm: 'Dah Hantar', en: 'Shipped' },
  ao_kpi_shipped_t: { bm: 'Klik untuk tapis order yang dah dihantar', en: 'Click to filter shipped orders' },
  ao_th_date: { bm: 'Tarikh', en: 'Date' },
+ ao_th_order: { bm: 'Order', en: 'Order' },
  ao_th_customer: { bm: 'Pelanggan', en: 'Customer' },
  ao_th_channel: { bm: 'Channel', en: 'Channel' },
  ao_th_method: { bm: 'Kaedah', en: 'Method' },

@@ -19317,6 +19317,8 @@ const BULK_FIELD_DEFS = [
  { g:'Harga',     key:'compare',  label:'Compare-at',   type:'num',   f:'compare_at_price' },
  { g:'Harga',     key:'cost',     label:'Kos',          type:'num',   f:'cost_price' },
  { g:'Harga',     key:'floor',    label:'Floor Price',  type:'num',   f:'floor_price' },
+ { g:'Harga',     key:'shopee',   label:'Shopee',       type:'num',   f:'shopee_price' },
+ { g:'Harga',     key:'tiktok',   label:'TikTok',       type:'num',   f:'tiktok_price' },
  { g:'Inventori', key:'skuedit',  label:'SKU (boleh tukar)', type:'skuedit' },
  { g:'Inventori', key:'stock',    label:'Stok',         type:'stock' },
  { g:'Inventori', key:'bin',      label:'Slot / Lokasi',type:'text',  f:'location_bin' },

@@ -9536,8 +9536,9 @@ function renderPOS(searchTerm = "") {
  const isOnSale = compareAtNum > priceNum && priceNum > 0;
  const offPct = isOnSale ? Math.round(((compareAtNum - priceNum) / compareAtNum) * 100) : 0;
  const fmtPrice = (n) => 'RM ' + (Number.isInteger(n) ? n : n.toFixed(2));
+ // p1_411 — staff tak nak teks "Save/Jimat", buang span price__off (kekal harga + harga coret sahaja)
  const priceHtml = isOnSale
- ? `<p class="price price--has-sale"><span class="price__sale">${fmtPrice(priceNum)}</span><span class="price__was">${fmtPrice(compareAtNum)}</span><span class="price__off">${(window.t?window.t('cs_save'):'Save')} ${fmtPrice(compareAtNum - priceNum)}</span></p>`
+ ? `<p class="price price--has-sale"><span class="price__sale">${fmtPrice(priceNum)}</span><span class="price__was">${fmtPrice(compareAtNum)}</span></p>`
  : `<p class="price">${fmtPrice(priceNum)}</p>`;
 
  htmlBuf += `
@@ -9631,11 +9632,11 @@ window.posOpenProductDetail = function(sku) {
         if(isOnSale) {
             const saved = compareNum - priceNum;
             const pctOff = Math.round((saved / compareNum) * 100);
+            // p1_411 — staff tak nak teks "Jimat", buang span pdm-price__saved (kekal badge -% + harga + coret)
             pdPriceEl.innerHTML = '<div class="pdm-price__sale-wrap">'
                 + '<span class="pdm-price__pct-badge">-' + pctOff + '%</span>'
                 + '<span class="pdm-price__current pdm-price__current--sale">' + fmt(priceNum) + '</span>'
                 + '<span class="pdm-price__was"><s>' + fmt(compareNum) + '</s></span>'
-                + '<span class="pdm-price__saved">Jimat ' + fmt(saved) + '</span>'
                 + '</div>';
         } else {
             pdPriceEl.innerHTML = '<span class="pdm-price__current">' + fmt(priceNum) + '</span>';

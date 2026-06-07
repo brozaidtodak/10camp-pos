@@ -6085,6 +6085,8 @@ async function initApp() {
  try { if(typeof window.lpUpdateTrustStats === 'function') window.lpUpdateTrustStats(); } catch(e){}
  renderPublicStorefront();
  renderPOS();
+ // p1_416 — open product detail if landing was reached via a ?p=SKU share link
+ try { if(typeof window.lpHandleDeepLink === 'function') window.lpHandleDeepLink(); } catch(e){}
 
  try { renderQuotePOS(); } catch(e){}
  let { data: quotes } = await db.from('quotations_log').select('*').order('created_at', {ascending: false});
@@ -12289,6 +12291,35 @@ window.lpClosePdp = function() {
     window.lpPdpState = null;
 };
 
+// p1_416 — copy shareable product link (deep link opens this product on 10camp.com)
+window.lpCopyProductLink = function(sku, btn) {
+    const url = 'https://10camp.com/?p=' + encodeURIComponent(sku);
+    const done = () => {
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check"></i>';
+            try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){}
+            setTimeout(() => { btn.innerHTML = orig; try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){} }, 1500);
+        }
+        if (typeof showToast === 'function') showToast('Pautan produk disalin!', 'success');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(() => { window.prompt('Salin pautan ni:', url); });
+    } else {
+        window.prompt('Salin pautan ni:', url);
+    }
+};
+
+// p1_416 — deep link: ?p=SKU on the landing page auto-opens that product's detail.
+window.lpHandleDeepLink = function() {
+    try {
+        const sku = new URLSearchParams(window.location.search).get('p');
+        if (sku && typeof window.lpOpenProductDetail === 'function') {
+            window.lpOpenProductDetail(sku.toUpperCase());
+        }
+    } catch(e) {}
+};
+
 window.lpRenderPdp = function() {
     const state = window.lpPdpState;
     if (!state) return;
@@ -12367,6 +12398,38 @@ window.lpRenderPdp = function() {
         ? `<div class="lp-pdp__quick">${quickSpecs.map(s => `<div class="lp-pdp__quick-item"><span class="lp-pdp__quick-label">${escHtml(s.label)}</span><span class="lp-pdp__quick-value">${escHtml(s.value)}</span></div>`).join('')}</div>`
         : '';
 
+    // p1_416 — branded buy buttons + share row, surfaced ABOVE Description.
+    // Shopee button deep-links to the specific product (shop_id 1220376590 + shopee_item_id);
+    // falls back to a store search by SKU when the item_id isn't mapped yet.
+    const SHOPEE_SHOP_ID = '1220376590';
+    const mmeta = (current.metadata && typeof current.metadata === 'object') ? current.metadata : {};
+    const shopeeItemId = mmeta.shopee_item_id || '';
+    const shopeeUrl = shopeeItemId
+        ? `https://shopee.com.my/product/${SHOPEE_SHOP_ID}/${shopeeItemId}`
+        : `https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}`;
+    const tiktokUrl = 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop';
+    const waBuyUrl = `https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}`;
+    const shareUrl = `https://10camp.com/?p=${encodeURIComponent(current.sku)}`;
+    const shareText = encodeURIComponent((parsed.title || current.sku) + ' — 10 CAMP');
+    const shareRow = `<div class="lp-pdp__share">
+                <span class="lp-pdp__share-label">Kongsi:</span>
+                <button type="button" class="lp-pdp__share-btn" onclick="window.lpCopyProductLink('${escJs(current.sku)}', this)" title="Salin pautan"><i data-lucide="link"></i></button>
+                <a class="lp-pdp__share-btn" href="https://wa.me/?text=${shareText}%20${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener" title="Kongsi via WhatsApp"><i data-lucide="message-circle"></i></a>
+                <a class="lp-pdp__share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener" title="Kongsi via Facebook"><i data-lucide="facebook"></i></a>
+                <a class="lp-pdp__share-btn" href="https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${shareText}" target="_blank" rel="noopener" title="Kongsi via Telegram"><i data-lucide="send"></i></a>
+            </div>`;
+    const buyHtml = (totalStock <= 0)
+        ? `<div class="lp-pdp__buy"><div class="lp-pdp__cta-row"><button class="lp-pdp__cta" disabled>Sold Out</button></div>${shareRow}</div>`
+        : `<div class="lp-pdp__buy">
+                <div class="lp-pdp__buy-btns">
+                    <a href="${shopeeUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--shopee"><i data-lucide="shopping-bag"></i><span>Beli di Shopee</span></a>
+                    <a href="${tiktokUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--tiktok"><i data-lucide="music-2"></i><span>TikTok Shop</span></a>
+                    <a href="${waBuyUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--wa"><i data-lucide="message-circle"></i><span>WhatsApp</span></a>
+                </div>
+                ${shareRow}
+                <div class="lp-pdp__buy-walk-in"><i data-lucide="map-pin"></i> Atau singgah <strong>Kedai 10 CAMP Cyberjaya</strong> &middot; Mon-Sat 10am-9pm</div>
+            </div>`;
+
     body.innerHTML = `
         <div class="lp-pdp__gallery">
             <img src="${escAttr(mainImg)}" class="lp-pdp__main-img" alt="${escAttr(parsed.title)}" onerror="this.src='https://placehold.co/600x600?text=No+Img'">
@@ -12386,20 +12449,9 @@ window.lpRenderPdp = function() {
             ${stockBadge}
             ${quickHtml}
             ${variantsHtml ? `<div class="lp-pdp__section"><h4 class="lp-pdp__section-title">Options (${state.variants.length})</h4><div class="lp-pdp__variants">${variantsHtml}</div></div>` : ''}
+            ${buyHtml}
             ${descHtml}
             ${specsHtml}
-            <!-- p1_165 — Editorial style: text lines with inline brand links (competitor reference). -->
-            ${totalStock <= 0
-                ? `<div class="lp-pdp__cta-row"><button class="lp-pdp__cta" disabled>Sold Out</button></div>`
-                : `<div class="lp-pdp__buy-row">
-                    <div class="lp-pdp__buy-list">
-                        <div class="lp-pdp__buy-line lp-pdp__buy-line--shopee"><i data-lucide="shopping-bag"></i>Beli SKU ${current.sku} di <a href="https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}" target="_blank" rel="noopener">Shopee</a> <span class="lp-pdp__buy-tag">— free shipping voucher</span></div>
-                        <div class="lp-pdp__buy-line lp-pdp__buy-line--tiktok"><i data-lucide="music-2"></i>Atau tonton live di <a href="https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop" target="_blank" rel="noopener">TikTok Shop</a> <span class="lp-pdp__buy-tag">— Mega Sale promo</span></div>
-                        <div class="lp-pdp__buy-line lp-pdp__buy-line--wa"><i data-lucide="message-circle"></i>Tanya kedai via <a href="https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}" target="_blank" rel="noopener">WhatsApp</a> <span class="lp-pdp__buy-tag">— stok / custom order</span></div>
-                    </div>
-                    <div class="lp-pdp__buy-walk-in"><i data-lucide="map-pin"></i> Atau singgah <strong>Kedai 10 CAMP Cyberjaya</strong> · Mon-Sat 10am-9pm</div>
-                </div>`
-            }
         </div>
     `;
 };

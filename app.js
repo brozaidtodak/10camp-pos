@@ -21619,7 +21619,13 @@ window.__aoGetFiltered = function(){
  }
  return true;
  });
- filtered.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+ // p1_437 — sort ikut pilihan dropdown SUSUN
+ const sortBy = (document.getElementById('aoSort') || {}).value || 'date_desc';
+ const idNum = (s) => { const n = parseInt(s.id, 10); return isNaN(n) ? 0 : n; };
+ if(sortBy === 'date_asc') filtered.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+ else if(sortBy === 'id_asc') filtered.sort((a, b) => idNum(a) - idNum(b));
+ else if(sortBy === 'id_desc') filtered.sort((a, b) => idNum(b) - idNum(a));
+ else filtered.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')); // date_desc (default)
  return filtered;
 };
 
@@ -21738,7 +21744,7 @@ window.renderAllOrders = function() {
  };
  // p1_328 — pagination (200/page) supaya semua order boleh diakses tanpa render semua sekali (elak lag iPad)
  const AO_PAGE_SIZE = 200;
- const aoSig = [q, channel, status, document.getElementById('aoPeriod')?.value || '', document.getElementById('aoDateFrom')?.value || '', document.getElementById('aoDateTo')?.value || '', hideTest].join('|');
+ const aoSig = [q, channel, status, document.getElementById('aoSort')?.value || '', document.getElementById('aoPeriod')?.value || '', document.getElementById('aoDateFrom')?.value || '', document.getElementById('aoDateTo')?.value || '', hideTest].join('|');
  if(window.__aoLastSig !== aoSig) { window.__aoPage = 1; window.__aoLastSig = aoSig; }
  const aoTotalPages = Math.max(1, Math.ceil(filtered.length / AO_PAGE_SIZE));
  if(!window.__aoPage || window.__aoPage < 1) window.__aoPage = 1;

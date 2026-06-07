@@ -17,7 +17,7 @@ try {
 // p1_75: Also auto-restore session on refresh so staff tak perlu login balik.
 document.addEventListener('DOMContentLoaded', () => {
  try { if(typeof window.__initPasswordRecovery === 'function') window.__initPasswordRecovery(); } catch(e){}
- // p1_438: await restore so the mobile-app deep-link below only fires when nobody is logged in.
+ // p1_439: await restore so the mobile-app deep-link below only fires when nobody is logged in.
  (async () => {
  let restored = false;
  try { if(typeof window.__restoreSession === 'function') restored = await window.__restoreSession(); } catch(e){}

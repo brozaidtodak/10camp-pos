@@ -10254,20 +10254,21 @@ window.__proofClearFile = function() {
 window.__cartProofRefresh = function() {
  const row = document.getElementById('cartProofRow');
  if(!row) return;
+ const T = (k) => (typeof window.t === 'function' ? window.t(k) : k); // p1_404 — i18n
  const f = window.__proofState && window.__proofState.file;
  if(f) {
  row.innerHTML = `<div style="display:flex; align-items:center; gap:8px; background:#D1FAE5; border:1px solid #101010; color:#065F46; padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:700;">
  <i data-lucide="camera" style="width:16px;height:16px;flex-shrink:0;"></i>
- <span style="flex:1;">Resit dah siap <span style="font-weight:500; opacity:0.75;">(${(f.size/1024).toFixed(0)} KB)</span></span>
- <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="background:#fff; border:1px solid #101010; color:#065F46; padding:6px 10px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700;">Tukar</button>
- <button type="button" onclick="window.__proofClearFile()" title="Buang resit" style="background:none; border:none; color:#991B1B; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+ <span style="flex:1;">${T('cs_receipt_ready')} <span style="font-weight:500; opacity:0.75;">(${(f.size/1024).toFixed(0)} KB)</span></span>
+ <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="background:#fff; border:1px solid #101010; color:#065F46; padding:6px 10px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700;">${T('cs_change')}</button>
+ <button type="button" onclick="window.__proofClearFile()" title="${T('cs_remove_receipt')}" style="background:none; border:none; color:#991B1B; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
  </div>`;
  } else {
  row.innerHTML = `<button type="button" onclick="document.getElementById('proofCameraInput').click()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:#fff8f0; border:1px dashed #fdba74; color:#7c4a1a; padding:11px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;">
- <i data-lucide="camera" style="width:16px;height:16px;"></i> Snap Resit (sebelum bayar)
- <span style="font-weight:500; opacity:0.7; font-size:11px;">· opsional</span>
+ <i data-lucide="camera" style="width:16px;height:16px;"></i> ${T('cs_snap_receipt')}
+ <span style="font-weight:500; opacity:0.7; font-size:11px;">· ${T('cs_optional')}</span>
  </button>
- <div style="text-align:center; margin-top:5px;"><button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:none; color:#6B7280; cursor:pointer; font-size:11px; text-decoration:underline;">atau pilih dari fail</button></div>`;
+ <div style="text-align:center; margin-top:5px;"><button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:none; color:#6B7280; cursor:pointer; font-size:11px; text-decoration:underline;">${T('cs_or_pick_file')}</button></div>`;
  }
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
@@ -25051,8 +25052,9 @@ window.cpConfirmSale = async function() {
  document.getElementById('cpSuccessView').classList.remove('is-hidden');
  document.getElementById('cpFooter').classList.add('is-hidden');
  document.getElementById('cpSuccessAmount').textContent = finalTotal.toFixed(2);
+ const __T = (typeof window.t === 'function') ? window.t : ((k) => k); // p1_404 — i18n
  document.getElementById('cpSuccessSub').innerHTML =
- `Resit <strong>${__cpLastSale.invId}</strong> dah disimpan. ${__cpLastSale.customer_email ? 'Email-resit boleh dihantar.' : 'Walk-in customer.'}`;
+ `${__T('cp_receipt_word')} <strong>${__cpLastSale.invId}</strong> ${__T('cp_saved_suffix')} ${__cpLastSale.customer_email ? __T('cp_email_can_send') : __T('cp_walkin_customer')}`;
 
  if(typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -26307,6 +26309,23 @@ window.I18N = {
  cs_total: { bm: 'JUMLAH', en: 'TOTAL' },
  cs_pay_now: { bm: 'BAYAR SEKARANG', en: 'PAY NOW' },
  cs_clear_cart: { bm: 'Kosongkan Troli', en: 'Clear Cart' },
+ cs_snap_receipt: { bm: 'Snap Resit (sebelum bayar)', en: 'Snap Receipt (before paying)' },
+ cs_optional: { bm: 'opsional', en: 'optional' },
+ cs_or_pick_file: { bm: 'atau pilih dari fail', en: 'or pick from file' },
+ cs_receipt_ready: { bm: 'Resit dah siap', en: 'Receipt ready' },
+ cs_change: { bm: 'Tukar', en: 'Change' },
+ cs_remove_receipt: { bm: 'Buang resit', en: 'Remove receipt' },
+ cp_amount_to_pay: { bm: 'Jumlah Bayar', en: 'Amount to Pay' },
+ cp_custom_discount: { bm: 'Diskaun Custom', en: 'Custom Discount' },
+ cp_optional_paren: { bm: '(pilihan)', en: '(optional)' },
+ cp_payment_method: { bm: 'Cara Bayar', en: 'Payment Method' },
+ cp_select_ewallet: { bm: '— Pilih e-wallet —', en: '— Select e-wallet —' },
+ cp_payment_success: { bm: 'Bayaran Berjaya!', en: 'Payment Successful!' },
+ cp_receipt_saved: { bm: 'Resit dah disimpan dalam sistem.', en: 'Receipt saved in the system.' },
+ cp_receipt_word: { bm: 'Resit', en: 'Receipt' },
+ cp_saved_suffix: { bm: 'dah disimpan.', en: 'saved.' },
+ cp_email_can_send: { bm: 'Email-resit boleh dihantar.', en: 'E-receipt can be sent.' },
+ cp_walkin_customer: { bm: 'Walk-in customer.', en: 'Walk-in customer.' },
  cs_search_placeholder: { bm: 'Imbas Barcode / Cari Nama...', en: 'Scan Barcode / Search Name...' },
  cs_small_screen: { bm: 'Skrin Kecil', en: 'Small Screen' },
  cs_full_screen: { bm: 'Skrin Besar', en: 'Full Screen' },
@@ -26832,6 +26851,8 @@ window.setLang = function(lang) {
  try { if(typeof window.renderDashboard === 'function') window.renderDashboard(); } catch(e){}
  // p1_79 fix #9: refresh POS layout toggle label since it uses JS-set innerHTML
  try { if(typeof window.__updatePosLayoutBtn === 'function') window.__updatePosLayoutBtn(); } catch(e){}
+ // p1_404 — re-render cart (proof-row strings via i18n) bila tukar bahasa
+ try { if(typeof window.renderCart === 'function') window.renderCart(); } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }

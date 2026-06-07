@@ -21881,7 +21881,7 @@ window.__aoGetFiltered = function(){
  return true;
  });
  // p1_437 — sort ikut pilihan dropdown SUSUN
- const sortBy = (document.getElementById('aoSort') || {}).value || 'date_desc';
+ const sortBy = (document.getElementById('aoSort') || {}).value || 'id_desc';
  const idNum = (s) => { const n = parseInt(s.id, 10); return isNaN(n) ? 0 : n; };
  if(sortBy === 'date_asc') filtered.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
  else if(sortBy === 'id_asc') filtered.sort((a, b) => idNum(a) - idNum(b));

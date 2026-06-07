@@ -16985,9 +16985,17 @@ function __cmGetDateRange() {
  return { start: null, end: null, label: 'All time' };
 }
 
+// p1_458 — Komisen SEMUA staf hanya boleh dilihat oleh role 'mgmt' (Zaid, Aliff,
+// Farhan, Zack — Zaid sahkan Zack & Farhan OK). Staf sales/inventory (Ariff/Irfan/
+// Tarmizi/Fahmi) hanya nampak komisen SENDIRI sahaja.
+window.__cmCanViewAll = function(u) {
+ u = u || (typeof currentUser !== 'undefined' ? currentUser : null);
+ if (!u) return false;
+ return u.role === 'mgmt';
+};
 window.renderPersonalCommission = function() {
  if (!currentUser) return;
- const isManager = currentUser.role === 'mgmt';
+ const isManager = window.__cmCanViewAll(currentUser); // hanya Zaid + Aliff
  const range = __cmGetDateRange();
 
  // Filter sales by date range

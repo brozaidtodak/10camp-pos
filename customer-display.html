@@ -113,6 +113,15 @@
     .discount-line {
         font-size: 14px; color: #B45309; font-weight: 600; margin-top: 4px;
     }
+    .disc-tag {
+        display: inline-block; margin-top: 4px; background: #FEF3C7; color: #92400E;
+        padding: 2px 9px; border-radius: 50px; font-size: 12px; font-weight: 700;
+    }
+    .cart-item .price s { color: #CBD5E1; font-size: 12px; }
+    .cart-item .price .now { color: #B45309; font-weight: 700; }
+    .saved-line {
+        font-size: 14px; color: #047857; font-weight: 700; margin-top: 4px;
+    }
     .timestamp { font-size: 11px; color: var(--muted); margin-top: 4px; }
 </style>
 </head>
@@ -145,6 +154,7 @@
             <div class="total-meta" id="totalMeta">
                 <div><span class="lbl">Items:</span> <span id="itemCount">0</span></div>
                 <div><span class="lbl">Subtotal:</span> RM <span id="subtotal">0.00</span></div>
+                <div id="itemSavedLine" class="saved-line" style="display:none;"></div>
                 <div id="vipDiscountLine" class="discount-line" style="display:none;"></div>
                 <div id="vipBadgeLine" style="display:none;"></div>
                 <div class="timestamp" id="lastUpdate">Waiting...</div>
@@ -203,6 +213,7 @@ function render() {
         grandEl.textContent = '0.00';
         vipLine.style.display = 'none';
         vipBadge.style.display = 'none';
+        const sl = document.getElementById('itemSavedLine'); if (sl) sl.style.display = 'none';
         lastUpdate.textContent = 'Waiting for cashier...';
         return;
     }
@@ -217,19 +228,30 @@ function render() {
     }
 
     let subtotal = 0;
+    let totalSaved = 0;
     listEl.innerHTML = items.map(it => {
         const qty = parseInt(it.quantity || it.qty || 1);
         const price = parseFloat(it.price || 0);
+        const disc = parseFloat(it.discount_amount || 0);
+        const orig = (it.original_price != null) ? parseFloat(it.original_price) : price;
         const sub = qty * price;
         subtotal += sub;
+        if (disc > 0) totalSaved += disc * qty;
+        const priceCell = (disc > 0 && orig > price)
+            ? `<div class="price"><s>RM ${fmt(orig)}</s><br><span class="now">RM ${fmt(price)}</span></div>`
+            : `<div class="price">RM ${fmt(price)}</div>`;
+        const discTag = (disc > 0)
+            ? `<span class="disc-tag">Diskaun −RM ${fmt(disc)}/unit${it.discount_reason ? ' · ' + String(it.discount_reason).slice(0, 30) : ''}</span>`
+            : '';
         return `
             <div class="cart-item">
                 <div>
                     <div class="name">${(it.name || '').slice(0, 60)}</div>
                     <div class="sku">${it.sku || '-'}</div>
+                    ${discTag}
                 </div>
                 <div class="qty">×${qty}</div>
-                <div class="price">RM ${fmt(price)}</div>
+                ${priceCell}
                 <div class="subtotal">RM ${fmt(sub)}</div>
             </div>
         `;
@@ -237,6 +259,11 @@ function render() {
 
     itemCountEl.textContent = items.reduce((s, it) => s + parseInt(it.quantity || it.qty || 1), 0);
     subtotalEl.textContent = fmt(subtotal);
+    const savedLine = document.getElementById('itemSavedLine');
+    if (savedLine) {
+        if (totalSaved > 0) { savedLine.style.display = 'block'; savedLine.textContent = `Jimat diskaun: −RM ${fmt(totalSaved)}`; }
+        else { savedLine.style.display = 'none'; }
+    }
 
     let final = subtotal;
     // p1_369 — auto-discount hanya kira kalau master switch ON (ikut payload.autoDiscount).

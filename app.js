@@ -16627,8 +16627,9 @@ window.__cmShowStaffSales = function(staffName) {
  <td style="padding:9px 10px; font-size:11.5px;">${esc(s.channel||'-')}</td>
  <td style="padding:9px 10px; text-align:right; color:${col}; font-weight:700;">${isRefund?'−':''}RM ${Math.abs(amt).toFixed(2)}</td>
  <td style="padding:9px 10px; text-align:right; color:${col}; font-weight:700;">${isRefund?'−':''}RM ${Math.abs(comm).toFixed(2)}</td>
+ <td style="padding:9px 10px; text-align:center;"><button onclick="window.__cmReassignSeller(${s.id})" title="Tukar penjual sale ni (perlu kelulusan Bos)" style="display:inline-flex; align-items:center; gap:4px; width:auto; white-space:nowrap; background:#fff; border:1px solid #E5E7EB; color:#6B7280; padding:4px 10px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;"><i data-lucide="repeat" style="width:11px;height:11px;"></i> Tukar penjual</button></td>
  </tr>`;
- }).join('') : '<tr><td colspan="6" style="text-align:center; padding:28px; color:#9CA3AF;">Tiada sales direkod dalam tempoh ni.</td></tr>';
+ }).join('') : '<tr><td colspan="7" style="text-align:center; padding:28px; color:#9CA3AF;">Tiada sales direkod dalam tempoh ni.</td></tr>';
  const chip = (lbl, val, color) => `<div style="background:#fff; border:1px solid #E5E7EB; border-radius:10px; padding:8px 14px;"><div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; font-weight:700;">${lbl}</div><div style="font-size:15px; font-weight:800; color:${color||'#101010'};">${val}</div></div>`;
  const old = document.getElementById('cmStaffSalesModal'); if (old) old.remove();
  const ov = document.createElement('div');
@@ -16652,12 +16653,87 @@ window.__cmShowStaffSales = function(staffName) {
  <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700;">Channel</th>
  <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700; text-align:right;">Amount</th>
  <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700; text-align:right;">Komisen</th>
+ <th style="padding:10px;"></th>
  </tr></thead><tbody>${body}</tbody></table>
  </div>
  </div>`;
  document.body.appendChild(ov);
  // zebra stripes
  try { ov.querySelectorAll('tbody tr').forEach((tr,i)=>{ if(i%2) tr.style.background = '#FBF7F1'; }); } catch(e){}
+ if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_407 — tukar penjual (seller) sesuatu sale → komisen pindah ke staff lain (perlu kelulusan Bos)
+window.__cmReassignSeller = function(saleId) {
+ const sale = (Array.isArray(salesHistory) ? salesHistory : []).find(s => s.id === saleId);
+ if (!sale) return;
+ const from = sale.staff_name || 'Unknown';
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s);
+ const inactive = JSON.parse(localStorage.getItem('staffInactive_v1') || '[]');
+ const staff = (typeof authUsers !== 'undefined' ? authUsers : []).filter(u => !inactive.includes(u.staff_id) && u.name && u.name !== from);
+ const opts = staff.map(u => `<option value="${esc(u.name)}">${esc(u.name)} (${esc(u.role||'')})</option>`).join('');
+ const old = document.getElementById('cmReassignModal'); if (old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'cmReassignModal';
+ ov.setAttribute('style', 'position:fixed; inset:0; z-index:6100; background:rgba(16,16,16,.55); display:flex; align-items:center; justify-content:center; padding:20px;');
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ ov.innerHTML = `<div style="background:#fff; border-radius:14px; max-width:390px; width:100%; padding:22px 24px; box-shadow:0 20px 50px rgba(0,0,0,.25);">
+ <h3 style="margin:0 0 4px; font-weight:800; font-size:17px;">Tukar Penjual</h3>
+ <p style="margin:0 0 14px; font-size:12.5px; color:#6B7280;">Sale <b>#${saleId}</b> · penjual sekarang: <b>${esc(from)}</b>. Komisen akan pindah ke penjual baru — <b>perlu kelulusan PIN Bos</b>.</p>
+ <label class="small-lbl">Penjual Baru</label>
+ <select id="cmReassignSelect" class="login-input" style="margin:0 0 16px;">${opts || '<option value="">Tiada staf lain</option>'}</select>
+ <div style="display:flex; gap:8px;">
+ <button onclick="document.getElementById('cmReassignModal').remove()" style="flex:0 0 auto; padding:12px 16px; background:#fff; color:#6F6F6F; border:1px solid #E2E2E2; border-radius:8px; font-weight:700; cursor:pointer;">Batal</button>
+ <button onclick="window.__cmReassignConfirm(${saleId})" style="flex:1; padding:12px; background:#101010; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Teruskan (kelulusan Bos)</button>
+ </div>
+ </div>`;
+ document.body.appendChild(ov);
+};
+
+window.__cmReassignConfirm = async function(saleId) {
+ const sale = (Array.isArray(salesHistory) ? salesHistory : []).find(s => s.id === saleId);
+ if (!sale) return;
+ const from = sale.staff_name || 'Unknown';
+ const sel = document.getElementById('cmReassignSelect');
+ const newSeller = sel ? sel.value : '';
+ if (!newSeller) { if (typeof showToast === 'function') showToast('Pilih penjual baru dulu.', 'warn'); return; }
+ const modal = document.getElementById('cmReassignModal'); if (modal) modal.remove();
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s);
+ // Kelulusan Bos via PIN
+ let approval = null;
+ if (typeof requireManagerPin === 'function') {
+ approval = await requireManagerPin({
+ title: 'Kelulusan: Tukar Penjual',
+ subtitle: `Sale #${saleId} · ${from} → ${newSeller}`,
+ detailsHtml: `Komisen sale ni akan pindah dari <b>${esc(from)}</b> ke <b>${esc(newSeller)}</b>.<br><span style="color:#9CA3AF;">Pilih <b>Bos</b> dalam senarai + masukkan PIN.</span>`,
+ reasons: ['Sale dibuat bagi pihak penjual lain', 'Pembetulan penjual', 'Lain-lain']
+ });
+ if (!approval) return; // batal / gagal
+ // Enforce Bos sahaja
+ if (typeof window.isBoss === 'function' && !window.isBoss(approval.manager)) {
+ if (typeof showToast === 'function') showToast('Hanya Bos boleh luluskan tukar penjual.', 'error');
+ return;
+ }
+ } else {
+ if (!confirm(`Tukar penjual #${saleId} dari ${from} ke ${newSeller}?`)) return;
+ }
+ try {
+ if (typeof db !== 'undefined' && db) {
+ const { error } = await db.from('sales_history').update({ staff_name: newSeller }).eq('id', saleId);
+ if (error) throw error;
+ // audit trail (best-effort)
+ try {
+ const appr = approval && approval.manager ? (approval.manager.name + ' (' + approval.manager.staff_id + ')') : 'N/A';
+ await db.from('audit_logs').insert([{ action_type: 'reassign_seller', actor_name: appr, details: JSON.stringify({ sale_id: saleId, from: from, to: newSeller, reason: approval && approval.reason, note: approval && approval.note }), created_at: new Date().toISOString() }]);
+ } catch(_) {}
+ }
+ sale.staff_name = newSeller;
+ if (typeof showToast === 'function') showToast(`Penjual #${saleId}: ${from} → ${newSeller}${approval && approval.manager ? ' · lulus ' + approval.manager.name : ''}.`, 'success');
+ const sm = document.getElementById('cmStaffSalesModal'); if (sm) sm.remove();
+ if (typeof renderPersonalCommission === 'function') renderPersonalCommission();
+ } catch(e) {
+ if (typeof showToast === 'function') showToast('Gagal tukar penjual: ' + e.message, 'error');
+ }
 };
 
 // Auto Clock Out Check Function

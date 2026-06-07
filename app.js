@@ -12416,17 +12416,16 @@ window.lpRenderPdp = function() {
     const shareText = encodeURIComponent((parsed.title || current.sku) + ' — 10 CAMP');
     const shareRow = `<div class="lp-pdp__share">
                 <span class="lp-pdp__share-label">Kongsi:</span>
-                <button type="button" class="lp-pdp__share-btn" onclick="window.lpCopyProductLink('${escJs(current.sku)}', this)" title="Salin pautan"><i data-lucide="link"></i></button>
-                <a class="lp-pdp__share-btn" href="https://wa.me/?text=${shareText}%20${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener" title="Kongsi via WhatsApp"><i data-lucide="message-circle"></i></a>
-                <a class="lp-pdp__share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener" title="Kongsi via Facebook"><i data-lucide="facebook"></i></a>
-                <a class="lp-pdp__share-btn" href="https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${shareText}" target="_blank" rel="noopener" title="Kongsi via Telegram"><i data-lucide="send"></i></a>
+                <button type="button" class="lp-pdp__share-copy" onclick="window.lpCopyProductLink('${escJs(current.sku)}', this)"><i data-lucide="link"></i><span>Copy link</span></button>
             </div>`;
     const buyHtml = (totalStock <= 0)
         ? `<div class="lp-pdp__buy"><div class="lp-pdp__cta-row"><button class="lp-pdp__cta" disabled>Sold Out</button></div>${shareRow}</div>`
         : `<div class="lp-pdp__buy">
+                <button type="button" class="lp-pdp__addcart" onclick="window.lpPdpAddToCart()"><i data-lucide="shopping-cart"></i><span>Add to Cart</span></button>
+                <div class="lp-pdp__buy-or"><span>atau beli terus di</span></div>
                 <div class="lp-pdp__buy-btns">
-                    <a href="${shopeeUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--shopee"><i data-lucide="shopping-bag"></i><span>Beli di Shopee</span></a>
-                    <a href="${tiktokUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--tiktok"><i data-lucide="music-2"></i><span>TikTok Shop</span></a>
+                    <a href="${shopeeUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--shopee"><i data-lucide="shopping-bag"></i><span>Shopee</span></a>
+                    <a href="${tiktokUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--tiktok"><i data-lucide="music-2"></i><span>TikTok</span></a>
                     <a href="${waBuyUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--wa"><i data-lucide="message-circle"></i><span>WhatsApp</span></a>
                 </div>
                 ${shareRow}
@@ -12457,6 +12456,8 @@ window.lpRenderPdp = function() {
             ${specsHtml}
         </div>
     `;
+    // p1_418 — render the Lucide icons inside the freshly-built PDP (buy buttons + share)
+    try { window.lucide && lucide.createIcons && lucide.createIcons(); } catch(e){}
 };
 
 window.lpPdpPickImage = function(idx) {
@@ -12873,9 +12874,10 @@ window.togglePublicCart = function() {
  const drw = document.getElementById("publicCartDrawer");
  if(drw.style.display === "none") {
  if(currentPublicCustomer) {
- document.getElementById("custNamePub").value = currentPublicCustomer.name !== "Pelanggan VIP" ? currentPublicCustomer.name : "";
- document.getElementById("custPhonePub").value = currentPublicCustomer.phone || "";
- document.getElementById("custAddressPub").value = currentPublicCustomer.address || "";
+ const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ""; };
+ setVal("custNamePub", currentPublicCustomer.name !== "Pelanggan VIP" ? currentPublicCustomer.name : "");
+ setVal("custPhonePub", currentPublicCustomer.phone);
+ setVal("custEmailPub", currentPublicCustomer.email);
  }
  drw.style.display = "flex";
  renderPublicCart();
@@ -12890,7 +12892,7 @@ window.addToPublicCart = function(sku) {
  const cartItem = publicCart.find(c => c.sku === sku);
  
  if(cartItem) { if (cartItem.quantity < totalAvail) cartItem.quantity++; else (typeof showToast==='function'?showToast('Stok tak cukup','warning'):alert('Limits reached!')); }
- else { if (totalAvail> 0) publicCart.push({ sku: sku, name: p.name, price: parseFloat(p.price), quantity: 1 }); }
+ else { if (totalAvail> 0) publicCart.push({ sku: sku, name: p.name, price: parseFloat(p.price), quantity: 1, image: (p.images && p.images[0]) || '' }); }
  
  if(typeof window.lpUpdateCartBadge === 'function') window.lpUpdateCartBadge();
  if (typeof showToast==='function') showToast('Ditambah ke troli', 'success'); else alert('Ditambah ke troli!');
@@ -12929,93 +12931,81 @@ function renderPublicCart() {
  // p1_158 — was innerHTML += in loop (Safari OOM trigger)
  publicCart.forEach(item => { total = round2(total + item.price * item.quantity); });
  container.innerHTML = publicCart.map(item => `
- <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #f9f9f9; padding-bottom:10px;">
- <div>
- <strong style="font-size:14px; display:block;">${item.name}</strong>
+ <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:15px; border-bottom:1px solid #f9f9f9; padding-bottom:10px;">
+ <div style="display:flex; gap:10px; align-items:center; min-width:0;">
+ <img src="${item.image || 'https://placehold.co/100x100?text=No+Img'}" alt="" style="width:46px; height:46px; border-radius:8px; object-fit:cover; flex:0 0 auto; background:#f3f4f6;" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+ <div style="min-width:0;">
+ <strong style="font-size:13.5px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;">${item.name}</strong>
  <small style="color:var(--text-muted);">RM${item.price.toFixed(2)} x ${item.quantity}</small>
  </div>
- <div style="display:flex; gap:8px; align-items:center;">
- <button onclick="decreasePublicQty('${item.sku}')" style="border:1px solid #ddd; background:#fff; width:24px; height:24px; cursor:pointer;">-</button>
+ </div>
+ <div style="display:flex; gap:6px; align-items:center; flex:0 0 auto;">
+ <button onclick="decreasePublicQty('${item.sku}')" style="border:1px solid #ddd; background:#fff; width:24px; height:24px; cursor:pointer; border-radius:5px;">-</button>
  <span>${item.quantity}</span>
- <button onclick="increasePublicQty('${item.sku}')" style="border:1px solid #ddd; background:#fff; width:24px; height:24px; cursor:pointer;">+</button>
- <button onclick="removePublicCart('${item.sku}')" style="color:red; background:none; border:none; cursor:pointer; margin-left:5px;">X</button>
+ <button onclick="increasePublicQty('${item.sku}')" style="border:1px solid #ddd; background:#fff; width:24px; height:24px; cursor:pointer; border-radius:5px;">+</button>
+ <button onclick="removePublicCart('${item.sku}')" style="color:#c0392b; background:none; border:none; cursor:pointer; margin-left:3px;">×</button>
  </div>
  </div>`).join('');
  label.textContent = total.toFixed(2);
 }
 
+// p1_418 — Web cart = REQUEST INVOICE (bukan jualan/bayaran). Customer isi nama/syarikat/
+// phone/email → auto-jana invois ke quotations_log (type 'Web Invoice', items + gambar) →
+// admin nampak dlm Invoice & Quotation + notification bell. TIADA tolak stok / fake sale.
 window.processPublicCheckout = async function() {
- if(publicCart.length === 0) return alert("Cart is empty!");
- 
- const cName = document.getElementById("custNamePub").value.trim();
- const cPhone = document.getElementById("custPhonePub").value.trim();
- const cAddr = document.getElementById("custAddressPub").value.trim();
- 
- if(!cName || !cPhone || !cAddr) return alert("Sila isikan Nama, Telefon, dan Alamat Penghantaran dengan lengkap!");
- 
+ if(publicCart.length === 0) return (typeof showToast==='function' ? showToast('Troli kosong', 'warning') : alert('Cart is empty!'));
+
+ const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+ const cName = val("custNamePub");
+ const cCompany = val("custCompanyPub");
+ const cPhone = val("custPhonePub");
+ const cEmail = val("custEmailPub");
+
+ if(!cName || !cPhone || !cEmail) return (typeof showToast==='function' ? showToast('Sila isi Nama, Telefon & Email.', 'warning') : alert('Sila isi Nama, Telefon & Email.'));
+ if(!/^\S+@\S+\.\S+$/.test(cEmail)) return (typeof showToast==='function' ? showToast('Email tak sah.', 'warning') : alert('Format email tak sah.'));
+
  const btn = document.getElementById("btnPublicCheckout");
- btn.disabled = true; btn.textContent = "Processing Payment...";
+ const btnOrig = btn ? btn.textContent : '';
+ if(btn){ btn.disabled = true; btn.textContent = "Menjana invois..."; }
 
  try {
- let transactionsPayload = []; let totalVal = 0;
+ let subtotal = 0;
+ const items = publicCart.map(it => {
+ const lineTotal = round2(it.price * it.quantity);
+ subtotal = round2(subtotal + lineTotal);
+ return { sku: it.sku, name: it.name, qty: it.quantity, price: it.price, line_total: lineTotal, image: it.image || '' };
+ });
+ const ref = 'WEB-' + String(Date.now()).slice(-7);
+ const custStr = cName + (cCompany ? ' (' + cCompany + ')' : '') + ' · ' + cPhone + ' · ' + cEmail;
 
- for (const item of publicCart) {
- totalVal = round2(totalVal + item.price * item.quantity);
- let needed = item.quantity;
- let batches = inventoryBatches.filter(b => b.sku===item.sku && b.qty_remaining>0).sort((a,b) => new Date(a.inbound_date) - new Date(b.inbound_date));
- 
- for (let batch of batches) {
- if (needed <= 0) break;
- let deduct = Math.min(needed, batch.qty_remaining);
- needed -= deduct;
- await db.from('inventory_batches').update({qty_remaining: batch.qty_remaining - deduct}).eq('id', batch.id);
- transactionsPayload.push({sku: item.sku, batch_id: batch.id, transaction_type: 'OUTBOUND_SALE', qty_change: -deduct});
- }
- }
-
- if(transactionsPayload.length> 0) await db.from('inventory_transactions').insert(transactionsPayload);
-
- // Points System Concept (RM 1 = 1 Point)
- const earnedPoints = Math.floor(totalVal);
- let existing = null;
- if(currentPublicCustomer) {
- existing = currentPublicCustomer;
- currentPublicCustomer.name = cName;
- currentPublicCustomer.address = cAddr;
- await db.from('customers').update({name: cName, address: cAddr, points: (existing.points || 0) + earnedPoints}).eq('id', existing.id);
- } else {
- existing = customersData.find(c => c.phone === cPhone || c.name.toLowerCase() === cName.toLowerCase());
- if(!existing) {
- await db.from('customers').insert([{name: cName, phone: cPhone, address: cAddr, points: earnedPoints}]);
- } else {
- await db.from('customers').update({points: (existing.points || 0) + earnedPoints}).eq('id', existing.id);
- }
- }
-
- // Push to Sales History as E-Commerce Website Order
- const invStr = "WEB-10C-" + Math.floor(1000 + Math.random() * 9000);
- await db.from('sales_history').insert([{
- channel: 'Web EasyStore',
- status: 'Pending Fulfillment',
- customer_name: cName, 
- payment_method: 'Online Transfer',
- total: totalVal, 
- items: publicCart
+ const { error } = await db.from('quotations_log').insert([{
+ id: ref + '-v1',
+ ref: ref,
+ version: 1,
+ type: 'Web Invoice',
+ customer: custStr,
+ terms: 'Permohonan invois dari website 10camp.com — menunggu pengesahan admin.',
+ subtotal: subtotal,
+ grand_total: subtotal,
+ items: items,
+ superseded: false
  }]);
+ if(error) throw error;
 
- publicCart = []; 
- document.getElementById("custNamePub").value = "";
- document.getElementById("custPhonePub").value = "";
- document.getElementById("custAddressPub").value = "";
- 
- // Let the customer see the simulated success pop up
+ // notify admin (bell inbox, visible bila staff/admin login)
+ try { if(window.notify && window.notify.add) window.notify.add({ title: 'Invois web baru: ' + ref, body: custStr + ' — ' + items.length + ' item, RM ' + subtotal.toFixed(2), type: 'warning' }); } catch(e){}
+
+ publicCart = [];
+ ['custNamePub','custCompanyPub','custPhonePub','custEmailPub'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+ if(typeof window.lpUpdateCartBadge === 'function') window.lpUpdateCartBadge();
+ if(typeof renderPublicCart === 'function') renderPublicCart();
  togglePublicCart();
- alert(`Pembayaran Berjaya! Nombor Resit: ${invStr}.\nTerima kasih kerana membeli bersama 10camp.`);
- 
- await initApp(); // refresh background dashboard data
- } catch (e) { console.error(e); if (typeof showToast==='function') showToast('Fatal Error: ' + e.message, 'error'); else alert('Fatal Error: ' + e.message); }
- 
- btn.disabled = false; btn.textContent = "Confirm Order";
+ alert('Terima kasih, ' + cName + '!\n\nInvois ' + ref + ' telah dijana & dihantar ke admin 10 CAMP. Kami akan hubungi anda (telefon / email) untuk pengesahan & bayaran.');
+ } catch (e) {
+ console.error(e);
+ if (typeof showToast==='function') showToast('Ralat hantar invois: ' + e.message, 'error'); else alert('Error: ' + e.message);
+ }
+ if(btn){ btn.disabled = false; btn.textContent = btnOrig || "Hantar & Jana Invois"; }
 }
 
 // ===================================

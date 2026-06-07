@@ -18571,7 +18571,18 @@ window.__pdpSaveVariants = async function(parentSku) {
  try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){}
  if(typeof showToast === 'function') showToast(`Variants disimpan — ${fieldUpdates} field, ${stockAdj} stok adjust${errs.length ? '. Ralat: ' + errs[0] : ''}.`, errs.length ? 'warn' : 'success');
  const freshProd = (masterProducts || []).find(x => x.sku === curSku);
- if(freshProd && window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
+ if(freshProd) {
+ // p1_427 BUGFIX — segerakkan borang utama dgn nilai variant terbaru, supaya tekan
+ // butang "Save" utama selepas ni TAK tulis balik harga lama (revert). Punca NH076
+ // jadi 76 balik walhal jadual variant dah set 90.
+ const sync = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : v); };
+ sync('pdpPrice', freshProd.price);
+ sync('pdpCompareAt', freshProd.compare_at_price);
+ sync('pdpCost', freshProd.cost_price);
+ sync('pdpShopeePrice', freshProd.shopee_price);
+ sync('pdpTiktokPrice', freshProd.tiktok_price);
+ if(window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
+ }
 };
 
 window.renderPdpMediaGallery = function(urls) {

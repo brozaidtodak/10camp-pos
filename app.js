@@ -16550,9 +16550,10 @@ window.renderPersonalCommission = function() {
  mgrTbody.innerHTML = rows.length ? rows.map(r => {
  const u = allStaff.find(a => a.name === r.staffName) || {};
  const isMe = r.staffName === currentUser.name;
- const rowStyle = isMe ? ' style="background:#fffbeb;"' : '';
- return '<tr'+rowStyle+'>'
- + '<td style="padding:8px 10px;"><strong>'+r.staffName+'</strong>'+(isMe?' <span style="font-size:10px; color:var(--primary);">(you)</span>':'')+'</td>'
+ const nameEsc = String(r.staffName).replace(/'/g, "\\'");
+ const rowStyle = isMe ? ' style="background:#fffbeb; cursor:pointer;"' : ' style="cursor:pointer;"';
+ return '<tr class="cm-mgr-row"'+rowStyle+' onclick="window.__cmShowStaffSales && window.__cmShowStaffSales(\''+nameEsc+'\')" title="Klik untuk lihat sales '+nameEsc+'">'
+ + '<td style="padding:8px 10px;"><i data-lucide="chevron-right" style="width:12px;height:12px;vertical-align:-2px; color:var(--primary);"></i> <strong>'+r.staffName+'</strong>'+(isMe?' <span style="font-size:10px; color:var(--primary);">(you)</span>':'')+'</td>'
  + '<td style="padding:8px 10px;"><span style="font-size:10.5px; padding:2px 7px; background:#e5e7eb; border-radius:10px; font-weight:700;">'+(u.role||'—')+'</span></td>'
  + '<td style="padding:8px 10px;">'+r.txCount+(r.refundCount?' <span style="color:#dc2626; font-size:11px;">/'+r.refundCount+'rf</span>':'')+'</td>'
  + '<td style="padding:8px 10px; text-align:right;">'+fmt(r.gross)+'</td>'
@@ -16595,6 +16596,68 @@ window.renderPersonalCommission = function() {
  // Backwards-compat hidden spans
  const domSales = document.getElementById("myCommissionSalesTotal"); if (domSales) domSales.textContent = fmt(personal.gross);
  const domEst = document.getElementById("myCommissionEstTotal"); if (domEst) domEst.textContent = fmt(personal.earned);
+ if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_406 — klik baris staff dalam table komisen → modal sales recorded staff tu
+window.__cmShowStaffSales = function(staffName) {
+ const range = (typeof __cmGetDateRange === 'function') ? __cmGetDateRange() : { start:null, end:null, label:'' };
+ const esc = (typeof hesc === 'function') ? hesc : (s)=> String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const own = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => {
+ if (s.is_test) return false;
+ if (s.staff_name !== staffName) return false;
+ if (range.start && range.end) { const t = s.created_at ? new Date(s.created_at).getTime() : 0; if (!(t >= range.start.getTime() && t <= range.end.getTime())) return false; }
+ return true;
+ }).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+ const rate = (typeof __getCommissionRate === 'function') ? __getCommissionRate(staffName) : 0;
+ let gross = 0, refunds = 0;
+ own.forEach(s => { const amt = parseFloat(s.total_amount || s.total || 0); if (amt < 0) refunds = round2(refunds + Math.abs(amt)); else gross = round2(gross + amt); });
+ const net = round2(gross - refunds);
+ const earned = round2(net * rate / 100);
+ const fmt = (n) => 'RM ' + Number(n).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
+ const body = own.length ? own.map(s => {
+ const amt = parseFloat(s.total_amount || s.total || 0); const isRefund = amt < 0;
+ const comm = round2(amt * rate / 100);
+ const dt = new Date(s.created_at).toLocaleString('en-MY', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+ const col = isRefund ? '#c0392b' : '#101010';
+ return `<tr>
+ <td style="padding:9px 10px; white-space:nowrap;">${esc(dt)}</td>
+ <td style="padding:9px 10px; font-family:monospace; font-size:11.5px;">#${s.id||'-'}${isRefund?' <span style="color:#c0392b; font-size:9.5px; font-weight:700;">REFUND</span>':''}</td>
+ <td style="padding:9px 10px;">${esc((s.customer_name||'Walk-in').slice(0,28))}</td>
+ <td style="padding:9px 10px; font-size:11.5px;">${esc(s.channel||'-')}</td>
+ <td style="padding:9px 10px; text-align:right; color:${col}; font-weight:700;">${isRefund?'−':''}RM ${Math.abs(amt).toFixed(2)}</td>
+ <td style="padding:9px 10px; text-align:right; color:${col}; font-weight:700;">${isRefund?'−':''}RM ${Math.abs(comm).toFixed(2)}</td>
+ </tr>`;
+ }).join('') : '<tr><td colspan="6" style="text-align:center; padding:28px; color:#9CA3AF;">Tiada sales direkod dalam tempoh ni.</td></tr>';
+ const chip = (lbl, val, color) => `<div style="background:#fff; border:1px solid #E5E7EB; border-radius:10px; padding:8px 14px;"><div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; font-weight:700;">${lbl}</div><div style="font-size:15px; font-weight:800; color:${color||'#101010'};">${val}</div></div>`;
+ const old = document.getElementById('cmStaffSalesModal'); if (old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'cmStaffSalesModal';
+ ov.setAttribute('style', 'position:fixed; inset:0; z-index:6000; background:rgba(16,16,16,.55); display:flex; align-items:flex-start; justify-content:center; padding:34px 16px; overflow-y:auto;');
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ ov.innerHTML = `<div style="background:#fff; border-radius:16px; max-width:820px; width:100%; box-shadow:0 24px 60px rgba(0,0,0,.25); overflow:hidden;">
+ <div style="background:linear-gradient(135deg, var(--primary), #A05F22); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center;">
+ <div><div style="font-size:18px; font-weight:800;">${esc(staffName)} — Sales Recorded</div><div style="font-size:12px; opacity:.85;">${esc(range.label||'')} · ${own.length} transaksi</div></div>
+ <button onclick="document.getElementById('cmStaffSalesModal').remove()" style="background:rgba(255,255,255,.2); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
+ </div>
+ <div style="display:flex; gap:10px; flex-wrap:wrap; padding:16px 22px; background:#FAF6EF; border-bottom:1px solid #EFE6D8;">
+ ${chip('Gross', fmt(gross))}${chip('Refunds', refunds>0?'−'+fmt(refunds):'—', refunds>0?'#c0392b':'#101010')}${chip('Net', fmt(net))}${chip('Rate', rate+'%')}${chip('Komisen', fmt(earned), 'var(--primary)')}
+ </div>
+ <div style="max-height:56vh; overflow-y:auto;">
+ <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+ <thead style="position:sticky; top:0; background:#F3EEE7; z-index:1;"><tr style="text-align:left;">
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700;">Tarikh</th>
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700;">Order#</th>
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700;">Customer</th>
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700;">Channel</th>
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700; text-align:right;">Amount</th>
+ <th style="padding:10px; font-size:10px; text-transform:uppercase; color:#5A3413; font-weight:700; text-align:right;">Komisen</th>
+ </tr></thead><tbody>${body}</tbody></table>
+ </div>
+ </div>`;
+ document.body.appendChild(ov);
+ // zebra stripes
+ try { ov.querySelectorAll('tbody tr').forEach((tr,i)=>{ if(i%2) tr.style.background = '#FBF7F1'; }); } catch(e){}
 };
 
 // Auto Clock Out Check Function

@@ -19509,6 +19509,11 @@ const BULK_FIELD_DEFS = [
  { g:'Maklumat',  key:'category', label:'Kategori',     type:'disp' },
  { g:'Maklumat',  key:'weight',   label:'Berat (kg)',   type:'num',   f:'weight_kg' },
  { g:'Maklumat',  key:'status',   label:'Status',       type:'disp' },
+ // p1_433 — Marketplace integration (disimpan dlm metadata JSONB; meta:true)
+ { g:'Marketplace', key:'sp_item', label:'Shopee Item ID',   type:'text', f:'shopee_item_id',    meta:true },
+ { g:'Marketplace', key:'tt_pid',  label:'TikTok Product ID',type:'text', f:'tiktok_product_id', meta:true },
+ { g:'Marketplace', key:'sp_url',  label:'Link Shopee',      type:'text', f:'shopee_url',         meta:true },
+ { g:'Marketplace', key:'tt_url',  label:'Link TikTok',      type:'text', f:'tiktok_url',         meta:true },
 ];
 const BULK_FIELD_BY_KEY = {}; BULK_FIELD_DEFS.forEach(d => BULK_FIELD_BY_KEY[d.key] = d);
 const BULK_COLS_DEFAULT = ['brand','category','price','compare','cost','stock','status'];
@@ -19556,8 +19561,9 @@ window.bulkCellHtml = function(p, d){
  return `<td><input id="bk_stock_${sku}" type="number" step="1" value="${stock}" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right; ${stock <= 0 ? 'color:#DC2626;' : ''}"></td>`;
  }
  if(d.type === 'text'){
- const v = p[d.f]; const val = (v != null ? String(v) : '');
- return `<td><input id="bk_${d.key}_${sku}" type="text" value="${hesc(val)}" placeholder="-" style="width:110px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px;"></td>`;
+ const v = d.meta ? ((p.metadata && typeof p.metadata === 'object') ? p.metadata[d.f] : null) : p[d.f];
+ const val = (v != null ? String(v) : '');
+ return `<td><input id="bk_${d.key}_${sku}" type="text" value="${hesc(val)}" placeholder="-" style="width:${d.meta?150:110}px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px;"></td>`;
  }
  // num / int
  const v = p[d.f];
@@ -19731,6 +19737,7 @@ window.bulkSaveEdits = async function() {
  }
  // p1_388 — product_master fields driven by active columns (Pilih Field)
  const payload = {};
+ const metaPatch = {}; // p1_433 — metadata (marketplace) fields merge separately
  for(const k of (window.__bulkCols || [])) {
  const d = BULK_FIELD_BY_KEY[k];
  if(!d || d.type === 'disp' || d.type === 'stock' || d.type === 'skuedit') continue; // display/stock/sku handled separately
@@ -19739,7 +19746,12 @@ window.bulkSaveEdits = async function() {
  const raw = (el.value || '').trim();
  if(d.type === 'text') {
  const nv = raw === '' ? null : raw;
+ if(d.meta) {
+ const cur = (p.metadata && typeof p.metadata === 'object') ? p.metadata[d.f] : null;
+ if((cur || '') !== (nv || '')) metaPatch[d.f] = nv;
+ } else {
  if((p[d.f] || '') !== (nv || '')) payload[d.f] = nv;
+ }
  } else {
  const nv = raw === '' ? null : (isFinite(parseFloat(raw)) ? (d.type === 'int' ? parseInt(raw, 10) : parseFloat(raw)) : undefined);
  if(nv === undefined) continue;
@@ -19747,6 +19759,11 @@ window.bulkSaveEdits = async function() {
  const same = (nv === null && cur == null) || (Number(nv) === Number(cur));
  if(!same) payload[d.f] = nv;
  }
+ }
+ // p1_433 — merge metadata marketplace fields (preserve existing keys like sku_id/model_id)
+ if(Object.keys(metaPatch).length) {
+ const baseMeta = (p.metadata && typeof p.metadata === 'object') ? p.metadata : {};
+ payload.metadata = { ...baseMeta, ...metaPatch };
  }
  // p1_390 — stamp who changed it so price history shows the real name
  if('price' in payload || 'cost_price' in payload) payload.last_modified_by = uName;

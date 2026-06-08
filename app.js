@@ -452,6 +452,9 @@ window.showToast = function(msg, type) {
 // Global ESC handler: close any visible modal/overlay.
 document.addEventListener('keydown', function(e){
  if (e.key !== 'Escape') return;
+ // p1_459 — blind-count popup closes first if open
+ const scsPop = document.getElementById('scsCountPopupOverlay');
+ if (scsPop) { scsPop.remove(); return; }
  // Find topmost visible modal-like overlay
  const candidates = document.querySelectorAll([
  '#pinLoginOverlay', '#staffWelcomeModal', '#receiptModal',
@@ -8098,6 +8101,9 @@ window.__scsToggleSkuList = async function(sessionId) {
  if(error) throw error;
  const items = data || [];
  if(!items.length) { box.innerHTML = '<p style="font-size:11.5px; color:#9CA3AF; padding:12px 0; text-align:center;">Tiada SKU dalam sesi ni.</p>'; return; }
+ // p1_459 — cache items so the blind-count popup can read display fields by id
+ window.__scsItemsCache = window.__scsItemsCache || {};
+ window.__scsItemsCache[sessionId] = items;
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
  const checked = items.filter(i => i.counted_qty != null);
  const pending = items.filter(i => i.counted_qty == null);
@@ -8116,30 +8122,26 @@ window.__scsToggleSkuList = async function(sessionId) {
  else { badgeBg = '#FEE2E2'; badgeFg = '#991B1B'; badgeTxt = variance + ' Kurang'; badgeIcon = 'trending-down'; }
  }
  else { badgeBg = '#F3F4F6'; badgeFg = '#6B7280'; badgeTxt = 'Belum Check'; badgeIcon = 'clock'; }
- // p1_223 — inline qty + catatan input (no popup); Enter or onBlur saves
- // p1_225 — 40px thumb + product_name field fix (was reading wrong column `name`)
- const skuEsc = escHtml(i.sku || '').replace(/'/g, "\\'");
- const sysQtyArg = i.system_qty != null ? i.system_qty : 'null';
- const saveOnEnter = `if(event.key==='Enter'){event.preventDefault(); window.__scsInlineSave(${i.id}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}`;
+ // p1_459 — blind count: tap row opens popup for qty + catatan; system count hidden (no Sistem column)
  const productName = i.product_name || i.name || '';
  const thumbHtml = i.image_url
- ? `<img src="${escHtml(i.image_url)}" alt="${escHtml(i.sku || '')}" onclick="window.open('${escHtml(i.image_url).replace(/'/g, "\\'")}', '_blank')" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #E5E7EB; cursor:zoom-in; display:block;" loading="lazy" onerror="this.style.display='none'">`
+ ? `<img src="${escHtml(i.image_url)}" alt="${escHtml(i.sku || '')}" onclick="event.stopPropagation(); window.open('${escHtml(i.image_url).replace(/'/g, "\\'")}', '_blank')" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #E5E7EB; cursor:zoom-in; display:block;" loading="lazy" onerror="this.style.display='none'">`
  : `<div style="width:40px; height:40px; border-radius:4px; background:#F3F4F6; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center;"><i data-lucide="image-off" style="width:14px;height:14px; color:#9CA3AF;"></i></div>`;
- return `<tr style="border-bottom:1px solid #F3F4F6;">
+ const dikiraCell = isChecked
+ ? `<span style="font-weight:700; color:#111;">${i.counted_qty}</span>`
+ : `<span style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:11px;"><i data-lucide="pencil" style="width:11px;height:11px;"></i> Kira</span>`;
+ const catatanCell = isChecked
+ ? (i.note ? `<span style="display:inline-block; padding:3px 6px; background:#FEF9C3; border-left:2px solid #CA8A04; color:#713F12; font-style:italic; line-height:1.4;"><i data-lucide="message-square" style="width:9px;height:9px; vertical-align:-1px; margin-right:3px;"></i>${escHtml(i.note)}</span>` : '<span style="color:#D1D5DB;">—</span>')
+ : '<span style="color:#D1D5DB;">—</span>';
+ return `<tr onclick="window.__scsOpenCountPopup(${i.id}, ${sessionId})" title="Tekan untuk isi kiraan fizikal" style="border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#FFF7ED'" onmouseout="this.style.background=''">
  <td style="padding:6px 8px; width:48px;">${thumbHtml}</td>
  <td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:700; font-size:11.5px;">${escHtml(i.sku || '-')}</td>
  <td style="padding:8px 10px; font-size:11.5px; color:#374151;">${escHtml(productName.slice(0, 60))}</td>
  <td style="padding:8px 10px; font-size:11px;">${i.location_bin ? `<span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escHtml(i.location_bin)}</span>` : '<span style="color:#D1D5DB;">—</span>'}</td>
- <td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#9CA3AF;">${i.system_qty != null ? i.system_qty : '-'}</td>
- <td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:${isChecked ? '700' : '400'}; color:${isChecked ? '#111' : '#D1D5DB'};">${isChecked ? i.counted_qty : `<input type="number" min="0" id="scsQtyInput-${i.id}" placeholder="qty" onkeydown="${saveOnEnter}" style="width:64px; padding:5px 6px; border:1px solid var(--border-color); border-radius:5px; font-size:12px; text-align:right;">`}</td>
- <td style="padding:8px 10px; font-size:11px;">${isChecked ? (i.note ? `<span style="display:inline-block; padding:3px 6px; background:#FEF9C3; border-left:2px solid #CA8A04; color:#713F12; font-style:italic; line-height:1.4;"><i data-lucide="message-square" style="width:9px;height:9px; vertical-align:-1px; margin-right:3px;"></i>${escHtml(i.note)}</span>` : '<span style="color:#D1D5DB;">—</span>') : `<input type="text" id="scsNoteInput-${i.id}" placeholder="catatan (optional)" onkeydown="${saveOnEnter}" style="width:100%; min-width:140px; padding:5px 8px; border:1px solid var(--border-color); border-radius:5px; font-size:11.5px;">`}</td>
+ <td style="padding:8px 10px; text-align:right; font-size:11.5px;">${dikiraCell}</td>
+ <td style="padding:8px 10px; font-size:11px;">${catatanCell}</td>
  <td style="padding:8px 10px; text-align:center;"><span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:${badgeBg}; color:${badgeFg}; font-size:10px; font-weight:700;"><i data-lucide="${badgeIcon}" style="width:10px;height:10px;"></i> ${badgeTxt}</span></td>
- <td style="padding:8px 6px; text-align:center; white-space:nowrap;">${isChecked ? `<button onclick="window.__scsResetItem(${i.id}, ${sessionId})" title="Reset count balik ke Belum Check" style="background:none; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="rotate-ccw" style="width:9px;height:9px;"></i> Reset</button>` : `
- <button onclick="window.__scsInlineSave(${i.id}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" title="Simpan kiraan" style="background:var(--primary); border:none; color:#fff; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700; margin-right:3px;"><i data-lucide="check" style="width:10px;height:10px;"></i> Simpan</button>
- <button onclick="window.__scsMarkNotFound(${i.id}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" title="Tak jumpa item ni di lokasi" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700; margin-right:3px;"><i data-lucide="search-x" style="width:9px;height:9px;"></i> Tak Jumpa</button>
- <button onclick="window.__scsMarkDamaged(${i.id}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" title="Tandai unit rosak" style="background:#FED7AA; border:1px solid #FB923C; color:#9A3412; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700; margin-right:3px;"><i data-lucide="alert-triangle" style="width:9px;height:9px;"></i> Rosak</button>
- <button onclick="window.__scsRemoveItem(${i.id}, ${sessionId})" title="Buang SKU dari sesi ni" style="background:none; border:1px solid #E5E7EB; color:#6B7280; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="trash-2" style="width:9px;height:9px;"></i> Buang</button>
- `}</td>
+ <td style="padding:8px 6px; text-align:center; white-space:nowrap;">${isChecked ? `<button onclick="event.stopPropagation(); window.__scsResetItem(${i.id}, ${sessionId})" title="Reset count balik ke Belum Check" style="background:none; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="rotate-ccw" style="width:9px;height:9px;"></i> Reset</button>` : `<button onclick="event.stopPropagation(); window.__scsRemoveItem(${i.id}, ${sessionId})" title="Buang SKU dari sesi ni" style="background:none; border:1px solid #E5E7EB; color:#6B7280; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="trash-2" style="width:9px;height:9px;"></i> Buang</button>`}</td>
  </tr>`;
  }).join('');
  box.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px; flex-wrap:wrap;">
@@ -8158,7 +8160,6 @@ window.__scsToggleSkuList = async function(sessionId) {
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">SKU</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Nama</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Lokasi</th>
- <th style="text-align:right; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Sistem</th>
  <th style="text-align:right; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Dikira</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Catatan</th>
  <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Status</th>
@@ -8172,6 +8173,105 @@ window.__scsToggleSkuList = async function(sessionId) {
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  } catch(e) {
  box.innerHTML = '<p style="color:#c0392b; font-size:11.5px; padding:10px;">Error: ' + e.message + '</p>';
+ }
+};
+
+// p1_459 — Blind-count popup: tap a SKU row → fill kuantiti dikira + catatan WITHOUT
+// seeing the system count. Reads display fields from window.__scsItemsCache.
+window.__scsClosePopup = function() {
+ const ov = document.getElementById('scsCountPopupOverlay');
+ if(ov) ov.remove();
+};
+window.__scsOpenCountPopup = function(itemId, sessionId) {
+ const items = (window.__scsItemsCache && window.__scsItemsCache[sessionId]) || [];
+ const i = items.find(x => x.id === itemId);
+ if(!i) { if(typeof showToast === 'function') showToast('Item tak dijumpai dalam cache, refresh sesi.', 'warn'); return; }
+ window.__scsClosePopup();
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const skuEsc = String(i.sku || '').replace(/'/g, "\\'");
+ const sysQtyArg = i.system_qty != null ? i.system_qty : 'null';
+ const productName = i.product_name || i.name || '';
+ const isChecked = i.counted_qty != null;
+ const thumb = i.image_url
+  ? `<img src="${esc(i.image_url)}" alt="" style="width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; flex-shrink:0;" onerror="this.style.display='none'">`
+  : `<div style="width:60px; height:60px; border-radius:8px; background:#F3F4F6; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="image-off" style="width:20px;height:20px; color:#9CA3AF;"></i></div>`;
+ const ov = document.createElement('div');
+ ov.id = 'scsCountPopupOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:9990; display:flex; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(2px);';
+ ov.onclick = function(e){ if(e.target === ov) window.__scsClosePopup(); };
+ ov.innerHTML = `<div style="background:#fff; border-radius:14px; width:100%; max-width:380px; box-shadow:0 20px 50px rgba(0,0,0,.3); overflow:hidden; font-family:'Poppins',sans-serif;" onclick="event.stopPropagation()">
+  <div style="padding:16px 18px; border-bottom:1px solid #F3F4F6; display:flex; gap:12px; align-items:center;">
+   ${thumb}
+   <div style="min-width:0;">
+    <div style="font-family:'SF Mono',Menlo,monospace; font-weight:700; font-size:13px; color:#111;">${esc(i.sku || '-')}</div>
+    <div style="font-size:12px; color:#6B7280; margin-top:2px; line-height:1.35;">${esc(String(productName).slice(0,70))}</div>
+    ${i.location_bin ? `<div style="margin-top:5px;"><span style="background:#FEF3C7; color:#92400E; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace;"><i data-lucide="map-pin" style="width:9px;height:9px; vertical-align:-1px;"></i> ${esc(i.location_bin)}</span></div>` : ''}
+   </div>
+  </div>
+  <div style="padding:16px 18px;">
+   <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Kuantiti Dikira (fizikal)</label>
+   <input type="number" min="0" inputmode="numeric" id="scsQtyInput-${itemId}" value="${isChecked ? i.counted_qty : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border-color); border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
+   <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin:14px 0 6px;">Catatan (optional)</label>
+   <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;">${isChecked && i.note ? esc(i.note) : ''}</textarea>
+   <div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;">
+    <i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i>
+    <span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span>
+   </div>
+   <button onclick="window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" style="width:100%; margin-top:14px; background:var(--primary); border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="check" style="width:15px;height:15px;"></i> Simpan Kiraan</button>
+   <div style="display:flex; gap:8px; margin-top:9px;">
+    <button onclick="window.__scsMarkNotFound(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg}).finally(()=>window.__scsClosePopup())" style="flex:1; background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:9px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="search-x" style="width:11px;height:11px; vertical-align:-1px;"></i> Tak Jumpa</button>
+    <button onclick="window.__scsMarkDamaged(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg}).finally(()=>window.__scsClosePopup())" style="flex:1; background:#FED7AA; border:1px solid #FB923C; color:#9A3412; padding:9px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="alert-triangle" style="width:11px;height:11px; vertical-align:-1px;"></i> Rosak</button>
+   </div>
+   <button onclick="window.__scsClosePopup()" style="width:100%; margin-top:9px; background:none; border:none; color:#9CA3AF; padding:6px; cursor:pointer; font-size:11.5px; font-weight:600;">Tutup</button>
+  </div>
+ </div>`;
+ document.body.appendChild(ov);
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+ const qf = document.getElementById('scsQtyInput-' + itemId);
+ if(qf) { qf.focus(); qf.select(); }
+};
+// p1_459 — Save from blind-count popup (validates, then closes popup on success)
+window.__scsPopupSave = async function(itemId, sessionId, sku, systemQty) {
+ const qtyEl = document.getElementById('scsQtyInput-' + itemId);
+ const noteEl = document.getElementById('scsNoteInput-' + itemId);
+ if(!qtyEl) return;
+ const raw = (qtyEl.value || '').trim();
+ if(!raw) { if(typeof showToast === 'function') showToast('Sila masukkan qty dulu.', 'warn'); qtyEl.focus(); return; }
+ const qty = parseInt(raw, 10);
+ if(isNaN(qty) || qty < 0) { if(typeof showToast === 'function') showToast('Qty mesti nombor >= 0.', 'warn'); qtyEl.focus(); return; }
+ const noteText = (noteEl && noteEl.value && noteEl.value.trim()) ? noteEl.value.trim() : null;
+ try {
+  if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+  const u = window.currentUser || {};
+  const nowIso = new Date().toISOString();
+  const variance = (systemQty != null && !isNaN(systemQty)) ? (qty - systemQty) : null;
+  const { error: e1 } = await db.from('stock_check_session_items').update({
+   counted_qty: qty,
+   variance: variance,
+   note: noteText,
+   flag: null,
+   counted_by_id: u.staff_id || 'unknown',
+   counted_by_name: u.name || 'Unknown',
+   counted_at: nowIso
+  }).eq('id', itemId);
+  if(e1) throw e1;
+  await db.from('products_master').update({
+   last_audited_at: nowIso,
+   last_audited_by: (u.name || 'Unknown') + ' (' + (u.staff_id || '?') + ')',
+   last_audited_qty: qty,
+   last_audited_system_qty: (systemQty != null && !isNaN(systemQty)) ? systemQty : null
+  }).eq('sku', sku);
+  const { data: items } = await db.from('stock_check_session_items').select('counted_qty,variance').eq('session_id', sessionId);
+  const checked = (items || []).filter(it => it.counted_qty != null);
+  const varCnt = checked.filter(it => (it.variance || 0) !== 0).length;
+  await db.from('stock_check_sessions').update({ items_checked: checked.length, items_variance: varCnt }).eq('id', sessionId);
+  if(typeof showToast === 'function') showToast(`${sku} = ${qty} dikira${noteText ? ' (catatan disimpan)' : ''}`, 'success');
+  window.__scsClosePopup();
+  const box = document.getElementById('scsSkuList-' + sessionId);
+  if(box) { box.dataset.loaded = ''; window.__scsToggleSkuList(sessionId); window.__scsToggleSkuList(sessionId); }
+  if(typeof window.renderCheckSessions === 'function') window.renderCheckSessions();
+ } catch(e) {
+  if(typeof showToast === 'function') showToast('Simpan gagal: ' + e.message, 'error');
  }
 };
 

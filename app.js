@@ -6910,9 +6910,10 @@ async function initApp() {
  // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
  if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
 
- // p1_330 — muat SEMUA customer berperingkat (2946 rows > had 1000 PostgREST)
+ // p1_330 — muat SEMUA customer berperingkat (2949 rows > had 1000 PostgREST)
+ // p1_480 — order by 'id' WAJIB supaya pagination stabil (dulu tanpa order → ada customer ter-skip = tak muncul di cashier)
  let custs = [];
- try { custs = await window.__fetchAllRows('customers'); }
+ try { custs = await window.__fetchAllRows('customers', 'id', true); }
  catch(e) { try { const r = await db.from('customers').select('*'); custs = r.data || []; } catch(_){} }
  if(custs && custs.length) customersData = custs;
  
@@ -24067,9 +24068,13 @@ window.__aoPrintPickingList = function() {
 window.__fetchAllRows = async function(table, orderCol, ascending) {
  const all = [];
  const PAGE = 1000;
+ // p1_480 — WAJIB ada ORDER BY stabil masa paginate .range(); tanpa order, Postgres
+ // boleh pulang baris dalam susunan berbeza antara page → baris ter-SKIP/duplicate
+ // (punca "customer hilang dari senarai cashier"). Default ke PK 'id' kalau caller tak bagi.
+ const oc = orderCol || 'id';
+ const asc = orderCol ? !!ascending : true;
  for(let start = 0; start < 1000000; start += PAGE) {
- let q = db.from(table).select('*');
- if(orderCol) q = q.order(orderCol, { ascending: !!ascending });
+ let q = db.from(table).select('*').order(oc, { ascending: asc });
  const { data, error } = await q.range(start, start + PAGE - 1);
  if(error) throw error;
  if(!data || !data.length) break;

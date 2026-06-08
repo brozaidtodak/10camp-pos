@@ -24002,33 +24002,102 @@ window.__aoExportCsv = function(selectedOnly){
  if(typeof showToast === 'function') showToast(`${rows.length} order di-export ke CSV.`, 'success');
 };
 
-// p1_509 — export HANYA order yang ada resit / bukti bayar (gambar/PDF). Sertakan link resit.
-// (Zaid/Aliff: "export data2 yang ada resit"). Ikut filter All Orders semasa (channel/status/tempoh/carian).
-window.__aoExportReceipts = function(){
+// p1_510 — lazy-load JSZip dari CDN (untuk bungkus CSV + gambar resit jadi 1 fail ZIP)
+window.__loadZipLib = async function() {
+ if(window.JSZip) return;
+ await new Promise((resolve, reject) => {
+ const src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+ if(document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+ const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject;
+ document.head.appendChild(s);
+ });
+};
+
+// p1_509/p1_510 — export order BERESIT: ZIP berisi CSV + gambar resit sebenar.
+// (Zaid/Aliff: "export data2 yang ada resit" + "aku perlu gambar tu jugak dalam export").
+// Ikut filter All Orders semasa. CSV ada kolum "Fail Resit" yang padan nama fail dlm ZIP.
+window.__aoExportReceipts = async function(){
  const all = window.__aoGetFiltered();
  const rows = (all || []).filter(s => !!s.payment_proof_url);
  if(!rows.length) { if(typeof showToast === 'function') showToast('Tiada order BERESIT dalam tapisan semasa.', 'info'); return; }
- const cols = ['Order Ref','POS ID','Tarikh','Channel','Status','Pelanggan','Phone','Email','Items','Total (RM)','Bayar','Resit (URL)','Resit Upload Tarikh','Resit Upload Oleh'];
+ if(rows.length > 60 && !confirm(`${rows.length} resit akan dimuat turun + dibungkus jadi ZIP. Mungkin ambil masa + saiz besar. Teruskan?`)) return;
+
  const esc = (v) => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
- const lines = [cols.join(',')];
- rows.forEach(s => {
+ const stamp = new Date().toISOString().slice(0, 10);
+ // nama fail selamat: ref + POS id + extension dari URL
+ const safe = (s) => String(s == null ? '' : s).replace(/[^A-Za-z0-9_\-]+/g, '_').slice(0, 40);
+ const extOf = (url) => { const m = String(url || '').split('?')[0].match(/\.([A-Za-z0-9]{1,5})$/); return m ? m[1].toLowerCase() : 'jpg'; };
+
+ try { await window.__loadZipLib(); } catch(e) { /* fallback CSV-only di bawah */ }
+
+ const rowMeta = rows.map(s => {
  const md = s.metadata || {};
  const ref = md.shopee_order_sn || md.tiktok_order_id || md.online_order_ref || ('#' + s.id);
+ const fname = `${safe(ref)}_POS${s.id}.${extOf(s.payment_proof_url)}`;
+ return { s, md, ref, fname };
+ });
+
+ // ── Kalau JSZip tak load: fallback CSV (URL sahaja) ──
+ if(!window.JSZip) {
+ const cols = ['Order Ref','POS ID','Tarikh','Channel','Status','Pelanggan','Phone','Email','Items','Total (RM)','Bayar','Resit (URL)','Resit Upload Tarikh','Resit Upload Oleh'];
+ const lines = [cols.join(',')];
+ rowMeta.forEach(({s, md, ref}) => {
  const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY') : '';
  const items = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
  const total = (parseFloat(s.total_amount || s.total || 0) || 0).toFixed(2);
  const upAt = s.payment_proof_uploaded_at ? new Date(s.payment_proof_uploaded_at).toLocaleString('en-MY') : '';
  lines.push([ref, s.id, dt, s.channel || '', window.__aoStatusMeta(s.status).label, s.customer_name || '', s.customer_phone || '', s.customer_email || md.buyer_email || '', items, total, s.payment_method || '', s.payment_proof_url || '', upAt, s.payment_proof_uploaded_by || ''].map(esc).join(','));
  });
- const csv = '﻿' + lines.join('\n');
- const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
- const url = URL.createObjectURL(blob);
- const a = document.createElement('a');
- const stamp = new Date().toISOString().slice(0, 10);
- a.href = url; a.download = `orders_beresit_${stamp}.csv`;
- document.body.appendChild(a); a.click(); document.body.removeChild(a);
+ const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob); const a = document.createElement('a');
+ a.href = url; a.download = `orders_beresit_${stamp}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
  setTimeout(() => URL.revokeObjectURL(url), 1000);
- if(typeof showToast === 'function') showToast(`${rows.length} order BERESIT di-export ke CSV.`, 'success');
+ if(typeof showToast === 'function') showToast(`ZIP gagal sedia — export CSV (link resit) sahaja: ${rowMeta.length} order.`, 'warn');
+ return;
+ }
+
+ // ── ZIP: CSV + gambar ──
+ if(typeof showToast === 'function') showToast(`Menyedia ZIP ${rowMeta.length} resit… (muat turun gambar)`, 'info');
+ const zip = new window.JSZip();
+ const imgFolder = zip.folder('resit');
+ let okImg = 0, failImg = 0;
+ // muat turun gambar selari (had concurrency supaya tak terlalu banyak serentak)
+ const CONC = 6;
+ for(let i = 0; i < rowMeta.length; i += CONC) {
+ const batch = rowMeta.slice(i, i + CONC);
+ await Promise.all(batch.map(async (rm) => {
+ try {
+ const res = await fetch(rm.s.payment_proof_url, { cache: 'no-store' });
+ if(!res.ok) throw new Error('HTTP ' + res.status);
+ const blob = await res.blob();
+ imgFolder.file(rm.fname, blob);
+ rm.saved = true; okImg++;
+ } catch(e) { rm.saved = false; failImg++; }
+ }));
+ }
+
+ // CSV (sertakan kolum nama fail dalam ZIP)
+ const cols = ['Order Ref','POS ID','Tarikh','Channel','Status','Pelanggan','Phone','Email','Items','Total (RM)','Bayar','Fail Resit','Resit (URL)','Resit Upload Tarikh','Resit Upload Oleh'];
+ const lines = [cols.join(',')];
+ rowMeta.forEach(({s, md, ref, fname, saved}) => {
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY') : '';
+ const items = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
+ const total = (parseFloat(s.total_amount || s.total || 0) || 0).toFixed(2);
+ const upAt = s.payment_proof_uploaded_at ? new Date(s.payment_proof_uploaded_at).toLocaleString('en-MY') : '';
+ const fileCell = saved ? ('resit/' + fname) : '(gambar gagal muat — guna URL)';
+ lines.push([ref, s.id, dt, s.channel || '', window.__aoStatusMeta(s.status).label, s.customer_name || '', s.customer_phone || '', s.customer_email || md.buyer_email || '', items, total, s.payment_method || '', fileCell, s.payment_proof_url || '', upAt, s.payment_proof_uploaded_by || ''].map(esc).join(','));
+ });
+ zip.file(`orders_beresit_${stamp}.csv`, '﻿' + lines.join('\n'));
+
+ try {
+ const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+ const url = URL.createObjectURL(content); const a = document.createElement('a');
+ a.href = url; a.download = `orders_beresit_${stamp}.zip`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+ setTimeout(() => URL.revokeObjectURL(url), 2000);
+ if(typeof showToast === 'function') showToast(`ZIP siap — ${rowMeta.length} order, ${okImg} gambar${failImg ? ', ' + failImg + ' gagal (link dlm CSV)' : ''}.`, failImg ? 'warn' : 'success');
+ } catch(e) {
+ if(typeof showToast === 'function') showToast('Gagal jana ZIP: ' + (e.message || e), 'error');
+ }
 };
 
 // p1_445 — klik header kolum untuk susun (toggle naik/turun)

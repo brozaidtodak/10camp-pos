@@ -8146,6 +8146,7 @@ window.renderCheckSessions = async function() {
  </div>
  <div style="height:6px; background:#F3F4F6; border-radius:50px; overflow:hidden; margin-bottom:10px;"><div style="height:100%; background:linear-gradient(90deg, var(--primary), #A05F22); width:${pct}%; transition:width .4s;"></div></div>
  ${(s.items_variance || 0) > 0 ? `<div style="font-size:12px; color:#991B1B; margin-bottom:8px;"><i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:-1px;"></i> ${s.items_variance} variance · RM ${Number(s.rm_variance||0).toFixed(2)} drift</div>` : ''}
+ ${s.published_at ? `<div style="font-size:11px; color:#065F46; margin-bottom:8px;"><i data-lucide="check-circle-2" style="width:12px;height:12px;vertical-align:-1px;"></i> Dah publish ke Products · ${new Date(s.published_at).toLocaleString('en-MY')}</div>` : ''}
  <div style="display:flex; gap:6px; flex-wrap:wrap;">
  <!-- p1_224 — Buka & Kira dibuang; Senarai SKU jadi primary action sebab dah ada inline edit -->
  <button class="sy-btn" onclick="window.__scsToggleSkuList(${s.id})" style="font-size:11px;"><i data-lucide="list" style="width:11px;height:11px;"></i> ${s.status === 'active' ? 'Buka & Kira' : 'Tunjuk SKU'}</button>
@@ -8154,6 +8155,7 @@ window.renderCheckSessions = async function() {
  ${s.status === 'review' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsForwardToBos(${s.id})" style="font-size:11px;"><i data-lucide="forward" style="width:11px;height:11px;"></i> Forward ke Bos</button>` : ''}
  ${isMgmt && s.status !== 'approved' && s.status !== 'cancelled' ? `<button class="sy-btn secondary" onclick="window.__scsCancelSession(${s.id})" style="font-size:11px; color:#991B1B; border-color:#FCA5A5;"><i data-lucide="x-circle" style="width:11px;height:11px;"></i> Batal Sesi</button>` : ''}
  ${s.status === 'forwarded' && (typeof window.isBoss === 'function' && window.isBoss(u)) ? `<button class="sy-btn secondary" onclick="window.__scsApprove(${s.id})" style="font-size:11px; background:#101010; color:#FFF;"><i data-lucide="check-circle" style="width:11px;height:11px;"></i> Approve</button>` : ''}
+ ${s.status === 'approved' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsPublishOpen(${s.id})" style="font-size:11px; background:${s.published_at ? '#ECFDF5' : 'var(--primary)'}; color:${s.published_at ? '#065F46' : '#FFF'}; border-color:var(--primary);"><i data-lucide="upload-cloud" style="width:11px;height:11px;"></i> ${s.published_at ? 'Publish Semula' : 'Publish ke Products'}</button>` : ''}
  </div>
  <!-- p1_211 — Per-session SKU list (collapsed by default, lazy-loaded on click) -->
  <div id="scsSkuList-${s.id}" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-color);">
@@ -8170,6 +8172,135 @@ window.renderCheckSessions = async function() {
  } catch(e) {
  list.innerHTML = '<p style="color:#c0392b; padding:20px;">Error: ' + e.message + '</p>';
  }
+};
+
+// ============= p1_474 — PUBLISH KE PRODUCTS (selepas Bos approve) =============
+// Lepas sesi approved, review + pilih + edit kuantiti sebelum SET stok sebenar
+// (inventory_batches) = kiraan fizikal. Guna __applyStockDelta (set ke kiraan vs
+// stok LIVE semasa, kekal cost layer). Tulis audit_logs + cap published_at.
+window.__scsPublishItems = window.__scsPublishItems || [];
+window.__scsPublishSessionId = null;
+
+window.__scsLiveQty = function(sku) {
+ return (typeof inventoryBatches !== 'undefined' ? inventoryBatches : [])
+  .filter(b => b.sku === sku)
+  .reduce((s, b) => s + (b.qty_remaining || 0), 0);
+};
+
+window.__scsPublishOpen = async function(sessionId) {
+ const modal = document.getElementById('scsPublishModal');
+ const body = document.getElementById('scsPublishBody');
+ if(!modal || !body) return;
+ window.__scsPublishSessionId = sessionId;
+ body.innerHTML = '<p style="text-align:center; padding:30px; color:#9CA3AF;">Memuatkan…</p>';
+ modal.style.display = 'flex';
+ try {
+  const { data, error } = await db.from('stock_check_session_items').select('*').eq('session_id', sessionId).order('sku', { ascending: true });
+  if(error) throw error;
+  const counted = (data || []).filter(i => i.counted_qty != null); // hanya yang dah dikira
+  if(!counted.length) { body.innerHTML = '<p style="text-align:center; padding:30px; color:#991B1B;">Tiada item dikira dalam sesi ni — tiada apa nak publish.</p>'; return; }
+  window.__scsPublishItems = counted;
+  window.__scsPublishRender();
+ } catch(e) {
+  body.innerHTML = '<p style="text-align:center; padding:30px; color:#DC2626;">Gagal load: ' + e.message + '</p>';
+ }
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+window.__scsPublishRender = function() {
+ const body = document.getElementById('scsPublishBody');
+ if(!body) return;
+ const items = window.__scsPublishItems || [];
+ const esc = (x) => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const rows = items.map((i, idx) => {
+  const live = window.__scsLiveQty(i.sku);
+  const counted = Number(i.counted_qty);
+  const diff = counted - live;
+  const checked = diff !== 0 ? 'checked' : ''; // default tick hanya yang ada beza
+  const diffColor = diff === 0 ? '#6B7280' : (diff > 0 ? '#166534' : '#991B1B');
+  const diffTxt = diff === 0 ? 'sama' : (diff > 0 ? '+' + diff : '' + diff);
+  return `<tr style="border-bottom:1px solid #F3F4F6;">
+   <td style="padding:6px 8px; text-align:center;"><input type="checkbox" data-scs-pub-idx="${idx}" ${checked} style="width:16px;height:16px; cursor:pointer;"></td>
+   <td style="padding:6px 8px; font-family:'SF Mono',Menlo,monospace; font-weight:700; font-size:11.5px;">${esc(i.sku)}</td>
+   <td style="padding:6px 8px; font-size:11.5px;">${esc((i.product_name || i.name || '').slice(0, 40))}</td>
+   <td style="padding:6px 8px; text-align:right; font-size:12px; color:#6B7280;">${live}</td>
+   <td style="padding:6px 8px; text-align:right; font-size:12px; font-weight:700;">${counted}</td>
+   <td style="padding:6px 8px; text-align:right; font-size:11.5px; font-weight:700; color:${diffColor};">${diffTxt}</td>
+   <td style="padding:6px 8px; text-align:center;"><input type="number" data-scs-pub-qty="${idx}" value="${counted}" min="0" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:6px; text-align:center; font-weight:700;"></td>
+  </tr>`;
+ }).join('');
+ body.innerHTML = `
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
+   <span style="font-size:12px; color:#6B7280;">${items.length} item dikira · tick yang nak set ke stok sebenar (default: yang ada beza). Boleh edit lajur "Set Ke".</span>
+   <label style="font-size:11.5px; display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="scsPubAll" onchange="window.__scsPublishToggleAll(this.checked)" style="width:15px;height:15px;"> Pilih semua</label>
+  </div>
+  <div style="max-height:46vh; overflow-y:auto; border:1px solid #F3F4F6; border-radius:8px;">
+   <table style="width:100%; border-collapse:collapse; font-size:12px;">
+    <thead style="background:#F9FAFB; position:sticky; top:0; z-index:1;">
+     <tr>
+      <th style="padding:8px; width:34px;"></th>
+      <th style="text-align:left; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">SKU</th>
+      <th style="text-align:left; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Nama</th>
+      <th style="text-align:right; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Stok Kini</th>
+      <th style="text-align:right; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Dikira</th>
+      <th style="text-align:right; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Beza</th>
+      <th style="text-align:center; padding:8px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Set Ke</th>
+     </tr>
+    </thead><tbody>${rows}</tbody>
+   </table>
+  </div>`;
+};
+
+window.__scsPublishToggleAll = function(checked) {
+ document.querySelectorAll('#scsPublishBody input[data-scs-pub-idx]').forEach(cb => { cb.checked = checked; });
+};
+
+window.__scsPublishConfirm = async function() {
+ const sessionId = window.__scsPublishSessionId;
+ const items = window.__scsPublishItems || [];
+ if(!items.length) return;
+ const selected = [];
+ document.querySelectorAll('#scsPublishBody input[data-scs-pub-idx]').forEach(cb => {
+  if(!cb.checked) return;
+  const idx = parseInt(cb.getAttribute('data-scs-pub-idx'));
+  const item = items[idx];
+  if(!item) return;
+  const qtyEl = document.querySelector('#scsPublishBody input[data-scs-pub-qty="' + idx + '"]');
+  const finalQty = Math.max(0, parseInt((qtyEl && qtyEl.value) != null ? qtyEl.value : item.counted_qty) || 0);
+  selected.push({ sku: item.sku, finalQty });
+ });
+ if(!selected.length) { if(typeof showToast === 'function') showToast('Tiada SKU dipilih untuk publish.', 'warn'); return; }
+ if(!confirm('Publish ' + selected.length + ' SKU ke stok sebenar (Products)?\n\nStok sistem akan DITETAPKAN ikut kiraan fizikal.')) return;
+ const btn = document.getElementById('scsPublishConfirmBtn');
+ if(btn) { btn.disabled = true; btn.innerHTML = 'Mempublish…'; }
+ const u = window.currentUser || {};
+ const reason = 'Stock Take publish (sesi #' + sessionId + ') oleh ' + (u.name || 'System');
+ let done = 0, fail = 0; const adjustments = [];
+ for(const sel of selected) {
+  try {
+   const live = window.__scsLiveQty(sel.sku);
+   const delta = sel.finalQty - live;
+   if(delta !== 0 && typeof window.__applyStockDelta === 'function') {
+    await window.__applyStockDelta(sel.sku, delta, reason);
+   }
+   adjustments.push({ sku: sel.sku, from: live, to: sel.finalQty, delta });
+   done++;
+  } catch(e) { console.error('publish gagal', sel.sku, e); fail++; }
+ }
+ // Reload inventory global supaya UI cermin stok baru
+ try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){}
+ // Audit trail
+ try {
+  await db.from('audit_logs').insert([{ action_type: 'stock_publish_from_session', actor_name: u.name || 'System', details: JSON.stringify({ session_id: sessionId, published: done, failed: fail, adjustments }), created_at: new Date().toISOString() }]);
+ } catch(e){}
+ // Cap published_at (kolum nullable; kalau takde, swallow)
+ try { await db.from('stock_check_sessions').update({ published_at: new Date().toISOString() }).eq('id', sessionId); } catch(e){}
+ if(btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="upload-cloud" style="width:13px;height:13px;"></i> Publish ke Products'; }
+ const modal = document.getElementById('scsPublishModal');
+ if(modal) modal.style.display = 'none';
+ if(typeof showToast === 'function') showToast(done + ' SKU dipublish ke Products' + (fail ? ' · ' + fail + ' gagal' : '') + '.', fail ? 'warn' : 'success');
+ if(typeof window.renderCheckSessions === 'function') window.renderCheckSessions();
+ if(typeof renderStockTake === 'function') { try { renderStockTake(); } catch(e){} }
 };
 
 // p1_169 — Create Session modal flow

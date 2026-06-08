@@ -8698,7 +8698,9 @@ window.__scsPublishRender = function() {
   const setTo = (i.final_qty != null) ? Number(i.final_qty)
               : (i.counted_qty_2 != null ? Number(i.counted_qty_2) : counted);
   const diff = setTo - live;
-  const checked = diff !== 0 ? 'checked' : ''; // default tick hanya yang ada beza
+  // p1_513 — default tick SEMUA item (Zaid: "Zack tak nak tekan satu2; kalau tak ubah prefill = qty betul").
+  // Prefill Set Ke = Final Qty → Zack confirm sekali je, semua set ikut prefill. Item tak berubah = delta 0 (no-op).
+  const checked = 'checked';
   const diffColor = diff === 0 ? '#6B7280' : (diff > 0 ? '#166534' : '#991B1B');
   const diffTxt = diff === 0 ? 'sama' : (diff > 0 ? '+' + diff : '' + diff);
   return `<tr style="border-bottom:1px solid #F3F4F6;">
@@ -8713,8 +8715,8 @@ window.__scsPublishRender = function() {
  }).join('');
  body.innerHTML = `
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
-   <span style="font-size:12px; color:#6B7280;">${items.length} item dikira · tick yang nak set ke stok sebenar (default: yang ada beza). Boleh edit lajur "Set Ke".</span>
-   <label style="font-size:11.5px; display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="scsPubAll" onchange="window.__scsPublishToggleAll(this.checked)" style="width:15px;height:15px;"> Pilih semua</label>
+   <span style="font-size:12px; color:#6B7280;">${items.length} item · SEMUA dipilih ikut Final Qty (lajur "Set Ke"). Tak ubah apa-apa = qty dah betul, terus Sahkan. Nyahtick / edit kalau perlu.</span>
+   <label style="font-size:11.5px; display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="scsPubAll" checked onchange="window.__scsPublishToggleAll(this.checked)" style="width:15px;height:15px;"> Pilih semua</label>
   </div>
   <div style="max-height:46vh; overflow-y:auto; border:1px solid #F3F4F6; border-radius:8px;">
    <table style="width:100%; border-collapse:collapse; font-size:12px;">

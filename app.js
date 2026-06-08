@@ -11906,15 +11906,19 @@ window.cpkFilterCustomers = function(q) {
  const list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
  const query = (q || '').trim().toLowerCase();
  if(!query) { res.innerHTML = '<p style="color:#9CA3AF; font-size:13px; padding:12px; text-align:center; margin:0;">Taip untuk cari pelanggan...</p>'; return; }
+ // p1_482 — cari ikut PERKATAAN (setiap token kena ada, tak kira susunan) + merangkumi email.
+ // Elak "aliff irfan" gagal padan "Irfan Aliff" / "Aliff bin Irfan".
+ const tokens = query.split(/\s+/).filter(Boolean);
+ const matchAll = (hay) => tokens.every(t => hay.includes(t));
  const matches = list.filter(c => {
- const ph = (c.phone || '').toLowerCase();
- const nm = (c.name || '').toLowerCase();
- return ph.includes(query) || nm.includes(query);
+ const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
+ return matchAll(hay);
  }).slice(0, 30);
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
  // p1_481 — carian sejarah jualan: pelanggan lama yang TAK wujud dalam CRM pun muncul
  const past = (typeof window.__getPastCustomers === 'function' ? window.__getPastCustomers() : []).filter(c => {
-  return (c.phone||'').toLowerCase().includes(query) || (c.name||'').toLowerCase().includes(query) || (c.email||'').toLowerCase().includes(query);
+  const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
+  return matchAll(hay);
  }).slice(0, 12);
  window.__pastMatchList = past;
  if(!matches.length && !past.length) { res.innerHTML = `<p style="color:#c0392b; font-size:13px; padding:12px; text-align:center; margin:0;">Tiada match untuk "${query}". Daftar baru di bawah.</p>`; return; }

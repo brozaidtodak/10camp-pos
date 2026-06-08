@@ -23248,15 +23248,28 @@ window.renderAnalytics = function() {
  }));
  const topN = (obj, n, nameKey) => Object.entries(obj).map(([k,v])=>({k, name:(nameKey?v[nameKey]:k), rev:v.rev, units:v.units})).sort((a,b)=>b.rev-a.rev).slice(0,n);
  const fillRows = (id, rows, showName) => { const tb=document.getElementById(id); if(!tb) return; tb.innerHTML = rows.length ? rows.map((x,i)=>'<tr><td style="color:var(--text-muted);">'+(i+1)+'</td><td>'+String(showName?x.name:x.k).slice(0,38)+'</td><td style="text-align:right;">'+x.units.toLocaleString()+'</td><td style="text-align:right; font-weight:600;">'+fmtRM2(x.rev)+'</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">Tiada data</td></tr>'; };
- fillRows('anTopProdBody', topN(prodAgg,10,'name'), true);
- fillRows('anTopBrandBody', topN(brandAgg,10), false);
- fillRows('anTopCatBody', topN(catAgg,10), false);
+ const topProd = topN(prodAgg,10,'name'), topBrand = topN(brandAgg,10), topCat = topN(catAgg,10);
+ fillRows('anTopProdBody', topProd, true);
+ fillRows('anTopBrandBody', topBrand, false);
+ fillRows('anTopCatBody', topCat, false);
 
  // ---- Channel performance ----
  const chAgg={}; cur.forEach(s => { const ch=s.channel||'POS Cashier'; if(!chAgg[ch]) chAgg[ch]={orders:0,rev:0}; chAgg[ch].orders++; chAgg[ch].rev=round2(chAgg[ch].rev+amtOf(s)); });
  const chRows = Object.entries(chAgg).map(([k,v])=>({k,...v})).sort((a,b)=>b.rev-a.rev);
  const chBody=document.getElementById('anChannelBody');
- if(chBody) chBody.innerHTML = chRows.length ? chRows.map(x=>'<tr><td>'+x.k+'</td><td style="text-align:right;">'+x.orders+'</td><td style="text-align:right; font-weight:600;">'+fmtRM2(x.rev)+'</td><td style="text-align:right;">'+(C.rev?Math.round(x.rev/C.rev*100):0)+'%</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">Tiada data</td></tr>';
+ if(chBody) chBody.innerHTML = chRows.length ? chRows.map(x=>'<tr><td>'+hesc(x.k)+'</td><td style="text-align:right;">'+x.orders+'</td><td style="text-align:right; font-weight:600;">'+fmtRM2(x.rev)+'</td><td style="text-align:right;">'+(C.rev?Math.round(x.rev/C.rev*100):0)+'%</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">Tiada data</td></tr>';
+
+ // ---- Sales by Payment Method (p1_500) ----
+ const payAgg={}; cur.forEach(s => { const pm=(s.payment_method||'Cash').toString().trim()||'Cash'; if(!payAgg[pm]) payAgg[pm]={orders:0,rev:0}; payAgg[pm].orders++; payAgg[pm].rev=round2(payAgg[pm].rev+amtOf(s)); });
+ const payRows = Object.entries(payAgg).map(([k,v])=>({k,...v})).sort((a,b)=>b.rev-a.rev);
+ const payBody=document.getElementById('anPaymentBody');
+ if(payBody) payBody.innerHTML = payRows.length ? payRows.map(x=>'<tr><td>'+hesc(x.k)+'</td><td style="text-align:right;">'+x.orders+'</td><td style="text-align:right; font-weight:600;">'+fmtRM2(x.rev)+'</td><td style="text-align:right;">'+(C.rev?Math.round(x.rev/C.rev*100):0)+'%</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">Tiada data</td></tr>';
+
+ // ---- Sales by Staff (p1_500) ----
+ const staffAgg={}; cur.forEach(s => { const st=(s.staff_name||s.cashier_name||'').toString().trim()||'Tak dinyatakan'; if(!staffAgg[st]) staffAgg[st]={orders:0,rev:0,units:0}; staffAgg[st].orders++; staffAgg[st].rev=round2(staffAgg[st].rev+amtOf(s)); itemsOf(s).forEach(it=> staffAgg[st].units+=qtyOf(it)); });
+ const staffRows = Object.entries(staffAgg).map(([k,v])=>({k,...v})).sort((a,b)=>b.rev-a.rev);
+ const staffBody=document.getElementById('anStaffBody');
+ if(staffBody) staffBody.innerHTML = staffRows.length ? staffRows.map(x=>'<tr><td>'+hesc(x.k)+'</td><td style="text-align:right;">'+x.orders+'</td><td style="text-align:right;">'+x.units.toLocaleString()+'</td><td style="text-align:right; font-weight:600;">'+fmtRM2(x.rev)+'</td><td style="text-align:right;">'+(C.rev?Math.round(x.rev/C.rev*100):0)+'%</td></tr>').join('') : '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Tiada data</td></tr>';
 
  // ---- Customer new vs repeat (doughnut) + top customers ----
  const custCt = document.getElementById('anCustChart');
@@ -23282,6 +23295,63 @@ window.renderAnalytics = function() {
  const dowCt=document.getElementById('anDowChart');
  if(dowCt){ if(window.__anInst.dow) window.__anInst.dow.destroy();
  window.__anInst.dow = new Chart(dowCt.getContext('2d'), { type:'bar', data:{ labels:['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'], datasets:[{ data:dows, backgroundColor:'#101010', borderRadius:3 }] }, options:barOpts }); }
+
+ // ---- Simpan semua data untuk export (p1_500) ----
+ window.__anData = {
+ periodLabel: (lbl ? lbl.textContent : ''),
+ kpis: { rev:C.rev, orders:C.orders, aov:C.aov, units:C.units, newC:C.newC, repeatRate:C.repeatRate },
+ trend: { labels, cur:curB, prev:prevB },
+ topProd, topBrand, topCat,
+ channels: chRows, payments: payRows, staff: staffRows, topCust,
+ hours, dows: ['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'].map((d,i)=>({ day:d, rev:dows[i] }))
+ };
+};
+
+// p1_500 — Export Analytics: pilih bahagian → satu CSV berbilang seksyen
+window.__anExportOpen = function() {
+ if(!window.__anData && typeof renderAnalytics === 'function') renderAnalytics();
+ const p = document.getElementById('anExpPeriod');
+ if(p) p.textContent = (window.__anData && window.__anData.periodLabel) || '';
+ const m = document.getElementById('anExportModal');
+ if(m) m.style.display = 'flex';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__anExportToggleAll = function(on) {
+ ['anExpKpi','anExpTrend','anExpProd','anExpBrand','anExpCat','anExpChannel','anExpPayment','anExpStaff','anExpCust','anExpHour','anExpDow'].forEach(id => { const e=document.getElementById(id); if(e) e.checked = !!on; });
+};
+window.__anExportRun = function() {
+ const d = window.__anData;
+ if(!d) { if(typeof showToast === 'function') showToast('Buka Analytics dulu.', 'warn'); return; }
+ const chk = (id) => { const e = document.getElementById(id); return e ? e.checked : false; };
+ const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+ const pct = (rev) => d.kpis.rev ? Math.round(rev / d.kpis.rev * 100) : 0;
+ const out = [];
+ out.push('Laporan Analytics 10 CAMP');
+ out.push('Tempoh,' + q(d.periodLabel));
+ out.push('Dijana,' + q(new Date().toLocaleString('en-MY')));
+ out.push('');
+ const sec = (title, header, rows) => { out.push('=== ' + title + ' ==='); out.push(header.join(',')); (rows || []).forEach(r => out.push(r.map(q).join(','))); out.push(''); };
+ let any = false;
+ if(chk('anExpKpi')) { any = true; sec('KPI RINGKASAN', ['Metrik','Nilai'], [['Jualan (RM)', d.kpis.rev.toFixed(2)],['Order', d.kpis.orders],['Purata/Order (RM)', d.kpis.aov.toFixed(2)],['Unit Terjual', d.kpis.units],['Customer Baru', d.kpis.newC],['Kadar Ulang (%)', d.kpis.repeatRate]]); }
+ if(chk('anExpTrend')) { any = true; sec('TREND JUALAN (semasa vs sebelum)', ['Tarikh','Semasa (RM)','Tempoh Sebelum (RM)'], d.trend.labels.map((l,i)=>[l, (d.trend.cur[i]||0).toFixed(2), (d.trend.prev[i]||0).toFixed(2)])); }
+ if(chk('anExpProd')) { any = true; sec('TOP PRODUK', ['#','Produk','Unit','Hasil (RM)'], d.topProd.map((x,i)=>[i+1, x.name, x.units, x.rev.toFixed(2)])); }
+ if(chk('anExpBrand')) { any = true; sec('TOP BRAND', ['#','Brand','Unit','Hasil (RM)'], d.topBrand.map((x,i)=>[i+1, x.k, x.units, x.rev.toFixed(2)])); }
+ if(chk('anExpCat')) { any = true; sec('TOP KATEGORI', ['#','Kategori','Unit','Hasil (RM)'], d.topCat.map((x,i)=>[i+1, x.k, x.units, x.rev.toFixed(2)])); }
+ if(chk('anExpChannel')) { any = true; sec('PRESTASI CHANNEL', ['Channel','Order','Hasil (RM)','%'], d.channels.map(x=>[x.k, x.orders, x.rev.toFixed(2), pct(x.rev)])); }
+ if(chk('anExpPayment')) { any = true; sec('SALES BY PAYMENT METHOD', ['Kaedah','Order','Hasil (RM)','%'], d.payments.map(x=>[x.k, x.orders, x.rev.toFixed(2), pct(x.rev)])); }
+ if(chk('anExpStaff')) { any = true; sec('SALES BY STAFF', ['Staff','Order','Unit','Hasil (RM)','%'], d.staff.map(x=>[x.k, x.orders, x.units, x.rev.toFixed(2), pct(x.rev)])); }
+ if(chk('anExpCust')) { any = true; sec('TOP CUSTOMER', ['#','Customer','Order','Hasil (RM)'], d.topCust.map((x,i)=>[i+1, x.name, x.orders, x.rev.toFixed(2)])); }
+ if(chk('anExpHour')) { any = true; sec('JAM PALING SIBUK', ['Jam','Hasil (RM)'], d.hours.map((v,i)=>[i+':00', (v||0).toFixed(2)])); }
+ if(chk('anExpDow')) { any = true; sec('HARI PALING SIBUK', ['Hari','Hasil (RM)'], d.dows.map(x=>[x.day, (x.rev||0).toFixed(2)])); }
+ if(!any) { if(typeof showToast === 'function') showToast('Pilih sekurang-kurangnya satu bahagian.', 'warn'); return; }
+ const blob = new Blob(['﻿' + out.join('\n')], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url; a.download = 'analytics-10camp-' + new Date().toISOString().slice(0,10) + '.csv';
+ document.body.appendChild(a); a.click(); document.body.removeChild(a);
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+ const m = document.getElementById('anExportModal'); if(m) m.style.display = 'none';
+ if(typeof showToast === 'function') showToast('Analytics di-export ke CSV.', 'success');
 };
 
 window.renderProductSales = function() {

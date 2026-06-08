@@ -4754,7 +4754,10 @@
  <span class="an-pill" data-an="ytd" onclick="window.__anSetRange('ytd', this)">YTD</span>
  <span class="an-pill" data-an="custom" onclick="window.__anSetRange('custom', this)">Custom</span>
  </div>
+ <div style="display:flex; align-items:center; gap:12px;">
  <div id="anRangeLabel" style="font-size:11.5px; color:var(--text-muted);"></div>
+ <button onclick="window.__anExportOpen && window.__anExportOpen()" class="sy-btn secondary" style="font-size:12px;" title="Pilih data nak export ke CSV"><i data-lucide="download" style="width:13px;height:13px;"></i> Export</button>
+ </div>
  </div>
  <div id="anCustomRow" style="display:none; gap:6px; align-items:center; margin-bottom:14px;">
  <input type="date" id="anFrom" onchange="window.renderAnalytics && window.renderAnalytics()" style="font-size:12px; padding:5px 8px; border:1px solid var(--border-color); border-radius:6px; margin:0;">
@@ -4802,6 +4805,18 @@
  </div>
  </div>
 
+ <!-- p1_500 — Sales by Payment Method / Staff -->
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;" class="an-grid2">
+ <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:0; overflow:hidden;">
+ <div style="font-weight:700; font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border-color); background:#FAFAFA;"><i data-lucide="credit-card" style="width:14px;height:14px;vertical-align:-2px;"></i> Sales by Payment Method</div>
+ <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">Kaedah</th><th style="padding:8px 12px; text-align:right;">Order</th><th style="padding:8px 12px; text-align:right;">Hasil</th><th style="padding:8px 12px; text-align:right;">%</th></tr></thead><tbody id="anPaymentBody"></tbody></table></div>
+ </div>
+ <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:0; overflow:hidden;">
+ <div style="font-weight:700; font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border-color); background:#FAFAFA;"><i data-lucide="users" style="width:14px;height:14px;vertical-align:-2px;"></i> Sales by Staff</div>
+ <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">Staff</th><th style="padding:8px 12px; text-align:right;">Order</th><th style="padding:8px 12px; text-align:right;">Unit</th><th style="padding:8px 12px; text-align:right;">Hasil</th><th style="padding:8px 12px; text-align:right;">%</th></tr></thead><tbody id="anStaffBody"></tbody></table></div>
+ </div>
+ </div>
+
  <!-- Customer + time -->
  <div style="display:grid; grid-template-columns:1fr 1.3fr; gap:16px; margin-bottom:16px;" class="an-grid2">
  <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
@@ -4823,6 +4838,38 @@
  <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
  <div style="font-weight:700; font-size:13px; margin-bottom:8px;">Hari Paling Sibuk</div>
  <div style="height:230px;"><canvas id="anDowChart"></canvas></div>
+ </div>
+ </div>
+
+ <!-- p1_500 — Export selection modal: pilih bahagian data nak export -->
+ <div id="anExportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:5000; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) this.style.display='none';">
+ <div style="background:#fff; border-radius:14px; max-width:460px; width:100%; max-height:90vh; overflow-y:auto; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,0.3); text-align:left;" onclick="event.stopPropagation();">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+ <h3 style="margin:0; font-size:18px; font-weight:800;"><i data-lucide="download" style="width:18px;height:18px;vertical-align:-3px;"></i> Export Analytics</h3>
+ <button onclick="document.getElementById('anExportModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+ </div>
+ <p style="font-size:12px; color:#6B7280; margin:0 0 12px;">Pilih bahagian data nak export ke CSV. Tempoh: <span id="anExpPeriod" style="font-weight:700; color:#374151;"></span></p>
+ <div style="display:flex; gap:8px; margin-bottom:12px;">
+ <button onclick="window.__anExportToggleAll(true)" style="font-size:11px; font-weight:700; background:#F3F4F6; border:1px solid #E5E7EB; color:#374151; padding:5px 12px; border-radius:6px; cursor:pointer;">Pilih semua</button>
+ <button onclick="window.__anExportToggleAll(false)" style="font-size:11px; font-weight:700; background:#F3F4F6; border:1px solid #E5E7EB; color:#374151; padding:5px 12px; border-radius:6px; cursor:pointer;">Buang semua</button>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; font-size:12.5px;">
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpKpi" checked style="width:15px;height:15px;"> KPI Ringkasan</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpTrend" checked style="width:15px;height:15px;"> Trend Jualan (harian)</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpProd" checked style="width:15px;height:15px;"> Top Produk</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpBrand" checked style="width:15px;height:15px;"> Top Brand</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpCat" checked style="width:15px;height:15px;"> Top Kategori</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpChannel" checked style="width:15px;height:15px;"> Prestasi Channel</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpPayment" checked style="width:15px;height:15px;"> Sales by Payment Method</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpStaff" checked style="width:15px;height:15px;"> Sales by Staff</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpCust" checked style="width:15px;height:15px;"> Top Customer</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpHour" checked style="width:15px;height:15px;"> Jam Paling Sibuk</label>
+ <label style="display:flex; align-items:center; gap:7px; cursor:pointer;"><input type="checkbox" id="anExpDow" checked style="width:15px;height:15px;"> Hari Paling Sibuk</label>
+ </div>
+ <div style="display:flex; gap:10px;">
+ <button onclick="document.getElementById('anExportModal').style.display='none'" class="btn btn--secondary" style="flex:1;">Batal</button>
+ <button onclick="window.__anExportRun()" class="btn btn--primary" style="flex:2;"><i data-lucide="download" style="width:13px;height:13px;"></i> Export CSV</button>
+ </div>
  </div>
  </div>
  </div>
@@ -7815,6 +7862,7 @@
  { id:'p1_71', label:'Email + password login (Supabase Auth) bersama PIN. Sebelum ni POS PIN-only (p1_22). Sekarang login overlay ada 2 tab: PIN (existing flow tak berubah) + Email (baharu). Flow Email: submitEmailLogin → db.auth.signInWithPassword({email, password}) → padan authUsers ikut email (case-insensitive) → loginAs(user). Hanya staff yang ada dalam authUsers boleh login (kalau email Supabase Auth tak padan dengan mana-mana staff, signOut + tolak). handleLogout sekarang panggil db.auth.signOut juga supaya session bersih. Entry authUsers "brozaidtodak" ditukar: name → "Zaid", email → zaid@todak.com (pin_hash kekal — PIN 1999 masih jalan untuk transisi). Display text "Zaid (brozaidtodak)" dikemaskini. Setup awal: Zaid kena cipta Supabase Auth user (zaid@todak.com + password baharu) sendiri kat Supabase dashboard — password tak pernah lalu code/chat. Staff lain akan migrate sesi-sesi seterusnya', d:'done' },
  { id:'p1_73', label:'Investor Dashboard dibuang dari POS — pindah ke 10cc Command Centre (owner-only back-office). Skop: (1) Sidebar item "Investor Dashboard" + mode tab Investor dipadam dari UI. (2) investorSection HTML (~120 lines: cap table strip, health score ring, growth charts, unit economics, risk radar) dibuang dari index.html. (3) authUsers entry brolantodak (INV001) dipadam — persona investor tak wujud lagi dalam POS authUsers (10 → 9 staff, kemudian dibawa balik ke 8 active staff sebab Tester pun masih ada). (4) ROLE_CAPS.investor dipadam — role investor tak boleh dipilih lagi dalam Add/Edit Staff dropdown. (5) computeInvestorMetrics + renderInvestor functions (~325 lines) dibuang dari app.js. (6) __seedInvestorAccess() boot migration dipadam. (7) MODE_LIST, getModesAccess, pickDefaultMode, setMode, modeLabels semua bersihkan ref investor. (8) PERM_MODES + PERM_LABELS dalam Permissions Centre tak masuk investor lagi. (9) HR_JOB_SCOPE_BY_ROLE buang entry investor; Bos dikenali via isBoss helper kekal. (10) mode_investor translation dipadam. (11) Welcome screen taglines + iconByRole — investor entries dipadam, Bos guna jawatan check. (12) homeTab override untuk defaultMode==="investor" dibuang. (13) sm-mode-row "Investor" checkbox dalam Staff Mgmt modal dipadam. Class .investor-only kekal dalam markup tapi tidak digunakan — harmless legacy. Tester (TST001) + roles sales/inventory/mgmt unaffected. Investor stuff (cap table, ARR, runway) akan dibina semula dalam 10cc.10camp.com sebagai owner-only back-office', d:'done' },
  { id:'p1_263', label:'Marketplace integration indicator tiap product (Zaid: "setiap product wajib ada indicator yang menandakan dia dah integrated dengan tiktok dan shopee"). Schema check: products_master takde dedicated columns shopee/tiktok yet — semua sync data live dalam metadata JSONB (pattern same as easystore_* keys). Visual indicator dalam renderProductDatabase pd-card grid: position absolute top:6px left:6px (kiri atas, sebelah status badge Live/Draft kanan atas). Dua chips small: SP (brand Shopee orange #EE4D2D fill bila integrated, grey #E5E7EB outline bila tak) dan TT (TikTok black bila integrated, grey bila tak). Lucide check icon bila syncd, X icon bila tak. Hover title explain status. Read data: metadata.shopee_item_id atau metadata.shopee_synced_at → shopeeIntegrated; same logic untuk TikTok. PDP modal extend dengan card baru "Marketplace Integration" antara Organization dan SEO: 2 grid 1fr 1fr — Shopee Item ID + TikTok Product ID inputs dengan brand colored chips beside labels (SP orange, TT black). Bawah ada syncStatus line yang papar "Shopee last sync: <timestamp> · TikTok last sync: <timestamp>" atau "Belum pernah sync auto" kalau kosong. openPdpModal populate values dari metadata. savePdpData merge ke metadata.shopee_item_id + tiktok_product_id (preserved alongside other metadata). Zaid boleh edit manually for now; future sync flow can auto-fill + set _synced_at timestamps. app.js v359→v360.', d:'done' },
+ { id:'p1_500', label:'Analytics: Sales by Payment Method + Sales by Staff + export selection (Zaid: "tambah sales by payment method dan sales by staff; make sure semua component boleh export; wujudkan selection method on what data to export"). (1) 2 jadual baru: Sales by Payment Method (#anPaymentBody ikut payment_method) + Sales by Staff (#anStaffBody ikut staff_name||cashier_name, fallback "Tak dinyatakan"); renderAnalytics kira payAgg+staffAgg (mirror channel). (2) renderAnalytics simpan window.__anData (semua seksyen). (3) Butang Export → modal anExportModal 11 checkbox (default semua) + Pilih/Buang semua; __anExportRun bina SATU CSV berbilang seksyen ikut yang ditick (BOM utf-8). Tukar index.html + app.js (v553->v554) + sw pos-store-v116->v117.', d:'done' },
  { id:'p1_499', label:'Stock Take: butang "Submit ke Review" + "Forward ke Bos" buang gate isMgmt (Zaid: "Tarmizi/Kael tak ada button submit to review"). Dulu kedua butang digate && isMgmt → staf bukan-mgmt (Tarmizi/Kael/Zack) tak nampak, tak boleh advance workflow. Selaras model akses p1_340 (semua staf nampak sama): buang isMgmt — Submit ke Review (active→review) nampak sesiapa, Forward ke Bos (review→forwarded) nampak sesiapa. Approve kekal isBoss. Tukar app.js (v552->v553) + sw pos-store-v115->v116.', d:'done' },
  { id:'p1_498', label:'Stock Take subtitle workflow dikemaskini (Zaid screenshot: "perbetulkan — Zack create → Fahmi kira → Tarmizi/Kael review → Zack review → Bos approve"). rp-subtitle tukar dari "Zack create → Kael+Fahmi kira → Zack review → Bos approve" ke flow 5-langkah baru (Tarmizi/Kael = peringkat review/semakan-2, berasingan dari Fahmi yang kira). Comment p1_167-169 pun diselaras. Tukar index.html + sw pos-store-v114->v115.', d:'done' },
  { id:'p1_497', label:'Stock Take: Tepat tetap bagi OPTION semakan-2 (Zaid: "kekalkan style macam ni, tapi kalau Tarmizi/Kael nak check juga, bagi option untuk dia kira"). Popup item Tepat: kekal kad hijau "Tak perlu semakan ke-2" + tambah butang dashed indigo "Nak double-check juga? Buat Semakan Ke-2 (optional)" → toggle buka/tutup blok semakan-2 (scs2ndOpt-<id>) yg ada input + save (__scsPopupSave2). Kalau Tepat dah pernah disemak-2 → blok auto-expand + tunjuk hasil. Lajur Check 2 kekal kosong sampai disemak. Tukar app.js (v551->v552) + sw pos-store-v113->v114.', d:'done' },
@@ -12763,7 +12811,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=553"></script>
+ <script src="app.js?v=554"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

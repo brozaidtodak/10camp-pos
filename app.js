@@ -24002,6 +24002,35 @@ window.__aoExportCsv = function(selectedOnly){
  if(typeof showToast === 'function') showToast(`${rows.length} order di-export ke CSV.`, 'success');
 };
 
+// p1_509 — export HANYA order yang ada resit / bukti bayar (gambar/PDF). Sertakan link resit.
+// (Zaid/Aliff: "export data2 yang ada resit"). Ikut filter All Orders semasa (channel/status/tempoh/carian).
+window.__aoExportReceipts = function(){
+ const all = window.__aoGetFiltered();
+ const rows = (all || []).filter(s => !!s.payment_proof_url);
+ if(!rows.length) { if(typeof showToast === 'function') showToast('Tiada order BERESIT dalam tapisan semasa.', 'info'); return; }
+ const cols = ['Order Ref','POS ID','Tarikh','Channel','Status','Pelanggan','Phone','Email','Items','Total (RM)','Bayar','Resit (URL)','Resit Upload Tarikh','Resit Upload Oleh'];
+ const esc = (v) => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+ const lines = [cols.join(',')];
+ rows.forEach(s => {
+ const md = s.metadata || {};
+ const ref = md.shopee_order_sn || md.tiktok_order_id || md.online_order_ref || ('#' + s.id);
+ const dt = s.created_at ? new Date(s.created_at).toLocaleString('en-MY') : '';
+ const items = Array.isArray(s.items) ? s.items.reduce((n, it) => n + window.__aoItemQty(it), 0) : 0;
+ const total = (parseFloat(s.total_amount || s.total || 0) || 0).toFixed(2);
+ const upAt = s.payment_proof_uploaded_at ? new Date(s.payment_proof_uploaded_at).toLocaleString('en-MY') : '';
+ lines.push([ref, s.id, dt, s.channel || '', window.__aoStatusMeta(s.status).label, s.customer_name || '', s.customer_phone || '', s.customer_email || md.buyer_email || '', items, total, s.payment_method || '', s.payment_proof_url || '', upAt, s.payment_proof_uploaded_by || ''].map(esc).join(','));
+ });
+ const csv = '﻿' + lines.join('\n');
+ const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ const stamp = new Date().toISOString().slice(0, 10);
+ a.href = url; a.download = `orders_beresit_${stamp}.csv`;
+ document.body.appendChild(a); a.click(); document.body.removeChild(a);
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+ if(typeof showToast === 'function') showToast(`${rows.length} order BERESIT di-export ke CSV.`, 'success');
+};
+
 // p1_445 — klik header kolum untuk susun (toggle naik/turun)
 window.__aoSortBy = function(col) {
  const sel = document.getElementById('aoSort'); if(!sel) return;
@@ -28877,6 +28906,7 @@ window.I18N = {
  ao_print_pick: { bm: 'Cetak Senarai Pick', en: 'Print Pick List' },
  ao_refresh: { bm: 'Refresh', en: 'Refresh' },
  ao_export: { bm: 'Export CSV', en: 'Export CSV' },
+ ao_export_receipts: { bm: 'Export Resit', en: 'Export Receipts' },
  ao_hide_test: { bm: 'Hide Test', en: 'Hide Test' },
  ao_kpi_orders: { bm: 'Jumlah Order', en: 'Total Orders' },
  ao_kpi_netsales: { bm: 'Jualan Bersih', en: 'Net Sales' },

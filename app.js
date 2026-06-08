@@ -3310,6 +3310,12 @@ window.__rpRenderInventorySimpleTemplate = function(body, u, range) {
 // dalam-memori (inventoryBatches + salesHistory + masterProducts).
 window.__ihState = window.__ihState || { dir:'all', q:'', period:'all', from:'', to:'', page:1, perPage:100 };
 window.__ihRows = window.__ihRows || [];
+window.__ihTxns = window.__ihTxns || [];   // p1_479 — pergerakan manual (ambilan/display/rosak/restock)
+window.__ihMoveDir = window.__ihMoveDir || 'OUT';
+window.__IH_REASONS = {
+ OUT: ['Ambilan Staf','Jadikan Display','Rosak / Damaged','Hilang','Sampel / Hadiah','Guna Dalaman','Pembetulan Kira (kurang)','Lain-lain'],
+ IN: ['Restock Manual','Pulangan Pelanggan','Jumpa Semula','Pembetulan Kira (tambah)','Lain-lain']
+};
 
 window.__ihBuildRows = function() {
  const rows = [];
@@ -3340,6 +3346,25 @@ window.__ihBuildRows = function() {
    rows.push({ sku, product: it.name || nameOf(sku, ''), dir: 'OUTPUT', units, price, total: units * price, date: s.created_at || null, note: 'Jualan #' + s.id + (s.channel ? ' · ' + s.channel : '') + (s.customer_name ? ' · ' + s.customer_name : '') });
   });
  });
+ // PERGERAKAN MANUAL (p1_479) — ambilan/display/rosak/restock dari inventory_transactions.
+ // Exclude OUTBOUND_SALE (dah dikira via sales_history — elak double count).
+ (window.__ihTxns || []).forEach(t => {
+  if(!t || !t.sku) return;
+  if((t.transaction_type || '').toUpperCase() === 'OUTBOUND_SALE') return;
+  const qc = Number(t.qty_change) || 0;
+  if(qc === 0) return;
+  const dir = qc > 0 ? 'INPUT' : 'OUTPUT';
+  const units = Math.abs(qc);
+  const pc = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => x.sku === t.sku);
+  const cost = pc ? (Number(pc.cost_price) || 0) : 0;
+  const noteTxt = (t.reason || t.transaction_type || 'Pergerakan') + (t.note ? ' — ' + t.note : '') + (t.staff_name ? ' · ' + t.staff_name : '');
+  rows.push({ sku: t.sku, product: nameOf(t.sku, ''), dir, units, price: cost, total: units * cost, date: t.created_at || null, note: noteTxt });
+ });
+ // p1_479 — Nombor pergerakan: paling AWAL (lama) = #1, menaik ikut masa.
+ // Nombor stabil ikut kronologi penuh (bukan ikut filter/page).
+ rows.slice().sort((a, b) => (a.date ? new Date(a.date).getTime() : 0) - (b.date ? new Date(b.date).getTime() : 0))
+   .forEach((r, i) => { r.seq = i + 1; });
+ // Papar: terbaru dulu (seq tetap melekat pada setiap baris)
  rows.sort((a, b) => (b.date ? new Date(b.date).getTime() : 0) - (a.date ? new Date(a.date).getTime() : 0));
  return rows;
 };
@@ -3375,9 +3400,82 @@ window.__ihFiltered = function() {
 window.renderInventoryHistory = async function() {
  // Refresh inventory_batches penuh (boleh > 1000 bila bisnes membesar — boot guna .limit capped 1000)
  try { if(typeof window.__fetchAllRows === 'function') { const b = await window.__fetchAllRows('inventory_batches','inbound_date',false); if(Array.isArray(b) && b.length) inventoryBatches = b; } } catch(e){}
+ // Pergerakan manual (p1_479)
+ try { if(typeof window.__fetchAllRows === 'function') { window.__ihTxns = await window.__fetchAllRows('inventory_transactions','created_at',false) || []; } } catch(e){ window.__ihTxns = window.__ihTxns || []; }
  window.__ihRows = window.__ihBuildRows();
  window.__ihState.page = 1;
  window.__ihApply();
+};
+
+// ===== p1_479 — Rekod Pergerakan Stok manual (auto-tolak/tambah stok sebenar) =====
+window.__ihMoveSetDir = function(dir) {
+ window.__ihMoveDir = dir;
+ const sel = document.getElementById('ihMoveReason');
+ if(sel) sel.innerHTML = (window.__IH_REASONS[dir] || []).map(r => `<option value="${r.replace(/"/g,'&quot;')}">${r}</option>`).join('');
+ const base = 'flex:1; padding:9px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;';
+ const active = base + ' background:var(--primary); color:#fff; border:1px solid var(--primary);';
+ const idle = base + ' background:#fff; color:#374151; border:1px solid #E5E7EB;';
+ const outBtn = document.getElementById('ihMoveDirOut'), inBtn = document.getElementById('ihMoveDirIn');
+ if(outBtn) outBtn.style.cssText = (dir === 'OUT') ? active : idle;
+ if(inBtn) inBtn.style.cssText = (dir === 'IN') ? active : idle;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+window.__ihMoveLookup = function() {
+ const sku = ((document.getElementById('ihMoveSku') || {}).value || '').trim();
+ const info = document.getElementById('ihMoveInfo');
+ if(!info) return;
+ if(!sku) { info.innerHTML = ''; return; }
+ const p = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => (x.sku || '').toLowerCase() === sku.toLowerCase());
+ if(!p) { info.innerHTML = '<span style="color:#DC2626;">SKU tak jumpa dalam master.</span>'; return; }
+ const stock = window.__scsLiveQty ? window.__scsLiveQty(p.sku) : (typeof inventoryBatches !== 'undefined' ? inventoryBatches : []).filter(b => b.sku === p.sku).reduce((s, b) => s + (b.qty_remaining || 0), 0);
+ const esc = (typeof hesc === 'function') ? hesc : (x) => String(x == null ? '' : x);
+ info.innerHTML = '<strong>' + esc(p.name || '') + '</strong><br><span style="color:#6B7280;">Stok sistem sekarang: <strong>' + stock + '</strong> ' + esc(p.unit || 'pcs') + '</span>';
+};
+
+window.__ihMoveOpen = function() {
+ const m = document.getElementById('ihMoveModal'); if(!m) return;
+ const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
+ set('ihMoveSku', ''); set('ihMoveQty', '1'); set('ihMoveNote', '');
+ const info = document.getElementById('ihMoveInfo'); if(info) info.innerHTML = '';
+ window.__ihMoveSetDir('OUT');
+ m.style.display = 'flex';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+window.__ihRecordMovement = async function() {
+ const skuInput = ((document.getElementById('ihMoveSku') || {}).value || '').trim();
+ const p = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => (x.sku || '').toLowerCase() === skuInput.toLowerCase());
+ if(!p) { if(typeof showToast === 'function') showToast('SKU tak sah / tak jumpa dalam master.', 'warn'); return; }
+ const sku = p.sku;
+ const dir = window.__ihMoveDir || 'OUT';
+ const qty = parseInt((document.getElementById('ihMoveQty') || {}).value, 10) || 0;
+ if(qty <= 0) { if(typeof showToast === 'function') showToast('Kuantiti mesti lebih 0.', 'warn'); return; }
+ const reason = (document.getElementById('ihMoveReason') || {}).value || 'Lain-lain';
+ const note = ((document.getElementById('ihMoveNote') || {}).value || '').trim();
+ const live = window.__scsLiveQty ? window.__scsLiveQty(sku) : 0;
+ if(dir === 'OUT' && qty > live && !confirm('Stok sistem cuma ' + live + ' tapi nak keluarkan ' + qty + '.\nTeruskan? (stok akan jadi 0)')) return;
+ const u = window.currentUser || {};
+ const signed = dir === 'OUT' ? -qty : qty;
+ const btn = document.getElementById('ihMoveSaveBtn');
+ const orig = btn ? btn.innerHTML : '';
+ if(btn) { btn.disabled = true; btn.innerHTML = 'Menyimpan…'; }
+ try {
+  // 1. Auto-adjust stok sebenar (FIFO untuk keluar, batch baru untuk masuk)
+  if(typeof window.__applyStockDelta === 'function') {
+   await window.__applyStockDelta(sku, signed, 'Pergerakan: ' + reason + (note ? ' — ' + note : '') + ' oleh ' + (u.name || 'System'));
+  }
+  // 2. Log ke ledger inventory_transactions
+  try {
+   await db.from('inventory_transactions').insert([{ sku, transaction_type: dir === 'OUT' ? 'ADJUST_OUT' : 'ADJUST_IN', qty_change: signed, reason, staff_name: u.name || 'System', note: note || null, created_at: new Date().toISOString() }]);
+  } catch(e) { console.warn('ledger insert gagal:', e.message); }
+  // 3. Reload stok + render semula
+  try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){}
+  if(typeof showToast === 'function') showToast((dir === 'OUT' ? 'Keluar' : 'Masuk') + ' ' + qty + ' unit ' + sku + ' direkod (' + reason + ').', 'success');
+  const m = document.getElementById('ihMoveModal'); if(m) m.style.display = 'none';
+  if(typeof window.renderInventoryHistory === 'function') window.renderInventoryHistory();
+ } catch(e) { if(typeof showToast === 'function') showToast('Gagal rekod pergerakan: ' + e.message, 'error'); }
+ if(btn) { btn.disabled = false; btn.innerHTML = orig; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} }
 };
 
 window.__ihSetDir = function(dir, btn) {
@@ -3428,6 +3526,7 @@ window.__ihApply = function() {
    ? '<span style="display:inline-flex; align-items:center; gap:4px; background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:800;"><i data-lucide="arrow-down-to-line" style="width:11px;height:11px;"></i> INPUT</span>'
    : '<span style="display:inline-flex; align-items:center; gap:4px; background:#FEE2E2; color:#991B1B; padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:800;"><i data-lucide="arrow-up-from-line" style="width:11px;height:11px;"></i> OUTPUT</span>';
   return `<tr style="border-bottom:1px solid #F3F4F6;">
+   <td style="padding:7px 9px; text-align:center; font-weight:800; font-size:12px; color:#9CA3AF;">${r.seq || ''}</td>
    <td style="padding:7px 9px; font-family:'SF Mono',Menlo,monospace; font-weight:700; font-size:11.5px;">${esc(r.sku)}</td>
    <td style="padding:7px 9px; font-size:11.5px; max-width:260px;">${esc((r.product||'').slice(0,60))}</td>
    <td style="padding:7px 9px; text-align:center;">${dirBadge}</td>
@@ -3441,7 +3540,7 @@ window.__ihApply = function() {
  wrap.innerHTML = `<div style="overflow-x:auto; border:1px solid #F0F0F0; border-radius:10px;">
   <table style="width:100%; border-collapse:collapse; font-size:12px;">
    <thead><tr style="background:#FAFAFA; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">
-    <th style="text-align:left; padding:8px 9px;">Ref</th><th style="text-align:left; padding:8px 9px;">Product</th><th style="text-align:center; padding:8px 9px;">Input / Output</th><th style="text-align:right; padding:8px 9px;">Units</th><th style="text-align:right; padding:8px 9px;">Cost/Price</th><th style="text-align:right; padding:8px 9px;">Total</th><th style="text-align:left; padding:8px 9px;">Date</th><th style="text-align:left; padding:8px 9px;">Nota</th>
+    <th style="text-align:center; padding:8px 9px;">No.</th><th style="text-align:left; padding:8px 9px;">Ref</th><th style="text-align:left; padding:8px 9px;">Product</th><th style="text-align:center; padding:8px 9px;">Input / Output</th><th style="text-align:right; padding:8px 9px;">Units</th><th style="text-align:right; padding:8px 9px;">Cost/Price</th><th style="text-align:right; padding:8px 9px;">Total</th><th style="text-align:left; padding:8px 9px;">Date</th><th style="text-align:left; padding:8px 9px;">Nota</th>
    </tr></thead><tbody>${rowsHtml}</tbody>
   </table></div>`;
  if(pager) {
@@ -3455,10 +3554,10 @@ window.__ihExportCsv = function() {
  const all = window.__ihFiltered();
  if(!all.length) { if(typeof showToast === 'function') showToast('Tiada rekod untuk export.', 'warn'); return; }
  const q = (v) => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
- const lines = [['Ref','Product','Input / Output','Units','Cost/Price','Total','Date','Nota'].join(',')];
+ const lines = [['No.','Ref','Product','Input / Output','Units','Cost/Price','Total','Date','Nota'].join(',')];
  all.forEach(r => {
   const dt = r.date ? new Date(r.date).toLocaleDateString('en-GB') : '';
-  lines.push([q(r.sku), q(r.product), q(r.dir), r.units, (r.price||0).toFixed(2), (r.total||0).toFixed(2), q(dt), q(r.note)].join(','));
+  lines.push([r.seq || '', q(r.sku), q(r.product), q(r.dir), r.units, (r.price||0).toFixed(2), (r.total||0).toFixed(2), q(dt), q(r.note)].join(','));
  });
  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
  const url = URL.createObjectURL(blob);

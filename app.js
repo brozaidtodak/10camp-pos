@@ -8266,10 +8266,6 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
     <span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span>
    </div>
    <button onclick="window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" style="width:100%; margin-top:14px; background:var(--primary); border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="check" style="width:15px;height:15px;"></i> Simpan Kiraan</button>
-   <div style="display:flex; gap:8px; margin-top:9px;">
-    <button onclick="window.__scsMarkNotFound(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg}).finally(()=>window.__scsClosePopup())" style="flex:1; background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:9px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="search-x" style="width:11px;height:11px; vertical-align:-1px;"></i> Tak Jumpa</button>
-    <button onclick="window.__scsMarkDamaged(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg}).finally(()=>window.__scsClosePopup())" style="flex:1; background:#FED7AA; border:1px solid #FB923C; color:#9A3412; padding:9px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="alert-triangle" style="width:11px;height:11px; vertical-align:-1px;"></i> Rosak</button>
-   </div>
    <button onclick="window.__scsClosePopup()" style="width:100%; margin-top:9px; background:none; border:none; color:#9CA3AF; padding:6px; cursor:pointer; font-size:11.5px; font-weight:600;">Tutup</button>
   </div>
  </div>`;

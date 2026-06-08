@@ -119,6 +119,7 @@ async function spPullReturns(fromSec, toSec, onlyDone) {
             for (const ret of list) {
                 if (raw.length < 2) raw.push(ret);
                 if (onlyDone && !isDoneReturn('shopee', ret.status)) continue; // skip yang belum selesai / batal
+                const spExtra = ret.refund_amount ? ('refund RM' + ret.refund_amount) : '';
                 const items = ret.item || ret.item_list || [];
                 if (items.length) {
                     items.forEach((it, it_i) => {
@@ -126,11 +127,11 @@ async function spPullReturns(fromSec, toSec, onlyDone) {
                         rows.push(mkRow('shopee', 'Shopee', ret.return_sn, sku, it.name || it.item_name,
                             Number(it.amount || it.quantity_purchased || 1) || 1,
                             ret.text_reason || ret.reason || 'return',
-                            ret.order_sn, ret.status, ret.create_time, it.item_id || it_i));
+                            ret.order_sn, ret.status, ret.create_time, it.item_id || it_i, spExtra));
                     });
                 } else {
                     rows.push(mkRow('shopee', 'Shopee', ret.return_sn, '', '(no item detail)', 1,
-                        ret.text_reason || ret.reason || 'return', ret.order_sn, ret.status, ret.create_time, 0));
+                        ret.text_reason || ret.reason || 'return', ret.order_sn, ret.status, ret.create_time, 0, spExtra));
                 }
             }
             if (!(r.response && r.response.more)) break;
@@ -214,16 +215,20 @@ async function ttPullReturns(fromSec, onlyDone) {
             const status = ret.return_status || ret.status || '';
             if (onlyDone && !isDoneReturn('tiktok', status)) continue; // skip belum selesai / batal
             const cAt = ret.create_time || ret.created_time || 0;
+            // return_type: REFUND (duit pulang tanpa barang) vs RETURN_AND_REFUND (barang + duit)
+            const rtype = ret.return_type || '';
+            const rtotal = ret.refund_amount && (ret.refund_amount.refund_total || ret.refund_amount.total);
+            const extra = `${rtype || 'RETURN'}${rtotal ? ' · refund RM' + rtotal : ''}`;
             const lis = ret.return_line_items || ret.line_items || [];
             if (lis.length) {
                 lis.forEach((li, li_i) => {
                     const sku = String(li.seller_sku || li.sku || '').toUpperCase().trim();
                     const lineKey = li.return_line_item_id || li.order_line_item_id || li_i;
                     rows.push(mkRow('tiktok', 'TikTok Shop', rid, sku, li.product_name || li.sku_name,
-                        Number(li.quantity || 1) || 1, reason, orderId, status, cAt, lineKey));
+                        Number(li.quantity || 1) || 1, reason, orderId, status, cAt, lineKey, extra));
                 });
             } else {
-                rows.push(mkRow('tiktok', 'TikTok Shop', rid, '', '(no item detail)', 1, reason, orderId, status, cAt, 0));
+                rows.push(mkRow('tiktok', 'TikTok Shop', rid, '', '(no item detail)', 1, reason, orderId, status, cAt, 0, extra));
             }
         }
         pageToken = (res.data && res.data.next_page_token) || '';
@@ -232,14 +237,14 @@ async function ttPullReturns(fromSec, onlyDone) {
 }
 
 // ---- baris returns_log dikongsi (cost_impact + supplier diisi kemudian) ----
-function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, status, createTimeSec, lineKey) {
+function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, status, createTimeSec, lineKey, extraNote) {
     return {
         sku: sku || '',
         product_name: (name || '').slice(0, 200),
         qty: Number(qty) || 1,
         type: 'return',
         reason: String(reason || 'return').slice(0, 120),
-        notes: `Auto ${channel} · order ${orderRef || '-'} · status ${status || '-'}`,
+        notes: `Auto ${channel} · order ${orderRef || '-'} · status ${status || '-'}${extraNote ? ' · ' + extraNote : ''}`,
         channel,
         supplier: '',
         cost_impact: 0,

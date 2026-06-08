@@ -20362,9 +20362,12 @@ window.pdpDeleteProduct = async function() {
 window.renderPdpSiblingVariants = function(prod) {
  const wrap = document.getElementById('pdpSiblingVariants');
  if(!wrap) return;
- if(!prod || !prod.parent_sku) { wrap.innerHTML = ''; window.__pdpVariantSkus = []; return; }
- const sibs = (masterProducts || []).filter(x => x.parent_sku === prod.parent_sku);
- if(sibs.length < 2) { wrap.innerHTML = ''; window.__pdpVariantSkus = []; return; }
+ if(!prod || !prod.sku) { wrap.innerHTML = ''; window.__pdpVariantSkus = []; return; }
+ // p1_506 — single product pun dapat jadual view yang sama macam variant product (1 baris).
+ // Harga/Cost/Shopee/TikTok kini diset di sini untuk SEMUA produk (blok harga form dah disorok).
+ let sibs = prod.parent_sku ? (masterProducts || []).filter(x => x.parent_sku === prod.parent_sku) : [];
+ const isSingle = sibs.length < 2;
+ if(isSingle) sibs = [prod];
  const stockBySku = {};
  for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) stockBySku[b.sku] = (stockBySku[b.sku] || 0) + b.qty_remaining;
  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -20413,8 +20416,8 @@ window.renderPdpSiblingVariants = function(prod) {
  wrap.innerHTML = `
  <div style="border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
  <div style="background:#F9FAFB; padding:8px 10px; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between; align-items:center; gap:8px;">
- <span>${sibs.length} Variants · Jumlah stok: ${totalStock}</span>
- <button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Simpan Variants</button>
+ <span>${isSingle ? 'Produk · Stok: ' + totalStock : sibs.length + ' Variants · Jumlah stok: ' + totalStock}</span>
+ <button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku || prod.sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> ${isSingle ? 'Simpan' : 'Simpan Variants'}</button>
  </div>
  <div style="overflow-x:auto;">
  <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:1040px;">

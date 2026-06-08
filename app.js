@@ -107,6 +107,10 @@ window.__isRealSale = function(s) {
  return true;
 };
 
+// p1_486 — kadar mata loyalti: RM10 belanja = 1 mata (Zaid). Belum ada redeem (akan update kemudian).
+window.POINTS_RM_PER_POINT = 10;
+window.__pointsForSpend = function(rm) { return Math.floor((Number(rm) || 0) / (window.POINTS_RM_PER_POINT || 10)); };
+
 // Loading overlay: full-screen translucent block during long ops.
 window.showLoading = function(msg) {
  let el = document.getElementById('__globalLoadingOverlay');
@@ -12097,18 +12101,19 @@ window.__custSalesAgg = function(name, phone, email) {
  const digits = (p) => String(p || '').replace(/\D/g, '');
  const pd = digits(phone), em = (email || '').trim().toLowerCase(), nm = (name || '').trim().toLowerCase();
  const skip = !nm || ['walk-in', 'walk in', 'online customer', 'shopee buyer', 'tiktok buyer'].includes(nm);
+ // p1_486 — SATU kunci ikut keutamaan phone → NAMA → email (selari __crmRefreshTotals)
+ let mode = null;
+ if(pd) mode = 'phone'; else if(!skip) mode = 'name'; else if(em) mode = 'email';
+ if(!mode) return { spent: 0, orders: 0 };
  let spent = 0, orders = 0;
  (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
   if(s.is_test) return;
   if(typeof window.__isRealSale === 'function' && !window.__isRealSale(s)) return;
-  const sPd = digits(s.customer_phone);
-  const sEm = ((s.customer_email || (s.metadata && s.metadata.buyer_email) || '')).trim().toLowerCase();
-  const sNm = (s.customer_name || '').trim().toLowerCase();
-  let match = false;
-  if(pd && sPd && sPd === pd) match = true;
-  else if(em && sEm && sEm === em) match = true;
-  else if(!pd && !em && !skip && sNm === nm) match = true;
-  if(match) { spent += (Number(s.total_amount || s.total || 0) || 0); orders += 1; }
+  let m = false;
+  if(mode === 'phone') m = digits(s.customer_phone) === pd;
+  else if(mode === 'name') m = (s.customer_name || '').trim().toLowerCase() === nm;
+  else m = ((s.customer_email || (s.metadata && s.metadata.buyer_email) || '')).trim().toLowerCase() === em;
+  if(m) { spent += (Number(s.total_amount || s.total || 0) || 0); orders += 1; }
  });
  return { spent: Math.round(spent * 100) / 100, orders };
 };
@@ -12187,7 +12192,7 @@ window.processNewCheckout = async function() {
  // p1_484 — Auto-simpan pelanggan masa checkout (nama bukan Walk-In) supaya pelanggan
  // baru/lama auto masuk senarai pelanggan + simpan EMAIL sekali. Padan ikut phone →
  // email → nama (elak duplicate). Update senarai dalam-memori terus.
- const earnedPoints = Math.floor(totalVal);
+ const earnedPoints = window.__pointsForSpend(totalVal); // RM10 = 1 mata
  if(custNameText && custNameText !== 'Walk-In') {
  const custEmailText = ((document.getElementById("customerEmail") || {}).value || '').trim();
  const phoneNorm = (custPhoneText || '').replace(/[^0-9]/g, '');
@@ -12202,7 +12207,7 @@ window.processNewCheckout = async function() {
  // supaya pelanggan lama yang baru disimpan terus dapat kredit penuh (cth Aliff Irfan).
  const hist = (typeof window.__custSalesAgg === 'function') ? window.__custSalesAgg(custNameText, custPhoneText, custEmailText) : { spent: 0, orders: 0 };
  const totalSpent = Math.round((hist.spent + totalVal) * 100) / 100;
- const payload = { name: custNameText, points: Math.floor(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
+ const payload = { name: custNameText, points: window.__pointsForSpend(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
  if(custPhoneText) payload.phone = custPhoneText;
  if(custEmailText) payload.email = custEmailText;
  const { data: newCust } = await db.from('customers').insert([payload]).select().single();
@@ -23337,12 +23342,13 @@ window.__crmRefreshTotals = async function(){
  let agg = {spent:0, orders:0};
  const pd = digits(c.phone);
  const em = (c.email||'').trim().toLowerCase();
+ // p1_486 — keutamaan phone → NAMA → email (walk-in selalu bertanda nama; email sparse + sebahagian order takde email)
  if(pd && byPhone[pd]) agg = byPhone[pd];
- else if(em && byEmail[em]) agg = byEmail[em];
  else if(c.name && !skipName(c.name) && byName[c.name.trim().toLowerCase()]) agg = byName[c.name.trim().toLowerCase()];
+ else if(em && byEmail[em]) agg = byEmail[em];
  const newSpent = Math.round(agg.spent * 100) / 100;
  const newOrders = agg.orders;
- const newPoints = Math.floor(newSpent); // 1 point = RM1 belanja
+ const newPoints = window.__pointsForSpend(newSpent); // RM10 = 1 mata
  if(newSpent !== (Math.round((c.total_spent||0)*100)/100) || newOrders !== (c.total_orders||0) || newPoints !== (parseInt(c.points)||0)){
  updates.push({ id: c.id, total_spent: newSpent, total_orders: newOrders, points: newPoints, c });
  }

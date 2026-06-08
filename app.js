@@ -21224,6 +21224,24 @@ window.bulkConfirmFields = function(){
  if(typeof renderBulkOps === 'function') renderBulkOps();
 };
 
+// p1_487 — Refresh: muat semula produk + stok dari DB (kalau staff lain ubah), then re-render
+window.bulkRefresh = async function() {
+ const btn = document.getElementById('bulkRefreshBtn');
+ const orig = btn ? btn.innerHTML : '';
+ if(btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;"></i> Memuat…'; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} }
+ try {
+  if(typeof window.__fetchAllRows === 'function') {
+   const prods = await window.__fetchAllRows('products_master', 'sku', true);
+   if(Array.isArray(prods) && prods.length) masterProducts = prods;
+   const batches = await window.__fetchAllRows('inventory_batches', 'inbound_date', false);
+   if(Array.isArray(batches) && batches.length) inventoryBatches = batches;
+  }
+  if(typeof window.renderBulkOps === 'function') window.renderBulkOps();
+  if(typeof showToast === 'function') showToast('Senarai produk disegarkan dari pangkalan data.', 'success');
+ } catch(e) { if(typeof showToast === 'function') showToast('Refresh gagal: ' + e.message, 'error'); }
+ if(btn) { btn.disabled = false; btn.innerHTML = orig; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} }
+};
+
 window.renderBulkOps = function() {
  const tbody = document.getElementById('bulkOpsTbody');
  if(!tbody) return;

@@ -20107,7 +20107,7 @@ window.renderPdpSiblingVariants = function(prod) {
  const label = [v.variant_color, v.variant_size].filter(Boolean).join(' · ') || v.sku;
  const thumb = (v.images && v.images[0]) ? v.images[0] : '';
  rows += `<tr style="${isCur ? 'background:#FFF7ED;' : ''}border-bottom:1px solid #F3F4F6;">
- <td style="padding:6px 8px;">${thumb ? `<img src="${esc(thumb)}" onclick="window.openPdpModal('${escJs(v.sku)}')" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px;">no img</div>`}</td>
+ <td style="padding:6px 8px;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${thumb ? `<img src="${esc(thumb)}" onclick="window.openPdpModal('${escJs(v.sku)}')" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px;">no img</div>`}<input id="pv_${i}_img" type="text" value="${esc((Array.isArray(v.images)?v.images.filter(Boolean):[]).join(', '))}" onclick="event.stopPropagation();" placeholder="URL gambar" title="URL gambar variant ni. Boleh banyak, pisah dengan koma. Gambar pertama = cover/thumbnail." style="width:150px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:10px;"></div></td>
  <td style="padding:6px 8px; white-space:nowrap;"><a onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; color:#CD7C32; font-weight:${isCur?'800':'600'}; text-decoration:none;">${esc(label)}</a>${isCur ? ' <span style="color:#9CA3AF; font-size:9px;">(kini)</span>' : ''}</td>
  <td style="padding:6px 8px; font-family:monospace; font-size:11px; color:#6B7280; white-space:nowrap;">${esc(v.sku)}</td>
  <td style="padding:6px 8px;">${inp(i,'qty',stock,58,'1')}</td>
@@ -20133,12 +20133,12 @@ window.renderPdpSiblingVariants = function(prod) {
  <button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Simpan Variants</button>
  </div>
  <div style="overflow-x:auto;">
- <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:920px;">
+ <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:1040px;">
  <thead><tr style="background:#FAFAFA; color:#9CA3AF; font-size:10px; text-transform:uppercase;">
- ${th('')}${th('Variant')}${th('SKU')}${th('Stok')}${th('Harga')}${th('Compare')}${th('Cost')}${th('Shopee')}${th('TikTok')}${th('Barcode')}${th('P(cm)')}${th('L(cm)')}${th('T(cm)')}${th('Berat')}${th('Aktif')}
+ ${th('Gambar')}${th('Variant')}${th('SKU')}${th('Stok')}${th('Harga')}${th('Compare')}${th('Cost')}${th('Shopee')}${th('TikTok')}${th('Barcode')}${th('P(cm)')}${th('L(cm)')}${th('T(cm)')}${th('Berat')}${th('Aktif')}
  </tr></thead><tbody>${rows}</tbody></table>
  </div>
- <div style="padding:6px 10px; font-size:10.5px; color:#9CA3AF;">Edit terus dalam jadual, tekan "Simpan Variants". Tukar Stok = auto adjustment (audit trail). Harga auto-push ke marketplace.</div>
+ <div style="padding:6px 10px; font-size:10.5px; color:#9CA3AF;">Edit terus dalam jadual (termasuk URL Gambar — boleh banyak, pisah koma; pertama = cover), tekan "Simpan Variants". Tukar Stok = auto adjustment (audit trail). Harga auto-push ke marketplace.</div>
  </div>`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
@@ -20168,6 +20168,13 @@ window.__pdpSaveVariants = async function(parentSku) {
  }
  const pubEl = document.getElementById('pv_'+i+'_pub');
  if(pubEl && (!!isPublished(prod) !== pubEl.checked)) payload.is_published = pubEl.checked;
+ // p1_491 — gambar variant kini editable (URL, boleh banyak pisah koma; pertama = cover)
+ const imgEl = document.getElementById('pv_'+i+'_img');
+ if(imgEl) {
+ const newImgs = imgEl.value.split(',').map(s => s.trim()).filter(Boolean);
+ const curImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : [];
+ if(JSON.stringify(newImgs) !== JSON.stringify(curImgs)) payload.images = newImgs;
+ }
  // p1_351 — bila harga marketplace per-variant berubah, set mode 'rm' (harga tetap). Null harga = fallback markup global.
  if('shopee_price' in payload) payload.shopee_price_mode = 'rm';
  if('tiktok_price' in payload) payload.tiktok_price_mode = 'rm';

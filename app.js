@@ -7685,6 +7685,12 @@ window.renderCheckSessions = async function() {
  const list = document.getElementById('scsList');
  const stats = document.getElementById('scsStats');
  if(!list) return;
+ // p1_462 — ingat senarai SKU mana yang sedang TERBUKA supaya re-render tak tutup balik
+ // (dulu: lepas simpan kiraan, renderCheckSessions bina semula kad → senarai tertutup,
+ //  Zaid kena tekan "Buka & Kira" berulang kali).
+ const __openSkuIds = Array.from(document.querySelectorAll('[id^="scsSkuList-"]'))
+ .filter(el => el.style.display === 'block')
+ .map(el => el.id.slice('scsSkuList-'.length));
  try {
  if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
  const { data, error } = await db.from('stock_check_sessions').select('*').order('created_at', { ascending: false }).limit(50);
@@ -7772,6 +7778,11 @@ window.renderCheckSessions = async function() {
  </div>`;
  }).join('');
  if(window.lucide && lucide.createIcons) lucide.createIcons();
+ // p1_462 — buka semula senarai SKU yang tadi terbuka (kekalkan keadaan selepas simpan)
+ __openSkuIds.forEach(id => {
+ const b = document.getElementById('scsSkuList-' + id);
+ if(b && b.style.display !== 'block') window.__scsToggleSkuList(isNaN(Number(id)) ? id : Number(id));
+ });
  } catch(e) {
  list.innerHTML = '<p style="color:#c0392b; padding:20px;">Error: ' + e.message + '</p>';
  }
@@ -8304,9 +8315,8 @@ window.__scsPopupSave = async function(itemId, sessionId, sku, systemQty) {
   await db.from('stock_check_sessions').update({ items_checked: checked.length, items_variance: varCnt }).eq('id', sessionId);
   if(typeof showToast === 'function') showToast(`${sku} = ${qty} dikira${noteText ? ' (catatan disimpan)' : ''}`, 'success');
   window.__scsClosePopup();
-  const box = document.getElementById('scsSkuList-' + sessionId);
-  if(box) { box.dataset.loaded = ''; window.__scsToggleSkuList(sessionId); window.__scsToggleSkuList(sessionId); }
-  if(typeof window.renderCheckSessions === 'function') window.renderCheckSessions();
+  // p1_462 — renderCheckSessions kini buka semula senarai SKU yang terbuka, jadi tak perlu double-toggle
+  if(typeof window.renderCheckSessions === 'function') await window.renderCheckSessions();
  } catch(e) {
   if(typeof showToast === 'function') showToast('Simpan gagal: ' + e.message, 'error');
  }

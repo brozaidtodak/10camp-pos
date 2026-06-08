@@ -112,16 +112,16 @@ async function spPullReturns(fromSec, toSec) {
                 if (raw.length < 2) raw.push(ret);
                 const items = ret.item || ret.item_list || [];
                 if (items.length) {
-                    for (const it of items) {
+                    items.forEach((it, it_i) => {
                         const sku = String(it.model_sku || it.item_sku || '').toUpperCase().trim();
                         rows.push(mkRow('shopee', 'Shopee', ret.return_sn, sku, it.name || it.item_name,
                             Number(it.amount || it.quantity_purchased || 1) || 1,
                             ret.text_reason || ret.reason || 'return',
-                            ret.order_sn, ret.status, ret.create_time));
-                    }
+                            ret.order_sn, ret.status, ret.create_time, it.item_id || it_i));
+                    });
                 } else {
                     rows.push(mkRow('shopee', 'Shopee', ret.return_sn, '', '(no item detail)', 1,
-                        ret.text_reason || ret.reason || 'return', ret.order_sn, ret.status, ret.create_time));
+                        ret.text_reason || ret.reason || 'return', ret.order_sn, ret.status, ret.create_time, 0));
                 }
             }
             if (!(r.response && r.response.more)) break;
@@ -206,13 +206,14 @@ async function ttPullReturns(fromSec) {
             const cAt = ret.create_time || ret.created_time || 0;
             const lis = ret.return_line_items || ret.line_items || [];
             if (lis.length) {
-                for (const li of lis) {
+                lis.forEach((li, li_i) => {
                     const sku = String(li.seller_sku || li.sku || '').toUpperCase().trim();
+                    const lineKey = li.return_line_item_id || li.order_line_item_id || li_i;
                     rows.push(mkRow('tiktok', 'TikTok Shop', rid, sku, li.product_name || li.sku_name,
-                        Number(li.quantity || 1) || 1, reason, orderId, status, cAt));
-                }
+                        Number(li.quantity || 1) || 1, reason, orderId, status, cAt, lineKey));
+                });
             } else {
-                rows.push(mkRow('tiktok', 'TikTok Shop', rid, '', '(no item detail)', 1, reason, orderId, status, cAt));
+                rows.push(mkRow('tiktok', 'TikTok Shop', rid, '', '(no item detail)', 1, reason, orderId, status, cAt, 0));
             }
         }
         pageToken = (res.data && res.data.next_page_token) || '';
@@ -221,7 +222,7 @@ async function ttPullReturns(fromSec) {
 }
 
 // ---- baris returns_log dikongsi (cost_impact + supplier diisi kemudian) ----
-function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, status, createTimeSec) {
+function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, status, createTimeSec, lineKey) {
     return {
         sku: sku || '',
         product_name: (name || '').slice(0, 200),
@@ -237,7 +238,8 @@ function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, stat
         reported_by_name: 'Auto-Sedut',
         reported_at: createTimeSec ? new Date(Number(createTimeSec) * 1000).toISOString() : new Date().toISOString(),
         source,
-        external_id: `${returnId}:${sku || 'x'}`
+        // sertakan line key supaya return berbilang line-item (SKU sama) tak collapse jadi 1
+        external_id: `${returnId}:${sku || 'x'}:${lineKey != null ? lineKey : 0}`
     };
 }
 
@@ -282,10 +284,11 @@ exports.handler = async (event) => {
             const costMap = {};
             for (const batch of chunk(skus, 100)) {
                 const list = batch.map(s => `"${s.replace(/"/g, '')}"`).join(',');
-                const pm = await sb('GET', `/products_master?select=sku,cost_price,supplier_name&sku=in.(${list})`);
-                (pm || []).forEach(p => { costMap[(p.sku || '').toUpperCase()] = { cost: Number(p.cost_price || 0), sup: p.supplier_name || '' }; });
+                // products_master takde kolum supplier name (cuma preferred_supplier_id) — ambil cost_price je
+                const pm = await sb('GET', `/products_master?select=sku,cost_price&sku=in.(${list})`);
+                (pm || []).forEach(p => { costMap[(p.sku || '').toUpperCase()] = Number(p.cost_price || 0); });
             }
-            rows.forEach(r => { const m = costMap[r.sku]; if (m) { r.cost_impact = m.cost; r.supplier = m.sup; } });
+            rows.forEach(r => { if (costMap[r.sku] != null) r.cost_impact = costMap[r.sku]; });
         }
     } catch (e) { out.cost_lookup_error = String(e.message || e); }
 

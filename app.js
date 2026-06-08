@@ -8425,6 +8425,7 @@ window.renderCheckSessions = async function() {
  ${s.status === 'review' ? `<button class="sy-btn secondary" onclick="window.__scsForwardToBos(${s.id})" style="font-size:11px;" title="Zack: lepas review, forward ke Bos"><i data-lucide="forward" style="width:11px;height:11px;"></i> Forward ke Bos</button>` : ''}
  ${isMgmt && s.status !== 'approved' && s.status !== 'cancelled' ? `<button class="sy-btn secondary" onclick="window.__scsCancelSession(${s.id})" style="font-size:11px; color:#991B1B; border-color:#FCA5A5;"><i data-lucide="x-circle" style="width:11px;height:11px;"></i> Batal Sesi</button>` : ''}
  ${s.status === 'forwarded' && (typeof window.isBoss === 'function' && window.isBoss(u)) ? `<button class="sy-btn secondary" onclick="window.__scsApprove(${s.id})" style="font-size:11px; background:#101010; color:#FFF;"><i data-lucide="check-circle" style="width:11px;height:11px;"></i> Approve</button>` : ''}
+ ${s.status === 'approved' ? `<button class="sy-btn secondary" onclick="window.__scsPreviewReport(${s.id})" style="font-size:11px; color:#3730A3; border-color:#C7D2FE;"><i data-lucide="file-bar-chart-2" style="width:11px;height:11px;"></i> Preview Report</button>` : ''}
  ${s.status === 'approved' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsPublishOpen(${s.id})" style="font-size:11px; background:${s.published_at ? '#ECFDF5' : 'var(--primary)'}; color:${s.published_at ? '#065F46' : '#FFF'}; border-color:var(--primary);"><i data-lucide="upload-cloud" style="width:11px;height:11px;"></i> ${s.published_at ? 'Publish Semula' : 'Publish ke Products'}</button>` : ''}
  </div>
  <!-- p1_211 — Per-session SKU list (collapsed by default, lazy-loaded on click) -->
@@ -8455,6 +8456,103 @@ window.__scsLiveQty = function(sku) {
  return (typeof inventoryBatches !== 'undefined' ? inventoryBatches : [])
   .filter(b => b.sku === sku)
   .reduce((s, b) => s + (b.qty_remaining || 0), 0);
+};
+
+// p1_502 — Preview Report sesi stock take (selepas Bos approve). Analytics:
+// ketepatan sistem, % kesilapan first-check (vs semakan-2), lebih/kurang, drift RM,
+// liputan semakan-2, top selisih, prestasi per pengira.
+window.__scsPreviewReport = async function(sessionId) {
+ const esc = (typeof hesc === 'function') ? hesc : (x) => String(x == null ? '' : x);
+ // overlay
+ const old = document.getElementById('scsReportOverlay'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'scsReportOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:4200; display:flex; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;';
+ ov.onclick = (e) => { if(e.target === ov) ov.remove(); };
+ ov.innerHTML = '<div style="background:#fff; max-width:760px; width:100%; border-radius:14px; padding:0; margin:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div id="scsReportBody" style="padding:30px; text-align:center; color:#9CA3AF;">Memuatkan laporan…</div></div>';
+ document.body.appendChild(ov);
+ try {
+  const { data: sess } = await db.from('stock_check_sessions').select('*').eq('id', sessionId).single();
+  const { data: rawItems } = await db.from('stock_check_session_items').select('*').eq('session_id', sessionId);
+  const items = rawItems || [];
+  const checked = items.filter(i => i.counted_qty != null);
+  const tepat = checked.filter(i => i.variance != null && Number(i.variance) === 0);
+  const selisih = checked.filter(i => i.variance != null && Number(i.variance) !== 0);
+  const lebih = selisih.filter(i => Number(i.variance) > 0);
+  const kurang = selisih.filter(i => Number(i.variance) < 0);
+  const with2 = checked.filter(i => i.counted_qty_2 != null);
+  const mismatch2 = with2.filter(i => Number(i.counted_qty_2) !== Number(i.counted_qty));
+  // % ketepatan sistem (kiraan padan stok sistem)
+  const sysAcc = checked.length ? Math.round(tepat.length / checked.length * 100) : 0;
+  // % kesilapan first-check = bila semakan-2 jumpa nombor lain dari kiraan-1
+  const firstErr = with2.length ? Math.round(mismatch2.length / with2.length * 100) : 0;
+  const cover2 = checked.length ? Math.round(with2.length / checked.length * 100) : 0;
+  // drift unit + nilai RM (guna cost dari master kalau ada)
+  let driftUnits = 0, driftRM = 0;
+  const costOf = (sku) => { const p = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => x.sku === sku); return p ? (Number(p.cost_price) || 0) : 0; };
+  selisih.forEach(i => { const v = Number(i.variance) || 0; driftUnits += v; driftRM += v * costOf(i.sku); });
+  // top selisih (abs)
+  const topVar = selisih.slice().sort((a, b) => Math.abs(Number(b.variance)) - Math.abs(Number(a.variance))).slice(0, 8);
+  // prestasi per pengira (Kiraan 1)
+  const byStaff = {};
+  checked.forEach(i => { const n = (i.counted_by_name || 'Tak dinyatakan'); if(!byStaff[n]) byStaff[n] = { count: 0, tepat: 0 }; byStaff[n].count++; if(i.variance != null && Number(i.variance) === 0) byStaff[n].tepat++; });
+  const staffRows = Object.entries(byStaff).map(([k, v]) => ({ k, ...v, acc: v.count ? Math.round(v.tepat / v.count * 100) : 0 })).sort((a, b) => b.count - a.count);
+
+  const fmtRM = (n) => 'RM ' + (Number(n) || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dt = (iso) => iso ? new Date(iso).toLocaleString('en-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+  const kpi = (lbl, val, sub, color) => `<div style="background:#F9FAFB; border:1px solid #F0F0F0; border-radius:10px; padding:12px 14px;"><div style="font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">${lbl}</div><div style="font-size:22px; font-weight:800; color:${color || '#101010'}; margin-top:2px;">${val}</div>${sub ? `<div style="font-size:10.5px; color:#9CA3AF; margin-top:2px;">${sub}</div>` : ''}</div>`;
+
+  const body = document.getElementById('scsReportBody');
+  body.style.textAlign = 'left'; body.style.color = '';
+  body.innerHTML = `
+   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:4px;">
+    <div>
+     <div style="font-size:11px; font-weight:800; color:#3730A3; text-transform:uppercase; letter-spacing:0.5px;"><i data-lucide="file-bar-chart-2" style="width:13px;height:13px;vertical-align:-2px;"></i> Laporan Stock Take</div>
+     <div style="font-size:18px; font-weight:800; color:#101010; margin-top:2px;">${esc((sess && sess.name) || 'Sesi')}</div>
+     <div style="font-size:11.5px; color:#6B7280; margin-top:3px;">Diluluskan: ${esc((sess && sess.approved_by_name) || 'Bos')} &middot; ${esc(dt(sess && sess.approved_at))}</div>
+    </div>
+    <div style="display:flex; gap:7px;">
+     <button onclick="window.print()" style="background:#fff; border:1px solid #E5E7EB; color:#374151; padding:7px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700;"><i data-lucide="printer" style="width:13px;height:13px;vertical-align:-2px;"></i> Cetak</button>
+     <button onclick="document.getElementById('scsReportOverlay').remove()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+    </div>
+   </div>
+
+   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin:16px 0;">
+    ${kpi('Jumlah SKU', items.length, checked.length + ' dah check')}
+    ${kpi('Ketepatan Sistem', sysAcc + '%', tepat.length + ' tepat / ' + checked.length, sysAcc >= 90 ? '#065F46' : (sysAcc >= 70 ? '#92400E' : '#991B1B'))}
+    ${kpi('% Kesilapan First Check', firstErr + '%', with2.length ? (mismatch2.length + ' silap / ' + with2.length + ' disemak') : 'belum ada semakan 2', firstErr === 0 ? '#065F46' : (firstErr <= 10 ? '#92400E' : '#991B1B'))}
+    ${kpi('Liputan Semakan 2', cover2 + '%', with2.length + ' / ' + checked.length + ' item')}
+   </div>
+
+   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+    ${kpi('Ada Selisih', selisih.length, lebih.length + ' lebih · ' + kurang.length + ' kurang', selisih.length ? '#991B1B' : '#065F46')}
+    ${kpi('Drift Unit', (driftUnits > 0 ? '+' : '') + driftUnits, 'jumlah lebih/kurang')}
+    ${kpi('Anggaran Drift RM', (driftRM >= 0 ? '' : '−') + fmtRM(Math.abs(driftRM)), 'pada harga kos', driftRM === 0 ? '#065F46' : '#991B1B')}
+   </div>
+
+   <div style="font-size:12px; font-weight:800; color:#374151; margin:6px 0;">Top Selisih (perbezaan terbesar)</div>
+   <div style="border:1px solid #F0F0F0; border-radius:10px; overflow:hidden; margin-bottom:16px;">
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+     <thead><tr style="background:#FAFAFA; font-size:10px; color:#6B7280; text-transform:uppercase;"><th style="text-align:left; padding:7px 10px;">SKU</th><th style="text-align:left; padding:7px 10px;">Nama</th><th style="text-align:right; padding:7px 10px;">Sistem</th><th style="text-align:right; padding:7px 10px;">Dikira</th><th style="text-align:right; padding:7px 10px;">Selisih</th></tr></thead>
+     <tbody>${topVar.length ? topVar.map(i => { const v = Number(i.variance); return `<tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 10px; font-family:'SF Mono',Menlo,monospace; font-weight:700; font-size:11px;">${esc(i.sku)}</td><td style="padding:7px 10px; font-size:11.5px;">${esc((i.product_name || i.name || '').slice(0, 36))}</td><td style="padding:7px 10px; text-align:right; color:#6B7280;">${i.system_qty != null ? i.system_qty : '-'}</td><td style="padding:7px 10px; text-align:right; font-weight:700;">${i.counted_qty}</td><td style="padding:7px 10px; text-align:right; font-weight:800; color:${v > 0 ? '#92400E' : '#991B1B'};">${v > 0 ? '+' + v : v}</td></tr>`; }).join('') : '<tr><td colspan="5" style="text-align:center; padding:14px; color:#9CA3AF;">Tiada selisih — semua tepat ✓</td></tr>'}</tbody>
+    </table>
+   </div>
+
+   <div style="font-size:12px; font-weight:800; color:#374151; margin:6px 0;">Prestasi Pengira (Kiraan 1)</div>
+   <div style="border:1px solid #F0F0F0; border-radius:10px; overflow:hidden;">
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+     <thead><tr style="background:#FAFAFA; font-size:10px; color:#6B7280; text-transform:uppercase;"><th style="text-align:left; padding:7px 10px;">Staf</th><th style="text-align:right; padding:7px 10px;">Item Dikira</th><th style="text-align:right; padding:7px 10px;">Tepat</th><th style="text-align:right; padding:7px 10px;">Ketepatan</th></tr></thead>
+     <tbody>${staffRows.length ? staffRows.map(r => `<tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 10px;">${esc(r.k)}</td><td style="padding:7px 10px; text-align:right;">${r.count}</td><td style="padding:7px 10px; text-align:right;">${r.tepat}</td><td style="padding:7px 10px; text-align:right; font-weight:700; color:${r.acc >= 90 ? '#065F46' : (r.acc >= 70 ? '#92400E' : '#991B1B')};">${r.acc}%</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center; padding:14px; color:#9CA3AF;">Tiada data</td></tr>'}</tbody>
+    </table>
+   </div>
+
+   <p style="font-size:10.5px; color:#9CA3AF; margin:14px 0 0; line-height:1.5;"><strong>Nota analytics:</strong> "% Kesilapan First Check" = berapa kerap semakan-2 (Tarmizi/Kael) jumpa nombor berbeza dari kiraan-1 (Fahmi). "Ketepatan Sistem" = kiraan fizikal padan stok sistem (selisih = stok hilang/lebih sebenar, bukan semestinya silap kira). "Drift RM" = anggaran nilai selisih pada harga kos.</p>
+  `;
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ } catch(e) {
+  const body = document.getElementById('scsReportBody');
+  if(body) body.innerHTML = '<p style="color:#DC2626; padding:20px; text-align:center;">Gagal muat laporan: ' + (e.message || e) + '</p>';
+ }
 };
 
 window.__scsPublishOpen = async function(sessionId) {

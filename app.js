@@ -11906,20 +11906,22 @@ window.cpkFilterCustomers = function(q) {
  const list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
  const query = (q || '').trim().toLowerCase();
  if(!query) { res.innerHTML = '<p style="color:#9CA3AF; font-size:13px; padding:12px; text-align:center; margin:0;">Taip untuk cari pelanggan...</p>'; return; }
- // p1_482 — cari ikut PERKATAAN (setiap token kena ada, tak kira susunan) + merangkumi email.
- // Elak "aliff irfan" gagal padan "Irfan Aliff" / "Aliff bin Irfan".
+ // p1_482/p1_485 — cari ikut PERKATAAN (token, tak kira susunan) + email + phone normalize.
+ // Elak "aliff irfan" gagal padan "Irfan Aliff"; phone 0123/60123/012-345 semua padan.
  const tokens = query.split(/\s+/).filter(Boolean);
- const matchAll = (hay) => tokens.every(t => hay.includes(t));
- const matches = list.filter(c => {
+ const custMatch = (c) => {
  const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
- return matchAll(hay);
- }).slice(0, 30);
+ const phoneDigits = (c.phone || '').replace(/\D/g, '');
+ return tokens.every(t => {
+  if(hay.includes(t)) return true;
+  const td = t.replace(/\D/g, '');
+  return td.length >= 3 && phoneDigits && phoneDigits.includes(td); // padan phone walau beza format
+ });
+ };
+ const matches = list.filter(custMatch).slice(0, 30);
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
  // p1_481 — carian sejarah jualan: pelanggan lama yang TAK wujud dalam CRM pun muncul
- const past = (typeof window.__getPastCustomers === 'function' ? window.__getPastCustomers() : []).filter(c => {
-  const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
-  return matchAll(hay);
- }).slice(0, 12);
+ const past = (typeof window.__getPastCustomers === 'function' ? window.__getPastCustomers() : []).filter(custMatch).slice(0, 12);
  window.__pastMatchList = past;
  if(!matches.length && !past.length) { res.innerHTML = `<p style="color:#c0392b; font-size:13px; padding:12px; text-align:center; margin:0;">Tiada match untuk "${query}". Daftar baru di bawah.</p>`; return; }
  const crmHtml = matches.map(c => {
@@ -12089,6 +12091,28 @@ window.confirmCustomSale = function() {
  if(typeof showToast === 'function') showToast(`Custom item "${name}" × ${qty} ditambah.`, 'success');
 };
 
+// p1_485 — agregat belanja + bilangan order seorang pelanggan dari sejarah jualan sebenar
+// (padan phone normalize → email → nama). Guna utk kredit MATA penuh bila simpan pelanggan baru.
+window.__custSalesAgg = function(name, phone, email) {
+ const digits = (p) => String(p || '').replace(/\D/g, '');
+ const pd = digits(phone), em = (email || '').trim().toLowerCase(), nm = (name || '').trim().toLowerCase();
+ const skip = !nm || ['walk-in', 'walk in', 'online customer', 'shopee buyer', 'tiktok buyer'].includes(nm);
+ let spent = 0, orders = 0;
+ (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+  if(s.is_test) return;
+  if(typeof window.__isRealSale === 'function' && !window.__isRealSale(s)) return;
+  const sPd = digits(s.customer_phone);
+  const sEm = ((s.customer_email || (s.metadata && s.metadata.buyer_email) || '')).trim().toLowerCase();
+  const sNm = (s.customer_name || '').trim().toLowerCase();
+  let match = false;
+  if(pd && sPd && sPd === pd) match = true;
+  else if(em && sEm && sEm === em) match = true;
+  else if(!pd && !em && !skip && sNm === nm) match = true;
+  if(match) { spent += (Number(s.total_amount || s.total || 0) || 0); orders += 1; }
+ });
+ return { spent: Math.round(spent * 100) / 100, orders };
+};
+
 window.processNewCheckout = async function() {
  if(cart.length === 0) { if (typeof showToast==='function') showToast('Troli kosong — scan barang dulu','warning'); else alert('Empty Cart!'); return; }
  const btn = document.getElementById("checkoutBtn");
@@ -12174,7 +12198,11 @@ window.processNewCheckout = async function() {
  );
  try {
  if(!existing) {
- const payload = { name: custNameText, points: earnedPoints };
+ // p1_485 — pelanggan baru: kira MATA + total dari SEMUA sejarah jualan dia (bukan jualan ni je)
+ // supaya pelanggan lama yang baru disimpan terus dapat kredit penuh (cth Aliff Irfan).
+ const hist = (typeof window.__custSalesAgg === 'function') ? window.__custSalesAgg(custNameText, custPhoneText, custEmailText) : { spent: 0, orders: 0 };
+ const totalSpent = Math.round((hist.spent + totalVal) * 100) / 100;
+ const payload = { name: custNameText, points: Math.floor(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
  if(custPhoneText) payload.phone = custPhoneText;
  if(custEmailText) payload.email = custEmailText;
  const { data: newCust } = await db.from('customers').insert([payload]).select().single();
@@ -23286,32 +23314,37 @@ window.__crmRefreshTotals = async function(){
  if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return;
  const sales = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) ? salesHistory : [];
  if(!sales.length) { if(typeof showToast==='function') showToast('Data jualan belum dimuat — cuba lagi sekejap.', 'warn'); return; }
- if(!confirm('Kira semula total belanja & bilangan order SEMUA pelanggan dari rekod jualan sebenar?\n\nIkut nombor telefon, kecuali order test + batal/refund. Selamat — boleh ulang bila-bila.')) return;
+ if(!confirm('Kira semula total belanja, bilangan order + MATA (1 point = RM1) SEMUA pelanggan dari rekod jualan sebenar?\n\nPadan ikut telefon → email → nama. Kecuali order test + batal/refund. Selamat — boleh ulang bila-bila.')) return;
  const dead = (st) => { const c = window.__aoStatusMeta(st).canon; return c === 'Cancelled' || c === 'Refunded'; };
  const skipName = (nm) => { const n = (nm||'').trim().toLowerCase(); return !n || n === 'walk-in' || n === 'walk in' || n === 'online customer' || n === 'shopee buyer' || n === 'tiktok buyer'; };
- // 1) index jualan ikut phone + nama
- const byPhone = {}, byName = {};
+ const digits = (p) => String(p||'').replace(/\D/g,'');
+ // 1) index jualan ikut phone(normalize) + email + nama
+ const byPhone = {}, byName = {}, byEmail = {};
  for(const s of sales){
  if(s.is_test) continue;
  if(dead(s.status)) continue;
  const amt = parseFloat(s.total_amount || s.total || 0) || 0;
- if(s.customer_phone){
- const k = String(s.customer_phone).trim();
- if(k){ (byPhone[k] = byPhone[k] || {spent:0, orders:0}); byPhone[k].spent += amt; byPhone[k].orders += 1; }
- }
+ const pd = digits(s.customer_phone);
+ if(pd){ (byPhone[pd] = byPhone[pd] || {spent:0, orders:0}); byPhone[pd].spent += amt; byPhone[pd].orders += 1; }
+ const em = ((s.customer_email || (s.metadata && s.metadata.buyer_email) || '')).trim().toLowerCase();
+ if(em){ (byEmail[em] = byEmail[em] || {spent:0, orders:0}); byEmail[em].spent += amt; byEmail[em].orders += 1; }
  const nm = (s.customer_name||'').trim().toLowerCase();
  if(!skipName(nm)){ (byName[nm] = byName[nm] || {spent:0, orders:0}); byName[nm].spent += amt; byName[nm].orders += 1; }
  }
- // 2) kira per pelanggan, kumpul yang berubah
+ // 2) kira per pelanggan (phone → email → nama), kumpul yang berubah; points = floor(spent)
  const updates = [];
  for(const c of customersData){
  let agg = {spent:0, orders:0};
- if(c.phone && byPhone[String(c.phone).trim()]) agg = byPhone[String(c.phone).trim()];
+ const pd = digits(c.phone);
+ const em = (c.email||'').trim().toLowerCase();
+ if(pd && byPhone[pd]) agg = byPhone[pd];
+ else if(em && byEmail[em]) agg = byEmail[em];
  else if(c.name && !skipName(c.name) && byName[c.name.trim().toLowerCase()]) agg = byName[c.name.trim().toLowerCase()];
  const newSpent = Math.round(agg.spent * 100) / 100;
  const newOrders = agg.orders;
- if(newSpent !== (Math.round((c.total_spent||0)*100)/100) || newOrders !== (c.total_orders||0)){
- updates.push({ id: c.id, total_spent: newSpent, total_orders: newOrders, c });
+ const newPoints = Math.floor(newSpent); // 1 point = RM1 belanja
+ if(newSpent !== (Math.round((c.total_spent||0)*100)/100) || newOrders !== (c.total_orders||0) || newPoints !== (parseInt(c.points)||0)){
+ updates.push({ id: c.id, total_spent: newSpent, total_orders: newOrders, points: newPoints, c });
  }
  }
  const btn = document.getElementById('crmRefreshBtn');
@@ -23323,8 +23356,8 @@ window.__crmRefreshTotals = async function(){
  for(let i = 0; i < updates.length; i += CONC){
  const chunk = updates.slice(i, i + CONC);
  const res = await Promise.all(chunk.map(u =>
- db.from('customers').update({ total_spent: u.total_spent, total_orders: u.total_orders }).eq('id', u.id)
- .then(r => { if(r.error) return false; u.c.total_spent = u.total_spent; u.c.total_orders = u.total_orders; return true; })
+ db.from('customers').update({ total_spent: u.total_spent, total_orders: u.total_orders, points: u.points }).eq('id', u.id)
+ .then(r => { if(r.error) return false; u.c.total_spent = u.total_spent; u.c.total_orders = u.total_orders; u.c.points = u.points; return true; })
  .catch(() => false)
  ));
  res.forEach(ok => { if(ok) done++; else failed++; });

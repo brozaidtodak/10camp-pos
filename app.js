@@ -9085,6 +9085,9 @@ window.__scsToggleSkuList = async function(sessionId) {
  <td style="padding:8px 10px; font-size:11px;">${catatanCell}</td>
  <td style="padding:8px 10px; text-align:center;"><span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:${badgeBg}; color:${badgeFg}; font-size:10px; font-weight:700;"><i data-lucide="${badgeIcon}" style="width:10px;height:10px;"></i> ${badgeTxt}</span></td>
  <td style="padding:8px 10px; font-size:11px; color:${isChecked && i.counted_by_name ? '#374151' : '#D1D5DB'};">${isChecked && i.counted_by_name ? `<span style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="user" style="width:11px;height:11px; color:#9CA3AF;"></i> ${escHtml(i.counted_by_name)}</span>` : '—'}</td>
+ <td style="padding:8px 10px; text-align:center;">${(i.counted_qty_2 != null)
+  ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800; ${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'background:#D1FAE5; color:#065F46;' : 'background:#FEE2E2; color:#991B1B;'}"><i data-lucide="${Number(i.counted_qty_2)===Number(i.counted_qty)?'shield-check':'alert-triangle'}" style="width:10px;height:10px;"></i> ${i.counted_qty_2}${Number(i.counted_qty_2)===Number(i.counted_qty)?'':' ≠'}</span>${i.counted_by_2_name ? `<div style="font-size:9px; color:#9CA3AF; margin-top:2px;">${escHtml(i.counted_by_2_name)}</div>` : ''}`
+  : (isChecked ? `<span style="font-size:9.5px; color:#92400E; background:#FEF3C7; padding:2px 7px; border-radius:999px; font-weight:700;">Perlu semak</span>` : '<span style="color:#D1D5DB;">—</span>')}</td>
  <td style="padding:8px 6px; text-align:center; white-space:nowrap;">${isChecked ? `<button onclick="event.stopPropagation(); window.__scsResetItem(${i.id}, ${sessionId})" title="Reset count balik ke Belum Check" style="background:none; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="rotate-ccw" style="width:9px;height:9px;"></i> Reset</button>` : `<button onclick="event.stopPropagation(); window.__scsRemoveItem(${i.id}, ${sessionId})" title="Buang SKU dari sesi ni" style="background:none; border:1px solid #E5E7EB; color:#6B7280; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="trash-2" style="width:9px;height:9px;"></i> Buang</button>`}</td>
  </tr>`;
  }).join('');
@@ -9110,6 +9113,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Catatan</th>
  <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Status</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Oleh</th>
+ <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Check 2</th>
  <th style="padding:8px 6px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Aksi</th>
  </tr>
  </thead>
@@ -9164,14 +9168,25 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
   </div>
   ${barcodeVal ? `<div style="padding:12px 18px 4px; text-align:center; border-bottom:1px solid #F3F4F6;"><svg id="scsBarcodeSvg-${itemId}" style="max-width:100%; height:auto;"></svg></div>` : ''}
   <div style="padding:16px 18px;">
+   ${!isChecked ? `
+   <!-- KIRAAN 1 (blind) -->
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Kuantiti Dikira (fizikal)</label>
-   <input type="number" min="0" inputmode="numeric" id="scsQtyInput-${itemId}" value="${isChecked ? i.counted_qty : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border-color); border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
+   <input type="number" min="0" inputmode="numeric" id="scsQtyInput-${itemId}" value="" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border-color); border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin:14px 0 6px;">Catatan (optional)</label>
-   <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;">${isChecked && i.note ? esc(i.note) : ''}</textarea>
+   <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;"></textarea>
    ${popReveal
-    ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:11px; color:#3730A3;"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong>${(isChecked && i.system_qty != null) ? ` · Selisih: <strong>${(i.counted_qty - i.system_qty) > 0 ? '+' + (i.counted_qty - i.system_qty) : (i.counted_qty - i.system_qty)}</strong>` : ''} · mod semakan</span></div>`
+    ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:11px; color:#3730A3;"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong> · mod semakan</span></div>`
     : `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span></div>`}
    <button onclick="window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" style="width:100%; margin-top:14px; background:var(--primary); border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="check" style="width:15px;height:15px;"></i> Simpan Kiraan</button>
+   ` : `
+   <!-- SEMAKAN KE-2 (double confirm, blind) -->
+   <div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:#D1FAE5; border-radius:8px; font-size:11.5px; color:#065F46; margin-bottom:12px;"><i data-lucide="check-circle" style="width:13px;height:13px; flex-shrink:0;"></i><span>Kiraan 1 dah siap${i.counted_by_name ? ' oleh <strong>'+esc(i.counted_by_name)+'</strong>' : ''}.</span></div>
+   ${(i.counted_qty_2 != null) ? `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:8px; font-size:11.5px; margin-bottom:12px; ${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'background:#D1FAE5; color:#065F46;' : 'background:#FEE2E2; color:#991B1B;'}"><i data-lucide="${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'shield-check' : 'alert-triangle'}" style="width:13px;height:13px; flex-shrink:0;"></i><span>${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'Semakan 2 PADAN dengan Kiraan 1 ✓' : ('TAK PADAN — Kiraan 1: <strong>'+i.counted_qty+'</strong> · Semakan 2: <strong>'+i.counted_qty_2+'</strong>')}${i.counted_by_2_name ? ' · oleh '+esc(i.counted_by_2_name) : ''}</span></div>` : ''}
+   <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Semakan Ke-2 (double confirm) — kira sendiri</label>
+   <input type="number" min="0" inputmode="numeric" id="scsQty2Input-${itemId}" value="${i.counted_qty_2 != null ? i.counted_qty_2 : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}');}" style="width:100%; padding:11px 12px; border:1.5px solid #6366F1; border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
+   <div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:10.5px; color:#4338CA;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan 1 disorok — kira ikut fizikal sendiri. Sistem akan banding padan/tak.</span></div>
+   <button onclick="window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}')" style="width:100%; margin-top:14px; background:#4F46E5; border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> ${i.counted_qty_2 != null ? 'Kemaskini Semakan 2' : 'Simpan Semakan 2'}</button>
+   `}
    <button onclick="window.__scsClosePopup()" style="width:100%; margin-top:9px; background:none; border:none; color:#9CA3AF; padding:6px; cursor:pointer; font-size:11.5px; font-weight:600;">Tutup</button>
   </div>
  </div>`;
@@ -9228,6 +9243,41 @@ window.__scsPopupSave = async function(itemId, sessionId, sku, systemQty) {
   if(typeof window.renderCheckSessions === 'function') await window.renderCheckSessions();
  } catch(e) {
   if(typeof showToast === 'function') showToast('Simpan gagal: ' + e.message, 'error');
+ }
+};
+
+// p1_493 — Simpan SEMAKAN KE-2 (double confirm). Blind: 2nd checker kira sendiri,
+// sistem banding dgn Kiraan 1 → padan/tak. Biasanya orang lain (Tarmizi/Kael) buat.
+window.__scsPopupSave2 = async function(itemId, sessionId, sku) {
+ const el = document.getElementById('scsQty2Input-' + itemId);
+ if(!el) return;
+ const raw = (el.value || '').trim();
+ if(!raw) { if(typeof showToast === 'function') showToast('Masukkan kuantiti semakan ke-2 dulu.', 'warn'); el.focus(); return; }
+ const qty2 = parseInt(raw, 10);
+ if(isNaN(qty2) || qty2 < 0) { if(typeof showToast === 'function') showToast('Qty mesti nombor >= 0.', 'warn'); el.focus(); return; }
+ const items = (window.__scsItemsCache && window.__scsItemsCache[sessionId]) || [];
+ const i = items.find(x => x.id === itemId);
+ const qty1 = i ? i.counted_qty : null;
+ const u = window.currentUser || {};
+ // amaran lembut kalau orang sama buat kiraan 1 + semakan 2
+ if(i && i.counted_by_name && i.counted_by_name === (u.name || '') && !confirm('Kamu yang buat Kiraan 1. Biasanya orang LAIN buat semakan ke-2 untuk double-confirm.\n\nTeruskan juga?')) return;
+ try {
+  if(typeof db === 'undefined' || !db) throw new Error('DB tak available');
+  const { error } = await db.from('stock_check_session_items').update({
+   counted_qty_2: qty2,
+   counted_by_2_name: u.name || 'Unknown',
+   counted_at_2: new Date().toISOString()
+  }).eq('id', itemId);
+  if(error) throw error;
+  const match = (qty1 != null && Number(qty2) === Number(qty1));
+  if(typeof showToast === 'function') showToast(
+   match ? `${sku}: Semakan 2 PADAN (${qty2}) ✓` : `${sku}: TAK PADAN — Kiraan 1: ${qty1} · Semakan 2: ${qty2}. Sila semak semula.`,
+   match ? 'success' : 'warn'
+  );
+  window.__scsClosePopup();
+  if(typeof window.renderCheckSessions === 'function') await window.renderCheckSessions();
+ } catch(e) {
+  if(typeof showToast === 'function') showToast('Simpan semakan 2 gagal: ' + e.message, 'error');
  }
 };
 

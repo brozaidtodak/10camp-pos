@@ -8142,6 +8142,9 @@ window.__scsToggleSkuList = async function(sessionId) {
  let __sessStatus = 'active';
  try { const { data: ss } = await db.from('stock_check_sessions').select('status').eq('id', sessionId).single(); if(ss && ss.status) __sessStatus = ss.status; } catch(e){}
  const reveal = __sessStatus !== 'active';
+ // p1_465 — simpan status sesi supaya popup tahu nak sorok (blind/active) atau tunjuk (review) sistem
+ window.__scsSessStatusCache = window.__scsSessStatusCache || {};
+ window.__scsSessStatusCache[sessionId] = __sessStatus;
  const escHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
  const checked = items.filter(i => i.counted_qty != null);
  const pending = items.filter(i => i.counted_qty == null);
@@ -8171,12 +8174,10 @@ window.__scsToggleSkuList = async function(sessionId) {
  const catatanCell = i.note
  ? `<span style="display:inline-block; padding:3px 6px; background:#FEF9C3; border-left:2px solid #CA8A04; color:#713F12; font-style:italic; line-height:1.4;"><i data-lucide="message-square" style="width:9px;height:9px; vertical-align:-1px; margin-right:3px;"></i>${escHtml(i.note)}</span>`
  : '<span style="color:#D1D5DB;">—</span>';
- // p1_461 — reviewer view (reveal): tunjuk Sistem + Selisih, baris TAK clickable (kiraan dah siap)
+ // p1_461 — reviewer view (reveal): tunjuk Sistem + Selisih. p1_465 — baris kekal clickable (popup adapt)
  const sistemCell = reveal ? `<td style="padding:8px 10px; text-align:right; font-size:11.5px; color:#6B7280; font-weight:700;">${i.system_qty != null ? i.system_qty : '-'}</td>` : '';
  const selisihCell = reveal ? `<td style="padding:8px 10px; text-align:right; font-size:11.5px; font-weight:700; color:${variance == null ? '#D1D5DB' : (variance === 0 ? '#065F46' : (variance > 0 ? '#92400E' : '#991B1B'))};">${variance == null ? '—' : (variance > 0 ? '+' + variance : variance)}</td>` : '';
- const trOpen = reveal
- ? `<tr style="border-bottom:1px solid #F3F4F6;">`
- : `<tr onclick="window.__scsOpenCountPopup(${i.id}, ${sessionId})" title="Tekan untuk isi kiraan fizikal" style="border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#FFF7ED'" onmouseout="this.style.background=''">`;
+ const trOpen = `<tr onclick="window.__scsOpenCountPopup(${i.id}, ${sessionId})" title="${reveal ? 'Tekan untuk semak / betulkan kiraan' : 'Tekan untuk isi kiraan fizikal'}" style="border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#FFF7ED'" onmouseout="this.style.background=''">`;
  return `${trOpen}
  <td style="padding:6px 8px; width:48px;">${thumbHtml}</td>
  <td style="padding:8px 10px; font-family:'SF Mono', Menlo, monospace; font-weight:700; font-size:11.5px;">${escHtml(i.sku || '-')}</td>
@@ -8240,6 +8241,8 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
  const sysQtyArg = i.system_qty != null ? i.system_qty : 'null';
  const productName = i.product_name || i.name || '';
  const isChecked = i.counted_qty != null;
+ // p1_465 — kalau sesi dah lepas blind-count (review/forwarded/approved), popup TUNJUK sistem
+ const popReveal = !!((window.__scsSessStatusCache || {})[sessionId]) && window.__scsSessStatusCache[sessionId] !== 'active';
  const thumb = i.image_url
   ? `<img src="${esc(i.image_url)}" alt="" style="width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; flex-shrink:0;" onerror="this.style.display='none'">`
   : `<div style="width:60px; height:60px; border-radius:8px; background:#F3F4F6; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="image-off" style="width:20px;height:20px; color:#9CA3AF;"></i></div>`;
@@ -8267,10 +8270,9 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
    <input type="number" min="0" inputmode="numeric" id="scsQtyInput-${itemId}" value="${isChecked ? i.counted_qty : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border-color); border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin:14px 0 6px;">Catatan (optional)</label>
    <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;">${isChecked && i.note ? esc(i.note) : ''}</textarea>
-   <div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;">
-    <i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i>
-    <span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span>
-   </div>
+   ${popReveal
+    ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:11px; color:#3730A3;"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong>${(isChecked && i.system_qty != null) ? ` · Selisih: <strong>${(i.counted_qty - i.system_qty) > 0 ? '+' + (i.counted_qty - i.system_qty) : (i.counted_qty - i.system_qty)}</strong>` : ''} · mod semakan</span></div>`
+    : `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span></div>`}
    <button onclick="window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" style="width:100%; margin-top:14px; background:var(--primary); border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="check" style="width:15px;height:15px;"></i> Simpan Kiraan</button>
    <button onclick="window.__scsClosePopup()" style="width:100%; margin-top:9px; background:none; border:none; color:#9CA3AF; padding:6px; cursor:pointer; font-size:11.5px; font-weight:600;">Tutup</button>
   </div>

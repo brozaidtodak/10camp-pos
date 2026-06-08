@@ -16623,6 +16623,7 @@ window.memoUpsertRemote = async function(memo) {
  await db.from('memos').upsert({
  id: memo.id,
  department: memo.department || 'general',
+ category: memo.category || 'umum',
  title: memo.title,
  body: memo.body,
  pinned: !!memo.pinned,
@@ -16658,7 +16659,7 @@ window.memoHydrateFromRemote = async function() {
  // Remote wins on collision (it's the source of truth for cross-device sync)
  remote.forEach(m => {
  byId[m.id] = {
- id: m.id, department: m.department, title: m.title, body: m.body,
+ id: m.id, department: m.department, category: m.category || 'umum', title: m.title, body: m.body,
  pinned: m.pinned, status: m.status,
  posted_by_id: m.posted_by_id, posted_by_name: m.posted_by_name,
  posted_at: m.posted_at,
@@ -16706,6 +16707,7 @@ window.memoEdit = function(id) {
  const canEdit = u && (window.isBoss(u) || (m.posted_by_id === u.staff_id && m.status !== 'approved'));
  if(!canEdit) { if(typeof showToast==='function') showToast('Tiada akses edit memo ni', 'warn'); return; }
  document.getElementById('memoFormDept').value = m.department || 'general';
+ const __catEl = document.getElementById('memoFormCategory'); if(__catEl) __catEl.value = m.category || 'umum';
  document.getElementById('memoFormTitle').value = m.title || '';
  document.getElementById('memoFormBody').value = m.body || '';
  document.getElementById('memoFormPinned').checked = !!m.pinned;
@@ -16737,6 +16739,7 @@ window.memoSubmit = function() {
  const u = window.memoCurrentUser();
  if(!u) return;
  const dept = document.getElementById('memoFormDept').value;
+ const category = (document.getElementById('memoFormCategory') || {}).value || 'umum';
  const title = document.getElementById('memoFormTitle').value.trim();
  const body = document.getElementById('memoFormBody').value.trim();
  const pinned = document.getElementById('memoFormPinned').checked;
@@ -16750,7 +16753,7 @@ window.memoSubmit = function() {
  if(window.__memoEditId) {
  const m = memos.find(x => x.id === window.__memoEditId);
  if(m) {
- m.department = dept; m.title = title; m.body = body; m.pinned = pinned;
+ m.department = dept; m.category = category; m.title = title; m.body = body; m.pinned = pinned;
  m.edited_at = new Date().toISOString(); m.edited_by_name = u.name;
  window.memoSaveAll(memos);
  if(typeof window.memoUpsertRemote === 'function') window.memoUpsertRemote(m);
@@ -16764,6 +16767,7 @@ window.memoSubmit = function() {
  const memo = {
  id: 'm' + Date.now() + Math.floor(Math.random()*1000),
  department: dept,
+ category: category,
  title, body,
  pinned,
  posted_by_id: u.staff_id,
@@ -16903,6 +16907,15 @@ window.memoSetDept = function(d, btn) {
  document.querySelectorAll('[data-memo-dept]').forEach(b => b.classList.toggle('memo-dept--active', b === btn));
  window.renderMemoBoard();
 };
+// p1_501 — filter ikut kategori/topik (cuti, flow kerja, komisen, dll)
+window.__MEMO_CAT_LABELS = { umum:'Pengumuman', cuti:'Cuti', flow:'Flow Kerja / SOP', komisen:'Komisen', polisi:'Polisi', lain:'Lain-lain' };
+window.__memoCatLabel = function(c){ return window.__MEMO_CAT_LABELS[c] || c || 'Pengumuman'; };
+window.__memoCategory = window.__memoCategory || 'all';
+window.memoSetCategory = function(c, btn) {
+ window.__memoCategory = c;
+ document.querySelectorAll('[data-memo-cat]').forEach(b => b.classList.toggle('memo-dept--active', b === btn));
+ window.renderMemoBoard();
+};
 
 // Counts
 window.memoGetPendingCount = function() {
@@ -16994,6 +17007,7 @@ window.renderMemoBoard = function() {
  if(m.status !== window.__memoStatus) return false;
  }
  if(window.__memoDept !== 'all' && m.department !== window.__memoDept) return false;
+ if(window.__memoCategory && window.__memoCategory !== 'all' && (m.category || 'umum') !== window.__memoCategory) return false;
  if(q) {
  const hay = (m.title + ' ' + m.body + ' ' + (m.posted_by_name||'')).toLowerCase();
  if(hay.indexOf(q) === -1) return false;
@@ -17054,6 +17068,7 @@ window.renderMemoBoard = function() {
  </div>
  <div class="memo-card__meta">
  <span class="memo-dept-badge" data-dept="${m.department}">${escapeHtml(window.memoDeptLabel(m.department))}</span>
+ ${(m.category && m.category !== 'umum') ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:#EEF2FF; color:#3730A3;"><i data-lucide="tag" style="width:9px;height:9px;"></i> ${escapeHtml(window.__memoCatLabel(m.category))}</span>` : ''}
  <span class="memo-status-pill memo-status-pill--${m.status}">${escapeHtml(T('mb_status_'+m.status, m.status))}</span>
  </div>
  <div class="memo-card__body">${escapeHtml(m.body)}</div>

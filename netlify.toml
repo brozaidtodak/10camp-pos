@@ -176,3 +176,10 @@
   to = "/.netlify/functions/heic-convert"
   status = 200
   force = true
+
+# p1_504 — Returns auto-pull dari Shopee + TikTok
+[[redirects]]
+  from = "/api/returns-pull"
+  to = "/.netlify/functions/returns-pull"
+  status = 200
+  force = true

@@ -2491,6 +2491,36 @@ window.__rlSubmit = async function() {
  }
 };
 
+// p1_504 — Sedut returns dari Shopee + TikTok (auto-pull, dedup ikut return id + sku)
+window.__rlPullReturns = async function() {
+ const since = (document.getElementById('rlPeriod') && document.getElementById('rlPeriod').value) || '30d';
+ // map period → tarikh since (cap 15 hari untuk Shopee per window dikendali server)
+ const days = since === '90d' ? 90 : (since === '180d' ? 180 : (since === 'ytd' ? 365 : 30));
+ const sinceDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+ if(typeof showToast === 'function') showToast('Menyedut returns dari Shopee + TikTok…', 'info');
+ try {
+  const res = await fetch(`/api/returns-pull?mode=import&since=${sinceDate}`, { cache: 'no-store' });
+  const j = await res.json();
+  if(j.error) { if(typeof showToast === 'function') showToast('Sedut gagal: ' + j.error, 'error'); return; }
+  const ins = j.inserted || 0;
+  const dup = (j.already_logged || 0) + (j.dupes_skipped || 0);
+  // ringkasan per channel (kalau ada error/skip satu channel, beritahu)
+  const chMsgs = [];
+  const ch = j.channels || {};
+  ['shopee', 'tiktok'].forEach(k => {
+   const c = ch[k]; if(!c) return;
+   if(c.error) chMsgs.push(`${k}: error (${String(c.error).slice(0, 40)})`);
+   else if(c.skipped) chMsgs.push(`${k}: dilangkau`);
+  });
+  let msg = `Sedut siap — ${ins} baru, ${dup} dah sedia ada (skip).`;
+  if(chMsgs.length) msg += ' ⚠ ' + chMsgs.join(' · ');
+  if(typeof showToast === 'function') showToast(msg, ins ? 'success' : 'info');
+  setTimeout(() => window.renderReturnsLog(), 300);
+ } catch(e) {
+  if(typeof showToast === 'function') showToast('Sedut gagal: ' + (e.message || e), 'error');
+ }
+};
+
 // p1_120 — Supplier Performance dashboard
 window.__spPeriod = '90d';
 window.__spSetPeriod = function(p, btn) {

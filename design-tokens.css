@@ -1207,12 +1207,12 @@
 .pdm-spec-item dt { font-size: 10px; color: #9CA3AF; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin: 0; }
 .pdm-spec-item dd { font-size: 13px; color: #1F2937; font-weight: 700; margin: 2px 0 0; word-wrap: break-word; }
 
-.pdm-cta { display: flex; gap: 10px; margin-top: auto; padding-top: 14px; align-items: stretch; }
+.pdm-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 14px; align-items: stretch; }
 .pdm-qty { display: inline-flex; align-items: center; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
 .pdm-qty button { background: #F9FAFB; border: none; width: 36px; height: 46px; font-size: 18px; font-weight: 700; cursor: pointer; color: #4B5563; transition: 0.15s; }
 .pdm-qty button:hover { background: var(--primary-500); color: #FFF; }
 .pdm-qty input { width: 44px; height: 46px; border: none; text-align: center; font-size: 16px; font-weight: 800; outline: none; background: #FFF; color: #111827; }
-.pdm-add-btn { flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary-500), var(--primary-700)); color: #FFF; border: none; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.18s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; letter-spacing: 0.3px; white-space: nowrap; line-height: 1; }
+.pdm-add-btn { flex: 1 1 140px; min-width: 140px; background: linear-gradient(135deg, var(--primary-500), var(--primary-700)); color: #FFF; border: none; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.18s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; letter-spacing: 0.3px; white-space: nowrap; line-height: 1; }
 .pdm-add-btn > span { white-space: nowrap; }
 .pdm-add-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(205,124,50,0.35); }
 .pdm-add-btn:disabled { background: #D1D5DB; cursor: not-allowed; transform: none; box-shadow: none; }

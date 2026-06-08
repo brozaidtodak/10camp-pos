@@ -11935,13 +11935,18 @@ window.cpkFilterCustomers = function(q) {
  }).join('');
  const pastHtml = past.length ? (
   '<div style="padding:7px 14px; background:#FFF7ED; font-size:10px; font-weight:800; color:#9A3412; text-transform:uppercase; letter-spacing:0.4px;">Dari jualan lepas (belum dalam CRM)</div>' +
-  past.map((c, idx) => `<div onclick="window.cpkPickPastCustomer(${idx})" style="padding:10px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#FFFBF5'" onmouseout="this.style.background=''">
+  past.map((c, idx) => {
+   const lastStr = c.last ? new Date(c.last).toLocaleDateString('en-MY', { day:'2-digit', month:'short', year:'numeric' }) : '';
+   const histLine = `Pernah beli: <strong>${c.orders || 0} order</strong> · RM ${Number(c.spent || 0).toFixed(2)}${lastStr ? ' · akhir ' + lastStr : ''}`;
+   return `<div onclick="window.cpkPickPastCustomer(${idx})" style="padding:10px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#FFFBF5'" onmouseout="this.style.background=''">
  <div>
  <div style="font-size:13.5px; font-weight:700; color:#111;">${escHtml(c.name || '(tiada nama)')} <span style="background:#FEF3C7; color:#92400E; padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:700;">Jualan Lepas</span></div>
  <div style="font-size:11.5px; color:#6B7280; margin-top:2px;">${escHtml(c.phone || '-')}${c.email ? ' · ' + escHtml(c.email) : ''}${c.channel ? ' · ' + escHtml(c.channel) : ''}</div>
+ <div style="font-size:11px; color:#15803D; margin-top:2px;"><i data-lucide="repeat" style="width:11px;height:11px;vertical-align:-1px;"></i> ${histLine}</div>
  </div>
  <i data-lucide="chevron-right" style="width:14px; height:14px; color:#9CA3AF;"></i>
- </div>`).join('')
+ </div>`;
+  }).join('')
  ) : '';
  res.innerHTML = crmHtml + pastHtml;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
@@ -11977,10 +11982,8 @@ window.__getPastCustomers = function() {
  if(window.__pastCustomersCache) return window.__pastCustomersCache;
  const crmPhones = new Set((typeof customersData !== 'undefined' ? customersData : []).map(c => (c.phone || '').replace(/[^0-9]/g, '')).filter(Boolean));
  const sales = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) ? salesHistory : [];
- const sorted = sales.slice().sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
- const seen = new Set();
- const out = [];
- sorted.forEach(s => {
+ const map = new Map(); // key → {name, phone, email, channel, last, lastT, orders, spent}
+ sales.forEach(s => {
   if(s.is_test) return;
   const md = s.metadata || {};
   const name = (s.customer_name || '').trim();
@@ -11990,10 +11993,15 @@ window.__getPastCustomers = function() {
   const phoneNorm = phone.replace(/[^0-9]/g, '');
   if(phoneNorm && crmPhones.has(phoneNorm)) return; // dah ada dalam CRM
   const key = phoneNorm || ('nm:' + name.toLowerCase());
-  if(seen.has(key)) return;
-  seen.add(key);
-  out.push({ name, phone, email, channel: s.channel || '', last: s.created_at || null });
+  const t = new Date(s.created_at || 0).getTime();
+  const real = (typeof window.__isRealSale === 'function') ? window.__isRealSale(s) : !s.is_test;
+  let e = map.get(key);
+  if(!e) { e = { name, phone, email, channel: s.channel || '', last: s.created_at || null, lastT: t, orders: 0, spent: 0 }; map.set(key, e); }
+  // simpan detail PALING TERKINI (nama/phone/email/channel)
+  if(t >= e.lastT) { e.lastT = t; e.last = s.created_at || null; if(s.channel) e.channel = s.channel; if(name) e.name = name; if(phone) e.phone = phone; if(email) e.email = email; }
+  if(real) { e.orders += 1; e.spent += (Number(s.total_amount || s.total || 0) || 0); }
  });
+ const out = Array.from(map.values()).sort((a, b) => b.lastT - a.lastT);
  window.__pastCustomersCache = out;
  return out;
 };

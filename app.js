@@ -12655,9 +12655,11 @@ window.__custSalesAgg = function(name, phone, email) {
 window.processNewCheckout = async function() {
  if(cart.length === 0) { if (typeof showToast==='function') showToast('Troli kosong — scan barang dulu','warning'); else alert('Empty Cart!'); return; }
  const btn = document.getElementById("checkoutBtn");
- btn.disabled = true; 
+ btn.disabled = true;
  btn.textContent = "Processing Omnichannel FIFO...";
 
+ // p1_554 — jejak sama ada sale BETUL-BETUL disimpan; kalau gagal, pulihkan stok dlm catch (#1)
+ let saleCommitted = false;
  try {
  let transactionsPayload = []; let totalVal = 0;
  const cn = document.getElementById("checkoutChannel").value;
@@ -12682,7 +12684,8 @@ window.processNewCheckout = async function() {
  if (!ewalletRef) { fail('Ref # dari customer\'s confirmation screen wajib.'); return; }
  const patterns = window.__ewalletPatterns || {};
  const meta = patterns[ewalletProvider];
- if (meta && !meta.pattern.test(ewalletRef)) { fail('Ref # format tak match '+ewalletProvider+' ('+meta.hint+'). Verify dengan customer.'); return; }
+ // p1_554 (#12) — amaran sahaja, JANGAN blok jualan (elak halang checkout sah kalau regex terlalu ketat)
+ if (meta && !meta.pattern.test(ewalletRef) && typeof showToast === 'function') { showToast('AMARAN: Ref # nampak tak ikut format '+ewalletProvider+' ('+meta.hint+'). Pastikan betul dengan customer.', 'warn'); }
  // canonical pm stays 'E-Wallet'; full provider+ref goes to pmDetail
  pmDetail = ewalletProvider + ' (Ref: ' + ewalletRef + ')';
  }
@@ -12723,39 +12726,8 @@ window.processNewCheckout = async function() {
 
  if(transactionsPayload.length> 0) await db.from('inventory_transactions').insert(transactionsPayload);
 
- // p1_484 — Auto-simpan pelanggan masa checkout (nama bukan Walk-In) supaya pelanggan
- // baru/lama auto masuk senarai pelanggan + simpan EMAIL sekali. Padan ikut phone →
- // email → nama (elak duplicate). Update senarai dalam-memori terus.
- const earnedPoints = window.__pointsForSpend(totalVal); // RM10 = 1 mata
- if(custNameText && custNameText !== 'Walk-In') {
- const custEmailText = ((document.getElementById("customerEmail") || {}).value || '').trim();
- const phoneNorm = (custPhoneText || '').replace(/[^0-9]/g, '');
- const existing = customersData.find(c =>
- (phoneNorm && (c.phone || '').replace(/[^0-9]/g, '') === phoneNorm) ||
- (custEmailText && (c.email || '').toLowerCase() === custEmailText.toLowerCase()) ||
- (!phoneNorm && !custEmailText && (c.name || '').toLowerCase() === custNameText.toLowerCase())
- );
- try {
- if(!existing) {
- // p1_485 — pelanggan baru: kira MATA + total dari SEMUA sejarah jualan dia (bukan jualan ni je)
- // supaya pelanggan lama yang baru disimpan terus dapat kredit penuh (cth Aliff Irfan).
- const hist = (typeof window.__custSalesAgg === 'function') ? window.__custSalesAgg(custNameText, custPhoneText, custEmailText) : { spent: 0, orders: 0 };
- const totalSpent = Math.round((hist.spent + totalVal) * 100) / 100;
- const payload = { name: custNameText, points: window.__pointsForSpend(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
- if(custPhoneText) payload.phone = custPhoneText;
- if(custEmailText) payload.email = custEmailText;
- const { data: newCust } = await db.from('customers').insert([payload]).select().single();
- if(newCust && typeof customersData !== 'undefined' && Array.isArray(customersData)) { customersData.push(newCust); window.__pastCustomersCache = null; }
- } else {
- const upd = { points: (existing.points || 0) + earnedPoints };
- if(custPhoneText && !existing.phone) upd.phone = custPhoneText;
- if(custEmailText && !existing.email) upd.email = custEmailText;
- await db.from('customers').update(upd).eq('id', existing.id);
- existing.points = upd.points; if(upd.phone) existing.phone = upd.phone; if(upd.email) existing.email = upd.email;
- window.__pastCustomersCache = null;
- }
- } catch(e) { console.warn('auto-simpan pelanggan gagal:', e.message); }
- }
+ // p1_554 — blok auto-simpan pelanggan + mata DIPINDAH ke bawah (selepas finalTotal dikira)
+ // supaya mata/total_spent guna harga LEPAS diskaun, bukan subtotal sebelum diskaun (#22/#23).
 
  // p1_201 — Custom manual discount applied first (staff entered amount)
  const customDiscType = (document.getElementById('checkoutDiscType') || {}).value || 'rm';
@@ -12776,7 +12748,43 @@ window.processNewCheckout = async function() {
  finalTotal = round2(afterCustomDisc - vipDiscountAmt);
  }
 
+ // p1_484/p1_554 — Auto-simpan pelanggan + mata, kira atas finalTotal (LEPAS diskaun).
+ const earnedPoints = window.__pointsForSpend(finalTotal); // RM10 = 1 mata, atas harga lepas diskaun
+ if(custNameText && custNameText !== 'Walk-In') {
+ const custEmailText = ((document.getElementById("customerEmail") || {}).value || '').trim();
+ const phoneNorm = (custPhoneText || '').replace(/[^0-9]/g, '');
+ const existing = customersData.find(c =>
+ (phoneNorm && (c.phone || '').replace(/[^0-9]/g, '') === phoneNorm) ||
+ (custEmailText && (c.email || '').toLowerCase() === custEmailText.toLowerCase()) ||
+ (!phoneNorm && !custEmailText && (c.name || '').toLowerCase() === custNameText.toLowerCase())
+ );
+ try {
+ if(!existing) {
+ // pelanggan baru: kira MATA + total dari SEMUA sejarah jualan dia (kredit penuh)
+ const hist = (typeof window.__custSalesAgg === 'function') ? window.__custSalesAgg(custNameText, custPhoneText, custEmailText) : { spent: 0, orders: 0 };
+ const totalSpent = Math.round((hist.spent + finalTotal) * 100) / 100;
+ const payload = { name: custNameText, points: window.__pointsForSpend(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
+ if(custPhoneText) payload.phone = custPhoneText;
+ if(custEmailText) payload.email = custEmailText;
+ const { data: newCust } = await db.from('customers').insert([payload]).select().single();
+ if(newCust && typeof customersData !== 'undefined' && Array.isArray(customersData)) { customersData.push(newCust); window.__pastCustomersCache = null; }
+ } else {
+ // p1_554 — guna jumlah belanja seumur hidup (floor penuh) + update total_spent/total_orders (dulu cuma points incremental)
+ const newSpent = Math.round(((Number(existing.total_spent) || 0) + finalTotal) * 100) / 100;
+ const upd = { points: window.__pointsForSpend(newSpent), total_spent: newSpent, total_orders: (Number(existing.total_orders) || 0) + 1 };
+ if(custPhoneText && !existing.phone) upd.phone = custPhoneText;
+ if(custEmailText && !existing.email) upd.email = custEmailText;
+ await db.from('customers').update(upd).eq('id', existing.id);
+ existing.points = upd.points; existing.total_spent = upd.total_spent; existing.total_orders = upd.total_orders;
+ if(upd.phone) existing.phone = upd.phone; if(upd.email) existing.email = upd.email;
+ window.__pastCustomersCache = null;
+ }
+ } catch(e) { console.warn('auto-simpan pelanggan gagal:', e.message); }
+ }
+
  const saleMeta = {};
+ // p1_554 (#3) — tanda sale ni betul-betul tolak stok, supaya restock-on-void boleh dipulangkan dengan selamat (idempotent)
+ if(transactionsPayload.length > 0) saleMeta.stock_deducted = true;
  if(ewalletProvider) {
  saleMeta.ewallet_provider = ewalletProvider;
  saleMeta.ewallet_ref = ewalletRef;
@@ -12842,7 +12850,10 @@ window.processNewCheckout = async function() {
  payment_proof_uploaded_by: proofUploadedBy,
  payment_method_detail: pmDetail
  }]).select('id').single();
+ // p1_554 — Supabase insert pulang {error} (tak throw); kalau gagal, lempar supaya catch pulihkan stok (#1)
+ if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
+ saleCommitted = true; // sale dah selamat dalam DB — selepas ni jangan rollback stok
  // p1_257 — auto-trigger HEIC conversion bila proof uploaded as HEIC dari iPhone
  if(insertedSaleId && proofUrl && typeof window.__triggerHeicConvertIfNeeded === 'function') {
  window.__triggerHeicConvertIfNeeded(insertedSaleId, proofUrl);
@@ -12933,8 +12944,31 @@ window.processNewCheckout = async function() {
  document.getElementById('checkoutPaymentModal').style.display = 'none';
  await initApp(); 
  renderCart();
- } catch (e) { console.error(e); if (typeof showToast==='function') showToast('Fatal Error: ' + e.message, 'error'); else alert('Fatal Error: ' + e.message); }
- 
+ } catch (e) {
+ console.error(e);
+ // p1_554 (#1) — kalau sale GAGAL disimpan tapi stok dah ditolak, pulihkan balik supaya stok tak rosak.
+ if(!saleCommitted) {
+ try {
+ const seen = {};
+ for(const item of (cart || [])) {
+ if(!Array.isArray(item.batch_alloc)) continue;
+ for(const al of item.batch_alloc) {
+ if(!al || al.batch_id == null || seen[al.batch_id]) continue;
+ const b = inventoryBatches.find(x => x.id === al.batch_id);
+ if(b && b.qty_remaining != null) {
+ // qty_remaining dalam-memori = nilai SEBELUM tolak (kita tak mutate masa deduct) → set balik = undo
+ await db.from('inventory_batches').update({ qty_remaining: b.qty_remaining }).eq('id', al.batch_id);
+ seen[al.batch_id] = true;
+ }
+ }
+ }
+ if (typeof showToast==='function') showToast('Bayaran GAGAL disimpan — stok dipulihkan. Sila cuba lagi.', 'error');
+ } catch(re) { console.error('rollback restock gagal:', re); if (typeof showToast==='function') showToast('Bayaran gagal + pemulihan stok bermasalah. Semak stok ' + (cart||[]).map(c=>c.sku).join(', '), 'error'); }
+ } else {
+ if (typeof showToast==='function') showToast('Ralat selepas bayaran disimpan (sale OK): ' + e.message, 'warn'); else alert('Error: ' + e.message);
+ }
+ }
+
  if(btn) { btn.disabled = false; btn.textContent = "PENGESAHAN BAYARAN"; }
 }
 
@@ -17901,6 +17935,8 @@ window.__abSetStatus = async function(id, newStatus) {
  if(error) throw error;
  const s = (typeof salesHistory !== 'undefined') ? salesHistory.find(x => x.id === id) : null;
  if(s) s.status = newStatus;
+ // p1_554 (#3) — pulangkan stok kalau order jadi dead-status (abaikan kalau memang belum pernah deduct; helper idempotent)
+ if(s && typeof window.__restockSaleIfVoided === 'function') await window.__restockSaleIfVoided(s, newStatus);
  if(typeof showToast === 'function') showToast(`Order #${id} → ${newStatus}.`, 'success');
  window.renderAbandonedCheckouts();
  window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
@@ -18684,6 +18720,12 @@ window.__saleCommissionBase = function(s) {
  const disc = Number(it.discount || 0) || 0;
  base += (price * qty - disc);
  });
+ // p1_554 — tolak diskaun peringkat-ORDER (custom + VIP) dari metadata. Diskaun ni tak dibahagi
+ // ke item, jadi tanpa potongan ni komisen dikira atas hasil yang bisnes tak terima (#24).
+ let __meta = s.metadata;
+ if (typeof __meta === 'string') { try { __meta = JSON.parse(__meta); } catch(e){ __meta = null; } }
+ if (__meta) base -= (Number(__meta.custom_discount_amount) || 0) + (Number(__meta.vip_discount_amount) || 0);
+ if (base < 0) base = 0;
  base = round2(base);
  const recv = parseFloat(s.total_amount || s.total || 0) || 0;
  return recv < 0 ? -base : base;
@@ -24319,6 +24361,35 @@ window.__aoSyncSelectionUI = function(){
  if(sa){ const ids = window.__aoPageIds || []; sa.checked = ids.length > 0 && ids.every(id => window.__aoSelected.has(id)); }
 };
 // p1_331 — tukar status banyak order sekali gus
+// p1_554 (#3) — bila order LIVE jadi DEAD (Voided/Cancelled/Refunded), pulangkan stok yang ditolak.
+// Idempotent: metadata.stock_restored elak double-restock. Skip item CUSTOM-*.
+window.__DEAD_STATUSES = ['voided','cancelled','refunded'];
+window.__restockSaleIfVoided = async function(sale, newStatus, reason){
+ try {
+ if(!sale || typeof db === 'undefined' || !db) return;
+ if(!(window.__DEAD_STATUSES || []).includes(String(newStatus||'').toLowerCase())) return;
+ let md = sale.metadata; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } } md = md || {};
+ if(md.stock_restored) return; // dah dipulangkan sebelum ni
+ if(!md.stock_deducted) return; // sale ni TAK pernah tolak stok (cth abandoned / order tak-deduct) → jangan tambah phantom stok
+ let items = sale.items; if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = []; } }
+ if(!Array.isArray(items)) return;
+ let any = false;
+ for(const it of items){
+ const sku = it && it.sku;
+ if(!sku || (typeof sku === 'string' && sku.startsWith('CUSTOM-'))) continue;
+ const qty = (typeof window.__aoItemQty === 'function') ? window.__aoItemQty(it) : (Number(it.qty != null ? it.qty : it.quantity) || 0);
+ if(qty > 0 && typeof window.__applyStockDelta === 'function'){
+ await window.__applyStockDelta(sku, qty, reason || ('Restock: order #' + sale.id + ' → ' + newStatus));
+ any = true;
+ }
+ }
+ if(any){
+ md.stock_restored = true; md.stock_restored_at = new Date().toISOString();
+ await db.from('sales_history').update({ metadata: md }).eq('id', sale.id);
+ sale.metadata = md;
+ }
+ } catch(e){ console.error('restock-on-void gagal:', e); }
+};
 window.__aoBulkStatus = async function(){
  const ids = Array.from(window.__aoSelected);
  if(!ids.length) return;
@@ -24330,6 +24401,8 @@ window.__aoBulkStatus = async function(){
  const { error } = await db.from('sales_history').update({ status: newStatus }).in('id', ids);
  if(error) throw error;
  ids.forEach(id => { const s = salesHistory.find(x => x.id === id); if(s) s.status = newStatus; });
+ // p1_554 (#3) — pulangkan stok untuk order yang jadi dead-status
+ for(const id of ids){ const s = salesHistory.find(x => x.id === id); if(s) await window.__restockSaleIfVoided(s, newStatus); }
  if(typeof showToast === 'function') showToast(`${ids.length} order ditukar status: ${newStatus}.`, 'success');
  window.__aoSelected.clear();
  window.renderAllOrders && window.renderAllOrders();
@@ -28132,6 +28205,16 @@ window.cpPopulateEwallets = function() {
  sel.innerHTML = '<option value="">— Pilih e-wallet —</option>' +
  enabled.map(([k, _]) => `<option value="${k}">${k}</option>`).join('');
  if(empty) empty.classList.toggle('is-hidden', enabled.length> 0);
+ // p1_554 (#12) — isi __ewalletPatterns supaya validasi format Ref aktif dalam panel checkout (dulu kosong → skip).
+ const __EW_PAT = [
+ { re:/touch|tng|t.?n.?g/i, pattern:/^\d{16,20}$/, hint:'16-20 digit' },
+ { re:/boost/i, pattern:/^[A-Za-z0-9]{8,}$/, hint:'min 8 aksara' },
+ { re:/grab/i, pattern:/^[A-Z0-9]{10,}$/i, hint:'min 10 aksara' },
+ { re:/shopee/i, pattern:/^[A-Z0-9-]{10,}$/i, hint:'min 10 aksara' },
+ { re:/mae|maybank/i, pattern:/^\d{6,}$/, hint:'min 6 digit' }
+ ];
+ window.__ewalletPatterns = {};
+ enabled.forEach(([k]) => { const m = __EW_PAT.find(p => p.re.test(k)); if(m) window.__ewalletPatterns[k] = { pattern: m.pattern, hint: m.hint }; });
 };
 
 window.cpRecomputeTotal = function() {

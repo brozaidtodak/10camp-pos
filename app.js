@@ -20246,6 +20246,26 @@ window.openPdpModal = function(sku) {
  if(m.tiktok_synced_at) parts.push('TikTok last sync: ' + new Date(m.tiktok_synced_at).toLocaleString('en-MY'));
  syncEl.textContent = parts.join(' · ') || 'Belum pernah sync auto.';
  }
+ // p1_520 — banner status Shopee untuk Zack (link/harga/Variation ID sekali pandang)
+ const spStatusEl = document.getElementById('pdpShopeeStatus');
+ if(spStatusEl) {
+ const spItem = m.shopee_item_id, spModel = m.shopee_model_id;
+ const spPrice = prod.shopee_price != null ? Number(prod.shopee_price) : null;
+ if(spItem) {
+ spStatusEl.innerHTML = `<div style="background:#ECFDF5; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#065F46; line-height:1.6;">
+  <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke Shopee</div>
+  <div><strong>Item ID:</strong> ${String(spItem)} <span style="color:#9CA3AF;">(produk)</span></div>
+  ${spModel ? `<div><strong>Variation ID:</strong> ${String(spModel)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : '<div style="color:#92400E;">Variation ID variant ni belum ada — stok/harga variant tak sync.</div>'}
+  <div><strong>Harga Shopee:</strong> ${spPrice != null ? 'RM ' + spPrice.toFixed(2) : '<span style="color:#92400E;">belum set</span>'}</div>
+ </div>`;
+ } else {
+ spStatusEl.innerHTML = `<div style="background:#FFF7ED; border:1px solid #FED7AA; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#9A3412; line-height:1.6;">
+  <div style="font-weight:800; display:flex; align-items:center; gap:5px;"><i data-lucide="x-circle" style="width:14px;height:14px;"></i> Belum di Shopee</div>
+  <div>Produk ni tak ter-link Shopee — harga & stok TAK sync. Isi Shopee Item ID di bawah untuk sambung.</div>
+ </div>`;
+ }
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ }
 
  // Metafields (key-value extension) — read from prod.metadata.metafields (new) or legacy prod.metafields
  currentPdpMetafields = {};
@@ -28540,7 +28560,7 @@ window.renderProductDatabase = function() {
  const tiktokIntegrated = !!(meta.tiktok_product_id || meta.tiktok_synced_at);
  const integrationBadges = `
  <div class="pd-card__integrations" style="position:absolute; top:6px; left:6px; display:flex; gap:3px; z-index:2;">
- <span title="${shopeeIntegrated ? 'Synced dengan Shopee · click product untuk lihat detail' : 'BELUM disync dengan Shopee'}" style="background:${shopeeIntegrated ? '#EE4D2D' : '#E5E7EB'}; color:${shopeeIntegrated ? '#fff' : '#9CA3AF'}; padding:2px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.3px; line-height:1; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="${shopeeIntegrated ? 'check' : 'x'}" style="width:8px;height:8px;"></i> SP</span>
+ <span title="${shopeeIntegrated ? ('Tersambung Shopee · Item ' + (meta.shopee_item_id || '?') + (p.shopee_price != null ? ' · RM ' + Number(p.shopee_price).toFixed(2) : '') + ' · klik untuk detail') : 'BELUM di Shopee — harga/stok tak sync'}" style="background:${shopeeIntegrated ? '#EE4D2D' : '#E5E7EB'}; color:${shopeeIntegrated ? '#fff' : '#9CA3AF'}; padding:2px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.3px; line-height:1; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="${shopeeIntegrated ? 'check' : 'x'}" style="width:8px;height:8px;"></i> SP</span>
  <span title="${tiktokIntegrated ? 'Synced dengan TikTok Shop · click product untuk lihat detail' : 'BELUM disync dengan TikTok Shop'}" style="background:${tiktokIntegrated ? '#000' : '#E5E7EB'}; color:${tiktokIntegrated ? '#fff' : '#9CA3AF'}; padding:2px 5px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:0.3px; line-height:1; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="${tiktokIntegrated ? 'check' : 'x'}" style="width:8px;height:8px;"></i> TT</span>
  </div>`;
  return `

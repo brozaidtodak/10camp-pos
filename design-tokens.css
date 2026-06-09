@@ -2555,6 +2555,13 @@ a:focus-visible {
  .dash-card canvas, .dash-card svg { max-width: 100% !important; height: auto; }
 }
 
+/* p1_549 — Fasa 2 responsif Tables: di tablet/phone (<=900px) biar table SKROL MENDATAR
+   dalam kotaknya sendiri (display:block + overflow-x:auto) — elak table lebar tolak
+   seluruh page jadi boleh geser tepi / content terpotong. Desktop (>900px) tak terjejas. */
+@media (max-width: 900px) {
+ #main-content table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
 /* Card with title + body */
 .dash-card {
  background: #FFF;

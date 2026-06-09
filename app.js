@@ -41,11 +41,31 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
 // Web/desktop tiada token TenCampPOSApp → scoping tak jalan, kekal back-office penuh.
 (function __initPosAppScopeCss(){
  if(!window.__isPOSApp) return;
+ // p1_545 — Native app shell (Zaid: "ui/ux lebih pro apps looking", warna tema kekal).
+ // Top bar nipis + bottom tab bar + edge-to-edge + safe-area + tap feedback. Hanya app scope.
  const css = [
- 'body.pos-app-scoped #sidebarRail{display:none!important;}',
- 'body.pos-app-scoped #sidebarMain .menu-list{display:none!important;}',          // sorok nav back-office penuh
- 'body.pos-app-scoped #sidebarMain .sidebar-header button[onclick*="previewLanding"]{display:none!important;}', // staff tak perlu preview landing
- 'body.pos-app-scoped #sidebarMain #posAppNav{display:block!important; padding:12px;}'
+ // Sorok chrome web (sidebar penuh + header web) — diganti top/bottom bar native.
+ 'body.pos-app-scoped #appSidebar{display:none!important;}',
+ 'body.pos-app-scoped .app-header{display:none!important;}',
+ // Top bar
+ '#posAppTopBar{display:none;}',
+ 'body.pos-app-scoped #posAppTopBar{display:flex; align-items:center; gap:10px; position:fixed; top:0; left:0; right:0; z-index:9500; height:calc(54px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 16px 0 16px; background:#101010; color:#FAF6EF; box-shadow:0 2px 12px rgba(0,0,0,.28);}',
+ '#posAppTopBar .pat-title{flex:1; font-weight:700; font-size:17px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}',
+ '#posAppTopBar .pat-logout{flex:0 0 auto; background:rgba(255,255,255,.08); border:0; color:#FAF6EF; width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .06s;}',
+ '#posAppTopBar .pat-logout:active{transform:scale(.9);}',
+ // Bottom tab bar
+ '#posAppTabBar{display:none;}',
+ 'body.pos-app-scoped #posAppTabBar{display:flex; position:fixed; bottom:0; left:0; right:0; z-index:9500; height:calc(62px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom); background:#fff; border-top:1px solid var(--border-color,#e8e2d8); box-shadow:0 -2px 16px rgba(0,0,0,.07);}',
+ '.posAppTab{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; background:none; cursor:pointer; color:#9a948b; font-family:inherit; font-size:11px; font-weight:600; padding:7px 2px; -webkit-tap-highlight-color:transparent; transition:transform .06s, color .15s;}',
+ '.posAppTab i{width:23px; height:23px;}',
+ '.posAppTab.active{color:#CD7C32;}',
+ '.posAppTab:active{transform:scale(.88);}',
+ // Content edge-to-edge + ruang untuk bar atas/bawah + safe area
+ 'body.pos-app-scoped #main-content{max-width:none!important; margin:0!important; width:100%!important; padding:calc(54px + env(safe-area-inset-top) + 10px) 12px calc(72px + env(safe-area-inset-bottom)) 12px !important;}',
+ // Tap feedback ringan
+ 'body.pos-app-scoped .product-card:active{transform:scale(.97); transition:transform .05s;}',
+ // Pill MODE PREVIEW turun bawah top bar dalam app scope
+ 'body.pos-app-scoped #__posAppPreviewBanner{top:calc(env(safe-area-inset-top) + 64px)!important;}'
  ].join('');
  const add = () => {
  if(document.getElementById('__posAppScopeCss')) return;
@@ -68,31 +88,53 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
  if(document.body) addBanner(); else document.addEventListener('DOMContentLoaded', addBanner);
  }
 })();
-// Inject nav app ringkas (4 skrin) ke sidebar — ganti nav back-office.
-window.__injectPosAppNav = function(){
- const main = document.getElementById('sidebarMain'); if(!main) return;
- if(document.getElementById('posAppNav')) return;
- const items = [
- { icon:'shopping-cart', label:'Cashier',       fn:"switchHub(['posSection'],'POS / Cashier')" },
- { icon:'receipt',       label:'All Orders',    fn:"switchHub(['allOrdersSection'],'All Orders'); if(typeof renderAllOrders==='function') renderAllOrders()" },
- { icon:'coins',         label:'My Commission', fn:"switchHub(['commissionSection'],'My Commission')" },
- { icon:'clipboard-check',label:'Stock Take',   fn:"switchHub(['checkSessionsSection'],'Stock Take'); if(typeof renderCheckSessions==='function') renderCheckSessions()" }
- ];
- const nav = document.createElement('div');
- nav.id = 'posAppNav';
- nav.innerHTML = items.map(it => `<button class="menu-item" onclick="${it.fn}; if(typeof toggleSidebar==='function' && window.innerWidth<900){try{toggleSidebar();}catch(e){}}" style="width:100%; display:flex; align-items:center; gap:12px; padding:14px; margin-bottom:8px; background:#fff; border:1px solid var(--border-color); border-radius:10px; cursor:pointer; font-size:15px; font-weight:700; color:var(--text-main); text-align:left;"><i data-lucide="${it.icon}" style="width:20px; height:20px;"></i> ${it.label}</button>`).join('');
- const header = main.querySelector('.sidebar-header');
- if(header && header.nextSibling) main.insertBefore(nav, header.nextSibling);
- else main.appendChild(nav);
+// p1_545 — 4 destinasi app (ikon Lucide, tajuk top bar, fungsi render).
+window.__POS_APP_TABS = [
+ { key:'cashier',    icon:'shopping-cart',  label:'Cashier', sections:['posSection'],           title:'POS / Cashier' },
+ { key:'orders',     icon:'receipt',        label:'Orders',  sections:['allOrdersSection'],     title:'All Orders',    render:'renderAllOrders' },
+ { key:'commission', icon:'coins',          label:'Komisen', sections:['commissionSection'],     title:'My Commission' },
+ { key:'stock',      icon:'clipboard-check',label:'Stok',    sections:['checkSessionsSection'], title:'Stock Take',    render:'renderCheckSessions' }
+];
+// Top bar native: tajuk skrin semasa + butang logout.
+window.__injectPosAppTopBar = function(){
+ if(document.getElementById('posAppTopBar')) return;
+ const bar = document.createElement('div');
+ bar.id = 'posAppTopBar';
+ bar.innerHTML = '<span class="pat-title" id="posAppTitle">POS / Cashier</span>'
+ + '<button class="pat-logout" onclick="if(typeof handleLogout===\'function\')handleLogout()" title="Log Keluar" aria-label="Log Keluar"><i data-lucide="log-out" style="width:19px; height:19px;"></i></button>';
+ document.body.appendChild(bar);
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
-// Skop app: tunjuk nav ringkas + default ke Cashier. Logout kekal di header sidebar. Dipanggil selepas login.
+// Bottom tab bar native: 4 tab (ikon + label).
+window.__injectPosAppTabBar = function(){
+ if(document.getElementById('posAppTabBar')) return;
+ const bar = document.createElement('div');
+ bar.id = 'posAppTabBar';
+ bar.innerHTML = window.__POS_APP_TABS.map(t =>
+ `<button class="posAppTab" data-key="${t.key}" onclick="window.__posAppGo('${t.key}')"><i data-lucide="${t.icon}"></i><span>${t.label}</span></button>`
+ ).join('');
+ document.body.appendChild(bar);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+// Navigasi tab: switchHub + render + highlight tab aktif + update tajuk + scroll atas.
+window.__posAppGo = function(key){
+ const t = (window.__POS_APP_TABS || []).find(x => x.key === key); if(!t) return;
+ try {
+ if(typeof switchHub === 'function') switchHub(t.sections, t.title);
+ if(t.render && typeof window[t.render] === 'function') window[t.render]();
+ } catch(e){ console.warn('posAppGo', e); }
+ document.querySelectorAll('#posAppTabBar .posAppTab').forEach(b => b.classList.toggle('active', b.getAttribute('data-key') === key));
+ const ti = document.getElementById('posAppTitle'); if(ti) ti.textContent = t.title;
+ try { const mc = document.getElementById('main-content'); if(mc) mc.scrollTop = 0; window.scrollTo(0,0); } catch(e){}
+};
+// Skop app: native shell (top bar + bottom tab bar) + default ke Cashier. Dipanggil selepas login.
 window.__applyPosAppScope = function(){
  if(!window.__isPOSApp) return;
  try {
  document.body.classList.add('pos-app-scoped');
- window.__injectPosAppNav();
- if(typeof switchHub === 'function') switchHub(['posSection'], 'POS / Cashier');
+ window.__injectPosAppTopBar();
+ window.__injectPosAppTabBar();
+ window.__posAppGo('cashier');
  } catch(e){ console.warn('applyPosAppScope failed', e); }
 };
 
@@ -13839,6 +13881,7 @@ function handleLogout() {
  currentUserRole = null;
  document.getElementById("shopAppLayout").style.display = "block";
  document.getElementById("posAppLayout").style.display = "none";
+ document.body.classList.remove('pos-app-scoped'); // p1_545 — sorok top/bottom bar native bila logout
  const sessEl = document.getElementById("sessionUsername");
  if(sessEl) sessEl.textContent = "POS10C";
  document.getElementById("appSidebar")?.classList.remove('open');

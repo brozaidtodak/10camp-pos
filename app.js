@@ -6466,6 +6466,7 @@ window.__ppRemoveProof = async function(saleId, idx) {
 // refresh paparan list yang mungkin terbuka
 window.__ppRefreshSurfaces = function() {
  try { if(typeof window.renderPaymentProofs === 'function' && document.getElementById('paymentProofsSection') && document.getElementById('paymentProofsSection').style.display !== 'none') window.renderPaymentProofs(); } catch(e){}
+ try { if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection') && document.getElementById('allOrdersSection').style.display !== 'none') window.renderAllOrders(); } catch(e){}
  try { const ov = document.getElementById('aoViewOverlay'); if(ov && window.__aoManageProofSaleId) { ov.remove(); window.__aoViewOrder(window.__aoManageProofSaleId); } } catch(e){}
 };
 
@@ -24464,32 +24465,22 @@ window.renderAllOrders = function() {
  <td style="padding:10px; text-align:right;">${itemsCount}</td>
  <td style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
  ${(() => {
- // p1_252 — Resit column: thumb kalau image, PDF link kalau pdf, "Cash" untuk Cash sales, "tiada" merah untuk non-Cash tanpa proof
+ // p1_526 — Resit column boleh KLIK → Urus Resit (sehingga 3) untuk SEMUA order.
  const pm = s.payment_method || 'Cash';
- const url = s.payment_proof_url || '';
- if(url) {
- const urlLower = url.toLowerCase();
- const isPdf = urlLower.endsWith('.pdf');
- const isHeic = urlLower.endsWith('.heic') || urlLower.endsWith('.heif');
- if(isPdf) {
- return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="file-text" style="width:12px;height:12px;"></i> PDF</a></td>`;
+ const proofs = window.__ppGetProofs ? window.__ppGetProofs(s) : (s.payment_proof_url ? [s.payment_proof_url] : []);
+ const n = proofs.length;
+ if(n) {
+ const u0 = proofs[0]; const low = u0.toLowerCase();
+ const isImg = !low.endsWith('.pdf') && !low.endsWith('.heic') && !low.endsWith('.heif');
+ const thumb = isImg
+ ? `<img src="${escHtml(u0)}" loading="lazy" onerror="this.style.display='none'" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; vertical-align:middle; display:block;">`
+ : `<span style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:10.5px;"><i data-lucide="file-text" style="width:13px;height:13px;"></i> Fail</span>`;
+ return `<td style="padding:6px; text-align:center;"><button onclick="window.__ppManageProofs(${s.id})" title="Urus resit (${n}/3) — klik untuk tambah/buang" style="position:relative; background:none; border:none; cursor:pointer; padding:0; line-height:0;">${thumb}${n > 1 ? `<span style="position:absolute; top:-5px; right:-7px; background:#CD7C32; color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:10px; line-height:1.3;">${n}</span>` : ''}</button></td>`;
  }
- if(isHeic) {
- // p1_255 — HEIC tak render inline dalam Chrome/Safari. Sediakan link download je.
- return `<td style="padding:8px; text-align:center;"><a href="${escHtml(url)}" target="_blank" rel="noopener" title="HEIC format — Safari/Chrome tak render inline. Klik untuk download/buka external." style="display:inline-flex; align-items:center; gap:3px; color:#cd7c32; font-weight:700; font-size:10.5px; text-decoration:none;"><i data-lucide="image-down" style="width:12px;height:12px;"></i> HEIC</a></td>`;
- }
- // p1_255 — guna this.src elak escaping bug (entities decoded by HTML parser breaks JS string literal).
- // onerror fallback link kalau image tak load (storage gone / wrong format detected late).
- return `<td style="padding:6px; text-align:center;"><img src="${escHtml(url)}" loading="lazy" onclick="window.__ppOpenImg && window.__ppOpenImg(this.src)" onerror="this.outerHTML='<a href=&quot;${escHtml(url)}&quot; target=_blank rel=noopener style=&quot;display:inline-flex; align-items:center; gap:3px; color:#DC2626; font-size:10px; font-weight:700; text-decoration:none;&quot;><i data-lucide=image-off style=&quot;width:11px;height:11px;&quot;></i> broken</a>'" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; cursor:zoom-in; vertical-align:middle;"></td>`;
- }
- if(pm === 'Cash') {
- return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Cash</td>';
- }
- // p1_319 — order marketplace prepaid (Shopee/TikTok) bayar dikendali platform; jangan flag "tiada resit" merah
- if(/shopee|tiktok/i.test(s.channel || '')) {
- return '<td style="padding:10px; text-align:center; font-size:10.5px; color:#9CA3AF;">— Platform</td>';
- }
- return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppUploadFor && window.__ppUploadFor(${s.id})" title="Upload bukti bayar (tiada resit dalam DB)" style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="upload" style="width:10px;height:10px;vertical-align:-1px;"></i> tiada</button></td>`;
+ // takde resit — butang tambah untuk SEMUA order (termasuk Platform/Cash)
+ const soft = (pm === 'Cash') || /shopee|tiktok/i.test(s.channel || '');
+ const st = soft ? 'background:#F3F4F6; border:1px solid #E5E7EB; color:#6B7280;' : 'background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B;';
+ return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppManageProofs(${s.id})" title="Tambah resit (sehingga 3)" style="${st} padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="upload" style="width:10px;height:10px;"></i> ${soft ? '+ Resit' : 'tiada'}</button></td>`;
  })()}
  <td style="padding:10px; white-space:nowrap;">
  <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>

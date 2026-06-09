@@ -11490,10 +11490,19 @@ function renderPOS(searchTerm = "") {
  return;
  }
 
+ // p1_552 — Prestasi cashier: kira stok per SKU SEKALI (satu pass) sebelum loop.
+ // Sebelum ni tiap kad scan penuh inventoryBatches (21x scan/render) => render lambat,
+ // butang Next & paging tersekat. Map = lookup O(1) per kad. Dibina tiap render supaya
+ // sentiasa tepat (jualan ubah qty_remaining tanpa ubah panjang array).
+ const __stockBySku = new Map();
+ for(let i = 0; i < inventoryBatches.length; i++) {
+ const b = inventoryBatches[i];
+ if(b.qty_remaining > 0) __stockBySku.set(b.sku, (__stockBySku.get(b.sku) || 0) + b.qty_remaining);
+ }
+
  sliced.forEach(p => {
 
- const myBatches = inventoryBatches.filter(b => b.sku === p.sku && b.qty_remaining> 0);
- const totalStock = myBatches.reduce((sum, b) => sum + b.qty_remaining, 0);
+ const totalStock = __stockBySku.get(p.sku) || 0;
  let thumb = p.images && p.images[0] ? p.images[0] : "https://placehold.co/300x200?text=No+Img";
  const skuEsc = String(p.sku).replace(/'/g, "\\'");
 

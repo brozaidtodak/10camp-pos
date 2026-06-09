@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // App native append "TenCampPOSApp" ke user-agent. Untuk PREVIEW/test dalam browser biasa
 // (tanpa build native), buka dgn ?posapp=1 — selamat sebab pengguna web biasa takkan letak param ni.
 window.__isPOSApp = /TenCampPOSApp/.test(navigator.userAgent || '') || /[?&]posapp=1/.test(location.search || '');
+// p1_543 — PREVIEW sahaja: ?posapp=1 dalam browser (BUKAN app native TenCampPOSApp). Untuk tunjuk label "MODE PREVIEW".
+window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCampPOSApp/.test(navigator.userAgent || '');
 // p1_534 — App skop (Zaid): Cashier + All Orders + My Commission + Stock Take.
 // Web/desktop tiada token TenCampPOSApp → scoping tak jalan, kekal back-office penuh.
 (function __initPosAppScopeCss(){
@@ -53,6 +55,18 @@ window.__isPOSApp = /TenCampPOSApp/.test(navigator.userAgent || '') || /[?&]posa
  (document.head || document.documentElement).appendChild(st);
  };
  if(document.head) add(); else document.addEventListener('DOMContentLoaded', add);
+ // p1_543 — label "MODE PREVIEW" hanya dalam browser preview (?posapp=1), bukan APK staf.
+ if(window.__isPOSAppPreview){
+ const addBanner = () => {
+ if(document.getElementById('__posAppPreviewBanner')) return;
+ const b = document.createElement('div');
+ b.id = '__posAppPreviewBanner';
+ b.textContent = 'MODE PREVIEW — paparan app staf';
+ b.style.cssText = 'position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:2147483647; background:#CD7C32; color:#101010; font:700 11px/1 Poppins,-apple-system,sans-serif; letter-spacing:.6px; padding:7px 14px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.3); pointer-events:none; white-space:nowrap;';
+ (document.body || document.documentElement).appendChild(b);
+ };
+ if(document.body) addBanner(); else document.addEventListener('DOMContentLoaded', addBanner);
+ }
 })();
 // Inject nav app ringkas (4 skrin) ke sidebar — ganti nav back-office.
 window.__injectPosAppNav = function(){

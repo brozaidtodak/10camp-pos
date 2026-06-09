@@ -21517,6 +21517,8 @@ const BULK_FIELD_DEFS = [
  { g:'Maklumat',  key:'status',   label:'Status',       type:'disp' },
  // p1_433 — Marketplace integration (disimpan dlm metadata JSONB; meta:true)
  { g:'Marketplace', key:'sp_item', label:'Shopee Item ID',   type:'text', f:'shopee_item_id',    meta:true },
+ // p1_522 — Variation ID Shopee (model_id) = kunci integrasi harga/stok per-variant Shopee
+ { g:'Marketplace', key:'sp_model',label:'Variation ID Shopee',type:'text', f:'shopee_model_id',  meta:true },
  { g:'Marketplace', key:'tt_pid',  label:'TikTok Product ID',type:'text', f:'tiktok_product_id', meta:true },
  { g:'Marketplace', key:'sp_url',  label:'Link Shopee',      type:'text', f:'shopee_url',         meta:true },
  { g:'Marketplace', key:'tt_url',  label:'Link TikTok',      type:'text', f:'tiktok_url',         meta:true },

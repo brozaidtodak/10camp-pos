@@ -1007,7 +1007,7 @@ window.__rpRenderAdminTemplate = function(body, u, range) {
 
  // ---- 3. Commission table for sales staff ----
  const salesStaff = (typeof authUsers !== 'undefined' && Array.isArray(authUsers))
- ? authUsers.filter(s => s.role === 'sales' && s.staff_id !== 'TST001')
+ ? authUsers.filter(s => s.role === 'sales' && s.staff_id !== 'TST001' && s.staff_id !== 'REV001')
  : [];
  const salesMtdRows = salesStaff.map(s => {
  let revenue = 0, orders = 0;
@@ -5146,7 +5146,7 @@ window.renderTeamReports = async function() {
  let roster = [];
  try {
  let inactive = []; try { inactive = JSON.parse(localStorage.getItem('staffInactive_v1')||'[]'); } catch(e){}
- roster = (typeof authUsers !== 'undefined' ? authUsers : []).filter(u => u && u.name && u.staff_id !== 'TST001' && !inactive.includes(u.staff_id));
+ roster = (typeof authUsers !== 'undefined' ? authUsers : []).filter(u => u && u.name && u.staff_id !== 'TST001' && u.staff_id !== 'REV001' && !inactive.includes(u.staff_id));
  } catch(e){}
  const notSubmitted = roster.filter(u => !submittedNames.has(u.name));
  const chip = (lbl, val, color) => `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:8px 14px; min-width:80px;"><div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; font-weight:700;">${lbl}</div><div style="font-size:18px; font-weight:800; color:${color||'#101010'};">${val}</div></div>`;
@@ -12968,7 +12968,9 @@ const authUsers = [
  // p1_73: Investor persona (brolantodak / INV001) removed — Investor Dashboard
  // dipindah ke 10cc Command Centre (owner-only back-office). POS sekarang
  // staff-facing only.
- { name: 'Tester', role: 'sales', pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef', dept: 'External Demo Account', email: 'tester@10camp.com', staff_id: 'TST001', full_name: 'External QA Tester', join_date: '2026-05-07' }
+ { name: 'Tester', role: 'sales', pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef', dept: 'External Demo Account', email: 'tester@10camp.com', staff_id: 'TST001', full_name: 'External QA Tester', join_date: '2026-05-07' },
+ // p1_539 — akaun reviewer Google Play (App Access). role 'sales' = cashier-scope, takde akses mgmt/sulit. PIN 4729.
+ { name: 'Play Reviewer', role: 'sales', pin_hash: '7eef95c334de83025794ebde3656eb0b4aaee684e5ac458524b9c88e5a304c2e', dept: 'External Demo Account', email: 'reviewer@10camp.com', staff_id: 'REV001', full_name: 'Google Play Reviewer', join_date: '2026-06-10' }
 ];
 
 

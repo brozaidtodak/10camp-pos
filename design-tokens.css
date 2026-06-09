@@ -2539,6 +2539,22 @@ a:focus-visible {
 }
 @media (max-width: 900px) {.dash-row-3 { grid-template-columns: 1fr; } }
 
+/* p1_548 — Fasa 1 responsif Dashboard: paksa SEMUA row ke 1-kolum di tablet/phone (<=900px).
+   Sebelum ni dash-row-2 collapse @800, dash-overview-row @768, dash-hero @600 — jadi
+   tablet 834px jatuh ANTARA breakpoint => kekal 2-kolum => content tersepit kiri + carta
+   terapung kanan. Desktop (>900px) langsung tak terjejas. */
+@media (max-width: 900px) {
+ #homeSection .dash-hero,
+ .dash-hero-row,
+ .dash-row-2,
+ .dash-overview-row { grid-template-columns: 1fr !important; }
+ .dash-hero > *, .dash-hero-row > *, .dash-row-2 > *, .dash-overview-row > *,
+ .dash-card, .dash-hero-card { min-width: 0 !important; }
+ .dash-row-2 canvas, .dash-row-2 svg,
+ .dash-hero canvas, .dash-hero svg,
+ .dash-card canvas, .dash-card svg { max-width: 100% !important; height: auto; }
+}
+
 /* Card with title + body */
 .dash-card {
  background: #FFF;

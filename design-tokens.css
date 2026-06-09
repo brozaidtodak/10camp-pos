@@ -2571,6 +2571,16 @@ a:focus-visible {
  [class*="modal__inner"], [class*="modal-inner"] { max-width: 95vw !important; max-height: 90vh; overflow-y: auto; }
 }
 
+/* p1_551 — Fasa 4: jaring keselamatan responsif GLOBAL (<=900px) untuk semua section.
+   (1) overflow-x:clip pada #main-content — elak page geser tepi (clip, bukan hidden:
+   tak pecahkan position:sticky, tak tambah scrollbar). (2) media (img/video) max-width:100%.
+   (3) toolbar/action rows flex-wrap. Desktop >900px tak terjejas. */
+@media (max-width: 900px) {
+ #main-content { overflow-x: clip; }
+ #main-content img, #main-content video { max-width: 100%; height: auto; }
+ #main-content [class*="toolbar"], #main-content [class*="__actions"], #main-content [class*="-actions"] { flex-wrap: wrap; }
+}
+
 /* Card with title + body */
 .dash-card {
  background: #FFF;

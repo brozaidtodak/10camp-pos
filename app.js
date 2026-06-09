@@ -21533,15 +21533,17 @@ window.__bulkColCount = function(){ return 4 + (window.__bulkCols || []).filter(
 // Build the dynamic table header to match active columns
 window.bulkBuildHead = function(){
  const row = document.getElementById('bulkHeadRow'); if(!row) return;
- let h = '<th style="width:36px;"><input type="checkbox" id="bulkSelectAll" onchange="bulkToggleAll(this)"></th>'
- + '<th style="width:60px;">Img</th><th>SKU</th><th>Nama Produk</th>';
+ // p1_521 — header FROZEN: sticky pada setiap <th> (lebih robust dari thead sahaja) supaya
+ // bila scroll ke bawah, baris tajuk ikut. Background + z-index supaya tutup baris bawah.
+ const stick = 'position:sticky; top:0; background:#FAFAFA; z-index:6; box-shadow:0 1px 0 #E5E7EB;';
+ let h = `<th style="${stick} width:36px;"><input type="checkbox" id="bulkSelectAll" onchange="bulkToggleAll(this)"></th>`
+ + `<th style="${stick} width:60px;">Img</th><th style="${stick}">SKU</th><th style="${stick}">Nama Produk</th>`;
  (window.__bulkCols || []).forEach(k => {
  const d = BULK_FIELD_BY_KEY[k]; if(!d) return;
  if(d.type === 'skuedit') return; // toggles core SKU cell, not a new column
  const right = (d.type === 'num' || d.type === 'int' || d.type === 'stock');
  const align = right ? 'text-align:right;' : (d.key === 'status' ? 'text-align:center;' : '');
- row.innerHTML; // noop to keep linter calm
- h += `<th style="${align} min-width:80px;">${hesc(d.label)}</th>`;
+ h += `<th style="${stick} ${align} min-width:80px;">${hesc(d.label)}</th>`;
  });
  row.innerHTML = h;
 };
@@ -21691,6 +21693,11 @@ window.renderBulkOps = function() {
  <span><strong>${total}</strong> produk · halaman <strong>${pg}</strong> / ${totalPages} · baris ${total ? startIdx + 1 : 0}–${startIdx + filtered.length}</span>
  <span style="display:inline-flex; gap:6px; align-items:center;">${navBtn('‹ Prev', pg - 1, pg <= 1)}${navBtn('Next ›', pg + 1, pg >= totalPages)}<span style="font-size:11px; color:#9CA3AF; margin-left:4px;">Simpan dulu sebelum tukar halaman</span></span>
  </div>`;
+ // p1_521 — pager bawah (sama macam atas) supaya senang next tanpa scroll ke atas
+ const botPager = document.getElementById('bulkBottomPager');
+ if(botPager) botPager.innerHTML = totalPages > 1
+ ? `<div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; padding:6px 0;">${navBtn('‹ Prev', pg - 1, pg <= 1)}<span style="font-size:12px; color:#6B7280;">Halaman <strong>${pg}</strong> / ${totalPages}</span>${navBtn('Next ›', pg + 1, pg >= totalPages)}</div>`
+ : '';
 
  if(filtered.length === 0) {
  tbody.innerHTML = `<tr><td colspan="${window.__bulkColCount()}" style="text-align:center; padding:30px; color:#999;">Tiada produk match filter. Cuba tukar Status ke "Semua".</td></tr>`;
@@ -21830,6 +21837,8 @@ window.bulkSaveEdits = async function() {
 window.__bulkGoPage = function(target) {
  window.__bulkPage = target;
  if(typeof renderBulkOps === 'function') renderBulkOps();
+ // p1_521 — reset scroll dalam jadual ke atas + bawa section ke pandangan
+ try { const tb = document.getElementById('bulkOpsTbody'); const wrap = tb && tb.closest('.table-responsive'); if(wrap) wrap.scrollTop = 0; } catch(e){}
  try { document.getElementById('bulkOpsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
 };
 

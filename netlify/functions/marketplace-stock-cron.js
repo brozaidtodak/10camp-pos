@@ -45,6 +45,8 @@ async function reconcile(name, url) {
             pushed: json.pushed || 0,
             failed: json.failed || 0,
             error: json.error || null,
+            next_offset: (json.next_offset === undefined ? null : json.next_offset),
+            total_items: json.total_items,
             duration_ms: Date.now() - startMs
         };
     } catch (e) {
@@ -52,12 +54,27 @@ async function reconcile(name, url) {
     }
 }
 
+// p1_523 — baca cursor offset Shopee terakhir dari log supaya cron PUSING seluruh katalog
+// (370 item / 100 setiap run = 4 run sepusing). next_offset null = dah habis → mula balik 0.
+async function lastShopeeOffset() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/shopee_sync_log?source=eq.stock-cron&order=ran_at.desc&limit=1&select=raw_response`, {
+            headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
+        });
+        const rows = await res.json();
+        const no = rows && rows[0] && rows[0].raw_response && rows[0].raw_response.next_offset;
+        return (typeof no === 'number' && no > 0) ? no : 0;
+    } catch (e) { return 0; }
+}
+
 exports.handler = async () => {
     const ranAt = new Date().toISOString();
 
-    // Run both reconciles. Shopee paginates with ?limit (max 100); TikTok pulls all.
+    const offset = await lastShopeeOffset();
+
+    // Run both reconciles. Shopee paginates with ?limit + ?offset (cursor di log); TikTok pulls all.
     const [shopee, tiktok] = await Promise.all([
-        reconcile('shopee', `${SITE_URL}/api/shopee-stock-sync?mode=push&limit=100`),
+        reconcile('shopee', `${SITE_URL}/api/shopee-stock-sync?mode=push&limit=100&offset=${offset}`),
         reconcile('tiktok', `${SITE_URL}/api/tiktok-stock-sync?mode=push`)
     ]);
 
@@ -65,7 +82,7 @@ exports.handler = async () => {
         source: 'stock-cron', mode: 'push', ran_at: ranAt,
         error_message: shopee.error ? String(shopee.error).slice(0, 500) : null,
         duration_ms: shopee.duration_ms,
-        raw_response: { pushed: shopee.pushed, failed: shopee.failed }
+        raw_response: { pushed: shopee.pushed, failed: shopee.failed, offset_used: offset, next_offset: shopee.next_offset, total_items: shopee.total_items }
     });
     await logRun('tiktok_sync_log', {
         source: 'stock-cron', mode: 'push', ran_at: ranAt,

@@ -34155,6 +34155,42 @@ window.__doDeleteDO = async function(ref){
  } catch(e){ showToast('Gagal padam: '+((e&&e.message)||e),'warn'); }
 };
 
+/* p1_605 — bukti dokumen DO (upload ke bucket do-proofs, simpan dlm delivery_orders.proofs jsonb) */
+window.__doAddProof = function(doRef){
+ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*,application/pdf';
+ inp.onchange=function(){ const f=inp.files&&inp.files[0]; if(f) window.__doUploadProof(doRef,f); };
+ inp.click();
+};
+window.__doUploadProof = async function(doRef,f){
+ try {
+  showToast('Memuat naik bukti...','info');
+  const ext=(String(f.name||'').split('.').pop()||'bin').toLowerCase();
+  const fileName='delivery-orders/'+doRef+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
+  const up=await db.storage.from('do-proofs').upload(fileName, f, { cacheControl:'3600', upsert:false, contentType:f.type||'application/octet-stream' });
+  if(up.error) throw up.error;
+  const pub=db.storage.from('do-proofs').getPublicUrl(up.data.path);
+  const dorow=((window.__doData&&window.__doData.dos)||[]).find(d=>d.do_ref===doRef);
+  const proofs=(dorow&&Array.isArray(dorow.proofs))?dorow.proofs.slice():[];
+  proofs.push({url:(pub&&pub.data&&pub.data.publicUrl)||'', name:f.name, type:f.type||ext});
+  const r=await db.from('delivery_orders').update({proofs:proofs}).eq('do_ref',doRef);
+  if(r.error) throw r.error;
+  showToast('Bukti dimuat naik.','success');
+  window.__doData=null; await window.__doLoad(); window.renderDeliveryOrders();
+ } catch(e){ showToast('Gagal upload bukti: '+((e&&e.message)||e),'warn'); }
+};
+window.__doRemoveProof = async function(doRef, idx){
+ if(!confirm('Buang bukti ni?')) return;
+ try {
+  const dorow=((window.__doData&&window.__doData.dos)||[]).find(d=>d.do_ref===doRef);
+  const proofs=(dorow&&Array.isArray(dorow.proofs))?dorow.proofs.slice():[];
+  proofs.splice(idx,1);
+  const r=await db.from('delivery_orders').update({proofs:proofs}).eq('do_ref',doRef);
+  if(r.error) throw r.error;
+  showToast('Bukti dibuang.','success');
+  window.__doData=null; await window.__doLoad(); window.renderDeliveryOrders();
+ } catch(e){ showToast('Gagal buang: '+((e&&e.message)||e),'warn'); }
+};
+
 window.renderDeliveryOrders = async function(){
  const sec=document.getElementById('deliveryOrdersSection'); if(!sec) return;
  sec.innerHTML='<div style="padding:20px; color:#6B7280;">Memuatkan...</div>';
@@ -34169,8 +34205,11 @@ window.renderDeliveryOrders = async function(){
  const doRows = dos.length? dos.map(d=>{
   const val=window.__doValueFor(d.do_ref), cnt=window.__doItemsFor(d.do_ref).length;
   const manual=(d.source==='manual key-in');
-  return '<tr style="border-bottom:1px solid #E5E7EB;'+(manual?'background:#F0FDF4;':'')+'"><td style="padding:8px 10px; font-weight:700;">'+E(d.do_ref)+(manual?' <span style="color:#16A34A;font-size:10px;">manual</span>':'')+'</td><td style="padding:8px 10px;">'+E(d.delivery_date||'')+'</td><td style="padding:8px 10px; color:#6B7280; font-size:12px; max-width:300px;">'+E((d.description||'').slice(0,64))+'</td><td style="padding:8px 10px; text-align:right;">'+(Number(d.total_units)||0)+'</td><td style="padding:8px 10px; text-align:right;">RM'+fmt(d.freight_myr)+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(val)+'</td><td style="padding:8px 10px; white-space:nowrap;"><button onclick="window.__doShowItems(\''+E(d.do_ref)+'\')" class="btn-brand-secondary" style="padding:4px 10px; font-size:12px;">'+cnt+' item</button>'+(manual?' <button onclick="window.__doDeleteDO(\''+E(d.do_ref)+'\')" title="Padam" style="background:none;border:0;cursor:pointer;color:#DC2626;"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>':'')+'</td></tr>';
- }).join('') : '<tr><td colspan="7" style="padding:20px; text-align:center; color:#6B7280;">Tiada delivery order.</td></tr>';
+  const proofs=Array.isArray(d.proofs)?d.proofs:[];
+  const proofChips=proofs.map((pf,pi)=>{ const isImg=/image|png|jpe?g|gif|webp/i.test(String(pf.type||''))||/\.(png|jpe?g|gif|webp)$/i.test(String(pf.url||'')); return '<span style="display:inline-flex;align-items:center;margin:2px;"><a href="'+E(pf.url||'')+'" target="_blank" rel="noopener" title="'+E(pf.name||'')+'" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border:1px solid #D1D5DB;border-radius:6px 0 0 6px;font-size:11px;color:var(--primary,#CD7C32);text-decoration:none;"><i data-lucide="'+(isImg?'image':'file-text')+'" style="width:12px;height:12px;"></i>'+E(String(pf.name||'fail').slice(0,9))+'</a><button onclick="window.__doRemoveProof(\''+E(d.do_ref)+'\','+pi+')" title="Buang" style="background:#fff;border:1px solid #D1D5DB;border-left:0;border-radius:0 6px 6px 0;cursor:pointer;color:#DC2626;padding:2px 5px;font-size:11px;line-height:1;">&times;</button></span>'; }).join('');
+  const proofCell=proofChips+'<button onclick="window.__doAddProof(\''+E(d.do_ref)+'\')" title="Tambah bukti dokumen" style="background:none;border:1px dashed #D1D5DB;border-radius:6px;cursor:pointer;color:#6B7280;padding:3px 7px;font-size:11px;margin:2px;"><i data-lucide="paperclip" style="width:12px;height:12px;"></i></button>';
+  return '<tr style="border-bottom:1px solid #E5E7EB;'+(manual?'background:#F0FDF4;':'')+'"><td style="padding:8px 10px; font-weight:700;">'+E(d.do_ref)+(manual?' <span style="color:#16A34A;font-size:10px;">manual</span>':'')+'</td><td style="padding:8px 10px;">'+E(d.delivery_date||'')+'</td><td style="padding:8px 10px; color:#6B7280; font-size:12px; max-width:300px;">'+E((d.description||'').slice(0,64))+'</td><td style="padding:8px 10px; text-align:right;">'+(Number(d.total_units)||0)+'</td><td style="padding:8px 10px; text-align:right;">RM'+fmt(d.freight_myr)+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(val)+'</td><td style="padding:8px 10px; white-space:nowrap;"><button onclick="window.__doShowItems(\''+E(d.do_ref)+'\')" class="btn-brand-secondary" style="padding:4px 10px; font-size:12px;">'+cnt+' item</button>'+(manual?' <button onclick="window.__doDeleteDO(\''+E(d.do_ref)+'\')" title="Padam" style="background:none;border:0;cursor:pointer;color:#DC2626;"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>':'')+'</td><td style="padding:8px 10px;">'+proofCell+'</td></tr>';
+ }).join('') : '<tr><td colspan="8" style="padding:20px; text-align:center; color:#6B7280;">Tiada delivery order.</td></tr>';
  const soRows = orders.length? orders.map(o=>{
   return '<tr style="border-bottom:1px solid #E5E7EB;'+(o.needs_review?'background:#FEF2F2;':'')+'"><td style="padding:8px 10px; font-weight:700;">'+E(o.do_ref)+(o.needs_review?' <span style="color:#DC2626;font-size:11px;">(semak)</span>':'')+'</td><td style="padding:8px 10px;">'+E(o.order_date||'')+'</td><td style="padding:8px 10px;">'+E(o.supplier||'')+'</td><td style="padding:8px 10px;">'+E(o.payment_type||'')+'</td><td style="padding:8px 10px; text-align:right;">&yen;'+Number(o.rmb_total||0).toLocaleString()+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(o.myr_total)+'</td></tr>';
  }).join('') : '<tr><td colspan="6" style="padding:20px; text-align:center; color:#6B7280;">Tiada order.</td></tr>';
@@ -34207,7 +34246,7 @@ window.renderDeliveryOrders = async function(){
     +'</div>'
   +'</div>'
   +'<div style="font-weight:800; margin:18px 0 8px;">Delivery Orders (Penghantaran)</div>'
-  +'<div class="admin-card" style="padding:0; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">DO</th><th style="padding:8px 10px;">Tarikh</th><th style="padding:8px 10px;">Keterangan</th><th style="padding:8px 10px; text-align:right;">Unit</th><th style="padding:8px 10px; text-align:right;">Freight</th><th style="padding:8px 10px; text-align:right;">Nilai Barang</th><th style="padding:8px 10px;">Butiran</th></tr></thead><tbody>'+doRows+'</tbody></table></div>'
+  +'<div class="admin-card" style="padding:0; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">DO</th><th style="padding:8px 10px;">Tarikh</th><th style="padding:8px 10px;">Keterangan</th><th style="padding:8px 10px; text-align:right;">Unit</th><th style="padding:8px 10px; text-align:right;">Freight</th><th style="padding:8px 10px; text-align:right;">Nilai Barang</th><th style="padding:8px 10px;">Butiran</th><th style="padding:8px 10px;">Bukti</th></tr></thead><tbody>'+doRows+'</tbody></table></div>'
   +'<div style="font-weight:800; margin:22px 0 8px;">Order Supplier (Pembelian) — 2024-2026</div>'
   +'<div class="admin-card" style="padding:0; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">Order</th><th style="padding:8px 10px;">Tarikh</th><th style="padding:8px 10px;">Supplier</th><th style="padding:8px 10px;">Bayaran</th><th style="padding:8px 10px; text-align:right;">RMB</th><th style="padding:8px 10px; text-align:right;">MYR</th></tr></thead><tbody>'+soRows+'</tbody></table></div>';
  window.__doFormRenderDraft();

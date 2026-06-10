@@ -204,36 +204,44 @@ exports.handler = async (event) => {
         const tok = await getValidToken();
         out.shop_id = tok.shop_id;
 
-        // p1 — mode=escrow: tarik fee/payout breakdown (get_escrow_detail) untuk bukti.
-        // READ-ONLY — tiada tulis DB. Untuk fasa Shopee->10cc (fees/komisen/net payout).
+        // p1 — mode=escrow: tarik fee/payout breakdown (get_escrow_detail), READ-ONLY.
+        // Window sejarah via ?from=YYYY-MM-DD&?to=YYYY-MM-DD (max 15 hari). Pulang baris
+        // per-order {order_sn, order_date, gross, fees, net_payout} untuk simpan ke 10cc.
+        // order_date diderive dari prefix order_sn (YYMMDD). Untuk un-standby Sumber 10cc.
         if (params.mode === 'escrow') {
+            const fSec = params.from ? Math.floor(Date.parse(params.from) / 1000) : fromSec;
+            const tSec = params.to ? Math.floor(Date.parse(params.to) / 1000) : nowSec;
+            if (isNaN(fSec) || isNaN(tSec)) return json(400, { error: 'invalid ?from/?to' });
+            if (tSec - fSec > maxWindow + 86400) return json(400, { error: 'window >15 hari — pecah lagi kecil' });
             const sns = []; let cur = ''; let g = 0;
             do {
-                const q = { time_range_field: 'create_time', time_from: fromSec, time_to: nowSec, page_size: 50 };
+                const q = { time_range_field: 'create_time', time_from: fSec, time_to: tSec, page_size: 100 };
                 if (cur) q.cursor = cur;
                 const r = await shopeeGet('/api/v2/order/get_order_list', q, tok.access_token, tok.shop_id);
                 if (r.error) { out.error = `get_order_list: ${r.message || r.error}`; return json(502, out); }
                 for (const o of ((r.response && r.response.order_list) || [])) sns.push(o.order_sn);
                 cur = (r.response && r.response.next_cursor) || '';
                 if (!(r.response && r.response.more)) break;
-            } while (cur && ++g < 10);
+            } while (cur && ++g < 40);
+            out.window = { from: new Date(fSec * 1000).toISOString().slice(0, 10), to: new Date(tSec * 1000).toISOString().slice(0, 10) };
             out.orders_found = sns.length;
-            const sample = [];
-            for (const sn of sns.slice(0, Number(params.limit) || 5)) {
+            const dateFromSn = (sn) => { const m = /^(\d{2})(\d{2})(\d{2})/.exec(sn); return m ? `20${m[1]}-${m[2]}-${m[3]}` : null; };
+            const rows = [];
+            for (const sn of sns.slice(0, Number(params.limit) || 500)) {
                 const e = await shopeeGet('/api/v2/payment/get_escrow_detail', { order_sn: sn }, tok.access_token, tok.shop_id);
-                if (e.error) { sample.push({ order_sn: sn, error: e.message || e.error }); continue; }
+                if (e.error) { rows.push({ order_sn: sn, error: e.message || e.error }); continue; }
                 const inc = (e.response && e.response.order_income) || {};
-                sample.push({
+                rows.push({
                     order_sn: sn,
-                    buyer_total: inc.buyer_total_amount ?? inc.original_price ?? null,
-                    escrow_net: inc.escrow_amount ?? null,
-                    commission_fee: inc.commission_fee ?? null,
-                    service_fee: inc.service_fee ?? null,
-                    seller_txn_fee: inc.seller_transaction_fee ?? null,
-                    income_keys: Object.keys(inc)
+                    order_date: dateFromSn(sn),
+                    gross: inc.buyer_total_amount ?? inc.original_price ?? null,
+                    commission_fee: inc.commission_fee ?? 0,
+                    service_fee: inc.service_fee ?? 0,
+                    transaction_fee: inc.seller_transaction_fee ?? 0,
+                    net_payout: inc.escrow_amount ?? null,
                 });
             }
-            out.escrow_sample = sample;
+            out.rows = rows;
             return json(200, out);
         }
 

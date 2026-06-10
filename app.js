@@ -103,6 +103,7 @@ window.__injectPosAppTopBar = function(){
  const bar = document.createElement('div');
  bar.id = 'posAppTopBar';
  bar.innerHTML = '<span class="pat-title" id="posAppTitle">POS / Cashier</span>'
+ + '<button class="pat-logout" onclick="window.__showWhatsNew && window.__showWhatsNew()" title="Apa Baru" aria-label="Apa Baru" style="position:relative; margin-right:8px;"><i data-lucide="sparkles" style="width:18px; height:18px;"></i><span id="whatsNewDotApp" style="display:none; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:#DC2626; border:1.5px solid #101010;"></span></button>'
  + '<button class="pat-logout" onclick="if(typeof handleLogout===\'function\')handleLogout()" title="Log Keluar" aria-label="Log Keluar"><i data-lucide="log-out" style="width:19px; height:19px;"></i></button>';
  document.body.appendChild(bar);
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
@@ -762,6 +763,68 @@ window.__renderCartTabs = function(){
  html += '<button onclick="window.switchCart('+i+')" title="Cart '+(i+1)+'" style="flex:1; padding:7px 4px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; border:1px solid '+(active?'var(--primary)':'var(--border-color,#E5E7EB)')+'; background:'+(active?'var(--primary)':'#fff')+'; color:'+(active?'#fff':'#374151')+';">Cart '+(i+1)+badge+'</button>';
  }
  bar.innerHTML = html;
+};
+// p1_558 — "Apa Baru" (What's New) untuk staff: senarai features terkini dlm bahasa mudah.
+// Curated (BUKAN ROADMAP_DATA teknikal). Newest first; id terbesar = terbaru.
+window.STAFF_UPDATES = [
+ { id: 8, date: '10 Jun 2026', tag: 'Baru', icon: 'shopping-cart', title: '3 Cart Serentak',
+ desc: 'Sekarang boleh buka sampai 3 cart sekaligus. Tengah layan customer, ada customer lain masuk? Tekan tab Cart 2, layan dia — cart pertama tersimpan, tak hilang. Tak payah buang barang lagi.' },
+ { id: 7, date: '10 Jun 2026', tag: 'Laju', icon: 'zap', title: 'Cashier Lebih Pantas',
+ desc: 'Tukar page produk & butang Next sekarang lebih laju, tak tersekat macam dulu.' },
+ { id: 6, date: '9 Jun 2026', tag: 'Baru', icon: 'smartphone', title: 'App Telefon (Android)',
+ desc: 'POS dah ada app Android! Buka www.10camp.com/install.html kat telefon untuk pasang. Paparan khas staff: Cashier, Orders, Komisen, Stock Take — terus di hujung jari.' },
+ { id: 5, date: '8 Jun 2026', tag: 'Baru', icon: 'image', title: 'Resit Gambar (sampai 3)',
+ desc: 'Boleh tambah sampai 3 gambar resit / bukti bayar untuk setiap order. Klik gambar untuk besarkan & semak.' },
+ { id: 4, date: '8 Jun 2026', tag: 'Baru', icon: 'download', title: 'Export Resit',
+ desc: 'Boleh export gambar resit untuk order terpilih jadi satu fail ZIP — senang nak simpan / hantar.' },
+ { id: 3, date: '8 Jun 2026', tag: 'Lebih Baik', icon: 'alert-circle', title: 'Tag Stok Habis Lebih Jelas',
+ desc: 'Tag "STOK HABIS" sekarang di kanan atas setiap produk — senang nampak, kurang tersilap jual.' },
+ { id: 2, date: '7 Jun 2026', tag: 'Baru', icon: 'clipboard-check', title: 'Stock Take: Kolum Final Qty',
+ desc: 'Masa stock take, ada kolum "Final Qty" sebelah Check 2 untuk hantar ke Bos — lagi kemas & tepat.' },
+ { id: 1, date: '7 Jun 2026', tag: 'Baru', icon: 'rotate-ccw', title: 'Return & Refund Auto-Masuk',
+ desc: 'Barang yang customer pulangkan / refund dari Shopee & TikTok sekarang masuk sendiri ke page Returns. Tak payah keluarkan satu-satu macam dulu.' }
+];
+window.__whatsNewLatestId = (window.STAFF_UPDATES[0] || {}).id || 0;
+window.__whatsNewHasUnseen = function(){
+ let seen = 0; try { seen = parseInt(localStorage.getItem('whatsNewSeen_v1')) || 0; } catch(e){}
+ return window.__whatsNewLatestId > seen;
+};
+window.__whatsNewSyncDot = function(){
+ const unseen = window.__whatsNewHasUnseen();
+ ['whatsNewDot','whatsNewDotApp'].forEach(id => { const d = document.getElementById(id); if(d) d.style.display = unseen ? 'block' : 'none'; });
+};
+window.__showWhatsNew = function(){
+ const old = document.getElementById('whatsNewOverlay'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'whatsNewOverlay';
+ ov.setAttribute('style','position:fixed; inset:0; z-index:9700; background:rgba(16,16,16,.72); display:flex; align-items:center; justify-content:center; padding:18px;');
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ const tagColor = (t) => t === 'Laju' ? '#2563EB' : (t === 'Lebih Baik' ? '#7C3AED' : '#CD7C32');
+ const cards = (window.STAFF_UPDATES || []).map(u => `
+ <div style="display:flex; gap:12px; padding:14px 4px; border-bottom:1px solid #F0EBE3;">
+ <div style="flex:0 0 auto; width:40px; height:40px; border-radius:11px; background:#FDF0E2; display:flex; align-items:center; justify-content:center;"><i data-lucide="${u.icon}" style="width:20px; height:20px; color:#CD7C32;"></i></div>
+ <div style="flex:1; min-width:0;">
+ <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
+ <span style="font-weight:800; font-size:14.5px; color:#101010;">${hesc(u.title)}</span>
+ <span style="font-size:9.5px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; padding:2px 7px; border-radius:50px; color:#fff; background:${tagColor(u.tag)};">${hesc(u.tag)}</span>
+ </div>
+ <div style="font-size:12.8px; color:#4B5563; line-height:1.5;">${hesc(u.desc)}</div>
+ <div style="font-size:10.5px; color:#9CA3AF; margin-top:4px;">${hesc(u.date)}</div>
+ </div>
+ </div>`).join('');
+ ov.innerHTML = `<div style="background:#fff; border-radius:18px; max-width:440px; width:100%; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 70px rgba(0,0,0,.4); overflow:hidden;">
+ <div style="background:linear-gradient(135deg,#CD7C32,#A05F22); color:#fff; padding:18px 20px; display:flex; align-items:center; gap:11px;">
+ <i data-lucide="sparkles" style="width:22px; height:22px;"></i>
+ <div style="flex:1;"><div style="font-weight:800; font-size:17px; line-height:1.1;">Apa Baru di POS</div><div style="font-size:11.5px; opacity:.85; margin-top:2px;">Benda baru yang kami tambah untuk kau</div></div>
+ <button onclick="document.getElementById('whatsNewOverlay').remove()" aria-label="Tutup" style="background:rgba(255,255,255,.18); border:0; color:#fff; width:32px; height:32px; border-radius:9px; cursor:pointer; font-size:18px; line-height:1;">&times;</button>
+ </div>
+ <div style="overflow-y:auto; padding:6px 20px 14px;">${cards}</div>
+ <div style="padding:12px 20px; border-top:1px solid #F0EBE3;"><button onclick="document.getElementById('whatsNewOverlay').remove()" style="width:100%; background:#CD7C32; color:#fff; border:0; padding:11px; border-radius:11px; font-weight:800; font-size:14px; cursor:pointer;">Faham, terima kasih!</button></div>
+ </div>`;
+ document.body.appendChild(ov);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ try { localStorage.setItem('whatsNewSeen_v1', String(window.__whatsNewLatestId)); } catch(e){}
+ window.__whatsNewSyncDot();
 };
 let salesChartInst = null; // Chart.js Object
 
@@ -13939,6 +14002,13 @@ function loginAs(user, opts) {
  // p1_440: in the mobile app, override the default landing — lock to Cashier only.
  try { if(window.__isPOSApp && typeof window.__applyPosAppScope === 'function') window.__applyPosAppScope(); } catch(e){}
  }, 200);
+ // p1_558 — "Apa Baru": sync titik merah; auto-keluar sekali masa login betul (bukan silent restore) kalau ada update belum tengok
+ try {
+ if(typeof window.__whatsNewSyncDot === 'function') window.__whatsNewSyncDot();
+ if(!opts.silent && typeof window.__whatsNewHasUnseen === 'function' && window.__whatsNewHasUnseen()) {
+ setTimeout(() => { try { window.__showWhatsNew(); } catch(e){} }, 2600);
+ }
+ } catch(e){}
 }
 
 // Apply capability-based mode tab visibility

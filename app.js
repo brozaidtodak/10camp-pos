@@ -189,10 +189,12 @@ window.__pointsForSpend = function(rm) { return Math.floor((Number(rm) || 0) / (
 
 // p1_561 — Tier customer ikut jumlah belanja seumur hidup (total_spent) + redeem HYBRID:
 // diskaun % ikut tier (auto/free), voucher & gift guna mata. Semua nilai mudah ubah di sini.
+// p1_593 — warna tier ikut tema 10camp sahaja (buang ungu/slate): VIP hitam+bronze
+// (premium), Silver grey neutral, Bronze bronze. Distinct tapi semua on-brand.
 window.LOYALTY_TIERS = [
- { key:'vip',    name:'VIP',    min:3000, autoPct:10, color:'#7C3AED', bg:'#F3E8FF' },
- { key:'silver', name:'Silver', min:1000, autoPct:5,  color:'#475569', bg:'#E2E8F0' },
- { key:'bronze', name:'Bronze', min:0,    autoPct:3,  color:'#B45309', bg:'#FEF3C7' }
+ { key:'vip',    name:'VIP',    min:3000, autoPct:10, color:'#CD7C32', bg:'#101010' },
+ { key:'silver', name:'Silver', min:1000, autoPct:5,  color:'#374151', bg:'#E5E7EB' },
+ { key:'bronze', name:'Bronze', min:0,    autoPct:3,  color:'#8A5A1E', bg:'#F6E9D6' }
 ];
 window.LOYALTY_REDEEMS = {
  bronze: [ { type:'disc', label:'Diskaun 3% (Bronze)', pct:3, cost:0 }, { type:'voucher', label:'Voucher RM5', rm:5, cost:50 }, { type:'gift', label:'Free gift kecil (sticker/keychain)', cost:30 } ],
@@ -26075,7 +26077,7 @@ window.renderCustomersV2 = function() {
  if(c.accepts_sms_marketing) consent.push('<i data-lucide="message-square" title="SMS consent" style="width:14px;height:14px;color:#101010;vertical-align:-2px;"></i>');
  const allTags = (c.tags || '').split(',').map(t => t.trim()).filter(Boolean);
  const tags = allTags.slice(0, 3);
- const tagBadges = tags.map(t => `<span style="background:#E0E7FF; color:#3730A3; padding:1px 6px; border-radius:3px; font-size:9px; margin-right:2px;">${t}</span>`).join('') + (allTags.length > 3 ? `<span style="background:#F3F4F6; color:#6B7280; padding:1px 6px; border-radius:3px; font-size:9px;">+${allTags.length - 3}</span>` : '');
+ const tagBadges = tags.map(t => `<span style="background:#F6E9D6; color:#8A5A1E; padding:1px 6px; border-radius:3px; font-size:9px; margin-right:2px;">${t}</span>`).join('') + (allTags.length > 3 ? `<span style="background:#F3F4F6; color:#6B7280; padding:1px 6px; border-radius:3px; font-size:9px;">+${allTags.length - 3}</span>` : '');
  const memberBadge = c.is_member
  ? '<span style="background:#FEF3C7; color:#92400E; padding:3px 8px; border-radius:4px; font-weight:700; font-size:10px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="star" style="width:10px;height:10px;"></i> VIP</span>'
  : '<span style="color:#999; font-size:11px;">-</span>';

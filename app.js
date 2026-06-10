@@ -849,6 +849,10 @@ window.__renderCartTabs = function(){
 // p1_558 — "Apa Baru" (What's New) untuk staff: senarai features terkini dlm bahasa mudah.
 // Curated (BUKAN ROADMAP_DATA teknikal). Newest first; id terbesar = terbaru.
 window.STAFF_UPDATES = [
+ { id: 13, date: '11 Jun 2026', tag: 'Lebih Baik', icon: 'coins', title: 'Komisen Lebih Tepat',
+ desc: 'Komisen sekarang TAK kira lagi order yang dibatalkan (Cancelled) atau Void. Kalau jumlah komisen kau nampak berubah sikit, sebab order batal dah dikeluarkan — angka sekarang lebih betul & adil. Order yang refund pun dikira dengan betul (ditolak balik).' },
+ { id: 12, date: '11 Jun 2026', tag: 'Lebih Baik', icon: 'table', title: 'Senarai Pelanggan Lebih Kemas',
+ desc: 'Page Semua Pelanggan sekarang ada garis & jalur warna selang-seli macam spreadsheet — lagi senang baca, scan, dan cari pelanggan. Klik mana-mana baris untuk lihat detail.' },
  { id: 11, date: '11 Jun 2026', tag: 'Baru', icon: 'package-2', title: 'Set Pakej Barang (Bundle)',
  desc: 'Untuk staff yang urus produk: sekarang boleh cantum beberapa barang jadi satu pakej (contoh Camping Starter Pack) di menu Products > Bundles. Pilih barang, letak harga pakej, sistem kira sendiri berapa set boleh dibuat ikut stok. Jualan pakej terus di Cashier akan datang tak lama lagi.' },
  { id: 10, date: '10 Jun 2026', tag: 'Baru', icon: 'target', title: 'Sasaran Jualan Bulan Ini',

@@ -12059,7 +12059,7 @@ function renderPOS(searchTerm = "") {
  
  // Pagination Controls UI
  htmlBuf += `
- <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:15px; margin-top:20px; grid-column: 1 / -1; font-size:14px; color:#555;">
+ <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:15px; grid-column: 1 / -1; font-size:14px; color:#555; position:sticky; bottom:0; background:var(--card-bg,#fff); padding:10px 0; z-index:3; box-shadow:0 -3px 12px rgba(0,0,0,0.07); border-radius:10px;">
  <button onclick="changePosPage(-1)" ${posCurrentPage <= 1 ? 'disabled style="opacity:0.5"' : 'style="cursor:pointer"'} class="custom-btn"> < Prev </button>
  <span>Page <b>${posCurrentPage}</b> of ${totalPages}</span>
  <button onclick="changePosPage(1)" ${posCurrentPage>= totalPages ? 'disabled style="opacity:0.5"' : 'style="cursor:pointer"'} class="custom-btn"> Next> </button>

@@ -170,6 +170,9 @@ h4, .h4 { font-family: 'Poppins', sans-serif; font-weight: 600; }
 .product-card__oos { position: absolute; top: 8px; right: 8px; z-index: 4; background: #DC2626; color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.6px; line-height: 1; box-shadow: 0 2px 8px rgba(220,38,38,0.45); display: inline-flex; align-items: center; gap: 4px; }
 .product-card.is-oos img { opacity: 0.6; }
 .product-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; background: var(--bg-color); }
+/* p1_569 — Prestasi cashier (Irfan: load lama + scroll tak smooth atas phone): browser langkau render kad luar-skrin. */
+.products-grid .product-card { content-visibility: auto; contain-intrinsic-size: 0 270px; }
+#productsList { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .product-card__badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
 .product-card__title { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.35; margin: 0 0 6px; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; letter-spacing: -0.1px; cursor: pointer; transition: color 0.15s; }
 .product-card__title:hover { color: var(--primary); }

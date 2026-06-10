@@ -24,7 +24,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=55">
+ <link rel="stylesheet" href="style.css?v=56">
  <link rel="stylesheet" href="design-tokens.css?v=93">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -7929,6 +7929,7 @@
  { id:'p1_519', label:'Diagnose Shopee returns API + reconcile TikTok CSV. SHOPEE: Seller Centre ada 91 Return/Refund/Cancel tapi /api/v2/returns/get_return_list pulang KOSONG (error="", response.return=[]) — sebab API tu hanya RMA (barang dipulang) manakala 91 tu majoriti Refund-only + Cancellation (kategori lain, API returns tak liputi). Tambah ?debug=shopee dlm returns-pull.js (pulang raw response 1 window utk diagnose). Pelan: Zaid export CSV dari Shopee Seller Centre → import manual. TIKTOK: Zaid hantar export TikTok (Return_Refund Orders CSV, 32 baris: 18 Completed + 14 Refund-rejected). Cross-check: semua 18 Completed DAH ADA dlm returns_log (POS via API tarik 25 = superset; rejected betul dikecualikan). TikTok lengkap. Server-only (returns-pull.js) — tiada app.js/sw bump.', d:'done' },
  { id:'p1_534', label:'App version (staff) — skop diperluas + back-office split (Zaid: "jadikan POS kepada apps version, yang sekarang ni jadi back office"). Sambung Capacitor (server.url 10camp.com/#staff + appendUserAgent TenCampPOSApp — load live, auto-update tanpa rebuild). Dulu scope cashier-ONLY; kini Zaid pilih Cashier + All Orders + My Commission + Stock Take. Ganti CSS whack-a-mole dgn nav suntik: body.pos-app-scoped sorok #sidebarRail + .menu-list + butang Landing; __injectPosAppNav suntik #posAppNav (4 butang besar → switchHub posSection/allOrdersSection/commissionSection/checkSessionsSection + tutup drawer phone); __applyPosAppScope default Cashier; Logout kekal header. Web kekal back-office PENUH. app.js (v575->v576) + sw pos-store-v140->v141.', d:'done' },
  { id:'p1_535', label:'App shell build/test (Zaid: "tolong build/test app shell"). npx cap sync ios BERJAYA (SPM, tiada CocoaPods). BLOCKER native: Android tiada Java/JDK; iOS Simulator CoreSimulator belum install (perlu sudo xcodebuild -runFirstLaunch + GUI Xcode Run). Build native penuh perlu langkah admin/GUI. SOLUSI test segera: __isPOSApp kini juga true bila ?posapp=1 dlm URL → PREVIEW skop app (4 butang) dlm browser biasa tanpa build native (selamat). Buka 10camp.com/?posapp=1#staff. app.js (v576->v577) + sw pos-store-v141->v142.', d:'done' },
+ { id:'p1_569', label:'Prestasi Cashier phone (Irfan: load lama + scroll tak smooth + Next kena scroll 2-3 kali). (1) Pagination Prev/Next position:sticky bottom:0 dalam #productsList — sentiasa nampak. (2) .product-card content-visibility:auto + contain-intrinsic-size 270px — browser langkau render/load kad luar-skrin (load laju + scroll smooth). (3) #productsList -webkit-overflow-scrolling:touch + overscroll-behavior:contain. app.js v594->v595 + style.css v55->v56.', d:'done' },
  { id:'p1_568', label:'Buang butang Refund dari All Orders (Zaid: dah boleh adjust di Edit). Butang Refund (p1_563) dibuang dari baris table All Orders + modal view order (aoViewOverlay) — Edit Order kini liputi refund/exchange/add/cancel. __returnRefundOpen kekal (action bar Order Detail Pesanan Online). app.js v593->v594.', d:'done' },
  { id:'p1_567', label:'Fix panel notifikasi (bell) cacat di skrin sempit back-office (Zaid screenshot phone: tekan loceng, panel terpotong tepi). PUNCA: .nc-panel position:absolute right:0 relatif loceng + width 360 — melimpah keluar viewport. FIX: @media <=900px .nc-panel position:fixed, left/right 10px (lebar penuh, max-width none). design-tokens.css v92->v93.', d:'done' },
  { id:'p1_566', label:'Tambah "Batal SELURUH Order" dalam Edit (Zaid). Butang merah dalam modal Edit → __ppeCancelOrder: status Cancelled + pulang stok orig items (guard: hanya kalau metadata.stock_deducted ATAU channel POS/Walk-in — elak phantom stok marketplace) + returns_log type cancel + metadata.cancelled_by/at/stock_restored + audit. KEKAL items/total asal (sejarah). Idempotent via stock_restored. Butang "Batal" lama (tutup modal) tukar nama "Tutup". app.js v592->v593.', d:'done' },
@@ -12943,7 +12944,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=594"></script>
+ <script src="app.js?v=595"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

@@ -3040,6 +3040,10 @@ a:focus-visible {
  display: flex; flex-direction: column;
 }
 .nc-panel[hidden] { display: none; }
+/* p1_567 — Fix panel notifikasi cacat di skrin sempit (back-office phone/tablet): absolute right:0 relatif loceng buat ia melimpah/terpotong tepi. Di <=900px jadikan panel FIXED lebar penuh (margin 10px) anchor ke viewport. */
+@media (max-width: 900px) {
+ .nc-panel { position: fixed; top: calc(54px + env(safe-area-inset-top)); left: 10px; right: 10px; width: auto; max-width: none; max-height: 76vh; }
+}
 .nc-panel__head {
  display: flex; align-items: center; justify-content: space-between;
  padding: 12px 14px;

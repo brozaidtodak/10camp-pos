@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>10 CAMP Rewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+ *{box-sizing:border-box;margin:0;padding:0;}
+ body{font-family:'Poppins',-apple-system,sans-serif;background:#101010;color:#FAF6EF;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:26px 16px 60px;}
+ .card{width:100%;max-width:460px;}
+ .brand{text-align:center;font-weight:800;font-size:22px;letter-spacing:1.5px;color:#CD7C32;margin-bottom:4px;}
+ .brand small{display:block;font-size:11px;letter-spacing:2px;color:#8A847B;font-weight:600;margin-top:2px;}
+ .panel{background:#1a1714;border:1px solid #2c2620;border-radius:18px;padding:24px 22px;margin-top:22px;}
+ h2{font-size:18px;font-weight:700;margin-bottom:4px;}
+ .sub{font-size:13px;color:#A8A29A;margin-bottom:18px;line-height:1.5;}
+ label{display:block;font-size:11px;font-weight:700;color:#8A847B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+ input{width:100%;background:#0c0a08;border:1px solid #3a342c;border-radius:11px;padding:13px 14px;color:#FAF6EF;font-size:15px;font-family:inherit;outline:none;}
+ input:focus{border-color:#CD7C32;}
+ input#code{text-align:center;letter-spacing:10px;font-size:24px;font-weight:700;}
+ .btn{width:100%;background:#CD7C32;color:#101010;border:0;border-radius:12px;padding:14px;font-weight:800;font-size:15px;cursor:pointer;margin-top:14px;font-family:inherit;}
+ .btn:active{transform:translateY(1px);}
+ .btn[disabled]{opacity:.5;cursor:not-allowed;}
+ .btn-ghost{background:none;color:#CD7C32;font-weight:700;font-size:13px;border:0;cursor:pointer;margin-top:12px;width:100%;}
+ .err{color:#FCA5A5;font-size:12.5px;margin-top:10px;min-height:16px;text-align:center;}
+ .hidden{display:none;}
+ /* Dashboard */
+ .tierhead{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+ .tierbadge{padding:5px 14px;border-radius:50px;font-weight:800;font-size:14px;}
+ .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+ .stat{background:#0c0a08;border:1px solid #2c2620;border-radius:12px;padding:12px 14px;}
+ .stat .l{font-size:10.5px;color:#8A847B;text-transform:uppercase;letter-spacing:.4px;}
+ .stat .v{font-size:20px;font-weight:800;margin-top:3px;}
+ .sec-title{font-size:12px;font-weight:700;color:#CD7C32;text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px;}
+ .reward{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2c2620;font-size:13px;}
+ .reward .cost{font-size:11.5px;color:#8A847B;}
+ .purchase{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2c2620;font-size:12.5px;}
+ .purchase .meta{color:#8A847B;font-size:11px;}
+ .note{font-size:11.5px;color:#8A847B;background:#0c0a08;border-radius:10px;padding:10px 12px;margin-top:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="card">
+ <div class="brand">10 CAMP REWARDS<small>PROGRAM GANJARAN PELANGGAN</small></div>
+
+ <!-- STEP 1: EMAIL -->
+ <div class="panel" id="stepEmail">
+ <h2>Semak Mata &amp; Ganjaran</h2>
+ <div class="sub">Masukkan email yang anda guna semasa membeli. Kami hantar kod 6-digit untuk sahkan.</div>
+ <label>Email</label>
+ <input type="email" id="email" inputmode="email" autocomplete="email" placeholder="nama@email.com">
+ <button class="btn" id="sendBtn" onclick="sendCode()">Hantar Kod</button>
+ <div class="err" id="errEmail"></div>
+ </div>
+
+ <!-- STEP 2: CODE -->
+ <div class="panel hidden" id="stepCode">
+ <h2>Masukkan Kod</h2>
+ <div class="sub">Kami hantar kod 6-digit ke <strong id="emailEcho"></strong>. Semak inbox / spam.</div>
+ <label>Kod 6-digit</label>
+ <input type="text" id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="------">
+ <button class="btn" id="verifyBtn" onclick="verifyCode()">Sahkan</button>
+ <button class="btn-ghost" onclick="backToEmail()">Tukar email / hantar semula</button>
+ <div class="err" id="errCode"></div>
+ </div>
+
+ <!-- STEP 3: DASHBOARD -->
+ <div class="panel hidden" id="stepDash"></div>
+</div>
+
+<script>
+ var API = '/.netlify/functions/loyalty-otp';
+ var curEmail = '';
+ function $(id){ return document.getElementById(id); }
+ function show(id){ ['stepEmail','stepCode','stepDash'].forEach(function(s){ $(s).classList.toggle('hidden', s!==id); }); }
+ function tierOf(spent){ spent = Number(spent)||0; if(spent>=3000) return {name:'VIP',pct:10,bg:'#3b2a52',color:'#D8B4FE'}; if(spent>=1000) return {name:'Silver',pct:5,bg:'#2a3340',color:'#CBD5E1'}; return {name:'Bronze',pct:3,bg:'#3a2c14',color:'#F0C896'}; }
+ var REDEEMS = {
+ Bronze: [['Diskaun 3% (auto)','Percuma'],['Voucher RM5','50 mata'],['Free gift kecil','30 mata']],
+ Silver: [['Diskaun 5% (auto)','Percuma'],['Voucher RM20','150 mata'],['Free penghantaran / item','80 mata']],
+ VIP:    [['Diskaun 10% (auto)','Percuma'],['Voucher RM50','300 mata'],['Free gift premium','250 mata']]
+ };
+ function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+ async function post(payload){
+ var r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+ return r.json();
+ }
+
+ async function sendCode(){
+ var email = ($('email').value||'').trim().toLowerCase();
+ $('errEmail').textContent = '';
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $('errEmail').textContent = 'Email tak sah.'; return; }
+ $('sendBtn').disabled = true; $('sendBtn').textContent = 'Menghantar…';
+ try {
+ var d = await post({ action:'send', email: email });
+ curEmail = email;
+ $('emailEcho').textContent = email;
+ show('stepCode'); setTimeout(function(){ $('code').focus(); }, 100);
+ } catch(e){ $('errEmail').textContent = 'Ralat rangkaian. Cuba lagi.'; }
+ $('sendBtn').disabled = false; $('sendBtn').textContent = 'Hantar Kod';
+ }
+
+ async function verifyCode(){
+ var code = ($('code').value||'').trim();
+ $('errCode').textContent = '';
+ if(!/^\d{6}$/.test(code)){ $('errCode').textContent = 'Masukkan 6 digit.'; return; }
+ $('verifyBtn').disabled = true; $('verifyBtn').textContent = 'Menyemak…';
+ try {
+ var d = await post({ action:'verify', email: curEmail, code: code });
+ if(d && d.ok){ renderDash(d.customer, d.purchases||[]); show('stepDash'); }
+ else { $('errCode').textContent = (d && d.error) || 'Kod salah.'; }
+ } catch(e){ $('errCode').textContent = 'Ralat rangkaian. Cuba lagi.'; }
+ $('verifyBtn').disabled = false; $('verifyBtn').textContent = 'Sahkan';
+ }
+
+ function backToEmail(){ $('code').value=''; $('errCode').textContent=''; show('stepEmail'); }
+
+ function renderDash(c, purchases){
+ var t = tierOf(c.total_spent);
+ var avail = Math.max(0, (Number(c.points)||0) - (Number(c.points_redeemed)||0));
+ var rewards = REDEEMS[t.name] || [];
+ var rewardsHtml = rewards.map(function(r){ return '<div class="reward"><span>'+esc(r[0])+'</span><span class="cost">'+esc(r[1])+'</span></div>'; }).join('');
+ var pHtml = purchases.length
+ ? purchases.map(function(p){ var dt = p.date ? new Date(p.date).toLocaleDateString('ms-MY',{day:'2-digit',month:'short',year:'2-digit'}) : ''; return '<div class="purchase"><span>'+fmtRM(p.total)+' <span class="meta">'+esc(p.channel)+'</span></span><span class="meta">'+dt+' &middot; '+(p.items||0)+' item</span></div>'; }).join('')
+ : '<div class="meta" style="color:#8A847B;font-size:12px;padding:8px 0;">Belum ada pembelian direkod.</div>';
+ var nextTier = t.name==='Bronze' ? {n:'Silver',need:1000} : (t.name==='Silver' ? {n:'VIP',need:3000} : null);
+ var progress = nextTier ? '<div class="note">Belanja '+fmtRM(Math.max(0,nextTier.need-(Number(c.total_spent)||0)))+' lagi untuk naik ke <b style="color:#FAF6EF;">'+nextTier.n+'</b>.</div>' : '<div class="note">Anda di tier tertinggi — VIP. Terima kasih sokong 10 CAMP!</div>';
+ $('stepDash').innerHTML =
+ '<div class="tierhead"><span class="tierbadge" style="background:'+t.bg+';color:'+t.color+';">'+t.name+'</span><div><div style="font-weight:800;font-size:16px;">Hai'+(c.name?', '+esc(c.name.split(' ')[0]):'')+'!</div><div style="font-size:12px;color:#8A847B;">Ahli '+t.name+' &middot; diskaun '+t.pct+'%</div></div></div>'
+ + '<div class="stats">'
+ + '<div class="stat"><div class="l">Mata boleh guna</div><div class="v" style="color:#CD7C32;">'+avail+'</div></div>'
+ + '<div class="stat"><div class="l">Jumlah belanja</div><div class="v">'+fmtRM(c.total_spent)+'</div></div>'
+ + '<div class="stat"><div class="l">Jumlah pesanan</div><div class="v">'+(c.total_orders||0)+'</div></div>'
+ + '<div class="stat"><div class="l">Mata terkumpul</div><div class="v">'+(c.points||0)+'</div></div>'
+ + '</div>'
+ + progress
+ + '<div class="sec-title">Ganjaran tier '+t.name+'</div>' + rewardsHtml
+ + '<div class="note" style="margin-top:10px;">Untuk tebus voucher / free gift, tunjuk skrin ni pada staf di kedai. Diskaun '+t.pct+'% dikira automatik masa bayar.</div>'
+ + '<div class="sec-title">Pembelian terkini</div>' + pHtml
+ + '<button class="btn-ghost" style="margin-top:18px;" onclick="location.reload()">Log keluar</button>';
+ }
+
+ // Enter key shortcuts
+ document.addEventListener('keydown', function(e){
+ if(e.key !== 'Enter') return;
+ if(!$('stepEmail').classList.contains('hidden')) sendCode();
+ else if(!$('stepCode').classList.contains('hidden')) verifyCode();
+ });
+</script>
+</body>
+</html>

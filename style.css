@@ -343,12 +343,14 @@ body.pos-mobile-mode .main-content {
     padding-bottom: 100px !important;
 }
 
-/* p1_587 — Cashier pagination (Prev/Page/Next) sticky bottom tersorok bawah bar oren
-   "View Cart" (#mobileCartFloatingBar bottom:16px z-4999) dalam mode mobile/tablet.
-   Angkat pagination ATAS bar tu supaya butang Next sentiasa nampak. */
+/* p1_588 — Cashier pagination dalam mode mobile/tablet: JANGAN sticky (melayang
+   tindih kad produk = cacat). Letak di HUJUNG grid (normal flow). .main-content dah
+   ada padding-bottom:100px → pager duduk atas bar oren "View Cart" tanpa tindih.
+   Desktop kekal sticky bottom:0 (takde bar oren, nampak elok di bawah). */
 body.pos-mobile-mode .pos-pager {
-    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
-    z-index: 4998 !important;
+    position: static !important;
+    box-shadow: none !important;
+    margin: 10px 0 6px !important;
 }
 
 /* PRINT MEDIA FOR BARCODE LABELS (THERMAL PRINTER FORMAT) */

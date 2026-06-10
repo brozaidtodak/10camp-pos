@@ -24458,6 +24458,32 @@ window.renderAnalytics = function() {
  setT('anKpiNew', C.newC.toLocaleString()); setD('anKpiNewD', C.newC, P.newC);
  setT('anKpiRepeat', C.repeatRate + '%'); setD('anKpiRepeatD', C.repeatRate, P.repeatRate);
 
+ // ---- p1_598 — Profit & Margin (kos seunit × unit terjual). Sulit; analyticsSection dah gated. ----
+ const costBySku = {};
+ (Array.isArray(masterProducts)?masterProducts:[]).forEach(p => { if(p && p.sku) costBySku[p.sku] = Number(p.cost_price)||0; });
+ const cogsOf = (s) => itemsOf(s).reduce((t,it)=> t + (costBySku[it.sku]||0)*qtyOf(it), 0);
+ const profAgg = (arr) => {
+ let rev=0, cogs=0; arr.forEach(s => { rev+=amtOf(s); cogs+=cogsOf(s); });
+ const profit = rev - cogs;
+ return { rev:round2(rev), cogs:round2(cogs), profit:round2(profit), margin: rev>0?(profit/rev*100):0, ppo: arr.length?round2(profit/arr.length):0 };
+ };
+ const CP = profAgg(cur), PP = profAgg(prev);
+ setT('anKpiProfit', fmtRM2(CP.profit)); setD('anKpiProfitD', CP.profit, PP.profit);
+ setT('anKpiMargin', CP.margin.toFixed(1)+'%'); setD('anKpiMarginD', CP.margin, PP.margin);
+ setT('anKpiCogs', fmtRM2(CP.cogs)); setD('anKpiCogsD', CP.cogs, PP.cogs);
+ setT('anKpiProfitOrder', fmtRM2(CP.ppo)); setD('anKpiProfitOrderD', CP.ppo, PP.ppo);
+ (function(){
+ const el = document.getElementById('anProfitByChannel'); if(!el) return;
+ const byCh = {};
+ cur.forEach(s => { const ch=s.channel||'Lain'; if(!byCh[ch]) byCh[ch]={rev:0,cogs:0,orders:0}; byCh[ch].rev+=amtOf(s); byCh[ch].cogs+=cogsOf(s); byCh[ch].orders++; });
+ const rows = Object.keys(byCh).map(ch=>{ const o=byCh[ch]; const pr=o.rev-o.cogs; return {ch, rev:o.rev, profit:pr, margin:o.rev>0?pr/o.rev*100:0, orders:o.orders}; }).sort((a,b)=>b.profit-a.profit);
+ if(!rows.length){ el.innerHTML=''; return; }
+ el.innerHTML = '<div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">Untung ikut Channel</div>'
+ + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="text-align:left; border-bottom:2px solid var(--border-color);"><th style="padding:6px 8px;">Channel</th><th style="padding:6px 8px; text-align:right;">Jualan</th><th style="padding:6px 8px; text-align:right;">Untung</th><th style="padding:6px 8px; text-align:right;">Margin</th><th style="padding:6px 8px; text-align:right;">Order</th></tr></thead><tbody>'
+ + rows.map(r=>`<tr style="border-bottom:1px solid var(--border-color);"><td style="padding:6px 8px; font-weight:600;">${String(r.ch).replace(/</g,'&lt;')}</td><td style="padding:6px 8px; text-align:right;">${fmtRM2(r.rev)}</td><td style="padding:6px 8px; text-align:right; font-weight:700; color:${r.profit>=0?'#16A34A':'#DC2626'};">${fmtRM2(r.profit)}</td><td style="padding:6px 8px; text-align:right;">${r.margin.toFixed(1)}%</td><td style="padding:6px 8px; text-align:right;">${r.orders}</td></tr>`).join('')
+ + '</tbody></table></div>';
+ })();
+
  // ---- Trend overlay (current vs previous, aligned by day-offset) ----
  const DAY = 864e5;
  const nDays = Math.max(1, Math.min(370, Math.ceil((endMs - startMs) / DAY) + 1));

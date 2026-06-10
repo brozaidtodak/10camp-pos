@@ -34251,6 +34251,11 @@ window.__marginTagHtml = function(price, cost){
  const ok = m.ok;
  const col = ok ? '#16A34A' : '#DC2626';
  const bg  = ok ? '#DCFCE7' : '#FEE2E2';
- const label = ok ? 'Margin OK' : 'Margin nipis';
- return `<span class="pd-card__price-sub" title="Status margin ikut dasar min ${(window.MARGIN_FLOOR_PCT||35)}% — harga kos disembunyikan" style="color:${col}; background:${bg}; padding:1px 7px; border-radius:5px; font-weight:700; display:inline-block;">${label}</span>`;
+ // p1_597 — bos/mgmt nampak PERCENT (boleh pantau), staf biasa nampak OK/nipis je
+ // (elak staf kira balik kos dari peratus). isBoss/role mgmt sama gate Laporan Sulit.
+ const u = window.currentUser;
+ const isMgmt = !!u && ((window.isBoss && window.isBoss(u)) || u.role === 'mgmt');
+ const label = isMgmt ? ('Margin ' + Math.round(m.pct) + '%') : (ok ? 'Margin OK' : 'Margin nipis');
+ const tip = isMgmt ? ('Margin ' + m.pct.toFixed(1) + '% (dasar min ' + (window.MARGIN_FLOOR_PCT||35) + '%)') : ('Status margin — harga kos disembunyikan dari staf');
+ return `<span class="pd-card__price-sub" title="${tip}" style="color:${col}; background:${bg}; padding:1px 7px; border-radius:5px; font-weight:700; display:inline-block;">${label}</span>`;
 };

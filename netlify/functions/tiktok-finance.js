@@ -80,7 +80,7 @@ function mapTxn(t) {
 
 exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
-    const mode = params.mode === 'rows' ? 'rows' : 'peek';
+    const mode = ['rows', 'statement_rows'].includes(params.mode) ? params.mode : 'peek';
     const toMs   = params.to   ? Date.parse(params.to)   : Date.now();
     const fromMs = params.from ? Date.parse(params.from) : (toMs - 30 * 24 * 60 * 60 * 1000);
     if (isNaN(fromMs) || isNaN(toMs)) return json(400, { error: 'invalid ?from/?to (YYYY-MM-DD)' });
@@ -116,7 +116,28 @@ exports.handler = async (event) => {
                 out.txns_sample = (td.statement_transactions || []).slice(0, 5);
                 out.txns_total_on_first = (td.statement_transactions || []).length;
             }
-            out.note = 'PEEK — raw shapes only. Verify field names, then ?mode=rows.';
+            out.note = 'PEEK — raw shapes only. Verify field names, then ?mode=rows / statement_rows.';
+            return json(200, out);
+        }
+
+        if (mode === 'statement_rows') {
+            // One row per PAYOUT statement (= one bank settlement). Cheap: no
+            // per-statement transaction sub-calls, so the whole history fits one call.
+            // gross = revenue, net = settlement, fees lumped (statement has no split).
+            out.rows = statements.map(s => {
+                const gross = num(s.revenue_amount);
+                const net   = num(s.settlement_amount);
+                return {
+                    order_sn: String(s.id),
+                    order_date: ymd(s.statement_time ?? s.payment_time),
+                    gross,
+                    commission_fee: num(s.fee_amount),
+                    service_fee: 0,
+                    transaction_fee: 0,
+                    net_payout: net,
+                };
+            });
+            out.row_count = out.rows.length;
             return json(200, out);
         }
 

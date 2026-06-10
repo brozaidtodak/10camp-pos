@@ -25,7 +25,7 @@
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
  <link rel="stylesheet" href="style.css?v=59">
- <link rel="stylesheet" href="design-tokens.css?v=94">
+ <link rel="stylesheet" href="design-tokens.css?v=95">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -554,7 +554,7 @@
  <div id="proofPreviewMeta" style="font-size:10.5px; color:#6B7280; margin-top:6px; text-align:center;"></div>
  <button type="button" onclick="window.__proofClearFile()" style="background:none; border:none; color:#DC2626; font-size:11px; cursor:pointer; margin-top:4px; display:block; margin-left:auto;"><i data-lucide="x" style="width:11px;height:11px;vertical-align:-1px;"></i> Buang</button>
  </div>
- <p style="font-size:10.5px; color:#3730A3; margin-top:6px; margin-bottom:0;">Boleh upload kemudian dari Reports → Payment Proofs jika belum sempat sekarang. Max 5MB. Format: JPG / PNG / WEBP / PDF.</p>
+ <p style="font-size:10.5px; color:#7c4a1a; margin-top:6px; margin-bottom:0;">Boleh upload kemudian dari Reports → Payment Proofs jika belum sempat sekarang. Max 5MB. Format: JPG / PNG / WEBP / PDF.</p>
  </div>
 
  <!-- E-Wallet sub-panel: only shown when E-Wallet method picked -->
@@ -851,16 +851,16 @@
  <input type="hidden" id="locModalSkuHidden">
  
  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
- <div style="background:#E0F2FE; padding:12px; border-radius:8px; border:1px solid #BAE6FD;">
- <label style="font-size:11px; font-weight:bold; color:#0369a1; display:block; margin-bottom:5px;">Zon (Zone)</label>
+ <div style="background:#fff8f0; padding:12px; border-radius:8px; border:1px solid #fed7aa;">
+ <label style="font-size:11px; font-weight:bold; color:#a05f22; display:block; margin-bottom:5px;">Zon (Zone)</label>
  <input type="text" id="locZone" class="login-input" style="margin:0; padding:8px; font-weight:bold; text-align:center; text-transform:uppercase;" placeholder="Cth: ZON A">
  </div>
  <div style="background:#FEF3C7; padding:12px; border-radius:8px; border:1px solid #FDE68A;">
  <label style="font-size:11px; font-weight:bold; color:#92400E; display:block; margin-bottom:5px;">Lorong (Aisle)</label>
  <input type="text" id="locAisle" class="login-input" style="margin:0; padding:8px; font-weight:bold; text-align:center; text-transform:uppercase;" placeholder="Cth: L01">
  </div>
- <div style="background:#E0E7FF; padding:12px; border-radius:8px; border:1px solid #C7D2FE;">
- <label style="font-size:11px; font-weight:bold; color:#3730A3; display:block; margin-bottom:5px;">Rak (Rack)</label>
+ <div style="background:#fff8f0; padding:12px; border-radius:8px; border:1px solid #ffedd5;">
+ <label style="font-size:11px; font-weight:bold; color:#7c4a1a; display:block; margin-bottom:5px;">Rak (Rack)</label>
  <input type="text" id="locRack" class="login-input" style="margin:0; padding:8px; font-weight:bold; text-align:center; text-transform:uppercase;" placeholder="Cth: R01">
  </div>
  <div style="background:#FCE7F3; padding:12px; border-radius:8px; border:1px solid #FBCFE8;">
@@ -2288,15 +2288,15 @@
  <button onclick="window.__rsPrintSchedule()" style="background:#cd7c32; color:#fff; border:none; padding:9px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
  <i data-lucide="printer" style="width:14px; height:14px;"></i> Print Jadual
  </button>
- <button id="btnOpenAdminRoster" onclick="window.openAdminRoster()" style="display:none; background:#6b21a8; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; align-items:center; gap:6px;">
+ <button id="btnOpenAdminRoster" onclick="window.openAdminRoster()" style="display:none; background:#7c4a1a; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; align-items:center; gap:6px;">
  <i data-lucide="shield" style="width:14px; height:14px;"></i> Mod Pengurusan Roster
  </button>
  </div>
  </div>
  
  <!-- PUBLIC ROSTER PERMOHONAN FORM -->
- <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:15px; border-radius:8px; margin-bottom:20px;">
- <h3 style="color:#0369a1; margin-bottom:10px; font-size:14px;"> Borang Permohonan Tukar Syif / Cuti</h3>
+ <div style="background:#fff8f0; border:1px solid #fed7aa; padding:15px; border-radius:8px; margin-bottom:20px;">
+ <h3 style="color:#a05f22; margin-bottom:10px; font-size:14px;"> Borang Permohonan Tukar Syif / Cuti</h3>
  <p style="font-size:11px; color:#333; margin-bottom:10px;">Hantar permohonan ke peti kelulusan (Admin). Perubahan tidak rasmi selagi tidak di-Lulus oleh bos.</p>
  <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
  <div style="flex:1; min-width:140px;">
@@ -3026,7 +3026,7 @@
  <p style="font-size:13px; color:#888; margin-bottom:20px;" data-i18n="st_subtitle">Kira dan sahkan kuantiti secara teliti. Tekan "Submit" bagi setiap item yang dikira, atau gunakan pengimbas kod.</p>
  <div id="stDraftBanner" hidden></div>
 
- <div style="background:#f0f9ff; border:2px dashed #b86a26; padding:20px; border-radius:8px; text-align:center; margin-bottom:20px;">
+ <div style="background:#fff8f0; border:2px dashed #b86a26; padding:20px; border-radius:8px; text-align:center; margin-bottom:20px;">
  <h3 style="color:#b86a26; margin-bottom:10px; font-size:18px;" data-i18n="st_scanner_focus_title">Tumpu Scanner Anda Di Sini</h3>
  <input type="text" id="mainAuditScanner" onkeyup="handleMainAuditScan(event)" class="login-input" style="font-size:20px; padding:15px; text-align:center; border-color:#b86a26; margin:0 auto; max-width:500px; font-weight:bold; letter-spacing:2px; box-shadow:0 0 10px rgba(2,132,199,0.2);" placeholder="Beep!">
  <p style="font-size:12px; color:#555; margin-top:10px;" data-i18n="st_scanner_hint">(Pop-up kemaskini kuantiti fizikal akan muncul secara automatik)</p>
@@ -3225,7 +3225,7 @@
  #fifoSection .data-table tbody td { border-bottom:1px solid #E5E7EB; }
  #fifoSection .data-table thead th { border-bottom:2px solid #D1D5DB; }
  #fifoSection .data-table tbody tr:nth-child(even){ background:#FAFBFC; }
- #fifoSection .data-table tbody tr:hover { background:#EEF4FD !important; }
+ #fifoSection .data-table tbody tr:hover { background:#fff8f0 !important; }
  </style>
  <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="layers" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> FIFO Listing</h2>
  <p style="color:#6B7280; font-size:13px; margin:2px 0 14px;">Batch stok disusun <strong>First-In-First-Out</strong> — yang masuk dulu, ambil/jual dulu. Batch lama di atas; ambil dari sini dulu untuk elak stok lama tersimpan.</p>
@@ -3711,7 +3711,7 @@
  <div id="scsAssignList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:6px; margin:6px 0 14px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:#FAFAFA;">
  <p style="color:#9CA3AF; font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">Memuatkan staff…</p>
  </div>
- <div id="scsPreview" style="background:#F0F9FF; border:1px solid #BAE6FD; padding:12px; border-radius:8px; margin-bottom:14px; font-size:12.5px; color:#075985;">
+ <div id="scsPreview" style="background:#fff8f0; border:1px solid #fed7aa; padding:12px; border-radius:8px; margin-bottom:14px; font-size:12.5px; color:#075985;">
  <strong>Preview:</strong> Tiada SKU dipilih lagi.
  </div>
  <div style="display:flex; gap:8px;">
@@ -4433,7 +4433,7 @@
  </div>
 
  <!-- Form -->
- <div class="rp-section" style="border-left:4px solid #EC4899; background:rgba(236,72,153,.04);">
+ <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(205, 124, 50,.04);">
  <h3 class="rp-section__title" style="color:#9D174D;"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> Isi Data Minggu Ni</h3>
  <p class="rp-section__help">Anggar je kalau tak ingat tepat. Compare vs minggu lepas dalam history table di bawah.</p>
 
@@ -5040,7 +5040,7 @@
  #abandonedCheckoutsSection .data-table tbody td { border-bottom:1px solid #E5E7EB; }
  #abandonedCheckoutsSection .data-table thead th { border-bottom:2px solid #D1D5DB; }
  #abandonedCheckoutsSection .data-table tbody tr:nth-child(even) { background:#FAFBFC; }
- #abandonedCheckoutsSection .data-table tbody tr:hover { background:#EEF4FD !important; }
+ #abandonedCheckoutsSection .data-table tbody tr:hover { background:#fff8f0 !important; }
  </style>
  <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="shopping-cart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Belum Bayar / Abandoned</h2>
  <p style="color:#6B7280; font-size:13px; margin:2px 0 14px;">Order yang dah dibuat tapi customer belum bayar (status <strong>Belum Bayar</strong>). Follow up untuk recover jualan. <em>10 CAMP takde web cart — sumber = order belum bayar dari semua channel.</em></p>
@@ -5077,7 +5077,7 @@
  #allOrdersSection .data-table thead th { border-bottom:2px solid #D1D5DB; }
  #allOrdersSection .data-table tbody tr { transition:background .12s; }
  #allOrdersSection .data-table tbody tr:nth-child(even) { background:#FAFBFC; }
- #allOrdersSection .data-table tbody tr:hover { background:#EEF4FD !important; }
+ #allOrdersSection .data-table tbody tr:hover { background:#fff8f0 !important; }
  </style>
  <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="list-ordered" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> All Orders</h2>
 
@@ -5154,7 +5154,7 @@
  </div>
 
  <!-- p1_331 — bar tindakan bulk (muncul bila ada order dipilih) -->
- <div id="aoBulkBar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; background:#EEF4FD; border:1px solid #fed7aa; border-radius:10px; padding:10px 14px; margin-bottom:14px;">
+ <div id="aoBulkBar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; background:#fff8f0; border:1px solid #fed7aa; border-radius:10px; padding:10px 14px; margin-bottom:14px;">
  <span style="font-size:13px; font-weight:700; color:#7c4a1a;"><strong id="aoBulkCount">0</strong> order dipilih</span>
  <span style="width:1px; height:20px; background:#fed7aa;"></span>
  <label class="small-lbl" style="margin:0;">Tukar status:</label>
@@ -6354,7 +6354,7 @@
  <button onclick="document.getElementById('bulkFieldPanel').style.display='none'; bulkAction('publish')" style="padding:8px 10px; font-size:12px; font-weight:600; background:#F0FDF4; color:#065F46; border:1px solid #BBF7D0; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;"><i data-lucide="eye" style="width:13px;height:13px;"></i> Publish</button>
  <button onclick="document.getElementById('bulkFieldPanel').style.display='none'; bulkAction('unpublish')" style="padding:8px 10px; font-size:12px; font-weight:600; background:#F9FAFB; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;"><i data-lucide="eye-off" style="width:13px;height:13px;"></i> Unpublish</button>
  <button onclick="document.getElementById('bulkFieldPanel').style.display='none'; bulkOpenPriceModal()" style="padding:8px 10px; font-size:12px; font-weight:600; background:#FEF7ED; color:#9A3412; border:1px solid #FED7AA; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;" title="Tukar harga produk dipilih secara % atau RM"><i data-lucide="percent" style="width:13px;height:13px;"></i> Set Harga</button>
- <button onclick="document.getElementById('bulkFieldPanel').style.display='none'; bulkOpenCategoryModal()" style="padding:8px 10px; font-size:12px; font-weight:600; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> Tukar Kategori</button>
+ <button onclick="document.getElementById('bulkFieldPanel').style.display='none'; bulkOpenCategoryModal()" style="padding:8px 10px; font-size:12px; font-weight:600; background:#fff8f0; color:#7c4a1a; border:1px solid #ffedd5; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;"><i data-lucide="folder" style="width:13px;height:13px;"></i> Tukar Kategori</button>
  </div>
  <div style="border-top:1px solid #F0F0F0; margin:0 0 12px;"></div>
  <div style="font-weight:800; font-size:14px; color:#101010;">Pilih Kolum</div>
@@ -6438,7 +6438,7 @@
  </div>
  
  <!-- Velocity Analysis launcher (p8_1+p8_2) -->
- <div class="admin-card" style="padding:14px; margin-bottom:14px; background:linear-gradient(135deg, #F0F9FF, #ffedd5); border-left:4px solid #cd7c32;">
+ <div class="admin-card" style="padding:14px; margin-bottom:14px; background:linear-gradient(135deg, #fff8f0, #ffedd5); border-left:4px solid #cd7c32;">
  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
  <div>
  <h3 style="margin:0 0 4px;" data-i18n="wh_velocity_title">Velocity Analysis (auto-tune reorder points)</h3>
@@ -6684,13 +6684,13 @@
  <div class="admin-card" style="border-top:4px solid #cd7c32; padding:20px; margin-bottom:20px; animation:fadeIn 0.5s;">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
  <h3 style="margin:0;"> Lejar Pergerakan Stok (Movement History)</h3>
- <button class="btn-success" style="font-size:10px; padding:5px 10px; margin:0; background:#4F46E5; border-color:#4F46E5;" onclick="window.downloadLedgerCsv()"> Eksport CSV</button>
+ <button class="btn-success" style="font-size:10px; padding:5px 10px; margin:0; background:#a05f22; border-color:#a05f22;" onclick="window.downloadLedgerCsv()"> Eksport CSV</button>
  </div>
  <p style="font-size:12px; color:#888; margin-bottom:15px;">Log terperinci bagi setiap pergerakan inventori (Inbound, Outbound, Stock Take).</p>
  
  <div class="table-responsive" style="max-height:300px; overflow-y:auto; border:1px solid var(--border-color); border-radius:6px;">
  <table class="data-table" style="font-size:12px;">
- <thead style="position:sticky; top:0; background:#EEF2FF; color:#4338CA;">
+ <thead style="position:sticky; top:0; background:#fff8f0; color:#7c4a1a;">
  <tr>
  <th>Tarikh & Masa</th>
  <th>Staf Bertugas</th>
@@ -6947,7 +6947,7 @@
  </div>
  
  <!-- Custom Range Selector (Hidden By Default) -->
- <div id="graphCustomRangeBox" style="display:none; gap:10px; flex-wrap:wrap; align-items:center; background:#f0f9ff; padding:10px; border-radius:6px; margin-bottom:15px;">
+ <div id="graphCustomRangeBox" style="display:none; gap:10px; flex-wrap:wrap; align-items:center; background:#fff8f0; padding:10px; border-radius:6px; margin-bottom:15px;">
  <input type="date" id="graphStartDate" class="login-input" style="max-width:120px; font-size:11px; margin:0; padding:4px 8px;">
  <span>-</span>
  <input type="date" id="graphEndDate" class="login-input" style="max-width:120px; font-size:11px; margin:0; padding:4px 8px;">
@@ -7636,7 +7636,7 @@
  <h3 class="card-title" style="margin-bottom:10px;" data-i18n="mk_wa_card_preview">Message preview</h3>
  <p style="font-size:11px; color:#666; margin-bottom:6px;" data-i18n="mk_wa_vars">Variables: {name}, {points}, {total_spent}, {last_order_days}, {promo_code}</p>
  <textarea id="waMessage" class="cp-input" rows="9" style="font-family:monospace; font-size:12px;" oninput="window.__waPreviewMessage(true)"></textarea>
- <div style="margin-top:10px; padding:10px; background:#E0F2FE; border-radius:6px; font-size:12px;">
+ <div style="margin-top:10px; padding:10px; background:#fff8f0; border-radius:6px; font-size:12px;">
  <strong data-i18n="mk_wa_sample">Sample for first match:</strong>
  <div id="waSamplePreview" style="margin-top:4px; white-space:pre-wrap; color:#7c4a1a;"></div>
  </div>
@@ -7937,6 +7937,7 @@
  { id:'p1_519', label:'Diagnose Shopee returns API + reconcile TikTok CSV. SHOPEE: Seller Centre ada 91 Return/Refund/Cancel tapi /api/v2/returns/get_return_list pulang KOSONG (error="", response.return=[]) — sebab API tu hanya RMA (barang dipulang) manakala 91 tu majoriti Refund-only + Cancellation (kategori lain, API returns tak liputi). Tambah ?debug=shopee dlm returns-pull.js (pulang raw response 1 window utk diagnose). Pelan: Zaid export CSV dari Shopee Seller Centre → import manual. TIKTOK: Zaid hantar export TikTok (Return_Refund Orders CSV, 32 baris: 18 Completed + 14 Refund-rejected). Cross-check: semua 18 Completed DAH ADA dlm returns_log (POS via API tarik 25 = superset; rejected betul dikecualikan). TikTok lengkap. Server-only (returns-pull.js) — tiada app.js/sw bump.', d:'done' },
  { id:'p1_534', label:'App version (staff) — skop diperluas + back-office split (Zaid: "jadikan POS kepada apps version, yang sekarang ni jadi back office"). Sambung Capacitor (server.url 10camp.com/#staff + appendUserAgent TenCampPOSApp — load live, auto-update tanpa rebuild). Dulu scope cashier-ONLY; kini Zaid pilih Cashier + All Orders + My Commission + Stock Take. Ganti CSS whack-a-mole dgn nav suntik: body.pos-app-scoped sorok #sidebarRail + .menu-list + butang Landing; __injectPosAppNav suntik #posAppNav (4 butang besar → switchHub posSection/allOrdersSection/commissionSection/checkSessionsSection + tutup drawer phone); __applyPosAppScope default Cashier; Logout kekal header. Web kekal back-office PENUH. app.js (v575->v576) + sw pos-store-v140->v141.', d:'done' },
  { id:'p1_535', label:'App shell build/test (Zaid: "tolong build/test app shell"). npx cap sync ios BERJAYA (SPM, tiada CocoaPods). BLOCKER native: Android tiada Java/JDK; iOS Simulator CoreSimulator belum install (perlu sudo xcodebuild -runFirstLaunch + GUI Xcode Run). Build native penuh perlu langkah admin/GUI. SOLUSI test segera: __isPOSApp kini juga true bila ?posapp=1 dlm URL → PREVIEW skop app (4 butang) dlm browser biasa tanpa build native (selamat). Buka 10camp.com/?posapp=1#staff. app.js (v576->v577) + sw pos-store-v141->v142.', d:'done' },
+ { id:'p1_594', label:'SAPU PENUH warna ungu/biru/indigo/pink luap → tema bronze 10camp (Zaid lulus "sapu semua ke bronze"). Extend scripts/brand_color_migrate.py: tambah indigo (#3730a3/#4f46e5/#4338ca/#6366f1/#e0e7ff/#c7d2fe/#eef2ff/#818cf8), purple/magenta/pink (#6b21a8/#86198f/#ec4899/#fae8ff), sky/blue (#0369a1/#eef4fd/#e0f2fe/#bae6fd/#f0f9ff) → petakan ke shade bronze ikut TON (gelap→700/800, sederhana→500/600, cerah→100/200, latar→50). 129 tukaran: index.html 43, app.js 84, design-tokens.css 2. PELINDUNG: (a) baris ROADMAP_DATA (teks sejarah sebut hex) DILANGKAU — 16 tukaran tak disentuh; (b) Shopee #ee4d2d + WhatsApp #25d366 KEKAL (brand platform); (c) status hijau/merah/amber + grey neutral + #0f172a slate near-black tak disentuh (elak hitam-atas-hitam). Sahkan 0 warna terang luap tinggal. app.js v606->v607, design-tokens.css v94->v95.', d:'done' },
  { id:'p1_593', label:'Warna tier + tag badge ikut tema 10camp (Zaid: "rules tak nak warna selain tema 10camp, dah luap?"). List customer dah table penuh — betulkan 2 warna LUAP: (1) LOYALTY_TIERS buang ungu/slate → VIP hitam #101010 + teks bronze #CD7C32 (premium), Silver grey neutral #E5E7EB/#374151, Bronze #F6E9D6/#8A5A1E (re-tema seluruh app: CRM badge, checkout, portal). (2) Tag badge CRM indigo #E0E7FF/#3730A3 → bronze #F6E9D6/#8A5A1E. NOTA: scan jumpa ~60+ tempat ungu/biru/indigo LAIN masih tinggal di section lama (audit p1_386 terlepas) — tunggu kelulusan Zaid utk sapu penuh. app.js v605->v606.', d:'done' },
  { id:'p1_592', label:'Tambah "Semua Pelanggan" (list penuh CRM) di sidebar aktif Customers (Zaid: "takde list penuh customer pun"). PUNCA: customersSection + renderCustomersV2 (jadual CRM penuh) cuma tersambung di sidebar LAMA tersembunyi (customers_all) — sidebar AKTIF Customers cuma ada Segments/Points/Engagement/Store Credit/Loyalty Portal. Sama pola macam Loyalty Portal (p1_575). FIX: tambah menu-item "Semua Pelanggan" (ikon users, data-tab nav_customers_all) sebagai item PERTAMA dalam .nav-children data-nav-children="customers" → switchHub customersSection + renderCustomersV2. index.html sahaja.', d:'done' },
  { id:'p1_591', label:'Betulkan TABLET LANDSCAPE (Zaid: "part mana lagi aku missed" → audit dapati rule responsif kebanyakan kena ≤900px je = cover portrait+phone, TAPI tablet landscape ~1112px >900 jadi dilayan macam desktop kecil → jadual lebar/section padat cramped). FIX naikkan breakpoint 900→1200px: (1) #main-content table display:block + overflow-x:auto kini sampai 1200px (jadual scroll-mendatar di iPad landscape 1024/1112/1194). (2) Cashier __POS_MOBILE_BREAKPOINT 1024→1200 (iPad landscape pun dapat layout simple satu-scroll, konsisten). Laptop/desktop >1200px tak terjejas. app.js v604->v605, design-tokens.css v93->v94.', d:'done' },
@@ -8806,14 +8807,14 @@
  border-radius:12px; padding:16px;
  }
 .sy-sim-pane.user-a { border-color:#cd7c32; }
-.sy-sim-pane.user-b { border-color:#EC4899; }
+.sy-sim-pane.user-b { border-color:#cd7c32; }
 .sy-sim-pane.pane-head {
  display:flex; align-items:center; justify-content:space-between;
  font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
  margin-bottom:10px;
  }
 .sy-sim-pane.user-a.pane-head { color:#cd7c32; }
-.sy-sim-pane.user-b.pane-head { color:#EC4899; }
+.sy-sim-pane.user-b.pane-head { color:#cd7c32; }
 .sy-sim-pane.version-tag {
  font-size:10px; padding:2px 8px; border-radius:50px;
  background:rgba(0,0,0,.06); color:var(--text-muted); font-weight:700;
@@ -8870,7 +8871,7 @@
  }
 .sy-resolve-btns button:hover { border-color:var(--primary); }
 .sy-resolve-btns button.theirs { border-color:#cd7c32; color:#cd7c32; }
-.sy-resolve-btns button.mine { border-color:#EC4899; color:#EC4899; }
+.sy-resolve-btns button.mine { border-color:#cd7c32; color:#cd7c32; }
 .sy-resolve-btns button.merge { border-color:var(--success); color:var(--success); }
 
 .sy-log-table { width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -8881,7 +8882,7 @@
  text-transform:uppercase; letter-spacing:.3px;
  }
 .sy-log-table.resolution-pill.theirs { background:rgba(205, 124, 50,.12); color:#cd7c32; }
-.sy-log-table.resolution-pill.mine { background:rgba(236,72,153,.12); color:#EC4899; }
+.sy-log-table.resolution-pill.mine { background:rgba(205, 124, 50,.12); color:#cd7c32; }
 .sy-log-table.resolution-pill.merge { background:rgba(16, 16, 16,.12); color:var(--success); }
 
 .sy-table-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
@@ -9008,8 +9009,8 @@
  <strong style="color:#cd7c32;">10:00 — Aiman</strong><br>
  Loads customer "Faris" record on his iPad
  </div>
- <div style="padding:14px; background:rgba(236,72,153,.06); border-radius:10px; border-left:3px solid #EC4899;">
- <strong style="color:#EC4899;">10:01 — Hakim</strong><br>
+ <div style="padding:14px; background:rgba(205, 124, 50,.06); border-radius:10px; border-left:3px solid #cd7c32;">
+ <strong style="color:#cd7c32;">10:01 — Hakim</strong><br>
  Loads same record on his phone
  </div>
  <div style="padding:14px; background:rgba(192, 57, 43,.06); border-radius:10px; border-left:3px solid var(--danger);">
@@ -9336,7 +9337,7 @@
  + '<table id="sgcfDiff" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;"></table>'
  + '<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">'
  + '<button id="sgcfTheirs" style="padding:11px 12px; border:1px solid #cd7c32; color:#cd7c32; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Theirs<br><span style="font-size:10px; opacity:.8; font-weight:500;">Discard your changes</span></button>'
- + '<button id="sgcfMine" style="padding:11px 12px; border:1px solid #EC4899; color:#EC4899; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Mine<br><span style="font-size:10px; opacity:.8; font-weight:500;">Force overwrite</span></button>'
+ + '<button id="sgcfMine" style="padding:11px 12px; border:1px solid #cd7c32; color:#cd7c32; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Take Mine<br><span style="font-size:10px; opacity:.8; font-weight:500;">Force overwrite</span></button>'
  + '<button id="sgcfMerge" style="padding:11px 12px; border:1px solid #101010; color:#101010; background:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3;"> Smart Merge<br><span style="font-size:10px; opacity:.8; font-weight:500;">Keep both, mine wins</span></button>'
  + '</div></div>';
  document.body.appendChild(modal);
@@ -9347,7 +9348,7 @@
  const theirs = opts.theirs || {};
  const mine = opts.mine || {};
  const allKeys = Array.from(new Set([...Object.keys(theirs),...Object.keys(mine)])).filter(k => k !== 'version' && k !== 'created_at' && k !== 'updated_at');
- let html = '<thead><tr><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6F6F6F; text-align:left;">Field</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#cd7c32; text-align:left;">Theirs (server)</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#EC4899; text-align:left;">Yours (you)</th></tr></thead><tbody>';
+ let html = '<thead><tr><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6F6F6F; text-align:left;">Field</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#cd7c32; text-align:left;">Theirs (server)</th><th style="padding:8px 10px; border:1px solid #E2E2E2; background:#F7F5F1; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#cd7c32; text-align:left;">Yours (you)</th></tr></thead><tbody>';
  allKeys.forEach(k => {
  const tv = theirs[k];
  const mv = mine[k];
@@ -9500,7 +9501,7 @@
  };
  function flashSimToast(label, msg){
  const flash = document.createElement('div');
- const bg = label==='A' ? '#cd7c32' : '#EC4899';
+ const bg = label==='A' ? '#cd7c32' : '#cd7c32';
  flash.style.cssText = 'position:fixed; top:20px; right:20px; background:'+bg+'; color:#fff; padding:10px 16px; border-radius:8px; z-index:9999; font-weight:700; box-shadow:0 4px 16px rgba(0,0,0,.2); font-size:13px;';
  flash.textContent = 'User '+label+': '+msg;
  document.body.appendChild(flash);
@@ -12975,7 +12976,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=606"></script>
+ <script src="app.js?v=607"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

@@ -7,7 +7,7 @@ Run: python3 scripts/brand_color_migrate.py [--apply]
 import re, sys, io
 
 APPLY = "--apply" in sys.argv
-FILES = ["index.html", "app.js", "design-tokens.css"]
+FILES = ["index.html", "app.js", "design-tokens.css", "style.css"]
 
 # hex map: off-brand -> bronze shade matched by tone (dark->dark, light->light)
 HEX = {
@@ -25,6 +25,15 @@ HEX = {
     # teal / cyan (safety)
     "#14b8a6": "#cd7c32", "#0d9488": "#b86a26", "#2dd4bf": "#e89348",
     "#06b6d4": "#cd7c32", "#22d3ee": "#e89348",
+    # p1_594 — indigo/purple/pink/sky yang masih tinggal (audit 2026-06-10)
+    "#3730a3": "#7c4a1a", "#4f46e5": "#a05f22", "#4338ca": "#7c4a1a",
+    "#e0e7ff": "#fff8f0", "#c7d2fe": "#ffedd5", "#eef2ff": "#fff8f0",
+    "#818cf8": "#e89348", "#6b21a8": "#7c4a1a", "#86198f": "#7c4a1a",
+    "#ec4899": "#cd7c32", "#fae8ff": "#fff8f0",
+    "#0369a1": "#a05f22", "#eef4fd": "#fff8f0", "#e0f2fe": "#fff8f0",
+    "#bae6fd": "#fed7aa", "#f0f9ff": "#fff8f0",
+    # NOTA: #0f172a (slate near-black) SENGAJA tak dipetakan — hampir hitam, bukan
+    # warna terang luap; petakan ke #101010 boleh jadi hitam-atas-hitam (teks halimunan).
 }
 # rgba map: (r,g,b) off-brand -> bronze rgb (keep alpha)
 RGBA = {
@@ -32,6 +41,10 @@ RGBA = {
     (139, 92, 246): (205, 124, 50),   # 8b5cf6 -> cd7c32
     (168, 85, 247): (205, 124, 50),   # a855f7 -> cd7c32
     (37, 99, 235): (184, 106, 38),    # 2563eb -> b86a26
+    (55, 48, 163): (124, 74, 26),     # 3730a3 -> 7c4a1a
+    (79, 70, 229): (160, 95, 34),     # 4f46e5 -> a05f22
+    (99, 102, 241): (205, 124, 50),   # 6366f1 -> cd7c32
+    (236, 72, 153): (205, 124, 50),   # ec4899 -> cd7c32
 }
 
 def migrate(text):
@@ -57,10 +70,23 @@ def migrate(text):
     text = re.sub(r"(?P<fn>rgba?)\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})", rgba_sub, text)
     return text, n
 
+# Baris ROADMAP_DATA (cth `{ id:'p1_386', label:'...#7C3AED...' }`) ada hex dalam teks
+# SEJARAH — JANGAN tukar (akan korup rekod). Langkau baris yang nampak macam entri roadmap.
+ROADMAP_LINE = re.compile(r"id:\s*'p\d|num:\s*'PHASE")
+
 total = 0
 for f in FILES:
     src = io.open(f, encoding="utf-8").read()
-    new, n = migrate(src)
+    if f == "index.html":
+        out_lines, n = [], 0
+        for line in src.splitlines(keepends=True):
+            if ROADMAP_LINE.search(line):
+                out_lines.append(line)  # lindungi teks roadmap
+            else:
+                nl, c = migrate(line); out_lines.append(nl); n += c
+        new = "".join(out_lines)
+    else:
+        new, n = migrate(src)
     total += n
     print(f"  {f:24s} {n:4d} replacements")
     if APPLY and n:

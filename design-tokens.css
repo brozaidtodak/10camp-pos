@@ -539,7 +539,7 @@
 .memo-dept-badge[data-dept="sales"] { background: #101010; }
 .memo-dept-badge[data-dept="inv"] { background: #cd7c32; }
 .memo-dept-badge[data-dept="admin"] { background: #cd7c32; }
-.memo-dept-badge[data-dept="hr"] { background: #EC4899; }
+.memo-dept-badge[data-dept="hr"] { background: #cd7c32; }
 .memo-dept-badge[data-dept="finance"] { background: #B45309; }
 .memo-status-pill { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
 .memo-status-pill--approved { background: #D1FAE5; color: #065F46; }
@@ -3247,7 +3247,7 @@ a:focus-visible {
  font-size: 9.5px; font-weight: 800; letter-spacing: 0.4px; vertical-align: middle;
 }
 .perm-tpl-tag--preset { background: #ffedd5; color: #7c4a1a; }
-.perm-tpl-tag--custom { background: #fff8f0; color: #6B21A8; }
+.perm-tpl-tag--custom { background: #fff8f0; color: #7c4a1a; }
 .perm-tpl-del {
  background: none; border: none; cursor: pointer; padding: 4px;
  color: var(--neutral-500, #71717A); border-radius: 4px;

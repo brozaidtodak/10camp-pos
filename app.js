@@ -881,7 +881,7 @@ window.__showWhatsNew = function(){
  ov.id = 'whatsNewOverlay';
  ov.setAttribute('style','position:fixed; inset:0; z-index:9700; background:rgba(16,16,16,.72); display:flex; align-items:center; justify-content:center; padding:18px;');
  ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
- const tagColor = (t) => t === 'Laju' ? '#2563EB' : (t === 'Lebih Baik' ? '#7C3AED' : '#CD7C32');
+ const tagColor = (t) => t === 'Laju' ? '#b86a26' : (t === 'Lebih Baik' ? '#a05f22' : '#CD7C32');
  const cards = (window.STAFF_UPDATES || []).map(u => `
  <div style="display:flex; gap:12px; padding:14px 4px; border-bottom:1px solid #F0EBE3;">
  <div style="flex:0 0 auto; width:40px; height:40px; border-radius:11px; background:#FDF0E2; display:flex; align-items:center; justify-content:center;"><i data-lucide="${u.icon}" style="width:20px; height:20px; color:#CD7C32;"></i></div>
@@ -1560,8 +1560,8 @@ window.__rpRenderSalesTemplate = function(body, u, range) {
  // ---- Marketing interim banner (Irfan-specific) ----
  const isMktInterim = (u.dept || '').toLowerCase().includes('marketing interim');
  const interimBanner = isMktInterim ? `
- <div class="rp-section" style="border-left:4px solid #EC4899; background:rgba(236,72,153,.05);">
- <h3 class="rp-section__title" style="color:#EC4899;"><i data-lucide="megaphone" style="width:14px;height:14px;"></i> Marketing Interim</h3>
+ <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(205, 124, 50,.05);">
+ <h3 class="rp-section__title" style="color:#cd7c32;"><i data-lucide="megaphone" style="width:14px;height:14px;"></i> Marketing Interim</h3>
  <p class="rp-section__help" style="margin:0;">Awak handle Marketing tasks juga selain Sales. KPI Marketing (posts/views/engagement) akan ditambah Phase 2 bila feature collection siap. Buat masa ni, tulis pencapaian Marketing dalam <em>Catatan Manual</em> di bawah.</p>
  </div>` : '';
 
@@ -1787,7 +1787,7 @@ window.__rpRenderInventoryTemplate = function(body, u, range) {
  const isChief = (u.dept || '').toLowerCase().includes('chief');
  const roleBadge = isChief
  ? '<span style="display:inline-block; padding:2px 8px; background:#FEF3C7; color:#92400E; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">CHIEF</span>'
- : '<span style="display:inline-block; padding:2px 8px; background:#E0F2FE; color:#075985; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">ASSISTANT</span>';
+ : '<span style="display:inline-block; padding:2px 8px; background:#fff8f0; color:#075985; border-radius:50px; font-size:10px; font-weight:800; letter-spacing:0.3px; margin-left:6px;">ASSISTANT</span>';
 
  body.innerHTML = `
  <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(205, 124, 50,.04);">
@@ -2236,7 +2236,7 @@ window.__mwSubmit = async function() {
 window.__mktEsc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 window.__mktPlat = { tiktok:{label:'TikTok',color:'#111'}, instagram:{label:'Instagram',color:'#C13584'}, facebook:{label:'Facebook',color:'#1877F2'}, shopee:{label:'Shopee',color:'#EE4D2D'} };
 window.__mktContentTypes = ['reel','post','story','live','carousel','video'];
-window.__mktContentStatuses = [['idea','Idea','#F3F4F6','#6B7280'],['draft','Draft','#FEF3C7','#92400E'],['scheduled','Dijadual','#DBEAFE','#1E40AF'],['posted','Disiarkan','#D1FAE5','#065F46']];
+window.__mktContentStatuses = [['idea','Idea','#F3F4F6','#6B7280'],['draft','Draft','#FEF3C7','#92400E'],['scheduled','Dijadual','#ffedd5','#7c4a1a'],['posted','Disiarkan','#D1FAE5','#065F46']];
 window.__mktAdPlatforms = [['tiktok_ads','TikTok Ads'],['meta','Meta (FB/IG)'],['shopee_ads','Shopee Ads'],['google','Google']];
 window.__mktAdStatuses = [['active','Aktif','#D1FAE5','#065F46'],['paused','Dijeda','#FEF3C7','#92400E'],['ended','Tamat','#F3F4F6','#6B7280']];
 
@@ -2695,7 +2695,7 @@ window.renderReturnsLog = async function() {
  <thead><tr><th>Tarikh</th><th>SKU</th><th>Type</th><th>Reason</th><th style="text-align:right;">Qty</th><th>Channel</th><th>Reporter</th></tr></thead>
  <tbody>
  ${rows.slice(0, 100).map(r => {
- const typeColor = { return:'#cd7c32', damaged:'#c0392b', missing:'#D97706', expired:'#a05f22', cancel:'#6366F1' }[r.type] || '#6B7280';
+ const typeColor = { return:'#cd7c32', damaged:'#c0392b', missing:'#D97706', expired:'#a05f22', cancel:'#cd7c32' }[r.type] || '#6B7280';
  const typeLabel = { return:'Return', damaged:'Rosak', missing:'Hilang', expired:'Expired', cancel:'Batal/Refund' }[r.type] || r.type;
  return `<tr>
  <td style="font-size:11px; color:#6B7280;">${new Date(r.reported_at).toLocaleString('en-MY', { dateStyle:'short', timeStyle:'short' })}</td>
@@ -5069,7 +5069,7 @@ window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
  // Quick render skeleton first
  body.innerHTML = `
  <div class="rp-section" style="border-left:4px solid #cd7c32; background:rgba(14,165,233,.04);">
- <h3 class="rp-section__title" style="color:#0369A1;"><i data-lucide="cog" style="width:14px;height:14px;"></i> System Management</h3>
+ <h3 class="rp-section__title" style="color:#a05f22;"><i data-lucide="cog" style="width:14px;height:14px;"></i> System Management</h3>
  <p class="rp-section__help" style="margin:0;">Dashboard untuk Zack — review queues + system health + price/sync oversight. Auto-data dari shopee_sync_log, tiktok_sync_log, stock_check_reports, product_price_history.</p>
  </div>
  <div id="sysmgmtBody"><p style="color:#9CA3AF; padding:30px; text-align:center;">Memuatkan data system…</p></div>
@@ -5522,7 +5522,7 @@ window.__teamShowModal = function(data, bodyHtml) {
  <div style="flex:1; min-width:0;">
  <div style="font-size:15px; font-weight:800; color:#111827; margin-bottom:4px;">${escAttr(data.staff_name)} <span style="font-size:11px; color:#6B7280; font-weight:600;">· ${escAttr(data.period_key)}</span></div>
  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
- <span style="display:inline-block; padding:2px 8px; border-radius:50px; background:#EEF2FF; color:#3730A3; font-size:10px; font-weight:700;">${escAttr(typeLabel)}</span>
+ <span style="display:inline-block; padding:2px 8px; border-radius:50px; background:#fff8f0; color:#7c4a1a; font-size:10px; font-weight:700;">${escAttr(typeLabel)}</span>
  <span style="font-size:11px; color:#6B7280;">${escAttr(stamp)}</span>
  </div>
  </div>
@@ -5615,7 +5615,7 @@ window.__teamMarkAllRead = async function() {
 const FB_CAT = {
  bug: { label: 'Bug', bg: '#FEE2E2', fg: '#991B1B', icon: 'bug' },
  improvement: { label: 'Cadangan', bg: '#ffedd5', fg: '#7c4a1a', icon: 'lightbulb' },
- training: { label: 'Training', bg: '#FAE8FF', fg: '#86198F', icon: 'graduation-cap' },
+ training: { label: 'Training', bg: '#fff8f0', fg: '#7c4a1a', icon: 'graduation-cap' },
  hardware: { label: 'Hardware', bg: '#FEF3C7', fg: '#92400E', icon: 'wrench' },
  other: { label: 'Lain-lain', bg: '#E5E7EB', fg: '#374151', icon: 'help-circle' }
 };
@@ -5628,7 +5628,7 @@ const FB_SEV = {
 const FB_STATUS = {
  new: { label: 'Baru', bg: '#FEF3C7', fg: '#92400E' },
  triaged: { label: 'Triaged', bg: '#ffedd5', fg: '#7c4a1a' },
- in_progress: { label: 'Dalam Progress', bg: '#FAE8FF', fg: '#86198F' },
+ in_progress: { label: 'Dalam Progress', bg: '#fff8f0', fg: '#7c4a1a' },
  resolved: { label: 'Resolved', bg: '#D1FAE5', fg: '#065F46' },
  wontfix: { label: 'Wontfix', bg: '#E5E7EB', fg: '#6B7280' }
 };
@@ -5824,7 +5824,7 @@ window.renderPaymentProofs = async function() {
  <td style="padding:8px 10px; white-space:nowrap;">
  <button onclick="window.__openReceiptPDF(${r.id})" title="Buka resit official (preview + send)" style="background:#FEF7ED; border:1px solid #FCD34D; color:#92400E; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="file-text" style="width:11px;height:11px;vertical-align:-1px;"></i> Resit</button>
  <button onclick="window.__sendReceiptPdfWhatsApp(${r.id})" title="Hantar resit PDF via WhatsApp" style="background:#DCFCE7; border:1px solid #86EFAC; color:#166534; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="message-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> WhatsApp</button>
- <button onclick="window.__sendReceiptPdfEmail(${r.id})" title="Hantar resit PDF via Email" style="background:#E0E7FF; border:1px solid #A5B4FC; color:#3730A3; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="mail" style="width:11px;height:11px;vertical-align:-1px;"></i> Email</button>
+ <button onclick="window.__sendReceiptPdfEmail(${r.id})" title="Hantar resit PDF via Email" style="background:#fff8f0; border:1px solid #A5B4FC; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="mail" style="width:11px;height:11px;vertical-align:-1px;"></i> Email</button>
  <button onclick="window.__ppManageProofs(${r.id})" title="Urus bukti bayar — sehingga 3 gambar" style="background:#fff8f0; border:1px solid #fed7aa; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="images" style="width:11px;height:11px;vertical-align:-1px;"></i> Resit (${(window.__ppGetProofs ? window.__ppGetProofs(r).length : (r.payment_proof_url ? 1 : 0))}/3)</button>
  <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
  <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#ffedd5; border:1px solid #fdba74; color:#1E3A8A; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
@@ -6822,7 +6822,7 @@ window.__ppManageRender = function() {
   return `<div style="position:relative; border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; background:#F9FAFB;">${inner}<button onclick="window.__ppRemoveProof(${saleId}, ${i})" title="Buang resit ni" style="position:absolute; top:5px; right:5px; background:#DC2626; color:#fff; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:14px; font-weight:800; line-height:1; box-shadow:0 1px 4px rgba(0,0,0,.3);">×</button><div style="position:absolute; bottom:0; left:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:2px 6px; border-top-right-radius:6px;">Resit ${i + 1}</div></div>`;
  };
  const addBtn = urls.length < window.__PP_MAX
-  ? `<button onclick="window.__ppAddProof(${saleId})" style="border:2px dashed #C7D2FE; border-radius:10px; height:120px; background:#F5F7FF; color:#4338CA; cursor:pointer; font-size:12px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;"><i data-lucide="plus" style="width:20px;height:20px;"></i> Tambah Resit</button>`
+  ? `<button onclick="window.__ppAddProof(${saleId})" style="border:2px dashed #ffedd5; border-radius:10px; height:120px; background:#F5F7FF; color:#7c4a1a; cursor:pointer; font-size:12px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;"><i data-lucide="plus" style="width:20px;height:20px;"></i> Tambah Resit</button>`
   : '';
  body.style.textAlign = 'left'; body.style.color = '';
  body.innerHTML = `
@@ -6913,7 +6913,7 @@ window.renderFeedbackInbox = async function() {
  <div style="background:#F3F4F6; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B7280;">Total</div><div style="font-size:18px; font-weight:bold;">${counts.total}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Baru</div><div style="font-size:18px; font-weight:bold;">${counts.new}</div></div>
  <div style="background:${counts.critical > 0 ? '#FEE2E2' : '#F3F4F6'}; padding:10px; border-radius:6px;"><div style="font-size:10px; color:${counts.critical > 0 ? '#991B1B' : '#6B7280'};">Critical Open</div><div style="font-size:18px; font-weight:bold; color:${counts.critical > 0 ? '#DC2626' : '#111'};">${counts.critical}</div></div>
- <div style="background:#FAE8FF; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#86198F;">Dalam Progress</div><div style="font-size:18px; font-weight:bold;">${counts.in_progress}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Dalam Progress</div><div style="font-size:18px; font-weight:bold;">${counts.in_progress}</div></div>
  <div style="background:#D1FAE5; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#065F46;">Resolved</div><div style="font-size:18px; font-weight:bold;">${counts.resolved}</div></div>
  `;
  }
@@ -6974,7 +6974,7 @@ window.renderFeedbackInbox = async function() {
  <div style="display:flex; gap:6px; margin-top:8px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
  <div style="display:flex; gap:4px; flex-wrap:wrap;">
  ${r.status !== 'triaged' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'triaged')" style="font-size:11px; padding:5px 10px;" title="Tandai Triaged"><i data-lucide="eye" style="width:11px; height:11px;"></i> Triage</button>` : ''}
- ${r.status !== 'in_progress' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'in_progress')" style="font-size:11px; padding:5px 10px; background:#FAE8FF; color:#86198F; border-color:#FAE8FF;" title="Tandai Dalam Progress"><i data-lucide="loader" style="width:11px; height:11px;"></i> Process</button>` : ''}
+ ${r.status !== 'in_progress' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'in_progress')" style="font-size:11px; padding:5px 10px; background:#fff8f0; color:#7c4a1a; border-color:#fff8f0;" title="Tandai Dalam Progress"><i data-lucide="loader" style="width:11px; height:11px;"></i> Process</button>` : ''}
  ${r.status !== 'resolved' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'resolved')" style="font-size:11px; padding:5px 10px; background:#D1FAE5; color:#065F46; border-color:#A7F3D0;" title="Tandai Resolved"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> Tandai Resolved</button>` : ''}
  ${r.status !== 'wontfix' ? `<button class="rm-pill" onclick="window.__fbiQuickStatus(${r.id}, 'wontfix')" style="font-size:11px; padding:5px 10px;" title="Tak akan fix"><i data-lucide="x-circle" style="width:11px; height:11px;"></i> Wontfix</button>` : ''}
  </div>
@@ -8061,7 +8061,7 @@ window.renderSalesAnalytics = function() {
  if(payCanvas) {
  const payAgg = {}; sales.forEach(s => { const d = new Date(s.created_at).getTime(); if(d<fromMs||d>toMs) return; const pm = (s.payment_method||'Lain').trim()||'Lain'; payAgg[pm] = round2((payAgg[pm]||0) + (Number(s.total||s.total_amount||0)||0)); });
  const pmKeys = Object.keys(payAgg).sort((a,b)=>payAgg[b]-payAgg[a]);
- const palette = ['#CD7C32','#101010','#EE4D2D','#25D366','#3B82F6','#9CA3AF','#A855F7','#F59E0B'];
+ const palette = ['#CD7C32','#101010','#EE4D2D','#25D366','#cd7c32','#9CA3AF','#cd7c32','#F59E0B'];
  if(window.__saPayInst) window.__saPayInst.destroy();
  window.__saPayInst = new Chart(payCanvas.getContext('2d'), { type:'doughnut', data:{ labels:pmKeys, datasets:[{ data:pmKeys.map(k=>payAgg[k]), backgroundColor:pmKeys.map((k,i)=>palette[i%palette.length]), borderWidth:2, borderColor:'#fff' }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{display:true, position:'bottom', labels:{boxWidth:10, font:{size:10}, padding:6}}, tooltip:{ callbacks:{ label:(c)=> c.label+': '+fmtRM2(c.parsed) } } } } });
  }
@@ -8071,7 +8071,7 @@ window.renderSalesAnalytics = function() {
  const cntB = {}; sales.forEach(s => { const d=new Date(s.created_at); const t=d.getTime(); if(t<fromMs||t>toMs) return; const k=keyOf(d); cntB[k]=(cntB[k]||0)+1; });
  const aov = keys.map(k => (cntB[k] ? round2(total[k]/cntB[k]) : 0));
  if(window.__saAovInst) window.__saAovInst.destroy();
- window.__saAovInst = new Chart(aovCanvas.getContext('2d'), { type:'line', data:{ labels, datasets:[{ label:'AOV', data:aov, borderColor:'#3B82F6', backgroundColor:'rgba(59,130,246,0.1)', borderWidth:2, fill:true, tension:0.3, pointRadius:keys.length>20?0:2, pointHoverRadius:4 }] }, options: axisOpts });
+ window.__saAovInst = new Chart(aovCanvas.getContext('2d'), { type:'line', data:{ labels, datasets:[{ label:'AOV', data:aov, borderColor:'#cd7c32', backgroundColor:'rgba(205, 124, 50,0.1)', borderWidth:2, fill:true, tension:0.3, pointRadius:keys.length>20?0:2, pointHoverRadius:4 }] }, options: axisOpts });
  }
  // Jam paling sibuk (bar 0-23)
  const hourCanvas = document.getElementById('saHourChart');
@@ -8657,7 +8657,7 @@ window.__renderOrderDetail = function(sale) {
  const ffLabel = ffStageVal === 'shipped' ? 'Fulfilled' : (ffStageVal === 'packed' ? 'Packed' : 'Pending Pack');
  document.getElementById('odHeaderPills').innerHTML =
  '<span style="background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">' + paidStatus + '</span> ' +
- '<span style="background:#E0E7FF; color:#3730A3; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">' + ffLabel + '</span>';
+ '<span style="background:#fff8f0; color:#7c4a1a; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">' + ffLabel + '</span>';
 
  document.getElementById('odKpiTotal').textContent = 'RM ' + total.toFixed(2);
  document.getElementById('odKpiPaid').textContent = total.toFixed(2) + ' paid';
@@ -8725,7 +8725,7 @@ window.__renderOrderDetail = function(sale) {
  if(sale.channel) tags.push(sale.channel);
  if(sale.payment_method) tags.push(sale.payment_method);
  if(m.vip_customer_id) tags.push('VIP');
- tagsList.innerHTML = tags.length ? tags.map(t => '<span style="background:#E0E7FF; color:#3730A3; padding:2px 8px; border-radius:4px;">' + esc(t) + '</span>').join('') : '<span style="color:#94A3B8;">—</span>';
+ tagsList.innerHTML = tags.length ? tags.map(t => '<span style="background:#fff8f0; color:#7c4a1a; padding:2px 8px; border-radius:4px;">' + esc(t) + '</span>').join('') : '<span style="color:#94A3B8;">—</span>';
 
  const mpLink = document.getElementById('odMarketplaceLink');
  const mpLabel = document.getElementById('odMarketplaceLabel');
@@ -9056,7 +9056,7 @@ window.renderCheckSessions = async function() {
  stats.innerHTML = `
  <div style="background:#FEF3C7; padding:12px; border-radius:8px; border-left:4px solid #D97706;"><div style="font-size:10px; color:#92400E; text-transform:uppercase; font-weight:700;">Aktif</div><div style="font-size:22px; font-weight:900;">${active}</div><div style="font-size:11px; color:#6B7280;">sedang kira</div></div>
  <div style="background:#ffedd5; padding:12px; border-radius:8px; border-left:4px solid #b86a26;"><div style="font-size:10px; color:#7c4a1a; text-transform:uppercase; font-weight:700;">Menunggu Review</div><div style="font-size:22px; font-weight:900;">${review}</div><div style="font-size:11px; color:#6B7280;">Zack semak</div></div>
- <div style="background:#E0E7FF; padding:12px; border-radius:8px; border-left:4px solid #cd7c32;"><div style="font-size:10px; color:#3730A3; text-transform:uppercase; font-weight:700;">Bos Inbox</div><div style="font-size:22px; font-weight:900;">${forwarded}</div><div style="font-size:11px; color:#6B7280;">menunggu Bos</div></div>
+ <div style="background:#fff8f0; padding:12px; border-radius:8px; border-left:4px solid #cd7c32;"><div style="font-size:10px; color:#7c4a1a; text-transform:uppercase; font-weight:700;">Bos Inbox</div><div style="font-size:22px; font-weight:900;">${forwarded}</div><div style="font-size:11px; color:#6B7280;">menunggu Bos</div></div>
  <div style="background:#D1FAE5; padding:12px; border-radius:8px; border-left:4px solid #101010;"><div style="font-size:10px; color:#065F46; text-transform:uppercase; font-weight:700;">Approved</div><div style="font-size:22px; font-weight:900;">${approved}</div><div style="font-size:11px; color:#6B7280;">selesai</div></div>
  `;
  }
@@ -9083,8 +9083,8 @@ window.renderCheckSessions = async function() {
  const u = window.currentUser || {};
  const isMgmt = (typeof window.isBoss === 'function' && window.isBoss(u)) || u.role === 'mgmt';
  const STATUS_LBL = { active:'Aktif', review:'Menunggu Review', forwarded:'Bos Acknowledged', approved:'Approved', rejected:'Rejected', cancelled:'Dibatalkan' };
- const STATUS_BG = { active:'#FEF3C7', review:'#ffedd5', forwarded:'#E0E7FF', approved:'#D1FAE5', rejected:'#FEE2E2', cancelled:'#F3F4F6' };
- const STATUS_FG = { active:'#92400E', review:'#7c4a1a', forwarded:'#3730A3', approved:'#065F46', rejected:'#991B1B', cancelled:'#6B7280' };
+ const STATUS_BG = { active:'#FEF3C7', review:'#ffedd5', forwarded:'#fff8f0', approved:'#D1FAE5', rejected:'#FEE2E2', cancelled:'#F3F4F6' };
+ const STATUS_FG = { active:'#92400E', review:'#7c4a1a', forwarded:'#7c4a1a', approved:'#065F46', rejected:'#991B1B', cancelled:'#6B7280' };
 
  list.innerHTML = filtered.map(s => {
  const pct = s.items_total > 0 ? Math.round((s.items_checked / s.items_total) * 100) : 0;
@@ -9122,7 +9122,7 @@ window.renderCheckSessions = async function() {
  ${s.status === 'review' ? `<button class="sy-btn secondary" onclick="window.__scsForwardToBos(${s.id})" style="font-size:11px;" title="Zack: lepas review, forward ke Bos"><i data-lucide="forward" style="width:11px;height:11px;"></i> Forward ke Bos</button>` : ''}
  ${isMgmt && s.status !== 'approved' && s.status !== 'cancelled' ? `<button class="sy-btn secondary" onclick="window.__scsCancelSession(${s.id})" style="font-size:11px; color:#991B1B; border-color:#FCA5A5;"><i data-lucide="x-circle" style="width:11px;height:11px;"></i> Batal Sesi</button>` : ''}
  ${s.status === 'forwarded' && (typeof window.isBoss === 'function' && window.isBoss(u)) ? `<button class="sy-btn secondary" onclick="window.__scsApprove(${s.id})" style="font-size:11px; background:#101010; color:#FFF;"><i data-lucide="check-circle" style="width:11px;height:11px;"></i> Approve</button>` : ''}
- ${s.status === 'approved' ? `<button class="sy-btn secondary" onclick="window.__scsPreviewReport(${s.id})" style="font-size:11px; color:#3730A3; border-color:#C7D2FE;"><i data-lucide="file-bar-chart-2" style="width:11px;height:11px;"></i> Preview Report</button>` : ''}
+ ${s.status === 'approved' ? `<button class="sy-btn secondary" onclick="window.__scsPreviewReport(${s.id})" style="font-size:11px; color:#7c4a1a; border-color:#ffedd5;"><i data-lucide="file-bar-chart-2" style="width:11px;height:11px;"></i> Preview Report</button>` : ''}
  ${s.status === 'approved' && isMgmt ? `<button class="sy-btn secondary" onclick="window.__scsPublishOpen(${s.id})" style="font-size:11px; background:${s.published_at ? '#ECFDF5' : 'var(--primary)'}; color:${s.published_at ? '#065F46' : '#FFF'}; border-color:var(--primary);"><i data-lucide="upload-cloud" style="width:11px;height:11px;"></i> ${s.published_at ? 'Publish Semula' : 'Publish ke Products'}</button>` : ''}
  </div>
  <!-- p1_211 — Per-session SKU list (collapsed by default, lazy-loaded on click) -->
@@ -9241,7 +9241,7 @@ window.__scsPreviewReport = async function(sessionId) {
 
   // ── kandungan laporan (dikongsi skrin + cetak) ──
   const reportHTML = `
-   <div style="font-size:11px; font-weight:800; color:#3730A3; text-transform:uppercase; letter-spacing:0.5px;">Laporan Stock Take</div>
+   <div style="font-size:11px; font-weight:800; color:#7c4a1a; text-transform:uppercase; letter-spacing:0.5px;">Laporan Stock Take</div>
    <div style="font-size:18px; font-weight:800; color:#101010; margin-top:2px;">${esc((sess && sess.name) || 'Sesi')}</div>
    <div style="font-size:11.5px; color:#6B7280; margin-top:3px;">Diluluskan: ${esc((sess && sess.approved_by_name) || 'Bos')} &middot; ${esc(dt(sess && sess.approved_at))}</div>
 
@@ -9375,7 +9375,7 @@ window.__scsPublishRender = function() {
    <td style="padding:6px 8px; font-family:'SF Mono',Menlo,monospace; font-weight:700; font-size:11.5px;">${esc(i.sku)}</td>
    <td style="padding:6px 8px; font-size:11.5px;">${esc((i.product_name || i.name || '').slice(0, 40))}</td>
    <td style="padding:6px 8px; text-align:right; font-size:12px; color:#6B7280;">${live}</td>
-   <td style="padding:6px 8px; text-align:right; font-size:12px; font-weight:700;">${counted}${(setTo !== counted) ? `<div style="font-size:9px; color:#4338CA; font-weight:700;">final ${setTo}</div>` : ''}</td>
+   <td style="padding:6px 8px; text-align:right; font-size:12px; font-weight:700;">${counted}${(setTo !== counted) ? `<div style="font-size:9px; color:#7c4a1a; font-weight:700;">final ${setTo}</div>` : ''}</td>
    <td style="padding:6px 8px; text-align:right; font-size:11.5px; font-weight:700; color:${diffColor};">${diffTxt}</td>
    <td style="padding:6px 8px; text-align:center;"><input type="number" data-scs-pub-qty="${idx}" value="${setTo}" min="0" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:6px; text-align:center; font-weight:700;"></td>
   </tr>`;
@@ -9965,11 +9965,11 @@ window.__scsToggleSkuList = async function(sessionId) {
  ${selisihCell}
  <td style="padding:8px 10px; font-size:11px;">${catatanCell}</td>
  <td style="padding:8px 10px; text-align:center;"><span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:${badgeBg}; color:${badgeFg}; font-size:10px; font-weight:700;"><i data-lucide="${badgeIcon}" style="width:10px;height:10px;"></i> ${badgeTxt}</span></td>
- <td style="padding:8px 10px; font-size:11px;">${isChecked && i.counted_by_name ? `<div style="display:flex; align-items:center; gap:4px; color:#374151;"><i data-lucide="user" style="width:11px;height:11px; color:#9CA3AF;"></i> ${escHtml(i.counted_by_name)} <span style="color:#9CA3AF; font-size:9px;">(kira)</span></div>` : '<span style="color:#D1D5DB;">—</span>'}${i.counted_by_2_name ? `<div style="display:flex; align-items:center; gap:4px; margin-top:3px; color:#4338CA; font-size:10px;"><i data-lucide="shield-check" style="width:10px;height:10px; flex-shrink:0;"></i> ${escHtml(i.counted_by_2_name)} <span style="color:#9CA3AF; font-size:9px;">(semak 2)</span></div>` : ''}</td>
+ <td style="padding:8px 10px; font-size:11px;">${isChecked && i.counted_by_name ? `<div style="display:flex; align-items:center; gap:4px; color:#374151;"><i data-lucide="user" style="width:11px;height:11px; color:#9CA3AF;"></i> ${escHtml(i.counted_by_name)} <span style="color:#9CA3AF; font-size:9px;">(kira)</span></div>` : '<span style="color:#D1D5DB;">—</span>'}${i.counted_by_2_name ? `<div style="display:flex; align-items:center; gap:4px; margin-top:3px; color:#7c4a1a; font-size:10px;"><i data-lucide="shield-check" style="width:10px;height:10px; flex-shrink:0;"></i> ${escHtml(i.counted_by_2_name)} <span style="color:#9CA3AF; font-size:9px;">(semak 2)</span></div>` : ''}</td>
  <td style="padding:8px 10px; text-align:center;">${(i.counted_qty_2 != null)
   ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800; ${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'background:#D1FAE5; color:#065F46;' : 'background:#FEE2E2; color:#991B1B;'}"><i data-lucide="${Number(i.counted_qty_2)===Number(i.counted_qty)?'shield-check':'alert-triangle'}" style="width:10px;height:10px;"></i> ${i.counted_qty_2}${Number(i.counted_qty_2)===Number(i.counted_qty)?'':' ≠'}</span>${i.counted_by_2_name ? `<div style="font-size:9px; color:#9CA3AF; margin-top:2px;">${escHtml(i.counted_by_2_name)}</div>` : ''}`
   : ''}</td>
- ${reveal ? `<td style="padding:8px 6px; text-align:center;" onclick="event.stopPropagation();">${isChecked ? `<input type="number" min="0" inputmode="numeric" id="scsFinal-${i.id}" value="${i.final_qty != null ? i.final_qty : (i.counted_qty_2 != null ? i.counted_qty_2 : i.counted_qty)}" title="Kuantiti muktamad untuk submit ke Bos (default: Semakan 2 / Kiraan 1). Enter untuk simpan." onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" onblur="window.__scsSaveFinalQty(${i.id}, ${sessionId}, this.value)" style="width:60px; padding:5px 6px; border:1.5px solid ${i.final_qty != null ? '#34D399' : '#C7D2FE'}; border-radius:6px; text-align:center; font-weight:800; font-size:12px; color:#065F46; background:${i.final_qty != null ? '#ECFDF5' : '#fff'};">` : '<span style="color:#D1D5DB;">—</span>'}</td>` : ''}
+ ${reveal ? `<td style="padding:8px 6px; text-align:center;" onclick="event.stopPropagation();">${isChecked ? `<input type="number" min="0" inputmode="numeric" id="scsFinal-${i.id}" value="${i.final_qty != null ? i.final_qty : (i.counted_qty_2 != null ? i.counted_qty_2 : i.counted_qty)}" title="Kuantiti muktamad untuk submit ke Bos (default: Semakan 2 / Kiraan 1). Enter untuk simpan." onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" onblur="window.__scsSaveFinalQty(${i.id}, ${sessionId}, this.value)" style="width:60px; padding:5px 6px; border:1.5px solid ${i.final_qty != null ? '#34D399' : '#ffedd5'}; border-radius:6px; text-align:center; font-weight:800; font-size:12px; color:#065F46; background:${i.final_qty != null ? '#ECFDF5' : '#fff'};">` : '<span style="color:#D1D5DB;">—</span>'}</td>` : ''}
  <td style="padding:8px 6px; text-align:center; white-space:nowrap;">${isChecked ? `<button onclick="event.stopPropagation(); window.__scsResetItem(${i.id}, ${sessionId})" title="Reset count balik ke Belum Check" style="background:none; border:1px solid #FCA5A5; color:#991B1B; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="rotate-ccw" style="width:9px;height:9px;"></i> Reset</button>` : `<button onclick="event.stopPropagation(); window.__scsRemoveItem(${i.id}, ${sessionId})" title="Buang SKU dari sesi ni" style="background:none; border:1px solid #E5E7EB; color:#6B7280; padding:3px 7px; border-radius:5px; cursor:pointer; font-size:10px; font-weight:700;"><i data-lucide="trash-2" style="width:9px;height:9px;"></i> Buang</button>`}</td>
  </tr>`;
  }).join('');
@@ -9996,7 +9996,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Status</th>
  <th style="text-align:left; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Oleh</th>
  <th style="text-align:center; padding:8px 10px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Check 2</th>
- ${reveal ? '<th style="text-align:center; padding:8px 10px; font-size:10px; color:#4338CA; text-transform:uppercase; letter-spacing:0.4px;">Final Qty</th>' : ''}
+ ${reveal ? '<th style="text-align:center; padding:8px 10px; font-size:10px; color:#7c4a1a; text-transform:uppercase; letter-spacing:0.4px;">Final Qty</th>' : ''}
  <th style="padding:8px 6px; font-size:10px; color:#6B7280; text-transform:uppercase; letter-spacing:0.4px;">Aksi</th>
  </tr>
  </thead>
@@ -10060,27 +10060,27 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin:14px 0 6px;">Catatan (optional)</label>
    <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;"></textarea>
    ${popReveal
-    ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:11px; color:#3730A3;"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong> · mod semakan</span></div>`
+    ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#fff8f0; border-radius:8px; font-size:11px; color:#7c4a1a;"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong> · mod semakan</span></div>`
     : `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span></div>`}
    <button onclick="window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg})" style="width:100%; margin-top:14px; background:var(--primary); border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="check" style="width:15px;height:15px;"></i> Simpan Kiraan</button>
    ` : (isTepat ? `
    <!-- TEPAT — kiraan padan sistem, tak perlu semakan 2 -->
    <div style="display:flex; align-items:center; gap:9px; padding:13px 14px; background:#D1FAE5; border-radius:10px; font-size:12.5px; color:#065F46;"><i data-lucide="shield-check" style="width:20px;height:20px; flex-shrink:0;"></i><span><strong>Tepat</strong> — kiraan padan dengan sistem. Tak perlu semakan ke-2.${i.counted_by_name ? ' <span style="color:#047857;">(dikira: '+esc(i.counted_by_name)+')</span>' : ''}</span></div>
-   <button type="button" onclick="var b=document.getElementById('scs2ndOpt-${itemId}'); if(b) b.style.display=(b.style.display==='none'?'block':'none');" style="width:100%; margin-top:10px; background:none; border:1px dashed #C7D2FE; color:#4338CA; padding:9px; border-radius:9px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="shield-plus" style="width:13px;height:13px; vertical-align:-2px;"></i> Nak double-check juga? Buat Semakan Ke-2 (optional)</button>
+   <button type="button" onclick="var b=document.getElementById('scs2ndOpt-${itemId}'); if(b) b.style.display=(b.style.display==='none'?'block':'none');" style="width:100%; margin-top:10px; background:none; border:1px dashed #ffedd5; color:#7c4a1a; padding:9px; border-radius:9px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="shield-plus" style="width:13px;height:13px; vertical-align:-2px;"></i> Nak double-check juga? Buat Semakan Ke-2 (optional)</button>
    <div id="scs2ndOpt-${itemId}" style="display:${i.counted_qty_2 != null ? 'block' : 'none'}; margin-top:12px;">
    ${(i.counted_qty_2 != null) ? `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:8px; font-size:11.5px; margin-bottom:12px; ${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'background:#D1FAE5; color:#065F46;' : 'background:#FEE2E2; color:#991B1B;'}"><i data-lucide="${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'shield-check' : 'alert-triangle'}" style="width:13px;height:13px; flex-shrink:0;"></i><span>${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'Semakan 2 PADAN ✓' : ('TAK PADAN — Kiraan 1: <strong>'+i.counted_qty+'</strong> · Semakan 2: <strong>'+i.counted_qty_2+'</strong>')}${i.counted_by_2_name ? ' · oleh '+esc(i.counted_by_2_name) : ''}</span></div>` : ''}
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Semakan Ke-2 (double confirm) — kira sendiri</label>
-   <input type="number" min="0" inputmode="numeric" id="scsQty2Input-${itemId}" value="${i.counted_qty_2 != null ? i.counted_qty_2 : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}');}" style="width:100%; padding:11px 12px; border:1.5px solid #6366F1; border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
-   <button onclick="window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}')" style="width:100%; margin-top:12px; background:#4F46E5; border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> ${i.counted_qty_2 != null ? 'Kemaskini Semakan 2' : 'Simpan Semakan 2'}</button>
+   <input type="number" min="0" inputmode="numeric" id="scsQty2Input-${itemId}" value="${i.counted_qty_2 != null ? i.counted_qty_2 : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}');}" style="width:100%; padding:11px 12px; border:1.5px solid #cd7c32; border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
+   <button onclick="window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}')" style="width:100%; margin-top:12px; background:#a05f22; border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> ${i.counted_qty_2 != null ? 'Kemaskini Semakan 2' : 'Simpan Semakan 2'}</button>
    </div>
    ` : `
    <!-- SEMAKAN KE-2 (double confirm, blind) -->
    <div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:#D1FAE5; border-radius:8px; font-size:11.5px; color:#065F46; margin-bottom:12px;"><i data-lucide="check-circle" style="width:13px;height:13px; flex-shrink:0;"></i><span>Kiraan 1 dah siap${i.counted_by_name ? ' oleh <strong>'+esc(i.counted_by_name)+'</strong>' : ''}.</span></div>
    ${(i.counted_qty_2 != null) ? `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:8px; font-size:11.5px; margin-bottom:12px; ${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'background:#D1FAE5; color:#065F46;' : 'background:#FEE2E2; color:#991B1B;'}"><i data-lucide="${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'shield-check' : 'alert-triangle'}" style="width:13px;height:13px; flex-shrink:0;"></i><span>${Number(i.counted_qty_2)===Number(i.counted_qty) ? 'Semakan 2 PADAN dengan Kiraan 1 ✓' : ('TAK PADAN — Kiraan 1: <strong>'+i.counted_qty+'</strong> · Semakan 2: <strong>'+i.counted_qty_2+'</strong>')}${i.counted_by_2_name ? ' · oleh '+esc(i.counted_by_2_name) : ''}</span></div>` : ''}
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Semakan Ke-2 (double confirm) — kira sendiri</label>
-   <input type="number" min="0" inputmode="numeric" id="scsQty2Input-${itemId}" value="${i.counted_qty_2 != null ? i.counted_qty_2 : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}');}" style="width:100%; padding:11px 12px; border:1.5px solid #6366F1; border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
-   <div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#EEF2FF; border-radius:8px; font-size:10.5px; color:#4338CA;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan 1 disorok — kira ikut fizikal sendiri. Sistem akan banding padan/tak.</span></div>
-   <button onclick="window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}')" style="width:100%; margin-top:14px; background:#4F46E5; border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> ${i.counted_qty_2 != null ? 'Kemaskini Semakan 2' : 'Simpan Semakan 2'}</button>
+   <input type="number" min="0" inputmode="numeric" id="scsQty2Input-${itemId}" value="${i.counted_qty_2 != null ? i.counted_qty_2 : ''}" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}');}" style="width:100%; padding:11px 12px; border:1.5px solid #cd7c32; border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
+   <div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#fff8f0; border-radius:8px; font-size:10.5px; color:#7c4a1a;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan 1 disorok — kira ikut fizikal sendiri. Sistem akan banding padan/tak.</span></div>
+   <button onclick="window.__scsPopupSave2(${itemId}, ${sessionId}, '${skuEsc}')" style="width:100%; margin-top:14px; background:#a05f22; border:none; color:#fff; padding:12px; border-radius:9px; cursor:pointer; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;"><i data-lucide="shield-check" style="width:15px;height:15px;"></i> ${i.counted_qty_2 != null ? 'Kemaskini Semakan 2' : 'Simpan Semakan 2'}</button>
    `)}
    <button onclick="window.__scsClosePopup()" style="width:100%; margin-top:9px; background:none; border:none; color:#9CA3AF; padding:6px; cursor:pointer; font-size:11.5px; font-weight:600;">Tutup</button>
   </div>
@@ -10381,7 +10381,7 @@ window.__scsSaveFinalQty = async function(itemId, sessionId, raw) {
  const { error } = await db.from('stock_check_session_items').update(patch).eq('id', itemId);
  if(error) throw error;
  if(item) Object.assign(item, patch);
- if(el) { el.style.borderColor = val != null ? '#34D399' : '#C7D2FE'; el.style.background = val != null ? '#ECFDF5' : '#fff'; }
+ if(el) { el.style.borderColor = val != null ? '#34D399' : '#ffedd5'; el.style.background = val != null ? '#ECFDF5' : '#fff'; }
  if(typeof showToast === 'function') showToast('Final qty disimpan: ' + (val == null ? '—' : val), 'success');
  } catch(e) {
  if(typeof showToast === 'function') showToast('Final qty gagal simpan: ' + e.message, 'error');
@@ -11126,7 +11126,7 @@ function renderStockTake() {
  <button onclick="openLocModal('${p.sku}')" style="background:none; border:none; cursor:pointer; font-size:12px; color:var(--primary);"> Ubah</button>
  </div>
  <div id="locDisplay-${p.sku}" style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
- <span style="font-family:monospace; font-size:11px; font-weight:bold; background:#E0F2FE; padding:3px 8px; border-radius:4px; border:1px solid #BAE6FD;">${p.location_bin || p.loc_level || 'Belum Ditetapkan'}</span>
+ <span style="font-family:monospace; font-size:11px; font-weight:bold; background:#fff8f0; padding:3px 8px; border-radius:4px; border:1px solid #fed7aa;">${p.location_bin || p.loc_level || 'Belum Ditetapkan'}</span>
  </div>
 
  <p class="small-lbl" style="margin:0; margin-bottom:3px;">Status Stok</p>
@@ -11154,8 +11154,8 @@ function renderStockTake() {
  </div>
  </div>
 
- <div style="background:#e0f2fe; border:1px dashed #bae6fd; padding:10px; border-radius:6px; margin-bottom:10px; text-align:center;">
- <label style="font-size:11px; font-weight:bold; color:#0369a1; display:block; margin-bottom:5px;"> Tally Scan Fizikal (+1)</label>
+ <div style="background:#fff8f0; border:1px dashed #fed7aa; padding:10px; border-radius:6px; margin-bottom:10px; text-align:center;">
+ <label style="font-size:11px; font-weight:bold; color:#a05f22; display:block; margin-bottom:5px;"> Tally Scan Fizikal (+1)</label>
  <input type="text" onkeyup="handleTallyScan(event, '${p.sku}', '${scanCode}')" class="login-input" style="width:100%; text-align:center; padding:6px; margin:0; border-color:#cd7c32; font-size:12px;" placeholder="Tumpu di sini & scan barcode...">
  </div>
 
@@ -17264,7 +17264,7 @@ window.toggleRosterEditMode = function() {
  let btnSubmit = document.getElementById("btnSubmitRoster");
  
  if(window.isRosterEditMode) {
- if(btnEdit) { btnEdit.style.background = "#4f46e5"; btnEdit.style.borderColor = "#4f46e5"; btnEdit.innerHTML = " KELUAR EDIT"; }
+ if(btnEdit) { btnEdit.style.background = "#a05f22"; btnEdit.style.borderColor = "#a05f22"; btnEdit.innerHTML = " KELUAR EDIT"; }
  if(btnSubmit) btnSubmit.style.display = "flex";
  } else {
  if(btnEdit) { btnEdit.style.background = "#6b7280"; btnEdit.style.borderColor = "#6b7280"; btnEdit.innerHTML = " MULA EDIT"; }
@@ -18056,7 +18056,7 @@ window.renderMemoBoard = function() {
  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
  };
- const deptColor = { general:'#6B7280', sales:'#101010', inv:'#cd7c32', admin:'#cd7c32', hr:'#EC4899', finance:'#B45309' };
+ const deptColor = { general:'#6B7280', sales:'#101010', inv:'#cd7c32', admin:'#cd7c32', hr:'#cd7c32', finance:'#B45309' };
 
  // Filter
  const q = (window.__memoSearch || '').toLowerCase();
@@ -18128,7 +18128,7 @@ window.renderMemoBoard = function() {
  </div>
  <div class="memo-card__meta">
  <span class="memo-dept-badge" data-dept="${m.department}">${escapeHtml(window.memoDeptLabel(m.department))}</span>
- ${(m.category && m.category !== 'umum') ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:#EEF2FF; color:#3730A3;"><i data-lucide="tag" style="width:9px;height:9px;"></i> ${escapeHtml(window.__memoCatLabel(m.category))}</span>` : ''}
+ ${(m.category && m.category !== 'umum') ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:#fff8f0; color:#7c4a1a;"><i data-lucide="tag" style="width:9px;height:9px;"></i> ${escapeHtml(window.__memoCatLabel(m.category))}</span>` : ''}
  <span class="memo-status-pill memo-status-pill--${m.status}">${escapeHtml(T('mb_status_'+m.status, m.status))}</span>
  </div>
  <div class="memo-card__body">${escapeHtml(m.body)}</div>
@@ -19107,8 +19107,8 @@ window.openClockModal = function() {
  const loadTxt = document.getElementById("cameraLoadingText");
 
  statusTxt.textContent = " Mengesan koordinat GPS anda...";
- statusTxt.style.color = "#0369a1";
- statusTxt.style.background = "#e0f2fe";
+ statusTxt.style.color = "#a05f22";
+ statusTxt.style.background = "#fff8f0";
  btn.style.display = "none";
  video.style.display = "none";
  loadTxt.style.display = "block";
@@ -22102,7 +22102,7 @@ window.renderPickingListUI = function(isSorted = false) {
  
  pickingListItems.forEach((item, idx) => {
  let stepNum = isSorted ? `<div style="background:#101010; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">${idx+1}</div>` : '';
- let locBadge = item.location.includes('ZZZZZ') ? `<span style="color:#c0392b; font-weight:bold;">Tiada Lokasi Ditetapkan</span>` : `<span style="background:#E0E7FF; color:#3730A3; padding:4px 8px; border-radius:4px; font-weight:bold; font-family:monospace;">${item.location}</span>`;
+ let locBadge = item.location.includes('ZZZZZ') ? `<span style="color:#c0392b; font-weight:bold;">Tiada Lokasi Ditetapkan</span>` : `<span style="background:#fff8f0; color:#7c4a1a; padding:4px 8px; border-radius:4px; font-weight:bold; font-family:monospace;">${item.location}</span>`;
  
  html += `
  <div style="background:white; border:1px solid #D1D5DB; border-radius:8px; padding:15px; display:flex; align-items:center; gap:15px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
@@ -24032,7 +24032,7 @@ window.renderSalesLedger = function() {
  <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Match</div><div style="font-size:18px; font-weight:bold;">${filtered.length} orders</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Revenue</div><div style="font-size:18px; font-weight:bold;">RM ${totalRev.toFixed(2)}</div></div>
  <div style="background:#FEF2F2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">Refunds</div><div style="font-size:18px; font-weight:bold;">RM ${refundTotal.toFixed(2)}</div></div>
- <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Net</div><div style="font-size:18px; font-weight:bold;">RM ${(totalRev + refundTotal).toFixed(2)}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Net</div><div style="font-size:18px; font-weight:bold;">RM ${(totalRev + refundTotal).toFixed(2)}</div></div>
  `;
  }
 
@@ -24090,7 +24090,7 @@ window.renderSalesLedger = function() {
  <td>${cust}</td>
  <td style="text-align:center;">${itemCount} <span style="color:#999;">(${items.length} sku)</span></td>
  <td style="text-align:right; font-weight:bold; color:${totalColor};">${total < 0 ? '−' : ''}${Math.abs(total).toFixed(2)}</td>
- <td><span style="background:#E0E7FF; color:#3730A3; padding:2px 6px; border-radius:4px; font-size:10px;">${channel}</span></td>
+ <td><span style="background:#fff8f0; color:#7c4a1a; padding:2px 6px; border-radius:4px; font-size:10px;">${channel}</span></td>
  <td>${staff}</td>
  <td style="text-align:center;"><span style="background:${statusColor.bg}; color:${statusColor.fg}; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">${s.status || 'Completed'}</span></td>
  </tr>
@@ -24831,7 +24831,7 @@ window.__crmRefreshTotals = async function(){
 // (Pending/To Fulfil/Processing/Voided/Completed) — selaraskan ke 6 bucket + warna konsisten.
 window.__aoStatusMeta = function(stRaw){
  const s = String(stRaw == null ? '' : stRaw).toLowerCase();
- if(s.includes('refund')) return { canon:'Refunded', label:'Refunded', bg:'#E0E7FF', fg:'#3730A3' };
+ if(s.includes('refund')) return { canon:'Refunded', label:'Refunded', bg:'#fff8f0', fg:'#7c4a1a' };
  if(s.includes('cancel') || s.includes('void')) return { canon:'Cancelled', label:'Cancelled', bg:'#FEE2E2', fg:'#991B1B' };
  if(s.includes('complete') || s.includes('deliver')) return { canon:'Completed', label:'Completed', bg:'#D1FAE5', fg:'#065F46' };
  if(s.includes('process') || s.includes('ship') || s.includes('transit') || s.includes('confirm')) return { canon:'Processing', label:((window.t&&window.t('ao_badge_shipped'))||'Dah Hantar'), bg:'#ffedd5', fg:'#7c4a1a' };
@@ -25453,7 +25453,7 @@ window.__aoViewOrder = function(saleId) {
  })())}
  <div style="display:flex; gap:8px; flex-wrap:wrap;">
  <button onclick="window.__aoPrintPackingSlip && window.__aoPrintPackingSlip(${s.id})" style="flex:1.4; min-width:150px; background:#CD7C32; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="printer" style="width:13px;height:13px;vertical-align:-2px;"></i> Cetak Packing Slip</button>
- <button id="aoEmailReceiptBtn" onclick="window.__aoSendReceiptEmail(${s.id})" style="flex:1.2; min-width:150px; background:${emailSent ? '#ECFDF5' : '#E0E7FF'}; border:1px solid ${emailSent ? '#86EFAC' : '#A5B4FC'}; color:${emailSent ? '#065F46' : '#3730A3'}; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="${emailSent ? 'mail-check' : 'mail'}" style="width:13px;height:13px;vertical-align:-2px;"></i> ${emailSent ? 'Hantar Semula Resit' : 'Hantar Resit Email'}</button>
+ <button id="aoEmailReceiptBtn" onclick="window.__aoSendReceiptEmail(${s.id})" style="flex:1.2; min-width:150px; background:${emailSent ? '#ECFDF5' : '#fff8f0'}; border:1px solid ${emailSent ? '#86EFAC' : '#A5B4FC'}; color:${emailSent ? '#065F46' : '#7c4a1a'}; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="${emailSent ? 'mail-check' : 'mail'}" style="width:13px;height:13px;vertical-align:-2px;"></i> ${emailSent ? 'Hantar Semula Resit' : 'Hantar Resit Email'}</button>
  <button onclick="document.getElementById('aoViewOverlay').remove(); window.__ppEditSale && window.__ppEditSale(${s.id});" style="flex:1; min-width:90px; background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;"><i data-lucide="edit-3" style="width:13px;height:13px;vertical-align:-2px;"></i> Edit</button>
  <button onclick="document.getElementById('aoViewOverlay').remove()" style="flex:1; min-width:80px; background:#101010; border:none; color:#fff; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700;">Tutup</button>
  </div>
@@ -26156,7 +26156,7 @@ window.openCustomerDetail = function(id) {
  + '<div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Mata boleh guna</div><div style="font-size:16px; font-weight:bold;">' + ((typeof window.__custPointsAvail === 'function') ? window.__custPointsAvail(c) : (c.points||0)) + '</div><div style="font-size:9px; color:#9CA3AF;">terkumpul ' + (c.points||0) + ' &middot; tebus ' + (c.points_redeemed||0) + '</div></div>'
  + '</div>'
  // Tags display
- + (c.tags ? '<div style="margin-bottom:12px;"><div style="font-size:11px; color:#6B7280; margin-bottom:4px;">Tags:</div>' + (c.tags || '').split(',').map(t => t.trim()).filter(Boolean).map(t => '<span style="background:#E0E7FF; color:#3730A3; padding:3px 8px; border-radius:4px; font-size:11px; margin-right:4px; display:inline-block;">' + escHtml(t) + '</span>').join('') + '</div>' : '')
+ + (c.tags ? '<div style="margin-bottom:12px;"><div style="font-size:11px; color:#6B7280; margin-bottom:4px;">Tags:</div>' + (c.tags || '').split(',').map(t => t.trim()).filter(Boolean).map(t => '<span style="background:#fff8f0; color:#7c4a1a; padding:3px 8px; border-radius:4px; font-size:11px; margin-right:4px; display:inline-block;">' + escHtml(t) + '</span>').join('') + '</div>' : '')
  // Consent display
  + '<div style="display:flex; gap:14px; margin-bottom:14px; font-size:11.5px; color:#6B7280;">'
  + (c.accepts_email_marketing ? '<span style="display:inline-flex; align-items:center; gap:4px; color:#059669;"><i data-lucide="mail-check" style="width:13px;height:13px;"></i> Email consent</span>' : '<span style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="mail-x" style="width:13px;height:13px;color:#D1D5DB;"></i> No email consent</span>')
@@ -26725,7 +26725,7 @@ function dashDonut(slices) {
 function dashAvatarColor(name) {
  let hash = 0;
  for(let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
- const palette = ['#CD7C32', '#cd7c32', '#101010', '#cd7c32', '#F59E0B', '#c0392b', '#cd7c32', '#EC4899'];
+ const palette = ['#CD7C32', '#cd7c32', '#101010', '#cd7c32', '#F59E0B', '#c0392b', '#cd7c32', '#cd7c32'];
  return palette[Math.abs(hash) % palette.length];
 }
 function dashInitials(name) {
@@ -26780,7 +26780,7 @@ window.__renderDashOverviewMemo = function() {
  list.innerHTML = '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;">Tiada memo aktif buat masa ni.</p>';
  return;
  }
- const deptColor = { general:'#6B7280', sales:'#cd7c32', inv:'#101010', admin:'#cd7c32', hr:'#F59E0B', finance:'#DC2626', marketing:'#EC4899' };
+ const deptColor = { general:'#6B7280', sales:'#cd7c32', inv:'#101010', admin:'#cd7c32', hr:'#F59E0B', finance:'#DC2626', marketing:'#cd7c32' };
  // p1_74 fix #4: escape helper for body preview (avoid XSS via memo body)
  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  list.innerHTML = top.map(m => {
@@ -27524,7 +27524,7 @@ window.renderRosterRecon = async function() {
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Late</div><div style="font-size:18px; font-weight:bold;">${late}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">No-Show</div><div style="font-size:18px; font-weight:bold;">${noShow}</div></div>
  <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Unscheduled</div><div style="font-size:18px; font-weight:bold;">${unscheduled}</div></div>
- <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Days</div><div style="font-size:18px; font-weight:bold;">${rows.length}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Total Days</div><div style="font-size:18px; font-weight:bold;">${rows.length}</div></div>
  `;
 
  if(rows.length === 0) {
@@ -27742,7 +27742,7 @@ window.renderSegments = function() {
  <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Active Customers</div><div style="font-size:18px; font-weight:bold;">${totalCust}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Avg Order Value</div><div style="font-size:18px; font-weight:bold;">RM ${avgAOV.toFixed(2)}</div></div>
- <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Champions</div><div style="font-size:18px; font-weight:bold;">${segmentMap['Champion'].length}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Champions</div><div style="font-size:18px; font-weight:bold;">${segmentMap['Champion'].length}</div></div>
  <div style="background:#FEE2E2; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#991B1B;">At Risk + Hibernating</div><div style="font-size:18px; font-weight:bold;">${segmentMap['At Risk'].length + segmentMap['Hibernating'].length}</div></div>
  `;
 
@@ -29658,7 +29658,7 @@ window.renderB2BCustomers = function() {
  <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">B2B Total</div><div style="font-size:18px; font-weight:bold;">${filtered.length}</div></div>
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Active (≥1 order)</div><div style="font-size:18px; font-weight:bold;">${activeCount}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Total Spent</div><div style="font-size:18px; font-weight:bold;">RM ${totalSpent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
- <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Total Credit Limits</div><div style="font-size:18px; font-weight:bold;">RM ${totalCreditLimit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Total Credit Limits</div><div style="font-size:18px; font-weight:bold;">RM ${totalCreditLimit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
  `;
  }
 
@@ -29744,7 +29744,7 @@ window.openB2BDetail = async function(id) {
  <div style="background:#F0FDF4; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#166534;">Belanja (real)</div><div style="font-size:16px; font-weight:bold;">RM ${realSpent.toFixed(2)}</div></div>
  <div style="background:#FEF3C7; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#92400E;">Pesanan (real)</div><div style="font-size:16px; font-weight:bold;">${realOrderCount}</div></div>
  <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Credit Limit</div><div style="font-size:14px; font-weight:bold;">${c.credit_limit ? 'RM ' + parseFloat(c.credit_limit).toFixed(2) : '-'}</div></div>
- <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#6B21A8;">Top Channel</div><div style="font-size:13px; font-weight:bold;">${topChannel ? escHtml(topChannel[0]) + ' (' + topChannel[1] + ')' : '-'}</div></div>
+ <div style="background:#fff8f0; padding:10px; border-radius:6px;"><div style="font-size:10px; color:#7c4a1a;">Top Channel</div><div style="font-size:13px; font-weight:bold;">${topChannel ? escHtml(topChannel[0]) + ' (' + topChannel[1] + ')' : '-'}</div></div>
  </div>
  <h3 style="font-size:13px; margin:6px 0; color:#111;">10 Pembelian Terakhir</h3>
  <table style="width:100%; font-size:12px; border-collapse:collapse;"><thead><tr style="background:var(--card-bg);"><th style="text-align:left; padding:6px;">Tarikh</th><th style="text-align:left; padding:6px;">Channel</th><th style="text-align:right; padding:6px;">Jumlah</th></tr></thead><tbody>${salesRows}</tbody></table>

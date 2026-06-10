@@ -14230,7 +14230,8 @@ function loginAs(user, opts) {
  // Boot side-effects (deferred: don't block UI thread on these)
  queueMicrotask(() => { try { checkMyAttendanceStatus(); } catch(e){} });
  queueMicrotask(() => { try { typeof renderPersonalCommission === "function" && renderPersonalCommission(); } catch(e){} });
- if(!opts.silent) setTimeout(() => maybeShowOnboarding(user), 2700); // after welcome auto-dismiss
+ // p1_572 — Zaid: buang popup onboarding wizard auto (dah setup). Fungsi maybeShowOnboarding kekal (boleh panggil manual), cuma tak auto-keluar lagi.
+ // if(!opts.silent) setTimeout(() => maybeShowOnboarding(user), 2700);
 
  // p1_75: silent mode skips welcome modal (used by session restore on refresh)
  if(opts.silent) {

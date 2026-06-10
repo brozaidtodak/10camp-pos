@@ -25,7 +25,8 @@ function json(status, body) {
     return { statusCode: status, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) };
 }
 
-const num = (x) => { const n = Math.abs(parseFloat(x)); return isNaN(n) ? 0 : n; };
+const num = (x) => { const n = Math.abs(parseFloat(x)); return isNaN(n) ? 0 : n; }; // magnitude (fees)
+const sgn = (x) => { const n = parseFloat(x); return isNaN(n) ? 0 : n; };            // signed (gross/net — can be negative on refund-heavy periods)
 
 function ymd(epochSec) {
     if (!epochSec) return null;
@@ -60,8 +61,8 @@ async function getStatementTxns(tok, cipher, statementId, query) {
 // order_sn = transaction id (unique per settlement line, so refunds/adjustments on
 // the same order_id don't overwrite the original sale on upsert).
 function mapTxn(t) {
-    const gross      = num(t.revenue_amount);
-    const net        = num(t.settlement_amount);
+    const gross      = sgn(t.revenue_amount);
+    const net        = sgn(t.settlement_amount);
     const totalFee   = num(t.fee_amount);
     const commission = num(t.platform_commission_amount);
     const txnFee     = num(t.transaction_fee_amount);
@@ -125,8 +126,8 @@ exports.handler = async (event) => {
             // per-statement transaction sub-calls, so the whole history fits one call.
             // gross = revenue, net = settlement, fees lumped (statement has no split).
             out.rows = statements.map(s => {
-                const gross = num(s.revenue_amount);
-                const net   = num(s.settlement_amount);
+                const gross = sgn(s.revenue_amount);
+                const net   = sgn(s.settlement_amount);
                 return {
                     order_sn: String(s.id),
                     order_date: ymd(s.statement_time ?? s.payment_time),

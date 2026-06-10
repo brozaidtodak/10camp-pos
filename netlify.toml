@@ -30,6 +30,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/tiktok-finance"
+  to = "/.netlify/functions/tiktok-finance"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/tiktok-stock-sync"
   to = "/.netlify/functions/tiktok-stock-sync"
   status = 200

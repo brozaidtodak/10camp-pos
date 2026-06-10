@@ -7016,6 +7016,7 @@ function switchHub(sectionIds, title, btnElement) {
  if(sectionIds.includes('posSection')) {
  const term = document.getElementById("posSearchBox") ? document.getElementById("posSearchBox").value : "";
  renderPOS(term);
+ if(typeof window.__renderSalesTarget === 'function') window.__renderSalesTarget(); // p1_559 — banner sasaran masa masuk cashier
  }
  if(sectionIds.includes('stockTakeSection')) renderAuditCards();
 
@@ -11541,6 +11542,59 @@ window.__qsRenderPills = function() {
  if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
+// p1_559 — Banner Sasaran Jualan bulan ini di skrin Cashier supaya SEMUA staff nampak objektif.
+// Guna sasaran sedia ada (dashMonthlyTarget_v1) + jualan sebenar bulan ni (salesHistory).
+window.__SALES_TARGET_MONTHS = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+window.__renderSalesTarget = function(){
+ const sec = document.getElementById('posSection');
+ if(!sec) return;
+ let target = 0; try { target = parseFloat(localStorage.getItem('dashMonthlyTarget_v1')) || 0; } catch(e){}
+ let bn = document.getElementById('posTargetBanner');
+ if(!(target > 0)){ if(bn) bn.style.display = 'none'; return; }
+ const now = new Date();
+ const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+ const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+ let mtd = 0;
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+ if(typeof window.__isRealSale === 'function' && !window.__isRealSale(s)) return;
+ const dt = s.created_at ? new Date(s.created_at).getTime() : 0;
+ const t = parseFloat(s.total != null ? s.total : s.total_amount) || 0;
+ if(dt >= monthStart && t > 0) mtd += t;
+ });
+ const pct = Math.max(0, (mtd / target) * 100);
+ const fmt = n => 'RM ' + Math.round(n).toLocaleString('en-MY');
+ const daysInMonth = Math.round((monthEnd - monthStart) / 864e5);
+ const dayNow = Math.min(daysInMonth, Math.max(1, Math.ceil((Date.now() - monthStart) / 864e5)));
+ const remainingDays = Math.max(0, daysInMonth - dayNow);
+ const remaining = Math.max(0, target - mtd);
+ const perDay = remainingDays > 0 ? remaining / remainingDays : remaining;
+ const expected = target * (dayNow / daysInMonth);
+ let label = 'Ikut jadual', col = '#CD7C32';
+ if(pct >= 100){ label = 'Sasaran tercapai'; col = '#16A34A'; }
+ else if(mtd > expected * 1.05){ label = 'Hadapan jadual'; col = '#16A34A'; }
+ else if(mtd < expected * 0.85){ label = 'Perlu pecut'; col = '#EF4444'; }
+ const monthName = window.__SALES_TARGET_MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+ if(!bn){ bn = document.createElement('div'); bn.id = 'posTargetBanner'; sec.insertBefore(bn, sec.firstChild); }
+ bn.style.cssText = 'display:block; background:linear-gradient(135deg,#101010,#2a221b); color:#FAF6EF; border:1px solid #3a2f25; border-radius:14px; padding:13px 16px; margin:0 0 14px;';
+ const tail = pct >= 100
+ ? 'Syabas! Sasaran bulan ni dah tercapai'
+ : 'Lagi ' + fmt(remaining) + ' &middot; sasaran ~' + fmt(perDay) + '/hari (' + remainingDays + ' hari lagi)';
+ bn.innerHTML =
+ '<div style="display:flex; align-items:center; gap:10px; margin-bottom:9px;">'
+ + '<i data-lucide="target" style="width:18px;height:18px;color:#CD7C32;"></i>'
+ + '<span style="font-weight:800; font-size:14px;">Sasaran Jualan ' + monthName + '</span>'
+ + '<span style="flex:1;"></span>'
+ + '<span style="font-weight:800; font-size:13px; color:' + col + ';">' + pct.toFixed(0) + '% &middot; ' + label + '</span>'
+ + '</div>'
+ + '<div style="height:12px; background:rgba(255,255,255,.12); border-radius:50px; overflow:hidden; margin-bottom:8px;">'
+ + '<div style="height:100%; width:' + Math.min(100, pct) + '%; background:linear-gradient(90deg,#CD7C32,#E08A45); border-radius:50px; transition:width .5s;"></div>'
+ + '</div>'
+ + '<div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px;">'
+ + '<span><b style="color:#fff;">' + fmt(mtd) + '</b> <span style="color:#A8A29A;">/ ' + fmt(target) + '</span></span>'
+ + '<span style="color:#A8A29A;">' + tail + '</span>'
+ + '</div>';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
 function renderPOS(searchTerm = "") {
  const list = document.getElementById("productsList");
  if(!list) return;
@@ -12979,6 +13033,12 @@ window.processNewCheckout = async function() {
  if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
  saleCommitted = true; // sale dah selamat dalam DB — selepas ni jangan rollback stok
+ // p1_559 — masukkan jualan ke salesHistory dalam-memori supaya banner Sasaran + Orders kemas-kini serta-merta
+ try {
+ if(Array.isArray(salesHistory) && insertedSaleId != null) {
+ salesHistory.unshift({ id: insertedSaleId, total: finalTotal, total_amount: finalTotal, status: cst, channel: cn, payment_method: pm, created_at: new Date().toISOString(), items: cart.map(c => Object.assign({}, c)), customer_name: custNameText, customer_phone: custPhoneText, staff_name: currentUser ? currentUser.name : 'Unknown', metadata: Object.keys(saleMeta).length ? saleMeta : null });
+ }
+ } catch(e){ console.warn('append salesHistory in-memori gagal:', e); }
  // p1_257 — auto-trigger HEIC conversion bila proof uploaded as HEIC dari iPhone
  if(insertedSaleId && proofUrl && typeof window.__triggerHeicConvertIfNeeded === 'function') {
  window.__triggerHeicConvertIfNeeded(insertedSaleId, proofUrl);
@@ -13047,6 +13107,7 @@ window.processNewCheckout = async function() {
  }
 
  cart = [];
+ if(typeof window.__renderSalesTarget === 'function') window.__renderSalesTarget(); // p1_559 — banner sasaran gerak selepas jualan
  document.getElementById("customerName").value = "";
  document.getElementById("customerPhone").value = "";
  document.getElementById("customerEmail").value = "";

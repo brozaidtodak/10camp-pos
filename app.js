@@ -34058,15 +34058,17 @@ window.__closeSimpleModal = function(){ const ov=document.getElementById('__simp
  * ==========================================================================*/
 window.__doData = null;
 window.__doLoad = async function(){
- if(typeof db==='undefined'||!db){ window.__doData={orders:[],dos:[],items:[]}; return window.__doData; }
+ if(typeof db==='undefined'||!db){ window.__doData={orders:[],dos:[],items:[],plc:{}}; return window.__doData; }
  try {
-  const [o,d,it] = await Promise.all([
+  const [o,d,it,pc] = await Promise.all([
    db.from('supplier_orders').select('*').order('order_date'),
    db.from('delivery_orders').select('*').order('delivery_date'),
-   db.from('delivery_order_items').select('*')
+   db.from('delivery_order_items').select('*'),
+   db.from('product_landed_cost').select('sku,model_no,product_name,cost_rmb,cost_rm')
   ]);
-  window.__doData = { orders:(o&&o.data)||[], dos:(d&&d.data)||[], items:(it&&it.data)||[] };
- } catch(e){ window.__doData = window.__doData||{orders:[],dos:[],items:[]}; }
+  const plc={}; (((pc&&pc.data)||[])).forEach(r=>{ plc[String(r.sku||'').toUpperCase()]=r; });
+  window.__doData = { orders:(o&&o.data)||[], dos:(d&&d.data)||[], items:(it&&it.data)||[], plc:plc };
+ } catch(e){ window.__doData = window.__doData||{orders:[],dos:[],items:[],plc:{}}; }
  return window.__doData;
 };
 window.__doE = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); };
@@ -34082,6 +34084,77 @@ window.__doShowItems = function(ref){
  window.__openSimpleModal('<div style="min-width:min(640px,90vw);"><div style="font-weight:800; font-size:16px; margin-bottom:10px;">Butiran '+E(ref)+'</div><div style="max-height:62vh; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="text-align:left; border-bottom:2px solid #D1D5DB;"><th style="padding:6px 8px;">SKU</th><th style="padding:6px 8px;">Nama</th><th style="padding:6px 8px; text-align:right;">Qty</th><th style="padding:6px 8px; text-align:right;">Kos/unit</th><th style="padding:6px 8px; text-align:right;">Subtotal</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>');
 };
 
+/* p1_604 — borang key-in DO 2025/26 (manual) */
+window.__doDraft = [];
+window.__doCostFor = function(sku){
+ sku=String(sku||'').toUpperCase();
+ const plc=(window.__doData&&window.__doData.plc)||{};
+ if(plc[sku] && plc[sku].cost_rm!=null) return {rm:Number(plc[sku].cost_rm)||0, rmb:(plc[sku].cost_rmb!=null?Number(plc[sku].cost_rmb):null), model:plc[sku].model_no||'', name:plc[sku].product_name||''};
+ const p=(Array.isArray(masterProducts)?masterProducts:[]).find(x=>String(x.sku||'').toUpperCase()===sku);
+ if(p) return {rm:Number(p.cost_price)||0, rmb:null, model:'', name:p.name||''};
+ return {rm:0, rmb:null, model:'', name:''};
+};
+window.__doNextRef = function(year){
+ const dos=(window.__doData&&window.__doData.dos)||[]; const pre='DO-'+year+'-'; let mx=0;
+ dos.forEach(d=>{ const r=String(d.do_ref||''); if(r.indexOf(pre)===0){ const n=parseInt(r.slice(pre.length),10); if(n>mx) mx=n; } });
+ return pre+String(mx+1).padStart(3,'0');
+};
+window.__doFormAddItem = function(){
+ const skuEl=document.getElementById('doItemSku'), qtyEl=document.getElementById('doItemQty');
+ const sku=String(skuEl&&skuEl.value||'').trim().toUpperCase();
+ const qty=parseInt(qtyEl&&qtyEl.value||'0',10)||0;
+ if(!sku){ showToast('Pilih barang dulu.','warn'); return; }
+ if(qty<=0){ showToast('Qty mesti lebih 0.','warn'); return; }
+ const ex=window.__doDraft.find(x=>x.sku===sku);
+ if(ex){ ex.qty+=qty; } else { window.__doDraft.push({sku:sku, qty:qty}); }
+ if(skuEl)skuEl.value=''; if(qtyEl)qtyEl.value='1';
+ window.__doFormRenderDraft(); if(skuEl)skuEl.focus();
+};
+window.__doFormDraftRemove=function(i){ window.__doDraft.splice(i,1); window.__doFormRenderDraft(); };
+window.__doFormRenderDraft=function(){
+ const wrap=document.getElementById('doDraftWrap'); if(!wrap) return;
+ const E=window.__doE, d=window.__doDraft;
+ if(!d.length){ wrap.innerHTML='<div style="padding:12px; text-align:center; color:#6B7280; font-size:13px;">Belum ada barang. Pilih SKU + qty, tekan Tambah.</div>'; return; }
+ let tu=0, tv=0;
+ const body=d.map((it,i)=>{ const c=window.__doCostFor(it.sku); const sub=c.rm*it.qty; tu+=it.qty; tv+=sub; const nm=c.name||it.sku;
+  return '<tr style="border-bottom:1px solid #EEE;"><td style="padding:6px 8px;">'+E(it.sku)+' <span style="color:#9CA3AF;">'+E(String(nm).slice(0,28))+'</span>'+(c.rm?'':' <span style="color:#DC2626;font-size:11px;">(tiada kos)</span>')+'</td><td style="padding:6px 8px; text-align:right;">'+it.qty+'</td><td style="padding:6px 8px; text-align:right;">RM'+c.rm.toFixed(2)+'</td><td style="padding:6px 8px; text-align:right; font-weight:700;">RM'+sub.toFixed(2)+'</td><td style="padding:6px 8px;"><button onclick="window.__doFormDraftRemove('+i+')" title="Buang" style="background:none;border:0;cursor:pointer;color:#DC2626;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button></td></tr>';
+ }).join('');
+ wrap.innerHTML='<table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="text-align:left; border-bottom:1.5px solid #D1D5DB;"><th style="padding:6px 8px;">SKU / Nama</th><th style="padding:6px 8px; text-align:right;">Qty</th><th style="padding:6px 8px; text-align:right;">Kos/unit</th><th style="padding:6px 8px; text-align:right;">Subtotal</th><th></th></tr></thead><tbody>'+body+'</tbody><tfoot><tr style="border-top:2px solid #D1D5DB; font-weight:800;"><td style="padding:6px 8px;">Jumlah</td><td style="padding:6px 8px; text-align:right;">'+tu+'</td><td></td><td style="padding:6px 8px; text-align:right;">RM'+tv.toFixed(2)+'</td><td></td></tr></tfoot></table>';
+ if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+};
+window.__doFormToggle=function(){ const f=document.getElementById('doFormCard'); if(f) f.style.display=(f.style.display==='none'?'block':'none'); };
+window.__doFormSave = async function(){
+ const date=String(document.getElementById('doDate')&&document.getElementById('doDate').value||'').trim();
+ let ref=String(document.getElementById('doRef')&&document.getElementById('doRef').value||'').trim().toUpperCase();
+ const desc=String(document.getElementById('doDesc')&&document.getElementById('doDesc').value||'').trim();
+ const soRef=String(document.getElementById('doSoRef')&&document.getElementById('doSoRef').value||'').trim();
+ const frmb=Number(document.getElementById('doFreightRmb')&&document.getElementById('doFreightRmb').value||0)||0;
+ const fmyr=Number(document.getElementById('doFreightMyr')&&document.getElementById('doFreightMyr').value||0)||0;
+ if(!date){ showToast('Pilih tarikh penghantaran.','warn'); return; }
+ if(!window.__doDraft.length){ showToast('Tambah sekurang-kurangnya 1 barang.','warn'); return; }
+ if(!ref){ ref=window.__doNextRef(date.slice(0,4)); }
+ if(((window.__doData&&window.__doData.dos)||[]).some(d=>String(d.do_ref).toUpperCase()===ref)){ showToast('Ref '+ref+' dah wujud. Tukar ref.','warn'); return; }
+ const tu=window.__doDraft.reduce((s,x)=>s+x.qty,0);
+ const staff=(window.currentUser&&(window.currentUser.name||window.currentUser.staff_id))||'';
+ const doRow={ do_ref:ref, shipment_no:'manual', delivery_date:date, description:desc||null, freight_rmb:frmb||null, freight_myr:fmyr||null, total_units:tu, shipping_cost_per_unit:(tu>0&&fmyr>0?Number((fmyr/tu).toFixed(4)):null), supplier_order_ref:soRef||null, source:'manual key-in', notes:('Key-in oleh '+staff) };
+ const items=window.__doDraft.map(x=>{ const c=window.__doCostFor(x.sku); return { do_ref:ref, sku:x.sku, qty:x.qty, supplier_code:c.model||null, product_name:c.name||null, unit_cost_rmb:c.rmb, unit_cost_myr:(c.rm||null), needs_review:(c.rm?false:true) }; });
+ try {
+  const r1=await db.from('delivery_orders').insert(doRow); if(r1.error) throw r1.error;
+  const r2=await db.from('delivery_order_items').insert(items); if(r2.error) throw r2.error;
+  showToast('Delivery Order '+ref+' disimpan ('+items.length+' barang).','success');
+  window.__doDraft=[]; window.__doData=null; await window.__doLoad(); window.renderDeliveryOrders();
+ } catch(e){ showToast('Gagal simpan: '+((e&&e.message)||e),'warn'); }
+};
+window.__doDeleteDO = async function(ref){
+ if(!confirm('Padam '+ref+' + semua barangnya? (stok TIDAK terjejas)')) return;
+ try {
+  await db.from('delivery_order_items').delete().eq('do_ref',ref);
+  await db.from('delivery_orders').delete().eq('do_ref',ref);
+  showToast(ref+' dipadam.','success');
+  window.__doData=null; await window.__doLoad(); window.renderDeliveryOrders();
+ } catch(e){ showToast('Gagal padam: '+((e&&e.message)||e),'warn'); }
+};
+
 window.renderDeliveryOrders = async function(){
  const sec=document.getElementById('deliveryOrdersSection'); if(!sec) return;
  sec.innerHTML='<div style="padding:20px; color:#6B7280;">Memuatkan...</div>';
@@ -34091,9 +34164,12 @@ window.renderDeliveryOrders = async function(){
  const totalMyr=orders.reduce((s,o)=>s+(Number(o.myr_total)||0),0);
  const totalUnits=dos.reduce((s,d)=>s+(Number(d.total_units)||0),0);
  const fmt=(n)=>Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+ const soOpts = orders.map(o=>'<option value="'+E(o.do_ref)+'">'+E(String(o.do_ref)+' - '+(o.supplier||''))+'</option>').join('');
+ const skuOpts = (Array.isArray(masterProducts)?masterProducts:[]).slice(0,3000).map(p=>'<option value="'+E(p.sku)+'">'+E(String(p.name||'').slice(0,45))+'</option>').join('');
  const doRows = dos.length? dos.map(d=>{
   const val=window.__doValueFor(d.do_ref), cnt=window.__doItemsFor(d.do_ref).length;
-  return '<tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:8px 10px; font-weight:700;">'+E(d.do_ref)+'</td><td style="padding:8px 10px;">'+E(d.delivery_date||'')+'</td><td style="padding:8px 10px; color:#6B7280; font-size:12px; max-width:300px;">'+E((d.description||'').slice(0,64))+'</td><td style="padding:8px 10px; text-align:right;">'+(Number(d.total_units)||0)+'</td><td style="padding:8px 10px; text-align:right;">RM'+fmt(d.freight_myr)+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(val)+'</td><td style="padding:8px 10px;"><button onclick="window.__doShowItems(\''+E(d.do_ref)+'\')" class="btn-brand-secondary" style="padding:4px 10px; font-size:12px;">'+cnt+' item</button></td></tr>';
+  const manual=(d.source==='manual key-in');
+  return '<tr style="border-bottom:1px solid #E5E7EB;'+(manual?'background:#F0FDF4;':'')+'"><td style="padding:8px 10px; font-weight:700;">'+E(d.do_ref)+(manual?' <span style="color:#16A34A;font-size:10px;">manual</span>':'')+'</td><td style="padding:8px 10px;">'+E(d.delivery_date||'')+'</td><td style="padding:8px 10px; color:#6B7280; font-size:12px; max-width:300px;">'+E((d.description||'').slice(0,64))+'</td><td style="padding:8px 10px; text-align:right;">'+(Number(d.total_units)||0)+'</td><td style="padding:8px 10px; text-align:right;">RM'+fmt(d.freight_myr)+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(val)+'</td><td style="padding:8px 10px; white-space:nowrap;"><button onclick="window.__doShowItems(\''+E(d.do_ref)+'\')" class="btn-brand-secondary" style="padding:4px 10px; font-size:12px;">'+cnt+' item</button>'+(manual?' <button onclick="window.__doDeleteDO(\''+E(d.do_ref)+'\')" title="Padam" style="background:none;border:0;cursor:pointer;color:#DC2626;"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>':'')+'</td></tr>';
  }).join('') : '<tr><td colspan="7" style="padding:20px; text-align:center; color:#6B7280;">Tiada delivery order.</td></tr>';
  const soRows = orders.length? orders.map(o=>{
   return '<tr style="border-bottom:1px solid #E5E7EB;'+(o.needs_review?'background:#FEF2F2;':'')+'"><td style="padding:8px 10px; font-weight:700;">'+E(o.do_ref)+(o.needs_review?' <span style="color:#DC2626;font-size:11px;">(semak)</span>':'')+'</td><td style="padding:8px 10px;">'+E(o.order_date||'')+'</td><td style="padding:8px 10px;">'+E(o.supplier||'')+'</td><td style="padding:8px 10px;">'+E(o.payment_type||'')+'</td><td style="padding:8px 10px; text-align:right;">&yen;'+Number(o.rmb_total||0).toLocaleString()+'</td><td style="padding:8px 10px; text-align:right; font-weight:700;">RM'+fmt(o.myr_total)+'</td></tr>';
@@ -34107,10 +34183,34 @@ window.renderDeliveryOrders = async function(){
    +'<div class="stat-card"><div style="font-size:12px;color:#6B7280;">Jumlah Belian (MYR)</div><div style="font-size:22px;font-weight:900;">RM'+Number(totalMyr).toLocaleString(undefined,{maximumFractionDigits:0})+'</div></div>'
    +'<div class="stat-card"><div style="font-size:12px;color:#6B7280;">Unit Dihantar (2024)</div><div style="font-size:22px;font-weight:900;">'+Number(totalUnits).toLocaleString()+'</div></div>'
   +'</div>'
-  +'<div style="font-weight:800; margin:18px 0 8px;">Delivery Orders (Penghantaran) — 2024</div>'
+  +'<div style="margin:6px 0 12px;"><button onclick="window.__doFormToggle()" class="btn-brand-primary" style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="plus" style="width:15px;height:15px;"></i> Tambah Delivery Order (key-in)</button></div>'
+  +'<div id="doFormCard" class="admin-card" style="padding:16px; margin-bottom:18px; display:none;">'
+    +'<div style="font-weight:800; margin-bottom:10px;">Key-in Delivery Order Baru (cth 2025/2026)</div>'
+    +'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-bottom:10px;">'
+      +'<div><label style="font-size:12px;color:#6B7280;">Tarikh penghantaran</label><input id="doDate" type="date" oninput="if(this.value){var r=document.getElementById(\'doRef\'); if(r&&!r.value)r.value=window.__doNextRef(this.value.slice(0,4));}" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Ref DO</label><input id="doRef" placeholder="auto kalau kosong" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Keterangan / Invois</label><input id="doDesc" placeholder="cth: Inv-25xxxxx" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Order supplier (optional)</label><select id="doSoRef" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"><option value="">—</option>'+soOpts+'</select></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Freight RMB (optional)</label><input id="doFreightRmb" type="number" min="0" step="0.01" placeholder="0" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Freight MYR (optional)</label><input id="doFreightMyr" type="number" min="0" step="0.01" placeholder="0" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+    +'</div>'
+    +'<div style="display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; margin-bottom:8px;">'
+      +'<div><label style="font-size:12px;color:#6B7280;">Barang (SKU)</label><input id="doItemSku" list="doSkuList" placeholder="Cari SKU / nama" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"><datalist id="doSkuList">'+skuOpts+'</datalist></div>'
+      +'<div><label style="font-size:12px;color:#6B7280;">Qty</label><input id="doItemQty" type="number" min="1" value="1" style="width:100%;padding:8px;border:1px solid #D1D5DB;border-radius:8px;"></div>'
+      +'<button onclick="window.__doFormAddItem()" class="btn-brand-secondary" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="plus" style="width:15px;height:15px;"></i> Tambah</button>'
+    +'</div>'
+    +'<div style="font-size:11.5px; color:#6B7280; margin-bottom:6px;">Kos seunit auto dari kos landed / Product Master. SKU tanpa kos akan ditanda untuk semak.</div>'
+    +'<div id="doDraftWrap" style="border:1px solid #E5E7EB; border-radius:8px; margin-bottom:12px;"></div>'
+    +'<div style="display:flex; gap:10px;">'
+      +'<button onclick="window.__doFormSave()" class="btn-brand-primary" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="save" style="width:15px;height:15px;"></i> Simpan DO</button>'
+      +'<button onclick="window.__doDraft=[]; window.__doFormRenderDraft();" class="btn-brand-secondary">Kosongkan barang</button>'
+    +'</div>'
+  +'</div>'
+  +'<div style="font-weight:800; margin:18px 0 8px;">Delivery Orders (Penghantaran)</div>'
   +'<div class="admin-card" style="padding:0; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">DO</th><th style="padding:8px 10px;">Tarikh</th><th style="padding:8px 10px;">Keterangan</th><th style="padding:8px 10px; text-align:right;">Unit</th><th style="padding:8px 10px; text-align:right;">Freight</th><th style="padding:8px 10px; text-align:right;">Nilai Barang</th><th style="padding:8px 10px;">Butiran</th></tr></thead><tbody>'+doRows+'</tbody></table></div>'
   +'<div style="font-weight:800; margin:22px 0 8px;">Order Supplier (Pembelian) — 2024-2026</div>'
   +'<div class="admin-card" style="padding:0; overflow:auto;"><table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">Order</th><th style="padding:8px 10px;">Tarikh</th><th style="padding:8px 10px;">Supplier</th><th style="padding:8px 10px;">Bayaran</th><th style="padding:8px 10px; text-align:right;">RMB</th><th style="padding:8px 10px; text-align:right;">MYR</th></tr></thead><tbody>'+soRows+'</tbody></table></div>';
+ window.__doFormRenderDraft();
  if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
 };
 

@@ -260,8 +260,10 @@ function mkRow(source, channel, returnId, sku, name, qty, reason, orderRef, stat
 
 exports.handler = async (event) => {
     if (!SERVICE_KEY) return json(500, { error: 'SUPABASE_SERVICE_KEY not set' });
+    // p1_576 (#16) — invokasi berjadual (cron) tiada queryStringParameters → auto IMPORT (default 15 hari lalu).
+    const isScheduled = !event.queryStringParameters;
     const params = event.queryStringParameters || {};
-    const mode = params.mode === 'import' ? 'import' : 'dryrun';
+    const mode = isScheduled ? 'import' : (params.mode === 'import' ? 'import' : 'dryrun');
     const channel = (params.channel || '').toLowerCase(); // '' = both
     const onlyDone = params.status !== 'all'; // default: return SELESAI sahaja (Zaid). ?status=all = semua.
     const sinceMs = params.since ? Date.parse(params.since) : Date.now() - 15 * 24 * 60 * 60 * 1000;
@@ -320,19 +322,20 @@ exports.handler = async (event) => {
         }
     } catch (e) { out.cost_lookup_error = String(e.message || e); }
 
-    // ---- dedup ikut (source, external_id) ----
+    // ---- dedup ikut (source, external_id) — selaras unique constraint uq_returns_source_ext (#31) ----
     const extIds = rows.map(r => r.external_id);
     const seen = new Set();
     for (const batch of chunk(extIds, 150)) {
         const list = batch.map(s => `"${s.replace(/"/g, '')}"`).join(',');
-        const ex = await sb('GET', `/returns_log?select=external_id&external_id=in.(${list})`);
-        (ex || []).forEach(r => { if (r.external_id) seen.add(r.external_id); });
+        const ex = await sb('GET', `/returns_log?select=source,external_id&external_id=in.(${list})`);
+        (ex || []).forEach(r => { if (r.external_id) seen.add((r.source || '') + '|' + r.external_id); });
     }
     // de-dup dalam batch sendiri juga (return_sn+sku sama dua kali)
     const localSeen = new Set();
     const fresh = rows.filter(r => {
-        if (seen.has(r.external_id) || localSeen.has(r.external_id)) return false;
-        localSeen.add(r.external_id); return true;
+        const k = (r.source || '') + '|' + r.external_id;
+        if (seen.has(k) || localSeen.has(k)) return false;
+        localSeen.add(k); return true;
     });
 
     out.mapped = rows.length;

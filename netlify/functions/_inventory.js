@@ -79,4 +79,39 @@ function isVoidStatus(status) {
     return s === 'voided' || s === 'cancelled' || s === 'canceled';
 }
 
-module.exports = { deductStockForItems, isVoidStatus };
+// p1_576 — RESTOCK list of {sku, qty} back into inventory_batches (mirror app.js __applyStockDelta +).
+//   Inserts ONE new inbound batch per SKU (qty available again) + an INBOUND_RESTOCK ledger row.
+//   Used when a previously-deducted marketplace order is cancelled/voided (bug audit #4/#14).
+//   IDEMPOTENCY: caller MUST guard (e.g. metadata.stock_restored flag) so a re-fired cancel
+//   webhook doesn't restock twice.
+async function restockForItems(sb, items, opts) {
+    opts = opts || {};
+    const reason = opts.reason || 'Marketplace cancel restock';
+    const txnType = opts.txnType || 'INBOUND_RESTOCK';
+    const result = { skus_processed: 0, total_restocked: 0, errors: [] };
+    const txnRows = [];
+    const nowIso = new Date().toISOString();
+    for (const item of (items || [])) {
+        const sku = (item.sku || '').trim();
+        const qty = Number(item.qty) || 0;
+        if (!sku || qty <= 0 || sku.startsWith('CUSTOM-')) continue;
+        try {
+            const ins = await sb('POST', '/inventory_batches',
+                [{ sku, qty_received: qty, qty_remaining: qty, cost_price: 0, inbound_date: nowIso, notes: reason }],
+                { Prefer: 'return=representation' });
+            const batchId = (Array.isArray(ins) && ins[0]) ? ins[0].id : null;
+            txnRows.push({ sku, batch_id: batchId, transaction_type: txnType, qty_change: qty });
+            result.total_restocked += qty;
+            result.skus_processed++;
+        } catch (e) {
+            result.errors.push({ sku, err: (e.message || String(e)).slice(0, 120) });
+        }
+    }
+    if (txnRows.length) {
+        try { await sb('POST', '/inventory_transactions', txnRows, { Prefer: 'return=minimal' }); }
+        catch (e) { result.errors.push({ sku: '(txn_log)', err: (e.message || String(e)).slice(0, 120) }); }
+    }
+    return result;
+}
+
+module.exports = { deductStockForItems, restockForItems, isVoidStatus };

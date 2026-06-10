@@ -92,7 +92,7 @@ exports.handler = async (event) => {
         if (!sns.length) { out.note = 'Tiada order cancelled dalam window ni.'; return json(200, out); }
 
         // 2. Order detail batches
-        const fields = 'item_list,total_amount,currency,order_status,create_time,update_time,cancel_reason,buyer_username';
+        const fields = 'item_list,total_amount,currency,order_status,create_time,update_time,cancel_reason,buyer_username,pay_time';
         const orders = [];
         for (const b of chunk(sns, 50)) {
             const r = await shopeeGet('/api/v2/order/get_order_detail', { order_sn_list: b.join(','), response_optional_fields: fields }, tok.access_token, tok.shop_id);
@@ -102,7 +102,11 @@ exports.handler = async (event) => {
 
         // 3. Map → returns_log rows (satu baris per item)
         const rows = [];
+        let skippedUnpaid = 0;
         for (const o of orders) {
+            // p1_576 (#17) — banyak order CANCELLED dibatal SEBELUM bayar (buyer cancel / auto-cancel unpaid).
+            // Itu bukan refund (takde duit, takde stok bergerak) — jangan kira sebagai loss.
+            if (!o.pay_time || Number(o.pay_time) <= 0) { skippedUnpaid++; continue; }
             const total = Number(o.total_amount || 0);
             const reason = (o.cancel_reason || 'Cancelled / refund').toString().slice(0, 100);
             const items = o.item_list || [];
@@ -124,7 +128,8 @@ exports.handler = async (event) => {
             }
         }
         out.mapped = rows.length;
-        if (!rows.length) { out.note = 'Order cancelled tiada item detail.'; return json(200, out); }
+        out.skipped_unpaid = skippedUnpaid;
+        if (!rows.length) { out.note = 'Tiada cancel BERBAYAR (semua belum-bayar atau tiada item).'; return json(200, out); }
 
         // 4. Isi cost_impact dari products_master
         try {
@@ -138,28 +143,29 @@ exports.handler = async (event) => {
             rows.forEach(r => { if (costMap[r.sku] != null) r.cost_impact = costMap[r.sku]; });
         } catch (e) { out.cost_lookup_error = String(e.message || e); }
 
-        // 5. Dedup ikut external_id
+        // 5. Dedup ikut (source, external_id) — selaras dengan unique constraint uq_returns_source_ext (#31)
         const extIds = rows.map(r => r.external_id);
         const seen = new Set();
         for (const b of chunk(extIds, 150)) {
             const list = b.map(s => `"${s.replace(/"/g, '')}"`).join(',');
-            const ex = await sb('GET', `/returns_log?select=external_id&external_id=in.(${list})`);
-            (ex || []).forEach(r => { if (r.external_id) seen.add(r.external_id); });
+            const ex = await sb('GET', `/returns_log?select=source,external_id&external_id=in.(${list})`);
+            (ex || []).forEach(r => { if (r.external_id) seen.add((r.source || '') + '|' + r.external_id); });
         }
         const local = new Set();
-        const fresh = rows.filter(r => { if (seen.has(r.external_id) || local.has(r.external_id)) return false; local.add(r.external_id); return true; });
+        const fresh = rows.filter(r => { const k = (r.source || '') + '|' + r.external_id; if (seen.has(k) || local.has(k)) return false; local.add(k); return true; });
         out.already_logged = rows.length - fresh.length;
         out.new = fresh.length;
 
         if (mode === 'dryrun') { out.sample = fresh.slice(0, 5); out.note = 'DRYRUN — tambah ?mode=import untuk simpan.'; return json(200, out); }
 
-        let inserted = 0, dupes = 0;
+        let inserted = 0;
         for (const b of chunk(fresh, 100)) {
             if (!b.length) continue;
-            try { await sb('POST', '/returns_log', b, { Prefer: 'return=minimal' }); inserted += b.length; }
-            catch (e) { const m = String(e.message || e); if (m.includes('23505') || m.includes('duplicate') || m.includes('409')) { dupes += b.length; continue; } (out.errors = out.errors || []).push(m.slice(0, 120)); }
+            // p1_576 (#5) — on_conflict + ignore-duplicates: 1 baris duplikat TAK abort seluruh batch (dulu boleh buang ~99 baris elok)
+            try { await sb('POST', '/returns_log?on_conflict=source,external_id', b, { Prefer: 'return=minimal,resolution=ignore-duplicates' }); inserted += b.length; }
+            catch (e) { (out.errors = out.errors || []).push(String(e.message || e).slice(0, 120)); }
         }
-        out.inserted = inserted; out.dupes_skipped = dupes; out.ok = true;
+        out.inserted = inserted; out.ok = true;
         return json(200, out);
     } catch (err) { out.error = String(err); return json(500, out); }
 };

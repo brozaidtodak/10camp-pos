@@ -23,7 +23,7 @@
  */
 
 const crypto = require('crypto');
-const { deductStockForItems, isVoidStatus } = require('./_inventory');
+const { deductStockForItems, restockForItems, isVoidStatus } = require('./_inventory');
 
 const PARTNER_ID   = process.env.SHOPEE_PARTNER_ID || '';
 const PARTNER_KEY  = process.env.SHOPEE_PARTNER_KEY || '';
@@ -299,22 +299,40 @@ exports.handler = async (event) => {
 
         const row = mapOrder(orderList[0]);
 
-        // 6. Upsert to sales_history — try insert, fallback to update if exists
+        // 6. Upsert to sales_history — STATE-DRIVEN stock (bug audit #4 + #14).
+        //    Guna flag metadata.stock_deducted / stock_restored supaya:
+        //    - order yang JADI valid (walau event pertama cancel) tetap deduct bila valid,
+        //    - order yang pernah deduct + KEMUDIAN cancel → pulang stok (sekali sahaja).
         const existing = await sb('GET',
-            `/sales_history?select=id&metadata->>shopee_order_sn=eq.${encodeURIComponent(orderSn)}&limit=1`);
+            `/sales_history?select=id,status,items,metadata&metadata->>shopee_order_sn=eq.${encodeURIComponent(orderSn)}&limit=1`);
 
+        const live = !isVoidStatus(row.status);
         let stockResult = null;
+
         if (existing && existing.length) {
-            // Update existing row (status may have changed). Do NOT re-deduct —
-            // stock was already deducted on the first insert (idempotency).
+            const ex = existing[0];
+            let exMeta = ex.metadata; if (typeof exMeta === 'string') { try { exMeta = JSON.parse(exMeta); } catch (e) { exMeta = {}; } } exMeta = exMeta || {};
+            const newMeta = Object.assign({}, row.metadata || {});
+            if (exMeta.stock_deducted) newMeta.stock_deducted = true;
+            if (exMeta.stock_restored) newMeta.stock_restored = true;
+
+            if (live && !exMeta.stock_deducted && !exMeta.stock_restored) {
+                // #14 — order kini valid tapi belum pernah deduct → deduct sekarang
+                stockResult = await deductStockForItems(sb, row.items, { txnType: 'OUTBOUND_SALE' });
+                newMeta.stock_deducted = true;
+            } else if (!live && exMeta.stock_deducted && !exMeta.stock_restored) {
+                // #4 — order yang pernah deduct kini cancelled/void → pulang stok (sekali)
+                stockResult = await restockForItems(sb, (Array.isArray(ex.items) && ex.items.length ? ex.items : row.items), { reason: 'Shopee order ' + orderSn + ' cancelled' });
+                newMeta.stock_restored = true;
+            }
+
             await sb('PATCH',
                 `/sales_history?metadata->>shopee_order_sn=eq.${encodeURIComponent(orderSn)}`,
-                { status: row.status, total: row.total, total_amount: row.total, items: row.items, metadata: row.metadata },
+                { status: row.status, total: row.total, total_amount: row.total, items: row.items, metadata: newMeta },
                 { Prefer: 'return=minimal' });
         } else {
-            // Try insert. The unique index uq_sales_shopee_order_sn means a racing
-            // cron insert of the same order_sn fails here with 23505 — in that case
-            // the cron already deducted, so we must NOT deduct again.
+            // New order — tandai stock_deducted dalam metadata kalau live (untuk idempotency event akan datang).
+            if (live) row.metadata = Object.assign({}, row.metadata || {}, { stock_deducted: true });
             let didInsert = false;
             try {
                 await sb('POST', '/sales_history', row, { Prefer: 'return=minimal' });
@@ -322,10 +340,9 @@ exports.handler = async (event) => {
             } catch (e) {
                 const msg = String(e.message || e);
                 if (!(msg.includes('23505') || msg.includes('duplicate key') || msg.includes('Supabase 409'))) throw e;
-                // duplicate → another path inserted+deducted; skip silently
+                // duplicate → path lain dah insert+deduct; skip
             }
-            // Lubang A — deduct POS stock only if THIS call created the row.
-            if (didInsert && !isVoidStatus(row.status)) {
+            if (didInsert && live) {
                 stockResult = await deductStockForItems(sb, row.items, { txnType: 'OUTBOUND_SALE' });
             }
         }

@@ -80,11 +80,15 @@ exports.handler = async () => {
         reconcile('tiktok', `${SITE_URL}/api/tiktok-stock-sync?mode=push`)
     ]);
 
+    // p1_576 (#18) — kalau Shopee GAGAL/timeout, KEKALKAN offset (retry page sama next run).
+    // Dulu next_offset jadi null bila error → lastShopeeOffset baca null → reset ke 0 → hilang
+    // semua progress paging (re-push 40 item pertama selama-lamanya, page lain tak pernah sync).
+    const persistOffset = shopee.ok ? shopee.next_offset : offset;
     await logRun('shopee_sync_log', {
         source: 'stock-cron', mode: 'push', ran_at: ranAt,
         error_message: shopee.error ? String(shopee.error).slice(0, 500) : null,
         duration_ms: shopee.duration_ms,
-        raw_response: { pushed: shopee.pushed, failed: shopee.failed, offset_used: offset, next_offset: shopee.next_offset, total_items: shopee.total_items }
+        raw_response: { pushed: shopee.pushed, failed: shopee.failed, offset_used: offset, next_offset: persistOffset, total_items: shopee.total_items }
     });
     await logRun('tiktok_sync_log', {
         source: 'stock-cron', mode: 'push', ran_at: ranAt,

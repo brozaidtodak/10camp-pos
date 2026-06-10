@@ -194,3 +194,8 @@
 # p1_529 — auto-import cancellation/refund Shopee setiap hari (2am MYT / 18:00 UTC)
 [functions."shopee-refunds-pull"]
   schedule = "0 18 * * *"
+
+# p1_576 (#16) — auto-import returns RMA (Shopee get_return_list + TikTok returns/search) setiap hari
+# (2:30am MYT / 18:30 UTC). Cron tiada query → handler auto mode=import, since=15 hari lalu.
+[functions."returns-pull"]
+  schedule = "30 18 * * *"

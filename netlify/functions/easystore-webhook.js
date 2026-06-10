@@ -16,7 +16,7 @@
  */
 
 const crypto = require('crypto');
-const { deductStockForItems } = require('./_inventory');
+const { deductStockForItems, restockForItems } = require('./_inventory');
 
 // ===== ENV (set via Netlify dashboard or CLI) =====
 const SUPABASE_URL    = process.env.SUPABASE_URL    || 'https://asehjdnfzoypbwfeazra.supabase.co';
@@ -228,14 +228,22 @@ exports.handler = async function (event) {
 
     // Idempotency: check if already in DB
     try {
-        const existing = await sb('GET', `/sales_history?metadata->>easystore_order_id=eq.${orderId}&select=id,status&limit=1`);
+        const existing = await sb('GET', `/sales_history?metadata->>easystore_order_id=eq.${orderId}&select=id,status,items,metadata&limit=1`);
         if (existing && existing.length > 0) {
             // Update existing if topic is updated/cancelled/fulfilled
             if (topic === 'orders/cancelled' || topic === 'orders/voided') {
-                await sb('PATCH', `/sales_history?id=eq.${existing[0].id}`, { status: 'Voided' });
+                // p1_576 (#4) — kalau order ni pernah tolak stok, PULANG balik (sekali sahaja, idempotent).
+                const ex = existing[0];
+                let exMeta = ex.metadata; if (typeof exMeta === 'string') { try { exMeta = JSON.parse(exMeta); } catch (e) { exMeta = {}; } } exMeta = exMeta || {};
+                let restock = null;
+                if (exMeta.stock_deducted && !exMeta.stock_restored && Array.isArray(ex.items) && ex.items.length) {
+                    restock = await restockForItems(sb, ex.items, { reason: 'EasyStore order ' + orderId + ' cancelled' });
+                    exMeta.stock_restored = true;
+                }
+                await sb('PATCH', `/sales_history?id=eq.${ex.id}`, { status: 'Voided', metadata: exMeta }, { Prefer: 'return=minimal' });
                 return {
                     statusCode: 200,
-                    body: JSON.stringify({ ok: true, action: 'updated_to_voided', id: existing[0].id, topic })
+                    body: JSON.stringify({ ok: true, action: 'updated_to_voided', id: ex.id, topic, restock })
                 };
             }
             // Already imported — no-op
@@ -255,6 +263,13 @@ exports.handler = async function (event) {
 
     // Insert new sale
     const payload = buildSalesPayload(order);
+    // p1_576 (#4) — tandai stock_deducted dalam metadata kalau order ni akan tolak stok (untuk restock-on-cancel kemudian)
+    {
+        const __fin = (order.financial_status || '').toLowerCase();
+        if (__fin !== 'voided' && __fin !== 'cancelled' && payload.items && payload.items.length) {
+            payload.metadata = Object.assign({}, payload.metadata || {}, { stock_deducted: true });
+        }
+    }
     let insertedSale = null;
     try {
         const inserted = await sb('POST', '/sales_history', payload);

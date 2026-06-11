@@ -27435,7 +27435,7 @@ window.__renderDashOverviewMemo = function() {
  }
 };
 
-window.__renderDashOverviewRoster = function() {
+window.__renderDashOverviewRoster = async function() {
  const list = document.getElementById('dashOverviewRosterList');
  const dateEl = document.getElementById('dashOverviewRosterDate');
  if(!list) return;
@@ -27446,9 +27446,12 @@ window.__renderDashOverviewRoster = function() {
  const localeTag = (window.I18N && window.I18N.lang === 'en') ? 'en-MY' : 'ms-MY';
  const dayLabel = today.toLocaleDateString(localeTag, { weekday:'long', day:'2-digit', month:'short' });
  if(dateEl) dateEl.textContent = '· ' + dayLabel;
- const all = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules)) ? staffSchedules : [];
- const today_sched = all.filter(s => s.date === dateStr);
  const T = (typeof window.t === 'function') ? window.t : (k) => k;
+ // p1_645 — query roster LIVE from DB each render (robust vs stale/empty global staffSchedules,
+ // which may not be loaded yet when the dashboard first paints). Fallback to the global array.
+ let today_sched = null;
+ try { if(typeof db !== 'undefined' && db){ const { data } = await db.from('roster_schedules').select('staff_name,shift,date').eq('date', dateStr); if(Array.isArray(data)) today_sched = data; } } catch(e){}
+ if(today_sched == null){ const all = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules)) ? staffSchedules : []; today_sched = all.filter(s => s.date === dateStr); }
  if(today_sched.length === 0) {
  list.innerHTML = '<p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_roster_empty">' + T('dash_overview_roster_empty') + '</p>';
  return;

@@ -22491,7 +22491,10 @@ const BULK_FIELD_DEFS = [
  { g:'Harga',     key:'price',    label:'Harga',        type:'num',   f:'price' },
  { g:'Harga',     key:'compare',  label:'Compare-at',   type:'num',   f:'compare_at_price' },
  { g:'Harga',     key:'cost',     label:'Kos',          type:'num',   f:'cost_price' },
- { g:'Harga',     key:'margin',   label:'Margin',       type:'margin' },
+ // p1_642 — margin PER-CHANNEL (harga walk-in/Shopee/TikTok lain → margin lain). pf = harga, ch = id suffix.
+ { g:'Harga',     key:'margin',    label:'Margin Walk-in', type:'margin', pf:'price',        ch:'walkin' },
+ { g:'Harga',     key:'margin_sp', label:'Margin Shopee',  type:'margin', pf:'shopee_price', ch:'sp' },
+ { g:'Harga',     key:'margin_tt', label:'Margin TikTok',  type:'margin', pf:'tiktok_price', ch:'tt' },
  { g:'Harga',     key:'floor',    label:'Floor Price',  type:'num',   f:'floor_price' },
  { g:'Harga',     key:'shopee',   label:'Shopee',       type:'num',   f:'shopee_price' },
  { g:'Harga',     key:'tiktok',   label:'TikTok',       type:'num',   f:'tiktok_price' },
@@ -22513,7 +22516,7 @@ const BULK_FIELD_DEFS = [
  { g:'Marketplace', key:'tt_url',  label:'Link TikTok',      type:'text', f:'tiktok_url',         meta:true },
 ];
 const BULK_FIELD_BY_KEY = {}; BULK_FIELD_DEFS.forEach(d => BULK_FIELD_BY_KEY[d.key] = d);
-const BULK_COLS_DEFAULT = ['brand','category','price','compare','cost','margin','stock','status'];
+const BULK_COLS_DEFAULT = ['brand','category','price','cost','margin','shopee','margin_sp','tiktok','margin_tt','stock','status'];
 // p1_585 — Margin: dasar minimum 35% (boleh ubah). margin% = (harga − kos) / harga.
 window.MARGIN_FLOOR_PCT = 35;
 window.__marginInfo = function(price, cost){
@@ -22533,20 +22536,32 @@ window.__marginChipHtml = function(price, cost){
  const bg = m.ok ? '#E6F0E4' : '#F4E4DF';
  return `<span title="Margin ${m.pct.toFixed(1)}% (dasar min ${(window.MARGIN_FLOOR_PCT||35)}%)" style="display:inline-block; background:${bg}; color:${col}; padding:2px 7px; border-radius:6px; font-weight:800; font-size:11.5px; white-space:nowrap;">RM${m.rm.toFixed(2)} · ${m.pct.toFixed(0)}%</span>`;
 };
-// Update live cell margin bila harga/kos diedit dalam Bulk Edit
+// p1_642 — update SEMUA kolum margin per-channel (walk-in/Shopee/TikTok) bila harga/kos diedit
 window.__bulkRecalcMargin = function(sku){
- const cell = document.getElementById('bk_margin_' + sku);
- if(!cell) return;
- const pe = document.getElementById('bk_price_' + sku);
- const ce = document.getElementById('bk_cost_' + sku);
  const prod = (Array.isArray(masterProducts)?masterProducts:[]).find(x => x.sku === sku) || {};
- const price = pe ? pe.value : prod.price;
- const cost = ce ? ce.value : prod.cost_price;
- cell.innerHTML = window.__marginChipHtml(price, cost);
+ const liveVal = (id, fb) => { const el = document.getElementById(id); return el ? el.value : fb; };
+ const cost = liveVal('bk_cost_' + sku, prod.cost_price);
+ const chans = [
+  { ch:'walkin', price: liveVal('bk_price_'  + sku, prod.price) },
+  { ch:'sp',     price: liveVal('bk_shopee_' + sku, prod.shopee_price) },
+  { ch:'tt',     price: liveVal('bk_tiktok_' + sku, prod.tiktok_price) },
+ ];
+ chans.forEach(c => {
+  const cell = document.getElementById('bk_margin_' + c.ch + '_' + sku);
+  if(cell) cell.innerHTML = window.__marginChipHtml(c.price, cost);
+ });
 };
 window.__bulkCols = (function(){ try { const s = JSON.parse(localStorage.getItem('bulk_cols_v1')); if(Array.isArray(s) && s.length) { const v = s.filter(k => BULK_FIELD_BY_KEY[k]); if(v.length) {
  // p1_410 — one-time: surface Compare-at for users whose saved cols predate it (insert after price)
  if(!v.includes('compare')) { const pi = v.indexOf('price'); if(pi >= 0) v.splice(pi+1, 0, 'compare'); else v.push('compare'); try { localStorage.setItem('bulk_cols_v1', JSON.stringify(v)); } catch(e){} }
+ // p1_642 — one-time: surface per-channel margins (Shopee/TikTok) for users whose saved cols predate them.
+ // Insert each channel margin right after that channel's price column (or after walk-in margin as fallback).
+ if(v.includes('margin') && !v.includes('margin_sp') && !v.includes('margin_tt')) {
+  const insertAfter = (key, after) => { if(v.includes(key)) return; let i = v.indexOf(after); if(i < 0) i = v.indexOf('margin'); v.splice(i + 1, 0, key); };
+  insertAfter('margin_sp', 'shopee');
+  insertAfter('margin_tt', 'tiktok');
+  try { localStorage.setItem('bulk_cols_v1', JSON.stringify(v)); } catch(e){}
+ }
  return v;
  } } } catch(e){} return BULK_COLS_DEFAULT.slice(); })();
 window.__bulkColCount = function(){ return 4 + (window.__bulkCols || []).filter(k => (BULK_FIELD_BY_KEY[k] || {}).type !== 'skuedit').length; }; // checkbox+Img+SKU+Nama + dynamic (skuedit toggles the core SKU cell, no extra column)
@@ -22590,8 +22605,8 @@ window.bulkCellHtml = function(p, d){
  return `<td><input id="bk_stock_${sku}" type="number" step="1" value="${stock}" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right; ${stock <= 0 ? 'color:#B23A2E;' : ''}"></td>`;
  }
  if(d.type === 'margin'){
- // Margin = Harga − Kos (dikira, baca-saja). Merah kalau bawah dasar min 35%.
- return `<td style="text-align:right;" id="bk_margin_${sku}">${window.__marginChipHtml(p.price, p.cost_price)}</td>`;
+ // p1_642 — Margin per-channel = (harga channel d.pf) − Kos. Baca-saja. Merah kalau bawah dasar min 35%.
+ return `<td style="text-align:right;" id="bk_margin_${d.ch || 'walkin'}_${sku}">${window.__marginChipHtml(p[d.pf || 'price'], p.cost_price)}</td>`;
  }
  if(d.type === 'text'){
  const v = d.meta ? ((p.metadata && typeof p.metadata === 'object') ? p.metadata[d.f] : null) : p[d.f];
@@ -22601,8 +22616,8 @@ window.bulkCellHtml = function(p, d){
  // num / int
  const v = p[d.f];
  const step = d.type === 'int' ? '1' : '0.01';
- // p1_585 — Harga/Kos: update kolum Margin live bila ditaip
- const liveMargin = (d.key === 'price' || d.key === 'cost') ? ` oninput="window.__bulkRecalcMargin('${sku}')"` : '';
+ // p1_585/p1_642 — Harga walk-in/Shopee/TikTok/Kos: update SEMUA kolum margin live bila ditaip
+ const liveMargin = (d.key === 'price' || d.key === 'cost' || d.key === 'shopee' || d.key === 'tiktok') ? ` oninput="window.__bulkRecalcMargin('${sku}')"` : '';
  return `<td><input id="bk_${d.key}_${sku}" type="number" step="${step}" value="${v != null ? v : ''}"${liveMargin} placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`;
 };
 

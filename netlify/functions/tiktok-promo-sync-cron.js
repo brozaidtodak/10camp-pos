@@ -8,8 +8,9 @@ exports.handler = async () => {
     const base = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://www.10camp.com';
     try {
         await fetch(`${base}/.netlify/functions/tiktok-promo-sync-background?mode=sync`);
+        await fetch(`${base}/.netlify/functions/tiktok-coupon-sync?mode=sync`);
     } catch (e) {
         return { statusCode: 200, body: `trigger attempted: ${String(e)}` };
     }
-    return { statusCode: 200, body: 'tiktok-promo-sync-background triggered' };
+    return { statusCode: 200, body: 'tiktok promo + coupon sync triggered' };
 };

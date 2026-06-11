@@ -7474,6 +7474,9 @@ async function initApp() {
  let { data: master } = await db.from('products_master').select('*').limit(100000);
  if(master) masterProducts = master;
 
+ // p1_627 — shop-level marketplace promotions (coupons, BMSM) for Campaigns page
+ try { const { data: mktp } = await db.from('marketplace_promotions').select('*').eq('active', true).limit(500); window.__mktPromos = mktp || []; } catch(e){ window.__mktPromos = window.__mktPromos || []; }
+
  let { data: batches } = await db.from('inventory_batches').select('*').order('inbound_date', {ascending: true}).limit(100000);
  if(batches) inventoryBatches = batches;
 
@@ -35259,7 +35262,7 @@ window.renderCampaigns = function(){
  })();
  const __fmtEnd = (s) => { if(!s) return '—'; const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'2-digit'}); };
  const __discTxt = (arr) => { if(!arr.length) return '—'; const mn=Math.min(...arr), mx=Math.max(...arr); return mn===mx ? `-${mn}%` : `-${mn}~${mx}%`; };
- const __mpRows = __mpGroups.length ? __mpGroups.map(o => `
+ const __grpRows = __mpGroups.map(o => `
    <tr style="border-bottom:1px solid #E5E7EB;">
     <td style="padding:9px 10px;"><span style="background:${o.color}; color:#fff; padding:2px 9px; border-radius:50px; font-size:11px; font-weight:800;">${o.platform}</span></td>
     <td style="padding:9px 10px; font-weight:700;">${o.name.replace(/</g,'&lt;')}</td>
@@ -35267,7 +35270,24 @@ window.renderCampaigns = function(){
     <td style="padding:9px 10px;">${o.count} produk</td>
     <td style="padding:9px 10px;">${o.rugi>0 ? `<span title="${o.rugiSkus.join(', ')}" style="background:#FEE2E2; color:#DC2626; padding:2px 9px; border-radius:50px; font-size:11px; font-weight:800;">${o.rugi} RUGI</span>` : '<span style="color:#16A34A; font-size:12px;">OK</span>'}</td>
     <td style="padding:9px 10px; color:#6B7280; font-size:12px;">${__fmtEnd(o.end)}</td>
-   </tr>`).join('') : `<tr><td colspan="6" style="padding:16px; text-align:center; color:#6B7280;">Tiada kempen marketplace aktif (atau belum sync). Sync auto tiap 6 jam.</td></tr>`;
+   </tr>`).join('');
+ // shop-level promos (coupons / BMSM) from marketplace_promotions
+ const __shopRows = (Array.isArray(window.__mktPromos)?window.__mktPromos:[]).map(m => {
+   const d = m.details || {};
+   const col = m.platform==='Shopee' ? '#ee4d2d' : '#101010';
+   const disc = d.amount_off!=null ? `RM${d.amount_off} off` : (d.percent_off!=null ? `-${d.percent_off}%` : (m.promo_type||'promo'));
+   const typeLbl = m.promo_type==='COUPON' ? 'Voucher' : (m.promo_type||'Promo');
+   const scope = `${typeLbl}${d.min_spend!=null?` · min RM${d.min_spend}`:''}${d.segment?` · ${d.segment==='NEW'?'Pelanggan baru':d.segment}`:''}`;
+   return `<tr style="border-bottom:1px solid #E5E7EB;">
+    <td style="padding:9px 10px;"><span style="background:${col}; color:#fff; padding:2px 9px; border-radius:50px; font-size:11px; font-weight:800;">${m.platform}</span></td>
+    <td style="padding:9px 10px; font-weight:700;">${(m.title||'').replace(/</g,'&lt;')}</td>
+    <td style="padding:9px 10px; font-weight:800;">${disc}</td>
+    <td style="padding:9px 10px; font-size:12px; color:#6B7280;">${scope}</td>
+    <td style="padding:9px 10px;"><span style="color:#6B7280; font-size:11px;">level kedai</span></td>
+    <td style="padding:9px 10px; color:#6B7280; font-size:12px;">${__fmtEnd(m.ends_at)}</td>
+   </tr>`;
+ }).join('');
+ const __mpRows = (__grpRows + __shopRows) || `<tr><td colspan="6" style="padding:16px; text-align:center; color:#6B7280;">Tiada kempen marketplace aktif (atau belum sync). Sync auto tiap 6 jam.</td></tr>`;
  const __totRugi = __mpGroups.reduce((s,o) => s + o.rugi, 0);
  const __mpHtml = `
   <div class="admin-card" style="padding:0; overflow:hidden; margin-bottom:16px; border:${__totRugi>0 ? '1.5px solid #FCA5A5' : '1px solid var(--border-color,#E5E7EB)'};">

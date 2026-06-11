@@ -19038,9 +19038,161 @@ window.renderStoreCredit = function() {
 };
 
 // p1_271 — Sidebar restructure placeholder handlers
+// p1_646 — Setup Guide: 3 bahagian (Checklist auto-status + Panduan How-To + Peta Sistem).
 window.openSetupGuide = function() {
- if(typeof showToast === 'function') showToast('Setup Guide coming soon — walkthrough tutorial untuk POS setup.', 'info');
- else alert('Setup Guide — coming soon');
+ if(typeof switchHub === 'function') switchHub(['setupGuideSection'], 'Setup Guide', null);
+ if(typeof window.renderSetupGuide === 'function') window.renderSetupGuide();
+};
+// klik item sidebar by data-tab (navigasi kukuh)
+window.__sgGoto = function(tab){ const el = document.querySelector('[data-tab="'+tab+'"]'); if(el) el.click(); };
+// tick manual (localStorage) + render semula
+window.__sgManualGet = function(){ try { return JSON.parse(localStorage.getItem('setupGuideManual_v1')||'{}'); } catch(e){ return {}; } };
+window.__sgTick = function(key){ const m = window.__sgManualGet(); m[key] = !m[key]; try { localStorage.setItem('setupGuideManual_v1', JSON.stringify(m)); } catch(e){} if(typeof window.renderSetupGuide==='function') window.renderSetupGuide(); };
+
+window.renderSetupGuide = async function(){
+ const body = document.getElementById('setupGuideBody'); if(!body) return;
+ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const manual = window.__sgManualGet();
+ // ---- gather data ----
+ const prods = (typeof masterProducts!=='undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const users = (typeof authUsers!=='undefined' && Array.isArray(authUsers)) ? authUsers.filter(u=>u && u.name && u.staff_id!=='TST001') : [];
+ let shop = {}; try { shop = (JSON.parse(localStorage.getItem('complianceSettings_v1')||'{}').shop) || {}; } catch(e){}
+ let tokens=[], cfgFails=[], rosterWeek=0;
+ try { if(typeof db!=='undefined' && db){
+  const now=new Date(); const loc=new Date(now.getTime()-now.getTimezoneOffset()*60000);
+  const dow=(loc.getUTCDay()+6)%7; const mon=new Date(loc); mon.setUTCDate(loc.getUTCDate()-dow);
+  const sun=new Date(mon); sun.setUTCDate(mon.getUTCDate()+6); const ymd=(d)=>d.toISOString().slice(0,10);
+  const [th, cf, rr] = await Promise.all([
+   db.from('token_health').select('platform,status').then(r=>r.data||[]).catch(()=>[]),
+   db.from('config_health').select('status').eq('status','fail').then(r=>r.data||[]).catch(()=>[]),
+   db.from('roster_schedules').select('id').gte('date',ymd(mon)).lte('date',ymd(sun)).then(r=>r.data||[]).catch(()=>[])
+  ]);
+  tokens=th; cfgFails=cf; rosterWeek=(rr||[]).length;
+ }} catch(e){}
+ const tokStatus=(p)=>{ const t=tokens.find(x=>String(x.platform).toLowerCase()===p); return t?t.status:null; };
+ const tokOk=(p)=>{ const s=tokStatus(p); return s==='ok'?'ok':(s==null?'todo':(s==='warn'?'partial':'todo')); };
+ const withCost = prods.filter(p=>Number(p.cost_price)>0).length;
+ const withMp = prods.filter(p=>Number(p.shopee_price)>0||Number(p.tiktok_price)>0).length;
+ const pc=(n,d)=>d>0?Math.round(n/d*100):0;
+
+ // ---- checklist ----
+ const I=(label,status,detail,goto,manualKey)=>({label,status,detail,goto,manualKey});
+ const groups=[
+  { g:'Kedai & Resit', icon:'store', items:[
+   I('Info kedai (nama / telefon / alamat)', shop.name?'ok':'todo', shop.name?('Kedai: '+esc(shop.name)):'Belum diisi — muncul di resit', 'admin_settings'),
+   I('SST (kalau berdaftar)', (shop.sstNumber||shop.sstRegistered)?'ok':'partial', (shop.sstNumber?('SST '+esc(shop.sstNumber)):'Tak daftar SST — boleh skip'), 'admin_settings'),
+  ]},
+  { g:'Produk & Stok', icon:'package', items:[
+   I('Produk diimport', prods.length>0?'ok':'todo', prods.length+' produk dalam sistem', 'inv_database'),
+   I('Kos lengkap (untuk margin)', prods.length? (pc(withCost,prods.length)>=90?'ok':(withCost>0?'partial':'todo')) : 'todo', withCost+'/'+prods.length+' ada kos ('+pc(withCost,prods.length)+'%)', 'admin_bulk_ops'),
+   I('Harga marketplace diset', prods.length? (withMp>0?(pc(withMp,prods.length)>=50?'ok':'partial'):'todo') : 'todo', withMp+' produk ada harga Shopee/TikTok', 'admin_bulk_ops'),
+  ]},
+  { g:'Marketplace & Integrasi', icon:'plug', items:[
+   I('Shopee tersambung', tokOk('shopee'), tokStatus('shopee')?('Token: '+tokStatus('shopee')):'Belum disemak — buka Apps', 'nav_apps'),
+   I('TikTok tersambung', tokOk('tiktok'), tokStatus('tiktok')?('Token: '+tokStatus('tiktok')):'Belum disemak — buka Apps', 'nav_apps'),
+   I('Config & creds sihat', cfgFails.length?'todo':'ok', cfgFails.length?(cfgFails.length+' masalah config — buka Apps'):'Semua semakan lulus', 'nav_apps'),
+  ]},
+  { g:'Kewangan & Sulit', icon:'lock', items:[
+   I('PIN Data Sulit ditukar', manual.pin?'ok':'partial', 'Default 1999 — tukar di Staff Management', 'hq_permissions', 'pin'),
+   I('Dasar margin minimum 35% difahami', manual.margin?'ok':'partial', 'Margin = (harga−kos)/harga; merah kalau <35%', 'admin_bulk_ops', 'margin'),
+  ]},
+  { g:'Staf & Jadual', icon:'users', items:[
+   I('Staf ditambah', users.length>1?'ok':'partial', users.length+' staf aktif', 'hq_permissions'),
+   I('Roster minggu ini diisi', rosterWeek>0?'ok':'todo', rosterWeek?(rosterWeek+' baris roster minggu ni'):'Belum diisi', 'hr_roster'),
+  ]},
+  { g:'Notifikasi & Backup', icon:'bell', items:[
+   I('Daily digest email aktif', manual.digest?'ok':'partial', 'Ringkasan jualan 8 pagi — sahkan di Netlify env', 'admin_settings', 'digest'),
+   I('Backup mingguan', manual.backup?'ok':'todo', 'Disyorkan tiap minggu', 'finance_backup', 'backup'),
+  ]},
+ ];
+ // progress
+ let total=0, done=0;
+ groups.forEach(gr=>gr.items.forEach(it=>{ total++; const eff = it.manualKey ? (manual[it.manualKey]?'ok':it.status) : it.status; if(eff==='ok') done++; }));
+ const prog = pc(done,total);
+ const progColor = prog>=90?'#4E7C4A':(prog>=50?'#C68A1A':'#B23A2E');
+
+ const dot=(s)=>{ const c=s==='ok'?'#4E7C4A':(s==='partial'?'#C68A1A':'#B23A2E'); const bg=s==='ok'?'#E6F0E4':(s==='partial'?'#F8EFD7':'#F4E4DF'); const ic=s==='ok'?'check':(s==='partial'?'minus':'x'); return '<span style="display:inline-flex;width:24px;height:24px;border-radius:50%;background:'+bg+';color:'+c+';align-items:center;justify-content:center;flex:0 0 auto;"><i data-lucide="'+ic+'" style="width:14px;height:14px;"></i></span>'; };
+
+ const checklistHtml = groups.map(gr=>`
+  <div style="margin-bottom:14px;">
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><i data-lucide="${gr.icon}" style="width:16px;height:16px;color:var(--primary);"></i><strong style="font-size:13px;">${gr.g}</strong></div>
+   ${gr.items.map(it=>{ const eff = it.manualKey ? (manual[it.manualKey]?'ok':it.status) : it.status; return `
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 12px;border:1px solid #EFE7E2;border-radius:9px;margin-bottom:6px;background:#fff;">
+     ${dot(eff)}
+     <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1f2937;">${esc(it.label)}</div><div style="font-size:11.5px;color:#9ca3af;">${esc(it.detail)}</div></div>
+     ${it.manualKey?`<button onclick="window.__sgTick('${it.manualKey}')" class="btn-brand-secondary" style="font-size:11.5px;padding:5px 11px;white-space:nowrap;">${manual[it.manualKey]?'Tandai belum':'Tandai siap'}</button>`:''}
+     ${it.goto?`<button onclick="window.__sgGoto('${it.goto}')" class="btn-brand-secondary" style="font-size:11.5px;padding:5px 11px;white-space:nowrap;">Pergi</button>`:''}
+    </div>`; }).join('')}
+  </div>`).join('');
+
+ // ---- how-to ----
+ const howto=[
+  {t:'Buat jualan (Cashier)', ic:'shopping-cart', goto:'nav_cashier', steps:['Buka POS / Cashier','Cari/scan produk → masuk troli','Pilih pelanggan atau Walk-in','Pilih bayaran (Tunai/QR/Kad) → Selesai','Resit auto keluar']},
+  {t:'Edit harga pukal + margin', ic:'table-2', goto:'admin_bulk_ops', steps:['Buka Bulk Edit','Tapis/cari produk','Edit Harga/Kos/Shopee/TikTok dalam jadual','Margin per-channel auto-kira (merah kalau <35%)','Tekan Simpan Perubahan']},
+  {t:'Semakan stok (Stock Take)', ic:'clipboard-check', goto:'inv_stocktake', steps:['Buka Stock Take','Kira fizikal vs sistem','Masukkan kiraan sebenar','Hantar untuk semakan bos']},
+  {t:'Proses refund', ic:'rotate-ccw', goto:'nav_all_orders', steps:['Buka All Orders','Cari order pelanggan','Pilih Refund / Return','Stok auto patah balik']},
+  {t:'Baca amaran marketplace', ic:'alert-triangle', goto:'nav_apps', steps:['Di Overview tengok kad Amaran Integrasi','Lihat senarai bawah-kos / drift','Klik SKU → terus ke Bulk Edit','Betulkan harga di Shopee/TikTok Seller Center']},
+  {t:'Set roster cuti staf', ic:'calendar-days', goto:'hr_roster', steps:['Buka Roster','Pilih staf + tarikh','Set shift / OFF / cuti','Auto papar di widget Schedule']},
+  {t:'Hantar memo / broadcast', ic:'megaphone', goto:'memo_board', steps:['Memo Board (dalaman) atau Broadcast (pelanggan)','Tulis mesej + pilih penerima','Hantar']},
+ ];
+ const howtoHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">`+howto.map(h=>`
+  <div class="admin-card" style="padding:14px 16px;">
+   <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="width:32px;height:32px;border-radius:8px;background:var(--primary-50,#FBF1E6);display:flex;align-items:center;justify-content:center;"><i data-lucide="${h.ic}" style="width:17px;height:17px;color:var(--primary);"></i></span><strong style="font-size:13px;">${esc(h.t)}</strong></div>
+   <ol style="margin:0 0 10px;padding-left:18px;font-size:12px;color:#374151;line-height:1.6;">${h.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+   <button onclick="window.__sgGoto('${h.goto}')" class="btn-brand-secondary" style="font-size:11.5px;padding:5px 12px;">Buka</button>
+  </div>`).join('')+`</div>`;
+
+ // ---- system map ----
+ const mapRows=[
+  ['POS / Cashier','Jualan walk-in + bayaran + resit','Staf jualan','nav_cashier'],
+  ['All Orders','Semua pesanan (semua channel) + refund','Semua','nav_all_orders'],
+  ['Products','Katalog produk + stok + variant','Inventori','inv_database'],
+  ['Bulk Edit','Edit pukal harga/kos/margin per-channel','Bos/Inventori','admin_bulk_ops'],
+  ['Stock Take','Semakan stok fizikal','Inventori','inv_stocktake'],
+  ['Roster','Jadual kerja + cuti staf','Bos/Admin','hr_roster'],
+  ['Apps','Status integrasi + kesihatan token/config','Bos','nav_apps'],
+  ['Campaigns','Kempen marketplace aktif','Bos','nav_campaigns'],
+  ['Broadcast','Mesej ke pelanggan (WhatsApp)','Marketing','nav_broadcast'],
+  ['Reports','Laporan jualan / sulit (PIN)','Bos','nav_an_sales'],
+  ['Settings','Info kedai, SST, resit','Bos','admin_settings'],
+  ['Permissions','Staf, role, akses, PIN','Bos','hq_permissions'],
+ ];
+ const mapHtml=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+  <thead><tr style="border-bottom:2px solid #EFE7E2;text-align:left;">
+   <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;color:#9a8a86;">Section</th>
+   <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;color:#9a8a86;">Apa dia buat</th>
+   <th style="padding:7px 10px;font-size:11px;text-transform:uppercase;color:#9a8a86;">Siapa guna</th>
+   <th style="padding:7px 10px;"></th></tr></thead>
+  <tbody>${mapRows.map(r=>`<tr style="border-bottom:1px solid #F3ECE8;">
+   <td style="padding:7px 10px;font-weight:700;">${esc(r[0])}</td>
+   <td style="padding:7px 10px;color:#374151;">${esc(r[1])}</td>
+   <td style="padding:7px 10px;color:#9ca3af;">${esc(r[2])}</td>
+   <td style="padding:7px 10px;text-align:right;"><button onclick="window.__sgGoto('${r[3]}')" class="btn-brand-secondary" style="font-size:11px;padding:4px 10px;">Buka</button></td></tr>`).join('')}</tbody>
+ </table></div>`;
+
+ body.innerHTML = `
+  <h2 class="section-title" data-skip-title-sync style="margin:18px 0 4px;"><i data-lucide="rocket" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;color:var(--primary);"></i> Setup Guide</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">Checklist setup (auto-semak status sebenar) + panduan langkah + peta sistem. Klik <b>Pergi/Buka</b> untuk terus ke bahagian berkaitan.</p>
+
+  <div class="admin-card" style="padding:16px;margin-bottom:18px;">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+    <strong style="font-size:14px;"><i data-lucide="list-checks" style="width:16px;height:16px;vertical-align:-3px;color:var(--primary);"></i> Checklist Setup</strong>
+    <span style="font-size:12px;color:#6B7280;"><b style="color:${progColor};font-size:15px;">${prog}%</b> · ${done}/${total} siap</span>
+   </div>
+   <div style="height:8px;background:#F1E7E2;border-radius:50px;overflow:hidden;margin-bottom:16px;"><div style="height:100%;width:${prog}%;background:linear-gradient(90deg,var(--primary),#B86A26);"></div></div>
+   ${checklistHtml}
+  </div>
+
+  <div style="margin-bottom:18px;">
+   <h3 style="font-size:14px;margin:0 0 10px;"><i data-lucide="graduation-cap" style="width:16px;height:16px;vertical-align:-3px;color:var(--primary);"></i> Panduan Langkah (How-To)</h3>
+   ${howtoHtml}
+  </div>
+
+  <div class="admin-card" style="padding:16px;margin-bottom:24px;">
+   <h3 style="font-size:14px;margin:0 0 10px;"><i data-lucide="map" style="width:16px;height:16px;vertical-align:-3px;color:var(--primary);"></i> Peta Sistem</h3>
+   ${mapHtml}
+  </div>`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 window.openHelpDialog = function() {
  if(typeof showToast === 'function') showToast('Help: hubungi admin@10camp.com atau Zaid via WhatsApp.', 'info');

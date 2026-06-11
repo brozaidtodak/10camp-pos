@@ -7504,14 +7504,16 @@ async function initApp() {
  try { if(typeof window.lpHandleDeepLink === 'function') window.lpHandleDeepLink(); } catch(e){}
 
  try { renderQuotePOS(); } catch(e){}
- let { data: quotes } = await db.from('quotations_log').select('*').order('created_at', {ascending: false});
- if(quotes) quoteHistoryLogs = quotes;
+ // p1_648 — load sensitive data ONLY when logged in (public landing = anon; no customer PII / finance / sales)
+ if(window.currentUser){ let { data: quotes } = await db.from('quotations_log').select('*').order('created_at', {ascending: false}); if(quotes) quoteHistoryLogs = quotes; }
 
  // p1_329 — muat SEMUA order berperingkat (elak had PostgREST 1000 baris yang sorok order lama)
+ if(window.currentUser){
  let sales = [];
  try { sales = await window.__aoFetchAllSales(); }
  catch(e) { try { const r = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000); sales = r.data || []; } catch(_){} }
  if(sales && sales.length) salesHistory = [...salesHistory,...sales];
+ }
  // p3_10: refresh fulfillment KPIs + sidebar badge once orders are loaded
  if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
  // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
@@ -7519,13 +7521,15 @@ async function initApp() {
 
  // p1_330 — muat SEMUA customer berperingkat (2949 rows > had 1000 PostgREST)
  // p1_480 — order by 'id' WAJIB supaya pagination stabil (dulu tanpa order → ada customer ter-skip = tak muncul di cashier)
+ if(window.currentUser){
  let custs = [];
  try { custs = await window.__fetchAllRows('customers', 'id', true); }
  catch(e) { try { const r = await db.from('customers').select('*'); custs = r.data || []; } catch(_){} }
  if(custs && custs.length) customersData = custs;
- 
+
  let { data: fin } = await db.from('finance_records').select('*').order('year', {ascending: false});
  if(fin) financeRecords = fin;
+ }
  
  let { data: rSched } = await db.from('roster_schedules').select('*');
  if(rSched && rSched.length> 0) {
@@ -13681,26 +13685,17 @@ let currentPublicCustomer = null;
 window.handleCustomerLogin = async function() {
  const phone = document.getElementById("customerLoginPhone").value.trim();
  if(!phone) return alert("Sila masukkan nombor telefon yang sah.");
- 
- // Check if customer exists in current customersData
- let existing = customersData.find(c => c.phone === phone);
- 
- if(!existing) {
- // Pseudo-registration: create a new skeleton record without name to force them to fill their name at checkout
- const newCustomerObj = { name: "Pelanggan VIP", phone: phone, points: 0, address: "" };
+
+ // p1_648 — lookup/register ONE customer server-side (service key). No longer searches the
+ // whole customers table client-side (that was the PII leak); public anon no longer reads customers.
+ let existing = null;
  try {
- const { data } = await db.from('customers').insert([newCustomerObj]).select();
- if(data) {
- existing = data[0];
- customersData.push(existing);
- } else {
- existing = newCustomerObj; // Fallback
- }
- } catch(e) {
- existing = newCustomerObj; 
- }
- }
- 
+  const res = await fetch('/.netlify/functions/public-customer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone }) });
+  const j = await res.json().catch(()=>({}));
+  if(j && j.ok && j.customer) existing = j.customer;
+ } catch(e){ console.warn('public-customer lookup failed', e); }
+ if(!existing) existing = { name: "Pelanggan VIP", phone: phone, points: 0, address: "" };
+
  currentPublicCustomer = existing;
  document.getElementById("customerLoginGate").style.display = "none";
  
@@ -14296,6 +14291,9 @@ function loginAs(user, opts) {
  window.__confUnlockedMem = false;
  currentUser = user;
  window.currentUser = user; // expose for helpers (e.g. hasManagementAccess)
+ // p1_648 — reload data now that we're logged in (boot load is gated to public-safe tables only).
+ // Covers email/PIN/restore paths; boot initApp skips when already logged in (no double-load).
+ try { if(typeof initApp === 'function') initApp(); } catch(e){}
  currentUserRole = user.role;
  const cap = ROLE_CAPS[user.role] || ROLE_CAPS.sales;
 
@@ -14611,7 +14609,9 @@ setTimeout(() => {
  // p1_79 fix #9: paint the layout toggle to match persisted state on boot
  try { if(typeof window.__updatePosLayoutBtn === 'function') window.__updatePosLayoutBtn(); } catch(e){}
 
- if(db) initApp();
+ // p1_648 — boot load: if a session was already restored (logged in), loginAs already
+ // triggered initApp; only load here for the public/not-yet-logged-in case (avoids double-load).
+ if(db && !window.currentUser) initApp();
 }, 200);
 
 // ===================================
@@ -14761,7 +14761,8 @@ window.lpUpdateTrustStats = function() {
         el.textContent = brandCount > 0 ? String(brandCount) : '—';
     });
     document.querySelectorAll('[data-stat="customers"]').forEach(el => {
-        el.textContent = customerCount > 0 ? customerCount.toLocaleString() + '+' : '—';
+        // p1_648 — public (anon) no longer loads customers; keep the static HTML fallback instead of blanking
+        if(customerCount > 0) el.textContent = customerCount.toLocaleString() + '+';
     });
 };
 
@@ -15737,28 +15738,14 @@ window.processPublicCheckout = async function() {
  if(btn){ btn.disabled = true; btn.textContent = "Menjana invois..."; }
 
  try {
- let subtotal = 0;
- const items = publicCart.map(it => {
- const lineTotal = round2(it.price * it.quantity);
- subtotal = round2(subtotal + lineTotal);
- return { sku: it.sku, name: it.name, qty: it.quantity, price: it.price, line_total: lineTotal, image: it.image || '' };
- });
- const ref = 'WEB-' + String(Date.now()).slice(-7);
+ const items = publicCart.map(it => ({ sku: it.sku, name: it.name, qty: it.quantity, price: it.price, image: it.image || '' }));
+ const subtotal = items.reduce((s, it) => round2(s + round2(it.price * it.quantity)), 0);
  const custStr = cName + (cCompany ? ' (' + cCompany + ')' : '') + ' · ' + cPhone + ' · ' + cEmail;
-
- const { error } = await db.from('quotations_log').insert([{
- id: ref + '-v1',
- ref: ref,
- version: 1,
- type: 'Web Invoice',
- customer: custStr,
- terms: 'Permohonan invois dari website 10camp.com — menunggu pengesahan admin.',
- subtotal: subtotal,
- grand_total: subtotal,
- items: items,
- superseded: false
- }]);
- if(error) throw error;
+ // p1_648 — insert via server (service key); public anon no longer writes quotations_log
+ const res = await fetch('/.netlify/functions/public-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: cName, company: cCompany, phone: cPhone, email: cEmail, items }) });
+ const j = await res.json().catch(()=>({}));
+ if(!res.ok || !j.ok) throw new Error(j.detail || j.error || ('HTTP ' + res.status));
+ const ref = j.ref;
 
  // notify admin (bell inbox, visible bila staff/admin login)
  try { if(window.notify && window.notify.add) window.notify.add({ title: 'Invois web baru: ' + ref, body: custStr + ' — ' + items.length + ' item, RM ' + subtotal.toFixed(2), type: 'warning' }); } catch(e){}

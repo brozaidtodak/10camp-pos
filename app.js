@@ -24662,16 +24662,20 @@ window.renderInventoryAnalytics = async function() {
    });
  });
 
- // ---- Tarikh restock terakhir per SKU (dari delivery_orders sebenar) ----
+ // ---- Sejarah restock per SKU (SEMUA tarikh DO, bukan terakhir sahaja) ----
  const doData = window.__doData || { dos:[], items:[] };
  const doDate = {}; (doData.dos||[]).forEach(d => { doDate[d.do_ref] = d.delivery_date || null; });
- const lastByS = {}; // sku -> {date, qty, count}
+ const evByS = {}; // sku -> [{date, qty}]
  (doData.items||[]).forEach(it => {
    const sku = (it.sku||'').trim(); if(!sku) return;
-   const dt = doDate[it.do_ref] || null;
-   const rec = lastByS[sku] || (lastByS[sku] = { date:null, qty:0, count:0 });
-   rec.count++;
-   if(dt && (!rec.date || dt > rec.date)) { rec.date = dt; rec.qty = Number(it.qty) || 0; }
+   (evByS[sku] || (evByS[sku] = [])).push({ date: doDate[it.do_ref] || null, qty: Number(it.qty) || 0 });
+ });
+ const lastByS = {}; // sku -> {date, qty, count, events:[{date,qty}] sorted asc}
+ Object.keys(evByS).forEach(sku => {
+   const all = evByS[sku];
+   const evs = all.filter(e => e.date).sort((a,b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
+   const last = evs.length ? evs[evs.length-1] : null;
+   lastByS[sku] = { date: last ? last.date : null, qty: last ? last.qty : 0, count: all.length, events: evs };
  });
 
  // ---- Stock value totals + status breakdown ----
@@ -24711,7 +24715,7 @@ window.renderInventoryAnalytics = async function() {
    else if((pct != null && pct <= THR) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD)) { status = 'MASA RESTOCK'; rank = 1; }
    else if((pct != null && pct <= 50) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD * 1.5)) { status = 'PERHATI'; rank = 2; }
    else { status = 'SIHAT'; rank = 3; }
-   tracker.push({ sku:p.sku, name:p.name || '', lastDate:rec?rec.date:null, lastQty, count:rec?rec.count:0, stock, pct, sold30:(u30[p.sku]||0), daysCover, vel:dailyVel, ro:(parseInt(p.reorder_point)||5), status, rank });
+   tracker.push({ sku:p.sku, name:p.name || '', lastDate:rec?rec.date:null, lastQty, count:rec?rec.count:0, events:rec?rec.events:[], stock, pct, sold30:(u30[p.sku]||0), daysCover, vel:dailyVel, ro:(parseInt(p.reorder_point)||5), status, rank });
  });
  tracker.sort((a, b) => a.rank - b.rank || ((a.pct==null?1e5:a.pct) - (b.pct==null?1e5:b.pct)) || ((a.daysCover==null?1e9:a.daysCover) - (b.daysCover==null?1e9:b.daysCover)));
  const attention = tracker.filter(t => t.rank < 3);
@@ -24764,7 +24768,22 @@ window.renderInventoryAnalytics = async function() {
    + '</div>';
 
  // Restock Tracker
- const fmtDate2 = (s) => { if(!s) return '<span style="color:#9CA3AF;">—</span>'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'2-digit'}); };
+ const fmtD = (s) => { const d=new Date(s); return isNaN(d)?String(s):d.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'2-digit'}); };
+ const timelineCell = (t) => {
+   const evs = t.events || [];
+   if(!evs.length) return '<span style="color:#9CA3AF;">— belum ada rekod</span>';
+   const MAX = 6; let show = evs, trimmed = 0;
+   if(evs.length > MAX) { show = [evs[0]].concat(evs.slice(evs.length-(MAX-1))); trimmed = evs.length - MAX; }
+   let out = '';
+   show.forEach((e, i) => {
+     const realIdx = (trimmed && i > 0) ? (evs.length-(show.length-i)) : i;
+     const lbl = realIdx === 0 ? '1st' : ('R'+realIdx);
+     const isLast = e === evs[evs.length-1];
+     if(trimmed && i === 1) out += `<div style="font-size:10px; color:#9CA3AF;">⋯ ${trimmed} lagi</div>`;
+     out += `<div style="white-space:nowrap; ${isLast?'font-weight:700; color:var(--text-color);':'color:#6B7280;'}"><span style="display:inline-block; min-width:24px; font-size:10px; color:#9CA3AF;">${lbl}</span> ${fmtD(e.date)}</div>`;
+   });
+   return out;
+ };
  const pctCell = (t) => { if(t.pct==null) return '<span style="color:#9CA3AF;">—</span>'; const v=Math.round(t.pct); const col=v<=THR?'#DC2626':(v<=50?'#B45309':'#16A34A'); return `<span style="color:${col}; font-weight:700;">${v}%</span>`; };
  const badge = (s) => { const fg={'HABIS':'#DC2626','MASA RESTOCK':'#DC2626','PERHATI':'#B45309','SIHAT':'#16A34A'}; const bg={'HABIS':'#FEE2E2','MASA RESTOCK':'#FEE2E2','PERHATI':'#FEF3C7','SIHAT':'#DCFCE7'}; return `<span style="background:${bg[s]}; color:${fg[s]}; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:10px; white-space:nowrap;">${s}</span>`; };
  const thrCtrl = `<div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color); font-size:12px; background:#FCFCFD;">
@@ -24774,7 +24793,7 @@ window.renderInventoryAnalytics = async function() {
  let trkRows = attention.slice(0, 100).map(t => `<tr>
    <td style="padding:8px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(t.sku)}</td>
    <td style="padding:8px 12px;">${esc(t.name.slice(0,40))}</td>
-   <td style="padding:8px 12px; white-space:nowrap;">${fmtDate2(t.lastDate)}${t.count>1?` <span style="font-size:10px; color:#9CA3AF;" title="${t.count} kali restock dalam rekod">×${t.count}</span>`:''}</td>
+   <td style="padding:8px 12px; line-height:1.5;">${timelineCell(t)}</td>
    <td style="padding:8px 12px; text-align:right; color:#6B7280;">${t.lastQty||'—'}</td>
    <td style="padding:8px 12px; text-align:right; font-weight:700; color:${t.stock===0?'#DC2626':'inherit'};">${t.stock}</td>
    <td style="padding:8px 12px; text-align:right;">${pctCell(t)}</td>
@@ -24786,7 +24805,7 @@ window.renderInventoryAnalytics = async function() {
  html += card(
    cardHead(`<i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px; color:var(--primary);"></i> Restock Tracker <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${attention.length} perlu perhatian${healthyCount?` · ${healthyCount} sihat disembunyikan`:''}</span>`)
    + thrCtrl
-   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px;" title="Tarikh DO terakhir SKU ni sampai">Restock Akhir</th><th style="padding:8px 12px; text-align:right;" title="Qty masuk pada restock terakhir">Qty Masuk</th><th style="padding:8px 12px; text-align:right;">Stok Kini</th><th style="padding:8px 12px; text-align:right;" title="Stok kini bahagi qty restock terakhir">% Baki</th><th style="padding:8px 12px; text-align:right;">Jual 30h</th><th style="padding:8px 12px; text-align:right;" title="Hari lagi sebelum habis ikut laju jualan">Hari Lagi</th><th style="padding:8px 12px;">Status</th></tr></thead><tbody>'
+   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px;" title="Sejarah tarikh restock: 1st = order pertama, R1/R2 = restock seterusnya">Sejarah Restock</th><th style="padding:8px 12px; text-align:right;" title="Qty masuk pada restock terakhir">Qty Akhir</th><th style="padding:8px 12px; text-align:right;">Stok Kini</th><th style="padding:8px 12px; text-align:right;" title="Stok kini bahagi qty restock terakhir">% Baki</th><th style="padding:8px 12px; text-align:right;">Jual 30h</th><th style="padding:8px 12px; text-align:right;" title="Hari lagi sebelum habis ikut laju jualan">Hari Lagi</th><th style="padding:8px 12px;">Status</th></tr></thead><tbody>'
    + trkRows + '</tbody></table></div>'
    + (attention.length > 100 ? '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">Menunjukkan 100 paling kritikal daripada '+attention.length+'.</div>' : '')
    + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">% Baki = stok kini ÷ qty restock terakhir (dari DO sebenar). "—" = tiada rekod DO untuk SKU ni lagi. Status MASA RESTOCK = stok habis, atau baki ≤ threshold, atau hari-lagi ≤ lead time China.</div>'

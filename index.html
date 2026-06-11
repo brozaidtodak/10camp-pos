@@ -1709,14 +1709,28 @@
  <div style="flex:1; min-height:20px;"></div>
  <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:8px; margin-top:8px;">
  <!-- p1_280 — Reports parent (collapsible) -->
+ <!-- p1_619 — Analytics jadi group sendiri: Sales / Inventory / Finance sebagai page masing-masing -->
+ <div class="menu-item nav-parent" data-nav-parent="analytics" onclick="window.toggleNavGroup('analytics', event)">
+ <i data-lucide="line-chart" style="width:18px; height:18px;"></i> <span>Analytics</span>
+ <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
+ </div>
+ <div class="nav-children" data-nav-children="analytics">
+ <div class="menu-item" data-tab="nav_an_sales" onclick="event.stopPropagation(); switchHub(['analyticsSection'], 'Sales', this); if(window.__anSwitchTab) window.__anSwitchTab('sales'); if(typeof renderAnalytics==='function') renderAnalytics();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="trending-up" style="width:15px; height:15px;"></i> <span>Sales</span>
+ </div>
+ <div class="menu-item" data-tab="nav_an_inventory" onclick="event.stopPropagation(); switchHub(['analyticsSection'], 'Inventory', this); if(window.__anSwitchTab) window.__anSwitchTab('inventory');" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="boxes" style="width:15px; height:15px;"></i> <span>Inventory</span>
+ </div>
+ <div class="menu-item" data-tab="nav_an_finance" onclick="event.stopPropagation(); switchHub(['analyticsSection'], 'Finance', this); if(window.__anSwitchTab) window.__anSwitchTab('finance');" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="wallet" style="width:15px; height:15px;"></i> <span>Finance</span>
+ </div>
+ </div>
+
  <div class="menu-item nav-parent" data-nav-parent="reports" onclick="window.toggleNavGroup('reports', event)">
  <i data-lucide="bar-chart-3" style="width:18px; height:18px;"></i> <span>Reports</span>
  <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
  <div class="nav-children" data-nav-children="reports">
- <div class="menu-item" data-tab="nav_analytics" onclick="event.stopPropagation(); switchHub(['analyticsSection'], 'Analytics', this); if(typeof renderAnalytics==='function') renderAnalytics();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="line-chart" style="width:15px; height:15px;"></i> <span>Analytics</span>
- </div>
  <div class="menu-item" data-tab="nav_exports" onclick="event.stopPropagation(); switchHub(['exportsSection'], 'Exports', this); if(typeof renderExports==='function') renderExports();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="download" style="width:15px; height:15px;"></i> <span>Exports</span>
  </div>
@@ -4771,7 +4785,7 @@
  <!-- p1_249 — All Orders section (walk-in + online manual entry + list) -->
  <!-- p1_279 — Analytics placeholder -->
  <div id="analyticsSection" class="tab-section" style="display: none;">
- <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="line-chart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Analytics</h2>
+ <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i id="anSecIcon" data-lucide="line-chart" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> <span id="anSecTitle">Sales Analytics</span></h2>
  <style>
  #analyticsSection .an-pill { font-size:12px; padding:6px 12px; border:1px solid var(--border-color); border-radius:20px; background:#F9FAFB; color:#374151; cursor:pointer; user-select:none; }
  #analyticsSection .an-pill.active { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:700; }
@@ -4788,7 +4802,7 @@
  </style>
 
  <!-- p1_613 — Laporan 3-tab: Sales / Inventory / Finance -->
- <div id="anTabBar" style="display:flex; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:18px; flex-wrap:wrap;">
+ <div id="anTabBar" style="display:none; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:18px; flex-wrap:wrap;">
  <span class="an-tab active" data-antab="sales" onclick="window.__anSwitchTab('sales', this)"><i data-lucide="line-chart" style="width:15px;height:15px;"></i> Sales</span>
  <span class="an-tab" data-antab="inventory" onclick="window.__anSwitchTab('inventory', this)"><i data-lucide="boxes" style="width:15px;height:15px;"></i> Inventory</span>
  <span class="an-tab" data-antab="finance" onclick="window.__anSwitchTab('finance', this)"><i data-lucide="wallet" style="width:15px;height:15px;"></i> Finance</span>
@@ -6528,21 +6542,30 @@
  <span id="mpEditModeBadge" style="display:none; padding:8px 12px; background:#101010; color:#fff; border-radius:6px; font-size:11px; font-weight:700;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> EDIT MODE</span>
  </div>
 
- <!-- Group A: ASAS -->
- <h4 style="font-size:13px; color:var(--primary); margin:12px 0 8px; text-transform:uppercase; letter-spacing:1px;">A. Maklumat Asas</h4>
- <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+ <!-- p1_621 — layout 2-kolum gaya EasyStore (kiri: kandungan produk · kanan: organisasi/status) -->
+ <style>
+ #masterProductFormCard .mp-grid{display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start;}
+ #masterProductFormCard .mp-card{background:#fff; border:1px solid #E5E7EB; border-radius:10px; padding:16px; margin-bottom:16px;}
+ #masterProductFormCard .mp-card > h4{font-size:13.5px; font-weight:800; margin:0 0 12px; color:#202223; text-transform:none; letter-spacing:0;}
+ #masterProductFormCard .mp-row{display:grid; gap:12px; margin-bottom:12px;}
+ #masterProductFormCard .mp-row:last-child{margin-bottom:0;}
+ #masterProductFormCard .mp-hint{font-size:11px; color:#888; margin:6px 0 0;}
+ @media(max-width:900px){#masterProductFormCard .mp-grid{grid-template-columns:1fr;}}
+ </style>
+
+ <div class="mp-grid">
+ <!-- ============ KIRI: KANDUNGAN PRODUK ============ -->
+ <div style="min-width:0;">
+
+ <div class="mp-card">
+ <h4>Maklumat Produk</h4>
+ <div class="mp-row" style="grid-template-columns:2fr 1fr;">
  <div><label class="small-lbl">Nama Produk <span style="color:#dc2626;">*</span></label><input type="text" id="mpName" class="login-input" placeholder="e.g. Naturehike Cloud Up 2 Tent"></div>
  <div><label class="small-lbl">SKU <span style="color:#dc2626;">*</span></label><input type="text" id="mpSku" class="login-input" placeholder="e.g. NH-CU2"></div>
  </div>
- <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Brand</label><input type="text" id="mpBrand" class="login-input" placeholder="Naturehike" list="mpBrandList"></div>
- <div><label class="small-lbl">Kategori</label><input type="text" id="mpCategory" class="login-input" placeholder="Tent" list="mpCategoryList"></div>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr;">
  <div><label class="small-lbl">Model No.</label><input type="text" id="mpModelNo" class="login-input" placeholder="CNH22DZ006"></div>
- </div>
- <datalist id="mpBrandList"></datalist>
- <datalist id="mpCategoryList"></datalist>
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Parent SKU (untuk variant grouping)</label><input type="text" id="mpParentSku" class="login-input" placeholder="NH-CU2 (kosongkan kalau standalone)"></div>
+ <div><label class="small-lbl">Parent SKU (variant grouping)</label><input type="text" id="mpParentSku" class="login-input" placeholder="kosongkan kalau standalone"></div>
  <div><label class="small-lbl">Unit Ukuran</label>
  <select id="mpUnit" class="login-input">
  <option value="pcs" selected>pcs (keping)</option>
@@ -6554,110 +6577,128 @@
  </select>
  </div>
  </div>
-
- <!-- Group B: KOS & HARGA -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">B. Kos, Harga &amp; Stok</h4>
- <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#dc2626;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Compare-at / Harga Asal (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Initial Quantity (stok awal)</label><input type="number" id="mpInitQty" class="login-input" min="0" placeholder="0"></div>
  </div>
- <p style="font-size:11px; color:#888; margin-top:6px;"> Tip: Margin = (Harga − Kos) ÷ Harga. Compare-at = harga asal yang dicoret (kalau lebih tinggi dari Harga Jualan, produk papar badge diskaun + harga coret). Initial Quantity akan auto-cipta inventory batch awal kalau diisi.</p>
 
- <!-- p1_297 — Harga marketplace custom per produk -->
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+ <div class="mp-card">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+ <h4 style="margin:0;">Description</h4>
+ <button type="button" onclick="window.mpCleanDescriptionHtml()" title="Strip HTML tags + EasyStore sheets data → plain text" style="background:#F59E0B; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="sparkles" style="width:11px;height:11px;vertical-align:-1px;"></i> Clean HTML</button>
+ </div>
+ <textarea id="mpDescription" class="login-input" rows="4" placeholder="Tent ringan untuk hiking 2 orang, double-wall, 3-season..."></textarea>
+ <div style="margin-top:12px;"><label class="small-lbl">Image URL (utama, pilihan)</label><input type="text" id="mpImageUrl" class="login-input" placeholder="https://..."></div>
+ </div>
+
+ <div class="mp-card">
+ <h4>Harga &amp; Stok</h4>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+ <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#dc2626;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Compare-at (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Initial Qty (stok awal)</label><input type="number" id="mpInitQty" class="login-input" min="0" placeholder="0"></div>
+ </div>
+ <p class="mp-hint">Margin = (Harga − Kos) ÷ Harga. Compare-at lebih tinggi = papar badge diskaun + harga coret. Initial Qty auto-cipta inventory batch awal.</p>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:12px;">
  <div><label class="small-lbl">Harga Shopee (RM)</label><input type="number" id="mpShopeePrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
  <div><label class="small-lbl">Harga TikTok (RM)</label><input type="number" id="mpTiktokPrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
  </div>
- <p style="font-size:11px; color:#888; margin-top:6px;"> Harga custom per channel. Biar kosong = guna markup global auto. Isi = harga tetap untuk channel tu (di-push masa Save).</p>
+ <p class="mp-hint">Harga custom per channel. Kosong = guna markup global auto.</p>
+ </div>
 
- <!-- Group C: VARIANT -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">C. Variant (Pilihan)</h4>
- <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+ <div class="mp-card">
+ <h4>Variant</h4>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr;">
  <div><label class="small-lbl">Warna</label><input type="text" id="mpVariantColor" class="login-input" placeholder="Khaki"></div>
  <div><label class="small-lbl">Saiz</label><input type="text" id="mpVariantSize" class="login-input" placeholder="L / XL / 2P / 4P"></div>
  <div><label class="small-lbl">Barcode (EAN/UPC)</label><input type="text" id="mpErpBarcode" class="login-input" placeholder="6975641887294"></div>
  </div>
- <!-- p1_226 — Custom variant options (free-form: Option: val1, val2, val3) -->
  <div style="margin-top:12px; padding:12px; background:#F9FAFB; border:1px dashed #D1D5DB; border-radius:6px;">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
- <label class="small-lbl" style="margin:0;">Custom Options (advanced) — satu option per line, format: <code style="background:#FEF3C7; padding:1px 4px; border-radius:3px;">Nama: nilai1, nilai2, nilai3</code></label>
+ <label class="small-lbl" style="margin:0;">Custom Options — satu per line: <code style="background:#FEF3C7; padding:1px 4px; border-radius:3px;">Nama: nilai1, nilai2</code></label>
  <button type="button" onclick="window.mpAddVariantOption()" style="background:var(--primary); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="plus" style="width:11px;height:11px;vertical-align:-1px;"></i> Tambah Option</button>
  </div>
  <textarea id="mpVariantOptions" class="login-input" rows="3" placeholder="Material: Cotton, Polyester, Blend&#10;Length: Short, Long&#10;Style: V-neck, Round"></textarea>
- <p style="font-size:11px; color:#888; margin-top:6px;">Kosongkan kalau cuma guna Warna + Saiz di atas. Tiap line = satu option group untuk variant combo.</p>
  </div>
-
- <!-- p1_226 — Variant Setting -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">C2. Variant Setting</h4>
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Adakah produk ada variant?</label>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:12px;">
+ <div><label class="small-lbl">Ada variant?</label>
  <select id="mpHasVariants" class="login-input">
- <option value="false" selected>Tiada (standalone product)</option>
+ <option value="false" selected>Tiada (standalone)</option>
  <option value="true">Ada (multi-variant)</option>
  </select>
  </div>
- <div><label class="small-lbl">Default Variant SKU (kalau ada)</label><input type="text" id="mpDefaultVariantSku" class="login-input" placeholder="kosongkan kalau standalone"></div>
+ <div><label class="small-lbl">Default Variant SKU</label><input type="text" id="mpDefaultVariantSku" class="login-input" placeholder="kosongkan kalau standalone"></div>
+ </div>
  </div>
 
- <!-- Group D: LOGISTIK -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">D. Logistik &amp; Saiz Fizikal</h4>
- <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
+ <div class="mp-card">
+ <h4>Logistik &amp; Saiz Fizikal</h4>
+ <div class="mp-row" style="grid-template-columns:repeat(4,1fr);">
  <div><label class="small-lbl">Berat (kg)</label><input type="number" id="mpWeightKg" class="login-input" step="0.001" placeholder="2.5"></div>
  <div><label class="small-lbl">Panjang (cm)</label><input type="number" id="mpLengthCm" class="login-input" step="0.1" placeholder="50"></div>
  <div><label class="small-lbl">Lebar (cm)</label><input type="number" id="mpWidthCm" class="login-input" step="0.1" placeholder="20"></div>
  <div><label class="small-lbl">Tinggi (cm)</label><input type="number" id="mpHeightCm" class="login-input" step="0.1" placeholder="20"></div>
  </div>
- <div><label class="small-lbl">Lokasi Bin (kalau dah ada)</label><input type="text" id="mpLocationBin" class="login-input" placeholder="A01-R02-S03-B01"></div>
+ <div class="mp-row"><div><label class="small-lbl">Lokasi Bin</label><input type="text" id="mpLocationBin" class="login-input" placeholder="A01-R02-S03-B01"></div></div>
+ </div>
 
- <!-- Group E: META -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">E. Maklumat Tambahan</h4>
- <div>
- <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
- <label class="small-lbl" style="margin:0;">Description / Penerangan</label>
- <button type="button" onclick="window.mpCleanDescriptionHtml()" title="Strip HTML tags + EasyStore sheets data → plain text" style="background:#F59E0B; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="sparkles" style="width:11px;height:11px;vertical-align:-1px;"></i> Clean HTML</button>
+ <div class="mp-card">
+ <h4>Polisi Tempahan Semula (Reorder)</h4>
+ <p class="mp-hint" style="margin:0 0 10px;">Sistem amaran bila stok bawah reorder point. Lead time bantu kira "kena order bila".</p>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr;">
+ <div><label class="small-lbl">Reorder Point (unit)</label><input type="number" id="mpReorderPoint" class="login-input" min="0" placeholder="10"></div>
+ <div><label class="small-lbl">Reorder Qty</label><input type="number" id="mpReorderQty" class="login-input" min="0" placeholder="50"></div>
+ <div><label class="small-lbl">Lead Time (hari)</label><input type="number" id="mpLeadTimeDays" class="login-input" min="0" placeholder="14"></div>
  </div>
- <textarea id="mpDescription" class="login-input" rows="3" placeholder="Tent ringan untuk hiking 2 orang, double-wall, 3-season..."></textarea>
  </div>
- <div><label class="small-lbl">Image URL (utama, pilihan)</label><input type="text" id="mpImageUrl" class="login-input" placeholder="https://..."></div>
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Kadar Komisen Khas (%)</label><input type="number" id="mpCommissionRate" class="login-input" step="0.1" placeholder="(kosongkan = guna default staf)"></div>
- <div><label class="small-lbl">Status Awal</label>
+
+ <div class="mp-card">
+ <h4>Search Engine Optimization (SEO)</h4>
+ <div class="mp-row"><div><label class="small-lbl">Meta Title</label><input type="text" id="mpSeoTitle" class="login-input" placeholder="Naturehike Cloud Up 2 Tent — Lightweight 2-Person"></div></div>
+ <div class="mp-row"><div><label class="small-lbl">Meta Description (max 160)</label><textarea id="mpSeoDescription" class="login-input" rows="2" maxlength="160" placeholder="Tent 2 orang ringan, sesuai hiking. Double-wall, 3-season, 2.5kg."></textarea></div></div>
+ <div class="mp-row"><div><label class="small-lbl">URL Slug</label><input type="text" id="mpSeoSlug" class="login-input" placeholder="naturehike-cloud-up-2-tent-khaki"></div></div>
+ </div>
+
+ </div>
+
+ <!-- ============ KANAN: ORGANISASI & STATUS ============ -->
+ <div style="min-width:0;">
+
+ <div class="mp-card">
+ <h4>Status / Visibility</h4>
  <select id="mpIsPublished" class="login-input">
- <option value="false" selected>Draft (sembunyikan dari Cashier)</option>
+ <option value="false" selected>Draft (sembunyi dari Cashier)</option>
  <option value="true">Published (live di Cashier)</option>
  </select>
  </div>
- </div>
 
- <!-- p1_226 — Vendor / Collection / Tags / Notes -->
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
- <div><label class="small-lbl">Vendor / Pembekal</label><input type="text" id="mpVendor" class="login-input" placeholder="e.g. China Direct, Local SF" list="mpVendorList"></div>
- <div><label class="small-lbl">Collection</label><input type="text" id="mpCollection" class="login-input" placeholder="e.g. Camping Essentials" list="mpCollectionList"></div>
- </div>
+ <div class="mp-card">
+ <h4>Organisasi</h4>
+ <div class="mp-row"><div><label class="small-lbl">Kategori</label><input type="text" id="mpCategory" class="login-input" placeholder="Tent" list="mpCategoryList"></div></div>
+ <div class="mp-row"><div><label class="small-lbl">Brand</label><input type="text" id="mpBrand" class="login-input" placeholder="Naturehike" list="mpBrandList"></div></div>
+ <div class="mp-row"><div><label class="small-lbl">Collection</label><input type="text" id="mpCollection" class="login-input" placeholder="e.g. Camping Essentials" list="mpCollectionList"></div></div>
+ <div class="mp-row"><div><label class="small-lbl">Vendor / Pembekal</label><input type="text" id="mpVendor" class="login-input" placeholder="e.g. China Direct" list="mpVendorList"></div></div>
+ <div class="mp-row"><div><label class="small-lbl">Tags (pisah koma)</label><input type="text" id="mpTags" class="login-input" placeholder="hiking, lightweight"></div></div>
+ <datalist id="mpBrandList"></datalist>
+ <datalist id="mpCategoryList"></datalist>
  <datalist id="mpVendorList"></datalist>
  <datalist id="mpCollectionList"></datalist>
- <div><label class="small-lbl">Tags (pisahkan dengan koma)</label><input type="text" id="mpTags" class="login-input" placeholder="hiking, 2-person, lightweight, ultralight"></div>
- <div><label class="small-lbl">Notes (internal — staff / Zack reference)</label><textarea id="mpNotes" class="login-input" rows="2" placeholder="e.g. Slow mover, last shipment Mar 2026, kena tunjuk packing details kepada customer..."></textarea></div>
-
- <!-- p1_226 — SEO -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">G. SEO (untuk website / EasyStore / Shopify)</h4>
- <div><label class="small-lbl">Meta Title</label><input type="text" id="mpSeoTitle" class="login-input" placeholder="Naturehike Cloud Up 2 Tent — Lightweight 2-Person Hiking"></div>
- <div><label class="small-lbl">Meta Description (max 160 char)</label><textarea id="mpSeoDescription" class="login-input" rows="2" maxlength="160" placeholder="Tent 2 orang yang ringan, sesuai untuk hiking solo atau bromance. Double-wall, 3-season, berat 2.5kg sahaja."></textarea></div>
- <div><label class="small-lbl">URL Slug</label><input type="text" id="mpSeoSlug" class="login-input" placeholder="naturehike-cloud-up-2-tent-khaki"></div>
-
- <!-- F: Reorder Policy (Sprint 2.5) -->
- <h4 style="font-size:13px; color:var(--primary); margin:18px 0 8px; text-transform:uppercase; letter-spacing:1px;">F. Polisi Tempahan Semula (Reorder)</h4>
- <p style="font-size:11px; color:#888; margin-bottom:8px;">Sistem akan bunyikan amaran apabila stok jatuh ke bawah <em>reorder_point</em>. Lead time bantu kira "kena order bila".</p>
- <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
- <div><label class="small-lbl">Reorder Point (unit)</label><input type="number" id="mpReorderPoint" class="login-input" min="0" placeholder="10"></div>
- <div><label class="small-lbl">Reorder Qty (suggest order)</label><input type="number" id="mpReorderQty" class="login-input" min="0" placeholder="50"></div>
- <div><label class="small-lbl">Lead Time (hari)</label><input type="number" id="mpLeadTimeDays" class="login-input" min="0" placeholder="14"></div>
  </div>
 
- <button class="btn-primary" style="margin-top:20px; width:100%; background:#101010; font-size:15px; padding:12px;" onclick="window.saveMasterProduct()"> Daftar Master Product</button>
- <p style="font-size:11px; color:#999; margin-top:8px; text-align:center;">Lepas daftar, scroll ke bawah ke "Masukkan Stok" untuk record kuantiti fizikal pertama.</p>
+ <div class="mp-card">
+ <h4>Komisen</h4>
+ <label class="small-lbl">Kadar Komisen Khas (%)</label>
+ <input type="number" id="mpCommissionRate" class="login-input" step="0.1" placeholder="kosong = default staf">
+ </div>
+
+ <div class="mp-card">
+ <h4>Notes (internal)</h4>
+ <textarea id="mpNotes" class="login-input" rows="3" placeholder="e.g. Slow mover, last shipment Mar 2026..."></textarea>
+ </div>
+
+ </div>
+ </div>
+
+ <button class="btn-primary" style="margin-top:6px; width:100%; background:#101010; font-size:15px; padding:12px;" onclick="window.saveMasterProduct()"> Daftar Master Product</button>
+ <p style="font-size:11px; color:#999; margin-top:8px; text-align:center;">Lepas daftar, Initial Qty (kalau diisi) auto-rekod stok awal.</p>
  </div>
 
  <!-- Product Registration Mode (Moved to Gudang Pusat) -->
@@ -8000,6 +8041,9 @@
  { id:'p1_534', label:'App version (staff) — skop diperluas + back-office split (Zaid: "jadikan POS kepada apps version, yang sekarang ni jadi back office"). Sambung Capacitor (server.url 10camp.com/#staff + appendUserAgent TenCampPOSApp — load live, auto-update tanpa rebuild). Dulu scope cashier-ONLY; kini Zaid pilih Cashier + All Orders + My Commission + Stock Take. Ganti CSS whack-a-mole dgn nav suntik: body.pos-app-scoped sorok #sidebarRail + .menu-list + butang Landing; __injectPosAppNav suntik #posAppNav (4 butang besar → switchHub posSection/allOrdersSection/commissionSection/checkSessionsSection + tutup drawer phone); __applyPosAppScope default Cashier; Logout kekal header. Web kekal back-office PENUH. app.js (v575->v576) + sw pos-store-v140->v141.', d:'done' },
  { id:'p1_535', label:'App shell build/test (Zaid: "tolong build/test app shell"). npx cap sync ios BERJAYA (SPM, tiada CocoaPods). BLOCKER native: Android tiada Java/JDK; iOS Simulator CoreSimulator belum install (perlu sudo xcodebuild -runFirstLaunch + GUI Xcode Run). Build native penuh perlu langkah admin/GUI. SOLUSI test segera: __isPOSApp kini juga true bila ?posapp=1 dlm URL → PREVIEW skop app (4 butang) dlm browser biasa tanpa build native (selamat). Buka 10camp.com/?posapp=1#staff. app.js (v576->v577) + sw pos-store-v141->v142.', d:'done' },
  { id:'p1_606', label:'TikTok Finance API → 10cc settlement (Zaid: "tarik dari API" untuk un-standby Sumber TikTok). Fungsi baru netlify/functions/tiktok-finance.js (cermin shopee-sync mode=escrow) guna helper _tiktok.js (token/sign/shop_cipher). Mode: peek (raw shape), rows (per-order via statement_transactions), statement_rows (per-payout — guna ni untuk backfill: 483 statement Jun2024-Jun2026 dalam 1 panggilan murah, no timeout). Finance API v202309 GET /finance/202309/statements + /statements/{id}/statement_transactions. BLOCKER awal: scope seller.finance.info perlu dihidupkan di TikTok Partner Center + re-authorize (error 105005), propagation ~3min. Fix: statement_transactions perlu sort_field; gross/net kekal bertanda (3 statement negatif bulan refund). Backfill 483 payout (gross RM327,695/fees RM49,378/net RM279,237) → tencc.marketplace_settlements channel=TikTok via pg8000 pooler. 10cc page Settlement Channel + Sumber TikTok kini Live. Tambah redirect /api/tiktok-finance. Server-only (takde app.js/sw).', d:'done' },
+ { id:'p1_621', label:'Remake layout "+ Add Product" (masterProductFormCard) jadi 2-kolum gaya EasyStore, lebih user-friendly (Zaid: "buat semula layout lebih user friendly based on easystore"). Dari borang 1-kolum panjang (group A-G) → grid 1fr/320px: KIRI kad kandungan (Maklumat Produk, Description+Image, Harga&Stok, Variant, Logistik, Reorder, SEO); KANAN sidebar (Status/Visibility, Organisasi=Kategori/Brand/Collection/Vendor/Tags, Komisen, Notes). SEMUA 38 field ID + 5 datalist + toolbar Load/Reset/Delete + butang dikekalkan (saveMasterProduct/clearMpForm/loadMasterProductForEdit tak berubah). Responsive 1-kolum bawah 900px. Div balance +24/+24.', d:'done' },
+ { id:'p1_620', label:'Page EDIT produk (pdpModal) tambah detail gaya EasyStore (Zaid: "tambah detail sama seperti easystore: last edited + button Delete/Duplicate/View/Share"). Header 2-baris: tajuk+Save atas, action bar bawah (Delete=pdpDeleteProduct merah / Duplicate=pdpDuplicateProduct baru / View=buka 10camp.com/?p=SKU / Share=shareProduct) + "Last edited: <tarikh> oleh <nama>" kanan. DB: tambah products_master.updated_at + trigger auto-touch; savePdpData set updated_at; openPdpModal papar dari updated_at||created_at + last_modified_by. pdpDuplicateProduct: clone row→SKU baru (prompt), nama+(Copy), force Draft, buang ID marketplace+sync. app.js v627->v628.', d:'done' },
+ { id:'p1_619', label:'Analytics jadi GROUP sidebar sendiri dgn 3 sub-item page (Zaid: "tukar plan, aku nak sales/inventory/finance jadi page masing2 + sub item di sidebar analytics"). Sidebar: buang "Analytics" lama dari group Reports; tambah nav-parent "analytics" baru (data-nav-parent/children) dgn 3 sub-item Sales/Inventory/Finance — tiap satu switchHub(["analyticsSection"]) + __anSwitchTab(tab) jadi page berasingan. Tab bar dalam-page (anTabBar) disorok (display:none) sebab sidebar dah drive. h2 section (anSecTitle/anSecIcon) update ikut sub-page (Sales Analytics/Inventory Analytics/Finance). Reports group kekal Exports+Roadmap. app.js v626->v627.', d:'done' },
  { id:'p1_618', label:'AUDIT + rombak UI/UX tab Inventory (Zaid: "tak lulus, confuse, cadangkan ui/ux lebih teratur + audit whole analytics inventory"). Masalah: 9 lajur sesak, timeline inline buat row tinggi, 159 "perlu perhatian" banjir (kebanyakan stok mati), takde filter/search. FIX: (1) 3 SUB-TAB dalam Inventory — Ringkasan (stock value+status cards) / Tindakan (Perlu Restock + Order Supplier) / Analisa (Slow Mover+Umur+Kategori); __invSubTab toggle. (2) Jadual Perlu Restock RINGKAS 7 lajur (Produk+SKU/Stok/%Baki/HariLagi/Cadang/Status), timeline jadi KLIK-row-expand (chips 1st→R1→R2 dgn qty), bukan inline. (3) Kategori baru: REORDER(habis-laku/baki≤thr/hari≤lead) / PERHATI / SIHAT(sorok) / STOK MATI(habis+0jualan90h → collapse asing, calon discontinue). (4) Filter pills (Semua/Reorder/Perhati) + search box (DOM-filter tanpa re-render, __invFilterRows). app.js v625->v626.', d:'done' },
  { id:'p1_617', label:'Restock Tracker: lajur "Restock Akhir" (satu tarikh) → "Sejarah Restock" timeline penuh (Zaid: "buat terus lah tarikh tu dekat analytics inventory"). Kumpul SEMUA tarikh DO per SKU (evByS→lastByS.events sorted asc), papar vertical mini-timeline dalam sel: 1st = order pertama, R1/R2/... = restock seterusnya, tarikh terakhir bold. Cap 6 baris (1st + ⋯N lagi + 3 akhir). Qty Masuk→Qty Akhir. Tracker objek tambah events. app.js v624->v625.', d:'done' },
  { id:'p1_616', label:'Tab Inventory: 2 feature tambahan (Zaid: "supplier-grouped shopping list + stock aging"). (1) Senarai Order Ikut Supplier — ambil barang HABIS+MASA RESTOCK dari tracker, kumpul ikut prefix SKU→supplier (ST=Shine Trip/MH=Mountainhiker/CD=Chanodug/VD=Vidalido/NH=Naturehike/BD=Blackdog/MG=Mobigarden/LF=LFO/MX=Mix), tiap supplier papar item + cadang qty order (cukup lead-time+30 hari jualan, atau qty restock lalu/reorder); disusun supplier paling banyak item dulu. (2) Umur Stok (aging) — bucket hari sejak restock terakhir (DO): 0-90/90-180/180-365/365+ + "tiada rekod"; tiap bucket #SKU/unit/nilai kos; modal lama 180h+ merah (calon clearance). Tracker objek tambah vel+ro. app.js v623->v624.', d:'done' },
@@ -13057,18 +13101,31 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=626"></script>
+ <script src="app.js?v=628"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
  
  <!-- PDP Header -->
- <div style="position:sticky; top:0; background:#fff; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e1e3e5; z-index:10;">
- <div style="display:flex; align-items:center; gap:15px;">
+ <style>#pdpModal .pdp-act{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:6px 11px;border:1px solid #d1d5db;border-radius:7px;background:#fff;color:#374151;cursor:pointer;}#pdpModal .pdp-act:hover{background:#f9fafb;}#pdpModal .pdp-act i{width:13px;height:13px;}#pdpModal .pdp-act.danger{color:#dc2626;border-color:#fca5a5;}</style>
+ <div style="position:sticky; top:0; background:#fff; padding:13px 20px 11px; border-bottom:1px solid #e1e3e5; z-index:10;">
+ <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+ <div style="display:flex; align-items:center; gap:15px; min-width:0;">
  <button onclick="document.getElementById('pdpModal').style.display='none'" style="background:none; border:none; font-size:20px; cursor:pointer; padding:5px;">←</button>
- <h2 id="pdpHeaderTitle" style="margin:0; font-size:18px; color:#202223;">SKU | Nama Produk</h2>
+ <h2 id="pdpHeaderTitle" style="margin:0; font-size:18px; color:#202223; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">SKU | Nama Produk</h2>
  </div>
- <button class="btn-success" onclick="window.savePdpData()" style="padding:8px 16px;">Save</button>
+ <button class="btn-success" onclick="window.savePdpData()" style="padding:8px 16px; flex-shrink:0;">Save</button>
+ </div>
+ <!-- p1_620 — action row + last edited (gaya EasyStore) -->
+ <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:9px; flex-wrap:wrap;">
+ <div style="display:flex; gap:6px; flex-wrap:wrap;">
+ <button onclick="window.pdpDeleteProduct()" class="pdp-act danger"><i data-lucide="trash-2"></i> Delete</button>
+ <button onclick="window.pdpDuplicateProduct()" class="pdp-act"><i data-lucide="copy"></i> Duplicate</button>
+ <button onclick="window.pdpViewProduct()" class="pdp-act"><i data-lucide="eye"></i> View</button>
+ <button onclick="window.pdpShareProduct()" class="pdp-act"><i data-lucide="share-2"></i> Share</button>
+ </div>
+ <div id="pdpLastEdited" style="font-size:12px; color:#6b7280;"></div>
+ </div>
  </div>
 
  <!-- PDP Content Container — p1_492 EasyStore-style 2-column layout -->

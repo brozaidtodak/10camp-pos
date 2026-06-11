@@ -21085,6 +21085,13 @@ window.openPdpModal = function(sku) {
  if(m.tiktok_synced_at) parts.push('TikTok last sync: ' + new Date(m.tiktok_synced_at).toLocaleString('en-MY'));
  syncEl.textContent = parts.join(' · ') || 'Belum pernah sync auto.';
  }
+ // p1_620 — Last edited (gaya EasyStore)
+ const leEl = document.getElementById('pdpLastEdited');
+ if(leEl) {
+ const dt = prod.updated_at || prod.created_at;
+ const who = prod.last_modified_by ? (' oleh ' + prod.last_modified_by) : '';
+ leEl.textContent = dt ? ('Last edited: ' + new Date(dt).toLocaleString('en-MY',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + who) : '';
+ }
  // p1_520 — banner status Shopee untuk Zack (link/harga/Variation ID sekali pandang)
  const spStatusEl = document.getElementById('pdpShopeeStatus');
  if(spStatusEl) {
@@ -21249,6 +21256,43 @@ window.pdpDeleteProduct = async function() {
  if(typeof showToast === 'function') showToast('Delete gagal: ' + e.message, 'error');
  else alert('Delete gagal: ' + e.message);
  }
+};
+
+// p1_620 — Duplicate produk semasa (clone → SKU baru, set Draft, buang ID marketplace)
+window.pdpDuplicateProduct = async function() {
+ const sku = document.getElementById('pdpOriginalSku').value; if(!sku) return;
+ const prod = masterProducts.find(x => x.sku === sku); if(!prod) return;
+ const input = prompt(`Duplicate "${sku}".\nMasukkan SKU baru untuk salinan:`, sku + '-COPY');
+ if(input == null) return;
+ const ns = input.trim(); if(!ns) return;
+ if(masterProducts.some(x => x.sku === ns)) return (window.showToast||alert)('SKU "' + ns + '" dah wujud. Pilih lain.', 'error');
+ try {
+ const clone = Object.assign({}, prod);
+ delete clone.id; delete clone.created_at; delete clone.updated_at;
+ clone.sku = ns;
+ clone.name = (prod.name || '') + ' (Copy)';
+ clone.is_published = false; // Draft — semak dulu sebelum live
+ const md = Object.assign({}, (prod.metadata || {}));
+ ['shopee_item_id','shopee_model_id','tiktok_product_id','shopee_url','tiktok_url','shopee_synced_at','tiktok_synced_at'].forEach(k => delete md[k]);
+ clone.metadata = md;
+ clone.last_modified_by = (window.currentUser || {}).name || 'System';
+ const { error } = await db.from('products_master').insert([clone]);
+ if(error) throw error;
+ masterProducts.unshift(clone);
+ (window.showToast||alert)('Diduplikat → ' + ns + ' (Draft). Edit & publish bila siap.', 'success');
+ if(typeof renderProductDatabase === 'function') renderProductDatabase();
+ window.openPdpModal(ns);
+ } catch(e) { (window.showToast||alert)('Duplicate gagal: ' + e.message, 'error'); }
+};
+// p1_620 — View di storefront awam + Share
+window.pdpViewProduct = function() {
+ const sku = document.getElementById('pdpOriginalSku').value; if(!sku) return;
+ window.open('https://www.10camp.com/?p=' + encodeURIComponent(sku), '_blank');
+};
+window.pdpShareProduct = function() {
+ const sku = document.getElementById('pdpOriginalSku').value; if(!sku) return;
+ if(typeof window.shareProduct === 'function') window.shareProduct(sku);
+ else window.open('https://www.10camp.com/?p=' + encodeURIComponent(sku), '_blank');
 };
 
 // p1_300 — render this product's sibling variants (same parent_sku) as an
@@ -21611,6 +21655,7 @@ window.savePdpData = async function() {
  variant_size: get('pdpVariantSize') || null,
  erp_barcode: get('pdpErpBarcode') || null,
  last_modified_by: (window.currentUser||{}).name || 'System',
+ updated_at: new Date().toISOString(),
  metadata
  };
 
@@ -24610,6 +24655,11 @@ window.__anSwitchTab = function(tab, el) {
  document.querySelectorAll('#anTabBar .an-tab').forEach(x => x.classList.remove('active'));
  if(el) el.classList.add('active');
  window.__anActiveTab = tab;
+ // p1_619 — sidebar drive sub-page; kemaskini tajuk + ikon section
+ const meta = { sales:['Sales Analytics','trending-up'], inventory:['Inventory Analytics','boxes'], finance:['Finance','wallet'] };
+ const m = meta[tab] || meta.sales;
+ const tEl = document.getElementById('anSecTitle'); if(tEl) tEl.textContent = m[0];
+ const iEl = document.getElementById('anSecIcon'); if(iEl) iEl.setAttribute('data-lucide', m[1]);
  if(tab === 'inventory' && typeof renderInventoryAnalytics === 'function') renderInventoryAnalytics();
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };

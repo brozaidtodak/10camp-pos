@@ -27482,13 +27482,25 @@ window.__renderDashOverviewRoster = function() {
 
 // p1_74 fix #8: Coordinator that checks if both memo + roster empty and swaps
 // the layout — single combined empty card vs normal 2-col widgets row.
+// p1_643 — klik SKU mana-mana (kad amaran dll) → buka Bulk Edit, tapis terus ke SKU tu.
+window.__gotoBulkSku = function(sku){
+ try {
+  if(typeof switchHub === 'function') switchHub(['bulkOpsSection'], 'Bulk Product Edit', null);
+  const inp = document.getElementById('bulkSearchInput');
+  if(inp){ inp.value = sku; }
+  if(typeof renderBulkOps === 'function') renderBulkOps();
+  const sec = document.getElementById('bulkOpsSection');
+  if(sec && sec.scrollIntoView) sec.scrollIntoView({ behavior:'smooth', block:'start' });
+ } catch(e){ console.warn('gotoBulkSku', e); }
+};
+
 // p1_634 (#3) — Integration alert: surface price-sentinel below-cost/drift on owner landing.
 window.__renderIntegrationAlert = async function(){
  const box = document.getElementById('integrationAlertBox'); if(!box) return;
  if(typeof db === 'undefined' || !db){ box.innerHTML=''; return; }
  try {
   const [{ data }, thRes, pfRes, cfgRes] = await Promise.all([
-    db.from('price_sentinel').select('sku,platform,flag,detail').limit(500),
+    db.from('price_sentinel').select('sku,platform,flag,detail,live_price,effective_price,cost,pos_price,campaign_disc').limit(500),
     db.from('token_health').select('platform,status,message').then(r=>r).catch(()=>({data:[]})),
     db.from('push_failures').select('sku,channel,status,attempts,error_message').eq('status','dead').then(r=>r).catch(()=>({data:[]})),
     db.from('config_health').select('check_key,detail,status').eq('status','fail').then(r=>r).catch(()=>({data:[]}))
@@ -27506,7 +27518,31 @@ window.__renderIntegrationAlert = async function(){
   if(!below.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length){ box.innerHTML=''; return; }
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const chip = (bg,txt)=>`<span style="background:${bg};color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:50px;">${txt}</span>`;
-  const li = (x)=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(x.sku)}</b> <span style="color:#9ca3af;">${esc(x.platform)}</span> — ${esc(x.detail)}</div>`;
+  // p1_643 — table helpers + clickable SKU (→ Bulk Edit)
+  const moneyRm = (v)=> (v==null||v===''||isNaN(Number(v)))?'—':('RM'+Number(v).toFixed(2));
+  const skuLink = (sku)=>`<a onclick="window.__gotoBulkSku('${esc(sku)}')" title="Buka ${esc(sku)} di Bulk Edit" style="color:#A05F22;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${esc(sku)}</a>`;
+  const plat = (p)=>`<span style="color:#9ca3af;">${esc(p)}</span>`;
+  const th = (t,r)=>`<th style="padding:4px 8px;${r?'text-align:right;':'text-align:left;'}font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:#9a8a86;font-weight:800;white-space:nowrap;">${t}</th>`;
+  const td = (c,r)=>`<td style="padding:4px 8px;${r?'text-align:right;':''}white-space:nowrap;">${c}</td>`;
+  const driftPct = (x)=>{ const lp=Number(x.live_price)||0, pp=Number(x.pos_price)||0; return pp>0?Math.round(Math.abs(lp-pp)/pp*100):null; };
+  const belowTable = below.length?`
+   <div style="margin-bottom:10px;">
+    <div style="font-size:11px;font-weight:800;color:#7C2A20;text-transform:uppercase;margin-bottom:3px;">Jual bawah kos (rugi)</div>
+    <table style="width:100%;border-collapse:collapse;">
+     <thead><tr style="border-bottom:1px solid #E3C9C2;">${th('SKU')}${th('Platform')}${th('Live',1)}${th('Disk',1)}${th('Jual',1)}${th('Kos',1)}</tr></thead>
+     <tbody>${below.slice(0,12).map(x=>`<tr style="border-bottom:1px solid #F0DDD8;font-size:12px;color:#5E2018;">${td(skuLink(x.sku))}${td(plat(x.platform))}${td(moneyRm(x.live_price),1)}${td(x.campaign_disc!=null?('−'+x.campaign_disc+'%'):'—',1)}${td('<b style="color:#B23A2E;">'+moneyRm(x.effective_price)+'</b>',1)}${td(moneyRm(x.cost),1)}</tr>`).join('')}</tbody>
+    </table>
+    ${below.length>12?`<div style="font-size:11px;color:#9ca3af;margin-top:2px;">+${below.length-12} lagi</div>`:''}
+   </div>`:'';
+  const driftTable = drift.length?`
+   <div>
+    <div style="font-size:11px;font-weight:800;color:#7A5410;text-transform:uppercase;margin-bottom:3px;">Harga POS ≠ live</div>
+    <table style="width:100%;border-collapse:collapse;">
+     <thead><tr style="border-bottom:1px solid #E6D6AE;">${th('SKU')}${th('Platform')}${th('Live',1)}${th('POS',1)}${th('Beza',1)}</tr></thead>
+     <tbody>${drift.slice(0,12).map(x=>{const dp=driftPct(x);return `<tr style="border-bottom:1px solid #F1E7CF;font-size:12px;color:#5E3F0C;">${td(skuLink(x.sku))}${td(plat(x.platform))}${td(moneyRm(x.live_price),1)}${td(moneyRm(x.pos_price),1)}${td('<b style="color:#9E7016;">'+(dp!=null?dp+'%':'—')+'</b>',1)}</tr>`;}).join('')}</tbody>
+    </table>
+    ${drift.length>12?`<div style="font-size:11px;color:#9ca3af;margin-top:2px;">+${drift.length-12} lagi</div>`:''}
+   </div>`:'';
   box.innerHTML = `
    <div class="dash-card" style="border:1.5px solid #B23A2E; background:#FAF0EE; margin-bottom:var(--space-3); padding:14px 16px;">
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
@@ -27521,10 +27557,10 @@ window.__renderIntegrationAlert = async function(){
     </div>
     ${cfgFail.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Konfigurasi / creds rosak</div>${cfgFail.slice(0,5).map(c=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(c.check_key)}</b> — ${esc((c.detail||'').slice(0,80))}</div>`).join('')}</div>`:''}
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Token marketplace</div>${tokBad.map(t=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}
-    ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(p.sku)}</b> <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
-    ${below.length?`<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:800;color:#7C2A20;text-transform:uppercase;">Jual bawah kos (rugi)</div>${below.slice(0,5).map(li).join('')}${below.length>5?`<div style="font-size:11px;color:#9ca3af;">+${below.length-5} lagi</div>`:''}</div>`:''}
-    ${drift.length?`<div><div style="font-size:11px;font-weight:800;color:#7A5410;text-transform:uppercase;">Harga POS ≠ live</div>${drift.slice(0,5).map(li).join('')}${drift.length>5?`<div style="font-size:11px;color:#9ca3af;">+${drift.length-5} lagi</div>`:''}</div>`:''}
-    <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">Betulkan harga di Shopee/TikTok Seller Center. POS flag je — tak boleh tukar harga marketplace.</div>
+    ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;">${skuLink(p.sku)} <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
+    ${belowTable}
+    ${driftTable}
+    <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">Klik SKU untuk buka di Bulk Edit. Betulkan harga marketplace di Shopee/TikTok Seller Center — POS flag je, tak boleh tukar harga marketplace dari sini.</div>
    </div>`;
   if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
  } catch(e){ box.innerHTML=''; }

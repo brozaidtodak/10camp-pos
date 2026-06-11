@@ -8310,6 +8310,28 @@ window.invPopulateFilterOptions = function() {
  fillSel('invCatFilter', 'Semua Kategori', cats);
 };
 
+// p1_624 — Campaign/promo badge for product lists (reads tiktok_campaign/shopee_campaign
+// snapshots written by tiktok-promo-sync). Shows platform pill + red RUGI warning when the
+// promo price falls BELOW cost (catches "base price ok but campaign pushes below cost").
+window.__campaignBadge = function(list){
+ const arr = Array.isArray(list) ? list : [list];
+ let tk=null, sh=null, rugi=false;
+ for(const p of arr){
+ const t = p && p.tiktok_campaign;
+ if(t && t.active){ tk = t; if(t.below_cost) rugi = true; }
+ const s = p && p.shopee_campaign;
+ if(s && s.active){ sh = s; if(s.below_cost) rugi = true; }
+ }
+ if(!tk && !sh) return '';
+ const pill = (bg, txt, tip) => `<span title="${String(tip||'').replace(/"/g,'&quot;')}" style="background:${bg};color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:9px;display:inline-block;white-space:nowrap;">${txt}</span>`;
+ const lbl = (c) => c.discount_type==='percentage' ? `-${c.discount_value}%` : (c.promo_price!=null ? `RM${c.promo_price}` : 'promo');
+ let out = '';
+ if(tk) out += pill('#101010', `TikTok ${lbl(tk)}`, (tk.name||'TikTok campaign') + (tk.promo_price!=null?` · jual ~RM${tk.promo_price}`:'')) + ' ';
+ if(sh) out += pill('#ee4d2d', `Shopee ${lbl(sh)}`, (sh.name||'Shopee campaign') + (sh.promo_price!=null?` · jual ~RM${sh.promo_price}`:'')) + ' ';
+ if(rugi) out += pill('#DC2626', 'RUGI', 'Harga selepas kempen di BAWAH kos — semak harga / keluarkan dari kempen');
+ return out.trim();
+};
+
 function renderWMS() {
  // 1) Inbound select stays (used elsewhere for batch inbound)
  const select = document.getElementById("inboundSkuSelect");
@@ -8931,6 +8953,7 @@ function renderInventoryGrid(products) {
  </div>
  <div class="inv-card__sku">${hesc(skuLine)}</div>
  <h3 class="inv-card__name">${hesc(title)}</h3>
+ ${window.__campaignBadge(list) ? '<div style="margin:3px 0 0;">'+window.__campaignBadge(list)+'</div>' : ''}
  <div class="inv-card__footer">
  <div class="inv-card__price-wrap">
  <small>Cost ${fmt(cost)}</small>
@@ -8978,7 +9001,7 @@ function renderInventoryTable(products) {
  </td>
  <td>
  <span class="sku-badge">${hesc(skuLine)}</span> <span class="cat-badge">${hesc(p.category||'Uncategorized')}</span> ${(!isGroup && p.location_bin) ? `<span style="background:#fef08a; color:#854d0e; padding:3px 6px; border-radius:4px; font-size:10px;"> Loc: ${hesc(p.location_bin)}</span>` : ''}<br>
- <strong>${hesc(title)}</strong><br>
+ <strong>${hesc(title)}</strong> ${window.__campaignBadge(list)}<br>
  <small style="color:#888;">Jenama: <strong>${hesc(p.brand || 'N/A')}</strong></small>
  </td>
  <td>
@@ -24751,6 +24774,60 @@ window.__invFilterRows = function(){
   });
   const empty = document.getElementById('invRkEmpty'); if(empty) empty.style.display = shown ? 'none' : '';
 };
+// p1_623 — Log Pergerakan Stok per SKU: IN (delivery_orders) + OUT (sales), baki berjalan diankor ke stok semasa
+window.__invStockCard = function(sku) {
+  sku = (sku || '').trim();
+  const out = document.getElementById('invStockCardBody'); if(!out) return;
+  const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(!sku) { out.innerHTML = '<div style="padding:24px; text-align:center; color:#9CA3AF; font-size:12px;">Taip SKU untuk lihat log pergerakan stok.</div>'; return; }
+  const prod = (Array.isArray(masterProducts) ? masterProducts : []).find(p => p.sku === sku);
+  const batches = Array.isArray(inventoryBatches) ? inventoryBatches : [];
+  const curStock = batches.filter(b => b.sku === sku).reduce((s,b) => s + (Number(b.qty_remaining)||0), 0);
+  const fmtD = (s) => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?String(s):d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'2-digit'}); };
+  // IN — delivery orders
+  const dd = window.__doData || { dos:[], items:[] };
+  const doDate = {}; (dd.dos||[]).forEach(d => doDate[d.do_ref] = d.delivery_date || null);
+  const moves = [];
+  (dd.items||[]).forEach(it => { if((it.sku||'').trim() !== sku) return; const q = Number(it.qty)||0; if(!q) return; moves.push({ date: doDate[it.do_ref] || null, type:'IN', qty:q, ref: it.do_ref || 'DO', note:'Restock' }); });
+  // OUT — sales (refund = stok balik = IN)
+  (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+    if(s.is_test) return;
+    let items = s.items; if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = []; } } if(!Array.isArray(items)) return;
+    const recv = parseFloat(s.total_amount || s.total || 0) || 0; const isRefund = recv < 0;
+    items.forEach(line => { if((line.sku||'').trim() !== sku) return; const q = Number(line.qty != null ? line.qty : line.quantity)||0; if(!q) return;
+      moves.push({ date: s.created_at ? String(s.created_at).slice(0,10) : null, type: isRefund?'IN':'OUT', qty:q, ref: (s.order_no||s.order_number||s.id||'')+'', note: isRefund?'Refund (stok balik)':'Jualan' });
+    });
+  });
+  if(!moves.length) { out.innerHTML = `<div style="padding:24px; text-align:center; color:#9CA3AF; font-size:12px;">Tiada rekod pergerakan untuk <b>${esc(sku)}</b>. Stok semasa: ${curStock}.</div>`; return; }
+  moves.sort((a,b) => (a.date||'') < (b.date||'') ? -1 : ((a.date||'') > (b.date||'') ? 1 : 0));
+  // baki berjalan: baki SELEPAS gerakan terakhir = stok semasa; kira mundur
+  const balAfter = new Array(moves.length); let bal = curStock;
+  for(let i = moves.length-1; i >= 0; i--) { balAfter[i] = bal; bal -= (moves[i].type==='IN' ? moves[i].qty : -moves[i].qty); }
+  const balBefore = bal; // baki sebelum rekod pertama (stok lama tak berlog)
+  const totalIn = moves.filter(m=>m.type==='IN').reduce((s,m)=>s+m.qty,0);
+  const totalOut = moves.filter(m=>m.type==='OUT').reduce((s,m)=>s+m.qty,0);
+  let html = `<div style="padding:12px 14px; display:flex; gap:18px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); font-size:12px;">
+    <span><b>${esc(prod?prod.name:sku)}</b> <span style="color:#9CA3AF; font-family:monospace;">${esc(sku)}</span></span>
+    <span style="margin-left:auto; color:#16A34A;">Masuk: <b>+${totalIn}</b></span>
+    <span style="color:#DC2626;">Keluar: <b>−${totalOut}</b></span>
+    <span>Stok kini: <b>${curStock}</b></span>
+  </div>`;
+  html += '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:7px 12px;">Tarikh</th><th style="padding:7px 12px;">Jenis</th><th style="padding:7px 12px; text-align:right;">Qty</th><th style="padding:7px 12px;">Rujukan</th><th style="padding:7px 12px;">Nota</th><th style="padding:7px 12px; text-align:right;">Baki</th></tr></thead><tbody>';
+  for(let i = moves.length-1; i >= 0; i--) { const m = moves[i]; const isIn = m.type==='IN';
+    html += `<tr style="border-top:1px solid var(--border-color);">
+      <td style="padding:7px 12px; white-space:nowrap;">${fmtD(m.date)}</td>
+      <td style="padding:7px 12px;"><span style="background:${isIn?'#DCFCE7':'#FEE2E2'}; color:${isIn?'#16A34A':'#DC2626'}; font-weight:700; font-size:10px; padding:2px 8px; border-radius:10px;">${isIn?'MASUK':'KELUAR'}</span></td>
+      <td style="padding:7px 12px; text-align:right; font-weight:700; color:${isIn?'#16A34A':'#DC2626'};">${isIn?'+':'−'}${m.qty}</td>
+      <td style="padding:7px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11px;">${esc(m.ref)}</td>
+      <td style="padding:7px 12px; color:#6B7280;">${esc(m.note)}</td>
+      <td style="padding:7px 12px; text-align:right; font-weight:600;">${balAfter[i]}</td>
+    </tr>`;
+  }
+  html += `<tr style="border-top:1px solid var(--border-color); background:#FAFAFA;"><td colspan="5" style="padding:7px 12px; color:#9CA3AF; font-size:11px;">Baki awal (sebelum rekod berlog)</td><td style="padding:7px 12px; text-align:right; color:#9CA3AF;">${balBefore}</td></tr>`;
+  html += '</tbody></table></div>';
+  html += '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">MASUK = restock (delivery order). KELUAR = jualan (test order dikecualikan). Refund = stok balik (masuk). Baki diankor ke stok sebenar sekarang; "Baki awal" ≠ 0 maksudnya ada stok lama sebelum rekod DO bermula.</div>';
+  out.innerHTML = html;
+};
 window.renderInventoryAnalytics = async function() {
  const body = document.getElementById('anInvBody'); if(!body) return;
  if(!window.__doData && typeof window.__doLoad === 'function') {
@@ -25024,6 +25101,15 @@ window.renderInventoryAnalytics = async function() {
    + ageRows + '</tbody></table></div>'
    + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Umur = hari sejak SKU ni terakhir restock (DO). Modal lama (180h+) merah = duit tertimbun dalam stok yang dah lama tak ditambah — calon clearance kalau jualan perlahan.</div>'
  );
+
+ // Log Pergerakan Stok (stock card per SKU) — diletak PALING ATAS zon Analisa
+ const skuOpts = products.slice().sort((a,b)=>(a.sku||'').localeCompare(b.sku||'')).map(p => `<option value="${esc(p.sku)}">${esc((p.name||'').slice(0,42))}</option>`).join('');
+ const stockCard = card(
+   cardHead('<i data-lucide="arrow-left-right" style="width:14px;height:14px;vertical-align:-2px; color:var(--primary);"></i> Log Pergerakan Stok <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— pilih SKU: masuk (restock) & keluar (jualan), baki berjalan</span>')
+   + '<div style="padding:12px 14px; border-bottom:1px solid var(--border-color);"><input id="invStockCardSku" list="invStockCardSkus" placeholder="Taip / pilih SKU…" onchange="window.__invStockCard(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.__invStockCard(this.value);}" style="font-size:13px; padding:7px 11px; border:1px solid var(--border-color); border-radius:8px; min-width:240px;"><datalist id="invStockCardSkus">' + skuOpts + '</datalist></div>'
+   + '<div id="invStockCardBody"><div style="padding:24px; text-align:center; color:#9CA3AF; font-size:12px;">Taip SKU di atas untuk lihat log pergerakan stok (masuk & keluar) + baki berjalan.</div></div>'
+ );
+ zAnal = stockCard + zAnal;
 
  // ============ ASSEMBLE 3 SUB-TAB ============
  const styleB = '<style>'

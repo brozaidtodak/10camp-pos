@@ -147,6 +147,14 @@
 [functions."tiktok-sync-cron"]
   schedule = "*/15 * * * *"
 
+# p1_624 — Refresh active TikTok campaign snapshots + below_cost flags every 6h
+[functions."tiktok-promo-sync-cron"]
+  schedule = "30 */6 * * *"
+
+# p1_624 — Refresh active Shopee discount snapshots + below_cost flags every 6h
+[functions."shopee-promo-sync-cron"]
+  schedule = "45 */6 * * *"
+
 # p1_98 Fasa 2D — Cron auto-sync every 15 min
 [functions."shopee-sync-cron"]
   schedule = "*/15 * * * *"

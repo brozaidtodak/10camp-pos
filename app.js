@@ -35190,6 +35190,57 @@ window.renderConnections = function(){
  * p1_583 — APPS (Channels > Apps). Ringkasan integrasi pihak ketiga POS.
  * Status sambungan + link ke tempat urus (Marketplaces untuk channel jualan).
  * ==========================================================================*/
+// p1_635 (#4) — Integration Health: live status per marketplace (last sync, errors, token expiry) + price sentinel.
+window.__loadIntegrationHealth = async function(){
+ const box = document.getElementById('integrationHealthBox'); if(!box) return;
+ const ago = (iso) => { if(!iso) return '—'; const m = Math.floor((Date.now()-new Date(iso).getTime())/60000); if(isNaN(m)) return '—'; if(m<1) return 'baru'; if(m<60) return m+' min lalu'; const h=Math.floor(m/60); if(h<24) return h+' jam lalu'; return Math.floor(h/24)+' hari lalu'; };
+ const daysLeft = (iso) => { if(!iso) return null; const d = Math.floor((new Date(iso).getTime()-Date.now())/86400000); return isNaN(d)?null:d; };
+ const fj = (u) => fetch(u).then(r=>r.json()).catch(()=>null);
+ const card = (name, color, statusTxt, lines) => `
+  <div class="admin-card" style="padding:14px 16px; border-left:4px solid ${color};">
+   <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+    <strong style="font-size:13.5px;">${name}</strong>
+    <span style="background:${color}22; color:${color}; padding:2px 9px; border-radius:50px; font-size:11px; font-weight:800; white-space:nowrap;">${statusTxt}</span>
+   </div>
+   ${lines.map(l=>`<div style="font-size:12px; color:#4B5563;">${l}</div>`).join('')}
+  </div>`;
+ try {
+  const [tk, sp, sent] = await Promise.all([
+   fj('/.netlify/functions/tiktok-sync-status'),
+   fj('/.netlify/functions/shopee-sync-status'),
+   (typeof db!=='undefined'&&db) ? db.from('price_sentinel').select('flag,checked_at').limit(500).then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([])
+  ]);
+  const chan = (label, st) => {
+   const err = (st && st.today) ? (st.today.errors||0) : 0;
+   const last = (st && st.last_run) ? st.last_run.ran_at : null;
+   const lastErr = (st && st.last_run) ? st.last_run.error_message : null;
+   const exp = (st && st.connected) ? st.connected.access_token_expire_at : null;
+   const dl = daysLeft(exp);
+   const tokenWarn = dl!=null && dl < 3;
+   const bad = err>0 || lastErr || !st;
+   const color = bad ? '#DC2626' : (tokenWarn ? '#B45309' : '#16A34A');
+   const txt = !st ? 'Tak dapat status' : (bad ? 'Ada error' : (tokenWarn ? 'Token nak luput' : 'OK'));
+   return card(label, color, txt, [
+    'Sync terakhir: <b>'+ago(last)+'</b>',
+    'Error hari ni: <b style="color:'+(err>0?'#DC2626':'#16A34A')+'">'+err+'</b>',
+    'Token luput: <b style="color:'+(tokenWarn?'#B45309':'#4B5563')+'">'+(dl!=null?(dl+' hari lagi'):'—')+'</b>'
+   ]);
+  };
+  const arr = sent||[];
+  const sBelow = arr.filter(x=>x.flag==='below_cost').length;
+  const sDrift = arr.filter(x=>x.flag==='drift').length;
+  const sLast = arr.reduce((a,x)=> (x.checked_at && (!a || x.checked_at>a)) ? x.checked_at : a, null);
+  const sColor = sBelow>0 ? '#DC2626' : (sDrift>0 ? '#B45309' : '#16A34A');
+  const sTxt = sBelow>0 ? (sBelow+' bawah kos') : (sDrift>0 ? (sDrift+' drift') : 'OK');
+  box.innerHTML = chan('TikTok — Order', tk) + chan('Shopee — Order', sp) +
+   card('Harga — Sentinel Harian', sColor, sTxt, [
+    'Semakan terakhir: <b>'+ago(sLast)+'</b>',
+    'Jual bawah kos: <b style="color:'+(sBelow>0?'#DC2626':'#16A34A')+'">'+sBelow+'</b>',
+    'Harga drift (POS≠live): <b style="color:'+(sDrift>0?'#B45309':'#16A34A')+'">'+sDrift+'</b>'
+   ]);
+ } catch(e){ box.innerHTML='<div style="font-size:12px;color:#9ca3af;">Gagal muat status integrasi.</div>'; }
+};
+
 window.renderApps = function(){
  const sec=document.getElementById('appsSection');
  if(!sec) return;
@@ -35214,8 +35265,12 @@ window.renderApps = function(){
  sec.innerHTML=`
   <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="grid-3x3" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i> Apps</h2>
   <p class="soft-note">Integrasi pihak ketiga yang menyokong POS 10 CAMP. Marketplace (Shopee/TikTok) diurus penuh di <strong>Channels &gt; Marketplaces</strong>.</p>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px; margin-top:8px;">${cards}</div>`;
+  <div style="font-size:11px; font-weight:800; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 8px;">Kesihatan Integrasi Marketplace (live)</div>
+  <div id="integrationHealthBox" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:12px; margin-bottom:18px;"><div style="font-size:12px; color:#9ca3af;">Memuatkan status…</div></div>
+  <div style="font-size:11px; font-weight:800; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 8px;">Apps & Servis</div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px;">${cards}</div>`;
  if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+ if(typeof window.__loadIntegrationHealth === 'function') window.__loadIntegrationHealth();
 };
 
 /* ============================================================================

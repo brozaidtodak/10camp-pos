@@ -107,12 +107,21 @@ async function buildDigest() {
         tiktokErrors = (tl || []).filter(r => r.error_message).length;
     } catch(e){}
 
+    // p1_634 (#3) — price sentinel: products selling below cost / drifted on marketplace
+    let belowCost = 0, drift = 0, belowCostSample = [];
+    try {
+        const ps = await sb('/price_sentinel?select=sku,platform,flag,detail');
+        belowCost = (ps || []).filter(r => r.flag === 'below_cost').length;
+        drift = (ps || []).filter(r => r.flag === 'drift').length;
+        belowCostSample = (ps || []).filter(r => r.flag === 'below_cost').slice(0, 8);
+    } catch(e){}
+
     return {
         date: dateLabel,
         totals: { revenue: totalRevenue, orders: orderCount, aov },
         channels,
         topSkus,
-        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors }
+        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample }
     };
 }
 
@@ -131,14 +140,26 @@ function buildHTML(d) {
             <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;">${(s.name || '').slice(0, 50)}</td>
             <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;">${s.qty} unit</td>
         </tr>`).join('');
-    const hasAlerts = d.alerts.pendingStockCheck > 0 || d.alerts.shopeeErrors > 0 || d.alerts.tiktokErrors > 0;
+    const a = d.alerts;
+    // p1_634 (#3) — CRITICAL: products selling below cost on marketplace (money loss)
+    const belowCostBlock = a.belowCost > 0 ? `
+        <div style="background:#FEE2E2;border-left:4px solid #DC2626;padding:14px 16px;margin:20px 0;border-radius:6px;">
+            <h3 style="margin:0 0 6px;font-size:14px;color:#991B1B;">AMARAN: ${a.belowCost} PRODUK JUAL BAWAH KOS (marketplace)</h3>
+            <ul style="margin:0;padding-left:18px;font-size:13px;color:#7F1D1D;">
+                ${(a.belowCostSample || []).map(x => `<li><b>${x.sku}</b> (${x.platform}) — ${x.detail}</li>`).join('')}
+                ${a.belowCost > (a.belowCostSample || []).length ? `<li>+${a.belowCost - (a.belowCostSample || []).length} lagi</li>` : ''}
+            </ul>
+            <p style="margin:6px 0 0;font-size:12px;color:#991B1B;">Betulkan harga/diskaun di Shopee/TikTok Seller Center.</p>
+        </div>` : '';
+    const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0;
     const alertBlock = hasAlerts ? `
         <div style="background:#FEF3C7;border-left:4px solid #D97706;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#92400E;">PERHATIAN</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#7C2D12;">
-                ${d.alerts.pendingStockCheck > 0 ? `<li>${d.alerts.pendingStockCheck} stock check report menunggu review</li>` : ''}
-                ${d.alerts.shopeeErrors > 0 ? `<li>${d.alerts.shopeeErrors} Shopee sync errors hari ni</li>` : ''}
-                ${d.alerts.tiktokErrors > 0 ? `<li>${d.alerts.tiktokErrors} TikTok sync errors hari ni</li>` : ''}
+                ${a.drift > 0 ? `<li>${a.drift} harga DRIFT (POS tak sama dengan harga live marketplace)</li>` : ''}
+                ${a.pendingStockCheck > 0 ? `<li>${a.pendingStockCheck} stock check report menunggu review</li>` : ''}
+                ${a.shopeeErrors > 0 ? `<li>${a.shopeeErrors} Shopee sync errors hari ni</li>` : ''}
+                ${a.tiktokErrors > 0 ? `<li>${a.tiktokErrors} TikTok sync errors hari ni</li>` : ''}
             </ul>
         </div>` : '';
 
@@ -154,6 +175,7 @@ function buildHTML(d) {
             <div style="font-size:36px;font-weight:800;color:#CD7C32;margin-top:6px;">${fmtRM(d.totals.revenue)}</div>
             <div style="font-size:13px;color:#666;margin-top:4px;">${d.totals.orders} pesanan · ${fmtRM(d.totals.aov)} purata</div>
         </div>
+        ${belowCostBlock}
         ${alertBlock}
         <h2 style="font-size:14px;margin:24px 0 10px;color:#333;">Sales by Channel</h2>
         <table style="width:100%;border-collapse:collapse;font-size:13px;">

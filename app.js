@@ -27467,7 +27467,38 @@ window.__renderDashOverviewRoster = function() {
 
 // p1_74 fix #8: Coordinator that checks if both memo + roster empty and swaps
 // the layout — single combined empty card vs normal 2-col widgets row.
+// p1_634 (#3) — Integration alert: surface price-sentinel below-cost/drift on owner landing.
+window.__renderIntegrationAlert = async function(){
+ const box = document.getElementById('integrationAlertBox'); if(!box) return;
+ if(typeof db === 'undefined' || !db){ box.innerHTML=''; return; }
+ try {
+  const { data } = await db.from('price_sentinel').select('sku,platform,flag,detail').limit(500);
+  const f = data || [];
+  const below = f.filter(x=>x.flag==='below_cost');
+  const drift = f.filter(x=>x.flag==='drift');
+  if(!below.length && !drift.length){ box.innerHTML=''; return; }
+  const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const chip = (bg,txt)=>`<span style="background:${bg};color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:50px;">${txt}</span>`;
+  const li = (x)=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;"><b>${esc(x.sku)}</b> <span style="color:#9ca3af;">${esc(x.platform)}</span> — ${esc(x.detail)}</div>`;
+  box.innerHTML = `
+   <div class="dash-card" style="border:1.5px solid #DC2626; background:#FEF2F2; margin-bottom:var(--space-3); padding:14px 16px;">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+     <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#DC2626;"></i>
+     <strong style="color:#991B1B;">Amaran Integrasi Marketplace</strong>
+     ${below.length?chip('#DC2626', below.length+' BAWAH KOS'):''}
+     ${drift.length?chip('#B45309', drift.length+' DRIFT harga'):''}
+     <span style="margin-left:auto;font-size:11px;color:#9ca3af;">semakan harga live · auto tiap hari</span>
+    </div>
+    ${below.length?`<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;">Jual bawah kos (rugi)</div>${below.slice(0,5).map(li).join('')}${below.length>5?`<div style="font-size:11px;color:#9ca3af;">+${below.length-5} lagi</div>`:''}</div>`:''}
+    ${drift.length?`<div><div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Harga POS ≠ live</div>${drift.slice(0,5).map(li).join('')}${drift.length>5?`<div style="font-size:11px;color:#9ca3af;">+${drift.length-5} lagi</div>`:''}</div>`:''}
+    <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">Betulkan harga di Shopee/TikTok Seller Center. POS flag je — tak boleh tukar harga marketplace.</div>
+   </div>`;
+  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+ } catch(e){ box.innerHTML=''; }
+};
+
 window.__renderDashOverview = function() {
+ try { if(typeof window.__renderIntegrationAlert === 'function') window.__renderIntegrationAlert(); } catch(e){}
  try {
  const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
  const memosApproved = memos.filter(m => m.status === 'approved');

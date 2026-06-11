@@ -124,12 +124,20 @@ async function buildDigest() {
         tokenWarn = (th || []).filter(r => r.status === 'warn');
     } catch(e){}
 
+    // p1_639 (#6) — dead-letter: marketplace price pushes that keep failing
+    let pushDead = [], pushPending = 0;
+    try {
+        const pf = await sb('/push_failures?select=sku,channel,status,attempts,error_message');
+        pushDead = (pf || []).filter(r => r.status === 'dead');
+        pushPending = (pf || []).filter(r => r.status === 'pending').length;
+    } catch(e){}
+
     return {
         date: dateLabel,
         totals: { revenue: totalRevenue, orders: orderCount, aov },
         channels,
         topSkus,
-        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample, tokenDead, tokenWarn }
+        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample, tokenDead, tokenWarn, pushDead, pushPending }
     };
 }
 
@@ -168,12 +176,23 @@ function buildHTML(d) {
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#991B1B;">Kalau token putus, harga & stok BERHENTI sync. Authorize semula segera.</p>
         </div>` : '';
-    const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0 || (a.tokenWarn && a.tokenWarn.length);
+    // p1_639 (#6) — CRITICAL: price pushes that gave up after retries (price stuck wrong on marketplace)
+    const pushDeadBlock = (a.pushDead && a.pushDead.length) ? `
+        <div style="background:#FEE2E2;border-left:4px solid #DC2626;padding:14px 16px;margin:20px 0;border-radius:6px;">
+            <h3 style="margin:0 0 6px;font-size:14px;color:#991B1B;">AMARAN: ${a.pushDead.length} PUSH HARGA GAGAL (dah cuba ${5}× — tak jadi)</h3>
+            <ul style="margin:0;padding-left:18px;font-size:13px;color:#7F1D1D;">
+                ${a.pushDead.slice(0,8).map(x => `<li><b>${x.sku}</b> (${x.channel}) — ${(x.error_message||'').slice(0,80)}</li>`).join('')}
+                ${a.pushDead.length > 8 ? `<li>+${a.pushDead.length - 8} lagi</li>` : ''}
+            </ul>
+            <p style="margin:6px 0 0;font-size:12px;color:#991B1B;">Harga di marketplace mungkin tak ikut POS. Semak listing / mapping produk.</p>
+        </div>` : '';
+    const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0 || (a.tokenWarn && a.tokenWarn.length) || a.pushPending > 0;
     const alertBlock = hasAlerts ? `
         <div style="background:#FEF3C7;border-left:4px solid #D97706;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#92400E;">PERHATIAN</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#7C2D12;">
                 ${(a.tokenWarn || []).map(x => `<li>${x.message}</li>`).join('')}
+                ${a.pushPending > 0 ? `<li>${a.pushPending} push harga gagal — tengah auto-retry</li>` : ''}
                 ${a.drift > 0 ? `<li>${a.drift} harga DRIFT (POS tak sama dengan harga live marketplace)</li>` : ''}
                 ${a.pendingStockCheck > 0 ? `<li>${a.pendingStockCheck} stock check report menunggu review</li>` : ''}
                 ${a.shopeeErrors > 0 ? `<li>${a.shopeeErrors} Shopee sync errors hari ni</li>` : ''}
@@ -194,6 +213,7 @@ function buildHTML(d) {
             <div style="font-size:13px;color:#666;margin-top:4px;">${d.totals.orders} pesanan · ${fmtRM(d.totals.aov)} purata</div>
         </div>
         ${tokenDeadBlock}
+        ${pushDeadBlock}
         ${belowCostBlock}
         ${alertBlock}
         <h2 style="font-size:14px;margin:24px 0 10px;color:#333;">Sales by Channel</h2>

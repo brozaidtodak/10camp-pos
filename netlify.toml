@@ -169,6 +169,10 @@
 [functions."token-watchdog-cron"]
   schedule = "30 2,14 * * *"
 
+# p1_639 (#6) — Retry parked marketplace price-push failures (dead-letter), every 30 min.
+[functions."push-retry-cron"]
+  schedule = "*/30 * * * *"
+
 # p1_98 Fasa 2D — Cron auto-sync every 15 min
 [functions."shopee-sync-cron"]
   schedule = "*/15 * * * *"

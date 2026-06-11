@@ -7570,6 +7570,7 @@ async function initApp() {
  if(data) {
  staffSchedules = data;
  if(typeof renderStaffSchedule === 'function') renderStaffSchedule();
+ if(typeof window.__renderDashOverview === 'function') window.__renderDashOverview(); // p1_644 — widget overview live update
  }
  })
 .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_requests' }, async (payload) => {
@@ -27439,7 +27440,8 @@ window.__renderDashOverviewRoster = function() {
  const dateEl = document.getElementById('dashOverviewRosterDate');
  if(!list) return;
  const today = new Date();
- const dateStr = today.toISOString().slice(0,10);
+ // p1_644 — guna tarikh TEMPATAN (Malaysia), bukan UTC. toISOString = UTC → pagi MYT tunjuk tarikh semalam (jadual tak padan header).
+ const dateStr = new Date(today.getTime() - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
  // p1_76: locale ikut current language
  const localeTag = (window.I18N && window.I18N.lang === 'en') ? 'en-MY' : 'ms-MY';
  const dayLabel = today.toLocaleDateString(localeTag, { weekday:'long', day:'2-digit', month:'short' });
@@ -27571,7 +27573,9 @@ window.__renderDashOverview = function() {
  try {
  const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
  const memosApproved = memos.filter(m => m.status === 'approved');
- const todayStr = new Date().toISOString().slice(0,10);
+ // p1_644 — tarikh TEMPATAN (bukan UTC) supaya "hari ni" padan waktu Malaysia
+ const __nowL = new Date();
+ const todayStr = new Date(__nowL.getTime() - __nowL.getTimezoneOffset()*60000).toISOString().slice(0,10);
  const all = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules)) ? staffSchedules : [];
  const todayRoster = all.filter(s => s.date === todayStr);
  const bothEmpty = memosApproved.length === 0 && todayRoster.length === 0;

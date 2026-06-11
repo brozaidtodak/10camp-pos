@@ -4782,8 +4782,19 @@
  #analyticsSection tbody tr { border-top:1px solid var(--border-color); }
  #analyticsSection tbody td { padding:8px 12px; }
  @media (max-width:820px){ #analyticsSection .an-grid2 { grid-template-columns:1fr !important; } }
+ #analyticsSection .an-tab { font-size:13.5px; font-weight:700; padding:10px 18px; border:none; border-bottom:2.5px solid transparent; background:none; color:var(--text-muted); cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:6px; }
+ #analyticsSection .an-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+ #analyticsSection .an-tab:hover { color:var(--text-color); }
  </style>
 
+ <!-- p1_613 — Laporan 3-tab: Sales / Inventory / Finance -->
+ <div id="anTabBar" style="display:flex; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:18px; flex-wrap:wrap;">
+ <span class="an-tab active" data-antab="sales" onclick="window.__anSwitchTab('sales', this)"><i data-lucide="line-chart" style="width:15px;height:15px;"></i> Sales</span>
+ <span class="an-tab" data-antab="inventory" onclick="window.__anSwitchTab('inventory', this)"><i data-lucide="boxes" style="width:15px;height:15px;"></i> Inventory</span>
+ <span class="an-tab" data-antab="finance" onclick="window.__anSwitchTab('finance', this)"><i data-lucide="wallet" style="width:15px;height:15px;"></i> Finance</span>
+ </div>
+
+ <div id="anTabSales">
  <!-- p1_454 — Period selector with compare-to-previous -->
  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
  <div id="anPills" style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -4893,6 +4904,7 @@
  <div style="height:230px;"><canvas id="anDowChart"></canvas></div>
  </div>
  </div>
+ </div><!-- /anTabSales -->
 
  <!-- p1_500 — Export selection modal: pilih bahagian data nak export -->
  <div id="anExportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:5000; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) this.style.display='none';">
@@ -4925,7 +4937,24 @@
  </div>
  </div>
  </div>
+ <!-- /anExportModal -->
+
+ <!-- p1_613 — Tab Inventory: stock value, status, restock, slow movers -->
+ <div id="anTabInventory" style="display:none;">
+ <div id="anInvBody"><div style="text-align:center; color:var(--text-muted); padding:40px; font-size:13px;">Memuatkan analitik inventori…</div></div>
  </div>
+
+ <!-- p1_613 — Tab Finance: pautan ke 10cc (sumber kewangan rasmi) -->
+ <div id="anTabFinance" style="display:none;">
+ <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:14px; padding:30px 26px; max-width:640px; text-align:center; margin:14px auto;">
+ <div style="width:56px; height:56px; border-radius:14px; background:rgba(205,124,50,0.12); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;"><i data-lucide="wallet" style="width:28px; height:28px; color:var(--primary);"></i></div>
+ <h3 style="margin:0 0 8px; font-size:20px; font-weight:800;">Kewangan diuruskan di 10cc</h3>
+ <p style="font-size:13px; color:var(--text-muted); line-height:1.65; margin:0 0 20px;">Untung Rugi, COGS, aliran tunai, gaji & cukai semua di <strong>10cc Command Centre</strong> — sumber kewangan rasmi 10 CAMP. POS fokus pada operasi jualan & stok sahaja, supaya angka kewangan tak bercanggah.</p>
+ <a href="https://10cc.10camp.com" target="_blank" rel="noopener" class="btn btn--primary" style="display:inline-flex; align-items:center; gap:8px; text-decoration:none;"><i data-lucide="external-link" style="width:16px; height:16px;"></i> Buka 10cc Command Centre</a>
+ <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-color); font-size:11.5px; color:var(--text-muted); line-height:1.7;">Di 10cc: Untung Rugi · Kunci Kira-kira · Settlements Shopee/TikTok · Petty Cash · Bank Ledger · BigPay · SF International</div>
+ </div>
+ </div>
+ </div><!-- /analyticsSection -->
 
  <!-- p1_455 — Laporan Sulit (PNC): data kewangan sensitif dipindah dari Home, gated PIN 1999 -->
  <div id="confidentialSection" class="tab-section" style="display: none;">
@@ -7971,6 +8000,9 @@
  { id:'p1_534', label:'App version (staff) — skop diperluas + back-office split (Zaid: "jadikan POS kepada apps version, yang sekarang ni jadi back office"). Sambung Capacitor (server.url 10camp.com/#staff + appendUserAgent TenCampPOSApp — load live, auto-update tanpa rebuild). Dulu scope cashier-ONLY; kini Zaid pilih Cashier + All Orders + My Commission + Stock Take. Ganti CSS whack-a-mole dgn nav suntik: body.pos-app-scoped sorok #sidebarRail + .menu-list + butang Landing; __injectPosAppNav suntik #posAppNav (4 butang besar → switchHub posSection/allOrdersSection/commissionSection/checkSessionsSection + tutup drawer phone); __applyPosAppScope default Cashier; Logout kekal header. Web kekal back-office PENUH. app.js (v575->v576) + sw pos-store-v140->v141.', d:'done' },
  { id:'p1_535', label:'App shell build/test (Zaid: "tolong build/test app shell"). npx cap sync ios BERJAYA (SPM, tiada CocoaPods). BLOCKER native: Android tiada Java/JDK; iOS Simulator CoreSimulator belum install (perlu sudo xcodebuild -runFirstLaunch + GUI Xcode Run). Build native penuh perlu langkah admin/GUI. SOLUSI test segera: __isPOSApp kini juga true bila ?posapp=1 dlm URL → PREVIEW skop app (4 butang) dlm browser biasa tanpa build native (selamat). Buka 10camp.com/?posapp=1#staff. app.js (v576->v577) + sw pos-store-v141->v142.', d:'done' },
  { id:'p1_606', label:'TikTok Finance API → 10cc settlement (Zaid: "tarik dari API" untuk un-standby Sumber TikTok). Fungsi baru netlify/functions/tiktok-finance.js (cermin shopee-sync mode=escrow) guna helper _tiktok.js (token/sign/shop_cipher). Mode: peek (raw shape), rows (per-order via statement_transactions), statement_rows (per-payout — guna ni untuk backfill: 483 statement Jun2024-Jun2026 dalam 1 panggilan murah, no timeout). Finance API v202309 GET /finance/202309/statements + /statements/{id}/statement_transactions. BLOCKER awal: scope seller.finance.info perlu dihidupkan di TikTok Partner Center + re-authorize (error 105005), propagation ~3min. Fix: statement_transactions perlu sort_field; gross/net kekal bertanda (3 statement negatif bulan refund). Backfill 483 payout (gross RM327,695/fees RM49,378/net RM279,237) → tencc.marketplace_settlements channel=TikTok via pg8000 pooler. 10cc page Settlement Channel + Sumber TikTok kini Live. Tambah redirect /api/tiktok-finance. Server-only (takde app.js/sw).', d:'done' },
+ { id:'p1_613', label:'Laporan (analyticsSection) jadi 3 TAB: Sales / Inventory / Finance (Zaid: "dalam laporan/reports tu aku nak 3 bahagian: finance link 10cc, inventory analytics stock value/restock, sales analytics yg sekarang"). (1) Tab bar baru di atas analyticsSection (.an-tab CSS, __anSwitchTab toggle anTabSales/anTabInventory/anTabFinance + active state, lazy-render inventory). (2) SALES = semua analytics sedia ada dibungkus dlm #anTabSales, tak ubah logik. (3) INVENTORY baru (renderInventoryAnalytics): stock value Kos (dari batch landed_cost) + Retail (stok×price) + Potensi Untung + jumlah unit/SKU; status breakdown Sihat/Rendah/Habis/Discontinued; jadual KENA RESTOCK (bukan disc, stok<=reorder, disusun ikut days-of-cover = stok÷laju jualan 30h, lajur Jual30h/Hari Lagi/Cadang order); jadual SLOW MOVER (ada stok + 0 jualan 90h, modal tersangkut + umur batch tertua); nilai stok ikut kategori. (4) FINANCE = kad pautan ke 10cc Command Centre (sumber kewangan rasmi). Div balance analyticsSection 104/104. app.js v621->v622.', d:'done' },
+ { id:'p1_612', label:'Audit + ganti kad stat header Produk (Zaid: "cadangkan sesuatu untuk gantikan stock value, lepastu audit semua card"). (1) Ganti slot Stock value dengan kad "No Image" — bilangan produk tiada gambar (actionable, ada pill filter, jejas listing customer). noImageCount + helper hasImage. (2) AUDIT jumpa Draft & OOS "bocor": draftCount dulu = total−published (campur produk Discontinued); oosCount kira semua stok=0 termasuk Discontinued (barang sengaja berhenti jual nampak macam masalah). FIX: helper isDisc(p) (metadata.discontinued===true) — Draft/Low/OOS kini semua tolak Discontinued. (3) Selaraskan FILTER pill (draft/oos/low di list filter) tolak disc juga supaya klik pill padan dgn angka kad. Live kekal (audit lulus). app.js v620->v621.', d:'done' },
+ { id:'p1_611', label:'Buang kad "Stock value" (RM retail) dari baris stat header Produk (Zaid: "tolong keluarkan stock value tu, nanti kita buat stok value dekat tempat lain"). statsEl kini 4 kad sahaja: Total catalog / Live / Draft / Low-OOS. Buang juga pengiraan const totalRetailValue (sum stockMap×price) yang dah tak dipakai supaya bersih. Stock value akan dibina semula di tempat lain kemudian. app.js v619->v620.', d:'done' },
  { id:'p1_610', label:'"Apa Baru" — tambah 2 entri staff hari ni (Zaid: "jangan lupa update what new"). id 13 Komisen Lebih Tepat (jelaskan order Cancelled/Void tak dikira lagi p1_608/609 — supaya staff faham kenapa komisen mungkin berubah, refund ditolak betul), id 12 Senarai Pelanggan Lebih Kemas (table spreadsheet p1_607). Bahasa BM mudah, ikon Lucide (coins/table), tiada emoji, ikut rule p1_558. __whatsNewLatestId jadi 13 → titik merah keluar semua staf. app.js v618->v619.', d:'done' },
  { id:'p1_609', label:'FIX kalkulator komisen Laporan admin — selaras dgn My Commission (Zaid: "betulkan kalkulator komisen Laporan admin tu juga"). __rpRenderAdminTemplate jadual "Sales MTD setiap staff" (Aliff isi kadar) dulu tambah __saleCommissionBase SEMUA order non-test sbg positif — termasuk Cancelled/Voided DAN langsung tak tolak refund (refund negatif pun jadi positif sbb base dari items). FIX: (a) buang status cancel/void, (b) baris total_amount<0 (Refund) ditolak (revenue-=base) bukan ditambah — sama logik p1_608 renderPersonalCommission. Kini angka admin = angka staff (net real sales). app.js v617->v618.', d:'done' },
  { id:'p1_608', label:'FIX komisen: order Cancelled/Voided tak masuk komisen (Zaid: "order #5040 marked cancelled, kenapa masih ada dalam comission ariff?"). PUNCA: renderPersonalCommission tapis cuma is_test + tarikh, TAK tapis status. Order #5040 (Cancelled, RM850 positif, staff Ariff) dikira sebagai gross. SIASATAN DB: 107 baris Refund negatif (offset betul) + order mati positif: 1 Cancelled, 31 Voided, 110 Refunded, 12 Partially Refunded. Refunded/Partial ADA baris Refund negatif lawan (net betul) — JANGAN buang. Cancelled/Voided TAKDE offset → bocor. FIX: tapis buang status mengandungi cancel/void je (kekalkan refund supaya tolakan negatif sedia ada tak terjejas). Betulkan kedua-dua Personal view + jadual mgmt (guna `sales` sama). Komisen Ariff turun (buang RM850 #5040) + 31 voided merentas staf. app.js v616->v617.', d:'done' },
@@ -13020,7 +13052,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=619"></script>
+ <script src="app.js?v=622"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

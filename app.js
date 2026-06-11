@@ -24601,6 +24601,191 @@ window.renderAnalytics = function() {
  };
 };
 
+// p1_613 — Laporan 3-tab: tukar antara Sales / Inventory / Finance
+window.__anSwitchTab = function(tab, el) {
+ ['Sales','Inventory','Finance'].forEach(t => {
+   const d = document.getElementById('anTab' + t);
+   if(d) d.style.display = (t.toLowerCase() === tab) ? '' : 'none';
+ });
+ document.querySelectorAll('#anTabBar .an-tab').forEach(x => x.classList.remove('active'));
+ if(el) el.classList.add('active');
+ window.__anActiveTab = tab;
+ if(tab === 'inventory' && typeof renderInventoryAnalytics === 'function') renderInventoryAnalytics();
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_613 — Tab Inventory: stock value (kos+retail), status stok, kena restock (reorder + velocity), slow movers
+window.renderInventoryAnalytics = function() {
+ const body = document.getElementById('anInvBody'); if(!body) return;
+ const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const fmtRM0 = (n) => 'RM ' + Number(n||0).toLocaleString('en-MY',{maximumFractionDigits:0});
+ const fmtRM2 = (n) => 'RM ' + Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2, maximumFractionDigits:2});
+ const products = Array.isArray(masterProducts) ? masterProducts : [];
+ const batches = Array.isArray(inventoryBatches) ? inventoryBatches : [];
+ const isDisc = (p) => !!(p.metadata && p.metadata.discontinued === true);
+
+ // Stok + nilai kos (dari batch landed cost) + batch tertua per SKU
+ const stockMap = new Map(), costValMap = new Map(), oldestBatch = new Map();
+ batches.forEach(b => {
+   const q = Number(b.qty_remaining) || 0;
+   stockMap.set(b.sku, (stockMap.get(b.sku) || 0) + q);
+   if(q > 0) {
+     const c = Number(b.cost_price || b.landed_cost) || 0;
+     costValMap.set(b.sku, (costValMap.get(b.sku) || 0) + q * c);
+     const d = b.inbound_date || '';
+     if(d && (!oldestBatch.has(b.sku) || d < oldestBatch.get(b.sku))) oldestBatch.set(b.sku, d);
+   }
+ });
+
+ // Velocity: unit terjual per SKU dlm 30 & 90 hari lepas (jualan sebenar sahaja)
+ const now = Date.now(), d30 = now - 30*864e5, d90 = now - 90*864e5;
+ const u30 = {}, u90 = {};
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+   if(!(typeof window.__isRealSale === 'function' ? window.__isRealSale(s) : true) || !s.created_at) return;
+   const t = new Date(s.created_at).getTime();
+   if(t < d90) return;
+   let it = s.items; if(typeof it === 'string'){ try { it = JSON.parse(it); } catch(e){ it = []; } }
+   if(!Array.isArray(it)) return;
+   it.forEach(line => {
+     const sku = line.sku; if(!sku) return;
+     const q = Number(line.qty != null ? line.qty : line.quantity) || 0;
+     u90[sku] = (u90[sku] || 0) + q;
+     if(t >= d30) u30[sku] = (u30[sku] || 0) + q;
+   });
+ });
+
+ // ---- Stock value totals + status breakdown ----
+ let totalCost = 0, totalRetail = 0, totalUnits = 0, skuWithStock = 0;
+ let cHealthy = 0, cLow = 0, cOut = 0, cDisc = 0;
+ const catVal = {}; // {cat: {cost, retail}}
+ products.forEach(p => {
+   const stock = stockMap.get(p.sku) || 0;
+   const ro = parseInt(p.reorder_point) || 5;
+   const costV = costValMap.get(p.sku) || 0;
+   const retailV = stock * (Number(p.price) || 0);
+   totalCost += costV; totalRetail += retailV;
+   if(stock > 0) { totalUnits += stock; skuWithStock++; }
+   if(isDisc(p)) cDisc++;
+   else if(stock === 0) cOut++;
+   else if(stock <= ro) cLow++;
+   else cHealthy++;
+   const cat = p.category || 'Tiada Kategori';
+   if(!catVal[cat]) catVal[cat] = { cost:0, retail:0 };
+   catVal[cat].cost += costV; catVal[cat].retail += retailV;
+ });
+ const potensiUntung = totalRetail - totalCost;
+
+ // ---- Kena restock (bukan discontinued, stok <= reorder) ----
+ const restock = [];
+ products.forEach(p => {
+   if(isDisc(p)) return;
+   const stock = stockMap.get(p.sku) || 0;
+   const ro = parseInt(p.reorder_point) || 5;
+   if(stock > ro) return;
+   const dailyVel = (u30[p.sku] || 0) / 30;
+   const daysCover = dailyVel > 0 ? stock / dailyVel : (stock > 0 ? Infinity : null);
+   const sortKey = dailyVel > 0 ? stock / dailyVel : (stock > 0 ? 1e6 : 1e6 + 1);
+   const order = Math.max(Math.max(Math.ceil(dailyVel * 30), ro) - stock, 0);
+   restock.push({ sku:p.sku, name:p.name || '', stock, ro, sold30:(u30[p.sku]||0), daysCover, sortKey, order });
+ });
+ restock.sort((a, b) => a.sortKey - b.sortKey);
+
+ // ---- Slow movers (ada stok, 0 jualan 90 hari) ----
+ const slow = [];
+ products.forEach(p => {
+   const stock = stockMap.get(p.sku) || 0;
+   if(stock <= 0) return;
+   if((u90[p.sku] || 0) > 0) return;
+   const tied = costValMap.get(p.sku) || 0;
+   const ob = oldestBatch.get(p.sku);
+   const ageDays = ob ? Math.floor((now - new Date(ob).getTime()) / 864e5) : null;
+   slow.push({ sku:p.sku, name:p.name || '', stock, tied, ageDays, disc:isDisc(p) });
+ });
+ slow.sort((a, b) => b.tied - a.tied);
+ const slowTied = slow.reduce((s, x) => s + x.tied, 0);
+
+ const topCats = Object.keys(catVal).map(c => ({ cat:c, ...catVal[c] })).sort((a,b)=>b.cost-a.cost).slice(0, 8);
+
+ // ---- Render ----
+ const card = (inner, pad) => `<div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:${pad||'0'}; overflow:hidden; margin-bottom:16px;">${inner}</div>`;
+ const cardHead = (t) => `<div style="font-weight:700; font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border-color); background:#FAFAFA;">${t}</div>`;
+ const dcCell = (r) => {
+   if(r.daysCover === null) return '<span style="color:#9CA3AF;">—</span>';
+   if(r.daysCover === Infinity) return '<span style="color:#9CA3AF;">∞</span>';
+   const d = Math.round(r.daysCover);
+   const col = d <= 7 ? '#DC2626' : (d <= 14 ? '#B45309' : '#6B7280');
+   return `<span style="color:${col}; font-weight:700;">${d}h</span>`;
+ };
+
+ let html = '';
+
+ // Stock value cards
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:10px; margin-bottom:8px;">'
+   + `<div class="sa-kpi"><div class="sa-kpi__lbl">Nilai Stok (Kos)</div><div class="sa-kpi__val">${fmtRM0(totalCost)}</div></div>`
+   + `<div class="sa-kpi"><div class="sa-kpi__lbl">Nilai Stok (Retail)</div><div class="sa-kpi__val">${fmtRM0(totalRetail)}</div></div>`
+   + `<div class="sa-kpi"><div class="sa-kpi__lbl">Potensi Untung</div><div class="sa-kpi__val" style="color:#16A34A;">${fmtRM0(potensiUntung)}</div></div>`
+   + `<div class="sa-kpi"><div class="sa-kpi__lbl">Jumlah Unit Stok</div><div class="sa-kpi__val">${totalUnits.toLocaleString()}</div><div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${skuWithStock.toLocaleString()} SKU ada stok</div></div>`
+   + '</div>';
+ html += '<p class="soft-note" style="margin:0 0 16px;">Nilai Kos = baki stok × kos pembelian (landed cost dari batch). Nilai Retail = baki stok × harga jual POS. Potensi Untung anggaran kasar sebelum kos jualan.</p>';
+
+ // Status breakdown
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:18px;">'
+   + `<div class="sa-kpi" style="border-left:3px solid #16A34A;"><div class="sa-kpi__lbl">Sihat</div><div class="sa-kpi__val">${cHealthy.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #F59E0B;"><div class="sa-kpi__lbl">Stok Rendah</div><div class="sa-kpi__val">${cLow.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #DC2626;"><div class="sa-kpi__lbl">Habis (OOS)</div><div class="sa-kpi__val">${cOut.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #9CA3AF;"><div class="sa-kpi__lbl">Discontinued</div><div class="sa-kpi__val">${cDisc.toLocaleString()}</div></div>`
+   + '</div>';
+
+ // Kena restock
+ let rsRows = restock.slice(0, 50).map(r => `<tr>
+   <td style="padding:8px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(r.sku)}</td>
+   <td style="padding:8px 12px;">${esc(r.name.slice(0,42))}</td>
+   <td style="padding:8px 12px; text-align:right; font-weight:700; color:${r.stock===0?'#DC2626':'inherit'};">${r.stock}</td>
+   <td style="padding:8px 12px; text-align:right; color:#6B7280;">${r.ro}</td>
+   <td style="padding:8px 12px; text-align:right;">${r.sold30}</td>
+   <td style="padding:8px 12px; text-align:right;">${dcCell(r)}</td>
+   <td style="padding:8px 12px; text-align:right; font-weight:700; color:var(--primary);">${r.order > 0 ? '+'+r.order : '—'}</td>
+ </tr>`).join('');
+ if(!rsRows) rsRows = '<tr><td colspan="7" style="text-align:center; color:#16A34A; padding:24px;">Tiada produk perlu restock. Semua stok cukup.</td></tr>';
+ html += card(
+   cardHead(`<i data-lucide="alert-triangle" style="width:14px;height:14px;vertical-align:-2px; color:#B45309;"></i> Kena Restock <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${restock.length} produk · disusun ikut hampir habis</span>`)
+   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px; text-align:right;">Stok</th><th style="padding:8px 12px; text-align:right;">Reorder</th><th style="padding:8px 12px; text-align:right;">Jual 30h</th><th style="padding:8px 12px; text-align:right;" title="Anggaran berapa hari lagi stok habis ikut laju jualan">Hari Lagi</th><th style="padding:8px 12px; text-align:right;" title="Cadangan kuantiti untuk order">Cadang</th></tr></thead><tbody>'
+   + rsRows + '</tbody></table></div>'
+   + (restock.length > 50 ? '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">Menunjukkan 50 teratas daripada '+restock.length+'.</div>' : '')
+ );
+
+ // Slow movers
+ let slowRows = slow.slice(0, 50).map(x => `<tr>
+   <td style="padding:8px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(x.sku)}</td>
+   <td style="padding:8px 12px;">${esc(x.name.slice(0,42))}${x.disc?' <span style="font-size:10px; color:#9CA3AF;">(disc)</span>':''}</td>
+   <td style="padding:8px 12px; text-align:right; font-weight:700;">${x.stock}</td>
+   <td style="padding:8px 12px; text-align:right;">${fmtRM2(x.tied)}</td>
+   <td style="padding:8px 12px; text-align:right; color:${x.ageDays!=null && x.ageDays>=180?'#DC2626':'#6B7280'};">${x.ageDays != null ? x.ageDays+'h' : '—'}</td>
+ </tr>`).join('');
+ if(!slowRows) slowRows = '<tr><td colspan="5" style="text-align:center; color:#16A34A; padding:24px;">Tiada slow mover. Semua stok bergerak.</td></tr>';
+ html += card(
+   cardHead(`<i data-lucide="snail" style="width:14px;height:14px;vertical-align:-2px; color:#6B7280;"></i> Slow Mover <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${slow.length} produk · 0 jualan 90 hari · modal tersangkut ${fmtRM0(slowTied)}</span>`)
+   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px; text-align:right;">Stok</th><th style="padding:8px 12px; text-align:right;">Modal Tersangkut</th><th style="padding:8px 12px; text-align:right;" title="Umur batch tertua">Umur Stok</th></tr></thead><tbody>'
+   + slowRows + '</tbody></table></div>'
+   + (slow.length > 50 ? '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">Menunjukkan 50 teratas daripada '+slow.length+'.</div>' : '')
+ );
+
+ // Stock value by category
+ let catRows = topCats.map(c => `<tr>
+   <td style="padding:8px 12px;">${esc(c.cat)}</td>
+   <td style="padding:8px 12px; text-align:right;">${fmtRM0(c.cost)}</td>
+   <td style="padding:8px 12px; text-align:right; color:#6B7280;">${fmtRM0(c.retail)}</td>
+ </tr>`).join('');
+ if(catRows) html += card(
+   cardHead('<i data-lucide="layers" style="width:14px;height:14px;vertical-align:-2px;"></i> Nilai Stok Ikut Kategori <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— di mana modal tersangkut</span>')
+   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">Kategori</th><th style="padding:8px 12px; text-align:right;">Nilai Kos</th><th style="padding:8px 12px; text-align:right;">Nilai Retail</th></tr></thead><tbody>'
+   + catRows + '</tbody></table></div>'
+ );
+
+ body.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
 // p1_500 — Export Analytics: pilih bahagian → satu CSV berbilang seksyen
 window.__anExportOpen = function() {
  if(!window.__anData && typeof renderAnalytics === 'function') renderAnalytics();
@@ -29387,10 +29572,11 @@ window.renderProductDatabase = function() {
  if(fCat && p.category !== fCat) return false;
  const stock = stockMap.get(p.sku) || 0;
  const reorder = parseInt(p.reorder_point) || 5;
+ const disc = !!(p.metadata && p.metadata.discontinued === true);
  if(fStatus === 'published' && !isPublished(p)) return false;
- if(fStatus === 'draft' && isPublished(p)) return false;
- if(fStatus === 'oos' && stock > 0) return false;
- if(fStatus === 'low' && (stock === 0 || stock > reorder)) return false;
+ if(fStatus === 'draft' && (isPublished(p) || disc)) return false;
+ if(fStatus === 'oos' && (stock > 0 || disc)) return false;
+ if(fStatus === 'low' && (stock === 0 || stock > reorder || disc)) return false;
  if(fStatus === 'noimage') {
    const hasImg = (Array.isArray(p.images) && p.images[0]) || (typeof p.images === 'string' && p.images);
    if(hasImg) return false;
@@ -29415,16 +29601,20 @@ window.renderProductDatabase = function() {
  list.sort(sortFns[sort] || sortFns.name);
 
  // Stats cards (whole catalog, not just filtered)
+ // p1_612 — produk Discontinued (sengaja berhenti jual) TAK dikira dalam Draft/Low/OOS supaya angka tepat
+ const isDisc = (p) => !!(p.metadata && p.metadata.discontinued === true);
+ const hasImage = (p) => (Array.isArray(p.images) && !!p.images[0]) || (typeof p.images === 'string' && !!p.images);
  const totalProducts = masterProducts.length;
  const publishedCount = masterProducts.filter(p => isPublished(p)).length;
- const draftCount = totalProducts - publishedCount;
+ const draftCount = masterProducts.filter(p => !isPublished(p) && !isDisc(p)).length;
  const lowStockCount = masterProducts.filter(p => {
+   if(isDisc(p)) return false;
    const stk = stockMap.get(p.sku) || 0;
    const ro = parseInt(p.reorder_point) || 5;
    return stk > 0 && stk <= ro;
  }).length;
- const oosCount = masterProducts.filter(p => (stockMap.get(p.sku) || 0) === 0).length;
- const totalRetailValue = masterProducts.reduce((s, p) => s + (stockMap.get(p.sku)||0) * (p.price||0), 0);
+ const oosCount = masterProducts.filter(p => !isDisc(p) && (stockMap.get(p.sku) || 0) === 0).length;
+ const noImageCount = masterProducts.filter(p => !hasImage(p)).length;
 
  // Update header sub counts
  const grandEl = document.getElementById('pdGrandCount'); if(grandEl) grandEl.textContent = totalProducts.toLocaleString();
@@ -29439,7 +29629,7 @@ window.renderProductDatabase = function() {
  <div class="pdb-stat pdb-stat--success"><div class="pdb-stat__label">Live</div><div class="pdb-stat__value">${publishedCount.toLocaleString()}</div><div class="pdb-stat__hint">Visible in Cashier</div></div>
  <div class="pdb-stat pdb-stat--warning"><div class="pdb-stat__label">Draft</div><div class="pdb-stat__value">${draftCount.toLocaleString()}</div><div class="pdb-stat__hint">Awaiting review</div></div>
  <div class="pdb-stat pdb-stat--danger"><div class="pdb-stat__label">Low / OOS</div><div class="pdb-stat__value">${(lowStockCount + oosCount).toLocaleString()}</div><div class="pdb-stat__hint">${lowStockCount} low · ${oosCount} out</div></div>
- <div class="pdb-stat pdb-stat--info"><div class="pdb-stat__label">Stock value</div><div class="pdb-stat__value">RM ${totalRetailValue.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div class="pdb-stat__hint">At retail price</div></div>
+ <div class="pdb-stat pdb-stat--info"><div class="pdb-stat__label">No Image</div><div class="pdb-stat__value">${noImageCount.toLocaleString()}</div><div class="pdb-stat__hint">Missing photo</div></div>
  `;
  }
 

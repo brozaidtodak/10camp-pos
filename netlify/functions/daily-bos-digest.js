@@ -132,12 +132,19 @@ async function buildDigest() {
         pushPending = (pf || []).filter(r => r.status === 'pending').length;
     } catch(e){}
 
+    // p1_640 (#7) — config/creds preflight failures (env/sanity/auth)
+    let configFail = [];
+    try {
+        const cf = await sb('/config_health?select=check_key,category,status,detail&status=eq.fail');
+        configFail = cf || [];
+    } catch(e){}
+
     return {
         date: dateLabel,
         totals: { revenue: totalRevenue, orders: orderCount, aov },
         channels,
         topSkus,
-        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample, tokenDead, tokenWarn, pushDead, pushPending }
+        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample, tokenDead, tokenWarn, pushDead, pushPending, configFail }
     };
 }
 
@@ -186,6 +193,15 @@ function buildHTML(d) {
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#991B1B;">Harga di marketplace mungkin tak ikut POS. Semak listing / mapping produk.</p>
         </div>` : '';
+    // p1_640 (#7) — CRITICAL: config/creds broken (split-brain, wrong key, dead auth, missing env)
+    const configFailBlock = (a.configFail && a.configFail.length) ? `
+        <div style="background:#FEE2E2;border-left:4px solid #DC2626;padding:14px 16px;margin:20px 0;border-radius:6px;">
+            <h3 style="margin:0 0 6px;font-size:14px;color:#991B1B;">AMARAN: ${a.configFail.length} MASALAH KONFIGURASI/CREDS</h3>
+            <ul style="margin:0;padding-left:18px;font-size:13px;color:#7F1D1D;">
+                ${a.configFail.map(x => `<li><b>${x.check_key}</b> — ${(x.detail||'').slice(0,110)}</li>`).join('')}
+            </ul>
+            <p style="margin:6px 0 0;font-size:12px;color:#991B1B;">Ini punca kegagalan senyap (kunci salah / env hilang / DB salah). Betulkan segera.</p>
+        </div>` : '';
     const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0 || (a.tokenWarn && a.tokenWarn.length) || a.pushPending > 0;
     const alertBlock = hasAlerts ? `
         <div style="background:#FEF3C7;border-left:4px solid #D97706;padding:14px 16px;margin:20px 0;border-radius:6px;">
@@ -212,6 +228,7 @@ function buildHTML(d) {
             <div style="font-size:36px;font-weight:800;color:#CD7C32;margin-top:6px;">${fmtRM(d.totals.revenue)}</div>
             <div style="font-size:13px;color:#666;margin-top:4px;">${d.totals.orders} pesanan · ${fmtRM(d.totals.aov)} purata</div>
         </div>
+        ${configFailBlock}
         ${tokenDeadBlock}
         ${pushDeadBlock}
         ${belowCostBlock}

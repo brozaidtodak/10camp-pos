@@ -27472,10 +27472,11 @@ window.__renderIntegrationAlert = async function(){
  const box = document.getElementById('integrationAlertBox'); if(!box) return;
  if(typeof db === 'undefined' || !db){ box.innerHTML=''; return; }
  try {
-  const [{ data }, thRes, pfRes] = await Promise.all([
+  const [{ data }, thRes, pfRes, cfgRes] = await Promise.all([
     db.from('price_sentinel').select('sku,platform,flag,detail').limit(500),
     db.from('token_health').select('platform,status,message').then(r=>r).catch(()=>({data:[]})),
-    db.from('push_failures').select('sku,channel,status,attempts,error_message').eq('status','dead').then(r=>r).catch(()=>({data:[]}))
+    db.from('push_failures').select('sku,channel,status,attempts,error_message').eq('status','dead').then(r=>r).catch(()=>({data:[]})),
+    db.from('config_health').select('check_key,detail,status').eq('status','fail').then(r=>r).catch(()=>({data:[]}))
   ]);
   const f = data || [];
   const below = f.filter(x=>x.flag==='below_cost');
@@ -27485,7 +27486,9 @@ window.__renderIntegrationAlert = async function(){
   const tokBad = tokens.filter(t=>t.status==='dead'||t.status==='critical');
   // p1_639 (#6) — price pushes that gave up after all retries
   const pushDead = (pfRes && pfRes.data) || [];
-  if(!below.length && !drift.length && !tokBad.length && !pushDead.length){ box.innerHTML=''; return; }
+  // p1_640 (#7) — config/creds failures (silent-failure root causes)
+  const cfgFail = (cfgRes && cfgRes.data) || [];
+  if(!below.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length){ box.innerHTML=''; return; }
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const chip = (bg,txt)=>`<span style="background:${bg};color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:50px;">${txt}</span>`;
   const li = (x)=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;"><b>${esc(x.sku)}</b> <span style="color:#9ca3af;">${esc(x.platform)}</span> — ${esc(x.detail)}</div>`;
@@ -27494,12 +27497,14 @@ window.__renderIntegrationAlert = async function(){
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
      <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#DC2626;"></i>
      <strong style="color:#991B1B;">Amaran Integrasi Marketplace</strong>
+     ${cfgFail.length?chip('#7F1D1D', cfgFail.length+' CONFIG ROSAK'):''}
      ${tokBad.length?chip('#7F1D1D', 'SAMBUNGAN '+tokBad.map(t=>String(t.platform).toUpperCase()).join('+')+' NAK PUTUS'):''}
      ${pushDead.length?chip('#7F1D1D', pushDead.length+' PUSH GAGAL'):''}
      ${below.length?chip('#DC2626', below.length+' BAWAH KOS'):''}
      ${drift.length?chip('#B45309', drift.length+' DRIFT harga'):''}
      <span style="margin-left:auto;font-size:11px;color:#9ca3af;">semakan harga live · auto tiap hari</span>
     </div>
+    ${cfgFail.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#FEE2E2;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#7F1D1D;text-transform:uppercase;">Konfigurasi / creds rosak</div>${cfgFail.slice(0,5).map(c=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;"><b>${esc(c.check_key)}</b> — ${esc((c.detail||'').slice(0,80))}</div>`).join('')}</div>`:''}
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#FEE2E2;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#7F1D1D;text-transform:uppercase;">Token marketplace</div>${tokBad.map(t=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}
     ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#FEE2E2;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#7F1D1D;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;"><b>${esc(p.sku)}</b> <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
     ${below.length?`<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;">Jual bawah kos (rugi)</div>${below.slice(0,5).map(li).join('')}${below.length>5?`<div style="font-size:11px;color:#9ca3af;">+${below.length-5} lagi</div>`:''}</div>`:''}
@@ -35218,12 +35223,13 @@ window.__loadIntegrationHealth = async function(){
    ${lines.map(l=>`<div style="font-size:12px; color:#4B5563;">${l}</div>`).join('')}
   </div>`;
  try {
-  const [tk, sp, sent, th, pf] = await Promise.all([
+  const [tk, sp, sent, th, pf, cfg] = await Promise.all([
    fj('/.netlify/functions/tiktok-sync-status'),
    fj('/.netlify/functions/shopee-sync-status'),
    (typeof db!=='undefined'&&db) ? db.from('price_sentinel').select('flag,checked_at').limit(500).then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([]),
    (typeof db!=='undefined'&&db) ? db.from('token_health').select('platform,status,message,access_hrs_left,refresh_days_left').then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([]),
-   (typeof db!=='undefined'&&db) ? db.from('push_failures').select('status,channel').then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([])
+   (typeof db!=='undefined'&&db) ? db.from('push_failures').select('status,channel').then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([]),
+   (typeof db!=='undefined'&&db) ? db.from('config_health').select('check_key,category,status,detail,checked_at').then(r=>r.data||[]).catch(()=>[]) : Promise.resolve([])
   ]);
   // p1_638 (#5) — watchdog verdict overrides naive access-token countdown
   const thByPlat = {}; (th||[]).forEach(t=>{ thByPlat[String(t.platform).toLowerCase()]=t; });
@@ -35275,7 +35281,23 @@ window.__loadIntegrationHealth = async function(){
     'Tengah retry: <b style="color:'+(pPending>0?'#B45309':'#16A34A')+'">'+pPending+'</b>',
     'Gagal (give-up): <b style="color:'+(pDead>0?'#DC2626':'#16A34A')+'">'+pDead+'</b>',
     'Cuba semula auto tiap 30 min'
-   ]);
+   ]) +
+   (function(){
+    // p1_640 (#7) — config/creds preflight card
+    const cArr = cfg||[];
+    if(!cArr.length) return '';
+    const cFail = cArr.filter(x=>x.status==='fail');
+    const cWarn = cArr.filter(x=>x.status==='warn');
+    const cLast = cArr.reduce((a,x)=>(x.checked_at&&(!a||x.checked_at>a))?x.checked_at:a,null);
+    const cColor = cFail.length>0 ? '#DC2626' : (cWarn.length>0 ? '#B45309' : '#16A34A');
+    const cTxt = cFail.length>0 ? (cFail.length+' gagal') : (cWarn.length>0 ? (cWarn.length+' warn') : 'OK');
+    const lines = [
+     'Semakan terakhir: <b>'+ago(cLast)+'</b>',
+     'Gagal: <b style="color:'+(cFail.length>0?'#DC2626':'#16A34A')+'">'+cFail.length+'</b> · Amaran: <b style="color:'+(cWarn.length>0?'#B45309':'#16A34A')+'">'+cWarn.length+'</b>'
+    ];
+    cFail.slice(0,3).forEach(x=>lines.push('<span style="color:#DC2626;">• '+x.check_key+'</span>'));
+    return card('Konfigurasi & Creds', cColor, cTxt, lines);
+   })();
  } catch(e){ box.innerHTML='<div style="font-size:12px;color:#9ca3af;">Gagal muat status integrasi.</div>'; }
 };
 

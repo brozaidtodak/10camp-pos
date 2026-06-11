@@ -173,6 +173,10 @@
 [functions."push-retry-cron"]
   schedule = "*/30 * * * *"
 
+# p1_640 (#7) — Config/creds preflight (env/sanity/auth), daily 03:15 UTC.
+[functions."config-check-cron"]
+  schedule = "15 3 * * *"
+
 # p1_98 Fasa 2D — Cron auto-sync every 15 min
 [functions."shopee-sync-cron"]
   schedule = "*/15 * * * *"

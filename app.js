@@ -24617,8 +24617,49 @@ window.__anSwitchTab = function(tab, el) {
 // p1_613 — Tab Inventory: stock value (kos+retail), status stok, kena restock (reorder + velocity), slow movers
 window.__invRestockThreshold = window.__invRestockThreshold || 20;
 window.__invLeadDays = window.__invLeadDays || 35;
+window.__invZone = window.__invZone || 'tindakan';
+window.__invRkFilter = window.__invRkFilter || 'all';
+window.__invSearch = window.__invSearch || '';
 window.__invSetThreshold = function(v){ window.__invRestockThreshold = parseInt(v) || 20; window.renderInventoryAnalytics(); };
 window.__invSetLead = function(v){ window.__invLeadDays = Math.max(1, parseInt(v) || 35); window.renderInventoryAnalytics(); };
+window.__invSubTab = function(z, el){
+  window.__invZone = z;
+  ['ringkasan','tindakan','analisa'].forEach(k => { const d=document.getElementById('invZone_'+k); if(d) d.style.display = (k===z) ? '' : 'none'; });
+  document.querySelectorAll('#invSubTabs .inv-subtab').forEach(x => x.classList.remove('active'));
+  if(el) el.classList.add('active');
+};
+window.__invToggleRow = function(skuid){
+  const r = document.getElementById('invDtl_'+skuid); if(!r) return;
+  const open = r.style.display === 'none';
+  r.style.display = open ? '' : 'none';
+  const a = document.getElementById('invArr_'+skuid); if(a) a.style.transform = open ? 'rotate(90deg)' : '';
+};
+window.__invToggleDead = function(){
+  const d = document.getElementById('invDeadWrap'); if(!d) return;
+  const open = d.style.display === 'none'; d.style.display = open ? '' : 'none';
+  const a = document.getElementById('invDeadArr'); if(a) a.style.transform = open ? 'rotate(90deg)' : '';
+};
+window.__invSetRkFilter = function(f, el){
+  window.__invRkFilter = f;
+  document.querySelectorAll('#invRkPills .inv-pill').forEach(x => x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  window.__invFilterRows();
+};
+window.__invFilterRows = function(){
+  const inp = document.getElementById('invRkSearch');
+  const ql = ((inp && inp.value) || '').trim().toLowerCase();
+  window.__invSearch = ql;
+  const f = window.__invRkFilter || 'all';
+  let shown = 0;
+  document.querySelectorAll('#invRkBody tr.inv-rk-row').forEach(tr => {
+    const cat = tr.getAttribute('data-cat'), hay = tr.getAttribute('data-search') || '', skuid = tr.getAttribute('data-skuid');
+    const show = (f === 'all' || f === cat) && (!ql || hay.indexOf(ql) >= 0);
+    tr.style.display = show ? '' : 'none';
+    if(show) shown++;
+    const dtl = document.getElementById('invDtl_'+skuid); if(dtl && !show) dtl.style.display = 'none';
+  });
+  const empty = document.getElementById('invRkEmpty'); if(empty) empty.style.display = shown ? 'none' : '';
+};
 window.renderInventoryAnalytics = async function() {
  const body = document.getElementById('anInvBody'); if(!body) return;
  if(!window.__doData && typeof window.__doLoad === 'function') {
@@ -24699,7 +24740,7 @@ window.renderInventoryAnalytics = async function() {
  });
  const potensiUntung = totalRetail - totalCost;
 
- // ---- Restock Tracker (tarikh DO sebenar + % baki + velocity/lead-time) ----
+ // ---- Restock Tracker categorization (cat: reorder/perhati/sihat/dead) ----
  const THR = window.__invRestockThreshold || 20, LEAD = window.__invLeadDays || 35;
  const tracker = [];
  products.forEach(p => {
@@ -24709,17 +24750,24 @@ window.renderInventoryAnalytics = async function() {
    const lastQty = rec ? rec.qty : 0;
    const pct = lastQty > 0 ? (stock / lastQty * 100) : null;
    const dailyVel = (u30[p.sku] || 0) / 30;
+   const sold90 = u90[p.sku] || 0;
    const daysCover = dailyVel > 0 ? stock / dailyVel : (stock > 0 ? Infinity : null);
-   let status, rank;
-   if(stock === 0) { status = 'HABIS'; rank = 0; }
-   else if((pct != null && pct <= THR) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD)) { status = 'MASA RESTOCK'; rank = 1; }
-   else if((pct != null && pct <= 50) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD * 1.5)) { status = 'PERHATI'; rank = 2; }
-   else { status = 'SIHAT'; rank = 3; }
-   tracker.push({ sku:p.sku, name:p.name || '', lastDate:rec?rec.date:null, lastQty, count:rec?rec.count:0, events:rec?rec.events:[], stock, pct, sold30:(u30[p.sku]||0), daysCover, vel:dailyVel, ro:(parseInt(p.reorder_point)||5), status, rank });
+   let cat;
+   if(stock === 0 && sold90 === 0) cat = 'dead';                                  // habis + tak laku 90h = stok mati
+   else if(stock === 0) cat = 'reorder';                                          // habis tapi laku = urgent
+   else if((pct != null && pct <= THR) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD)) cat = 'reorder';
+   else if((pct != null && pct <= 50) || (daysCover != null && daysCover !== Infinity && daysCover <= LEAD * 1.5)) cat = 'perhati';
+   else cat = 'sihat';
+   tracker.push({ sku:p.sku, name:p.name || '', lastDate:rec?rec.date:null, lastQty, events:rec?rec.events:[], stock, pct, sold30:(u30[p.sku]||0), sold90, daysCover, vel:dailyVel, ro:(parseInt(p.reorder_point)||5), cat });
  });
- tracker.sort((a, b) => a.rank - b.rank || ((a.pct==null?1e5:a.pct) - (b.pct==null?1e5:b.pct)) || ((a.daysCover==null?1e9:a.daysCover) - (b.daysCover==null?1e9:b.daysCover)));
- const attention = tracker.filter(t => t.rank < 3);
- const healthyCount = tracker.length - attention.length;
+ const rankOf = { reorder:0, perhati:1 };
+ const action = tracker.filter(t => t.cat === 'reorder' || t.cat === 'perhati')
+   .sort((a, b) => (rankOf[a.cat]-rankOf[b.cat]) || ((a.pct==null?1e5:a.pct)-(b.pct==null?1e5:b.pct)) || ((a.daysCover==null?1e9:a.daysCover)-(b.daysCover==null?1e9:b.daysCover)));
+ const dead = tracker.filter(t => t.cat === 'dead').sort((a, b) => (a.name||'').localeCompare(b.name||''));
+ const nReorder = tracker.filter(t => t.cat === 'reorder').length;
+ const nPerhati = tracker.filter(t => t.cat === 'perhati').length;
+ const nSihat = tracker.filter(t => t.cat === 'sihat').length;
+ const nDead = dead.length;
 
  // ---- Slow movers (ada stok, 0 jualan 90 hari) ----
  const slow = [];
@@ -24737,107 +24785,99 @@ window.renderInventoryAnalytics = async function() {
 
  const topCats = Object.keys(catVal).map(c => ({ cat:c, ...catVal[c] })).sort((a,b)=>b.cost-a.cost).slice(0, 8);
 
- // ---- Render ----
+ // ---- Render helpers ----
  const card = (inner, pad) => `<div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:${pad||'0'}; overflow:hidden; margin-bottom:16px;">${inner}</div>`;
  const cardHead = (t) => `<div style="font-weight:700; font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border-color); background:#FAFAFA;">${t}</div>`;
- const dcCell = (r) => {
-   if(r.daysCover === null) return '<span style="color:#9CA3AF;">—</span>';
-   if(r.daysCover === Infinity) return '<span style="color:#9CA3AF;">∞</span>';
-   const d = Math.round(r.daysCover);
-   const col = d <= 7 ? '#DC2626' : (d <= 14 ? '#B45309' : '#6B7280');
-   return `<span style="color:${col}; font-weight:700;">${d}h</span>`;
- };
+ const dcCell = (r) => { if(r.daysCover === null) return '<span style="color:#9CA3AF;">—</span>'; if(r.daysCover === Infinity) return '<span style="color:#9CA3AF;">∞</span>'; const d = Math.round(r.daysCover); const col = d <= 7 ? '#DC2626' : (d <= 14 ? '#B45309' : '#6B7280'); return `<span style="color:${col}; font-weight:700;">${d}h</span>`; };
+ const fmtD = (s) => { const d=new Date(s); return isNaN(d)?String(s):d.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'2-digit'}); };
+ const sid = (s) => String(s).replace(/[^A-Za-z0-9]/g,'_');
+ const pctCell = (t) => { if(t.pct==null) return '<span style="color:#9CA3AF;">—</span>'; const v=Math.round(t.pct); const col=v<=THR?'#DC2626':(v<=50?'#B45309':'#16A34A'); return `<span style="color:${col}; font-weight:700;">${v}%</span>`; };
+ const badge2 = (cat) => { const m={reorder:['#DC2626','#FEE2E2','REORDER'], perhati:['#B45309','#FEF3C7','PERHATI'], sihat:['#16A34A','#DCFCE7','SIHAT'], dead:['#6B7280','#F3F4F6','STOK MATI']}; const x=m[cat]||m.sihat; return `<span style="background:${x[1]}; color:${x[0]}; font-weight:700; font-size:10px; padding:2px 8px; border-radius:10px; white-space:nowrap;">${x[2]}</span>`; };
+ const SUP = { ST:'Shine Trip', MH:'Mountainhiker', CD:'Chanodug', VD:'Vidalido', NH:'Naturehike', BD:'Blackdog', MG:'Mobigarden', LF:'LFO', MX:'Mix Brand' };
+ const supOf = (sku) => { const m = String(sku||'').match(/^[A-Za-z]+/); const pre = m ? m[0].toUpperCase() : ''; return SUP[pre] || (pre || 'Lain'); };
+ const suggestOf = (t) => { const target = Math.max(Math.ceil((t.vel||0)*(LEAD+30)), t.lastQty||0, t.ro||0); return Math.max(target - t.stock, 0) || (t.ro||1); };
+ const timeline = (t) => { const evs=t.events||[]; if(!evs.length) return '<span style="color:#9CA3AF; font-size:11.5px;">Belum ada rekod DO untuk SKU ni.</span>'; return '<div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">'+evs.map((e,i)=>{ const lbl=i===0?'1st':('R'+i); const last=i===evs.length-1; return `<span style="font-size:11px; padding:3px 8px; border-radius:6px; background:${last?'#EFF6FF':'#F3F4F6'}; ${last?'font-weight:700; color:var(--primary);':'color:#6B7280;'}"><span style="color:#9CA3AF; font-size:9.5px;">${lbl}</span> ${fmtD(e.date)}${e.qty?` · ${e.qty}u`:''}</span>`+(last?'':'<span style="color:#D1D5DB;">→</span>'); }).join('')+'</div>'; };
+ const Z = window.__invZone || 'tindakan';
+ const F = window.__invRkFilter || 'all';
 
- let html = '';
-
- // Stock value cards
- html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:10px; margin-bottom:8px;">'
+ // ============ ZONE: RINGKASAN ============
+ let zRing = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:10px; margin-bottom:8px;">'
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Nilai Stok (Kos)</div><div class="sa-kpi__val">${fmtRM0(totalCost)}</div></div>`
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Nilai Stok (Retail)</div><div class="sa-kpi__val">${fmtRM0(totalRetail)}</div></div>`
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Potensi Untung</div><div class="sa-kpi__val" style="color:#16A34A;">${fmtRM0(potensiUntung)}</div></div>`
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Jumlah Unit Stok</div><div class="sa-kpi__val">${totalUnits.toLocaleString()}</div><div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${skuWithStock.toLocaleString()} SKU ada stok</div></div>`
+   + '</div>'
+   + '<p class="soft-note" style="margin:0 0 16px;">Nilai Kos = baki stok × landed cost. Nilai Retail = baki stok × harga jual. Potensi Untung anggaran kasar sebelum kos jualan.</p>'
+   + '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:10px;">'
+   + `<div class="sa-kpi" style="border-left:3px solid #DC2626;"><div class="sa-kpi__lbl">Reorder Segera</div><div class="sa-kpi__val">${nReorder.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #F59E0B;"><div class="sa-kpi__lbl">Perhati</div><div class="sa-kpi__val">${nPerhati.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #16A34A;"><div class="sa-kpi__lbl">Sihat</div><div class="sa-kpi__val">${nSihat.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #9CA3AF;"><div class="sa-kpi__lbl">Stok Mati</div><div class="sa-kpi__val">${nDead.toLocaleString()}</div></div>`
+   + `<div class="sa-kpi" style="border-left:3px solid #D1D5DB;"><div class="sa-kpi__lbl">Discontinued</div><div class="sa-kpi__val">${cDisc.toLocaleString()}</div></div>`
    + '</div>';
- html += '<p class="soft-note" style="margin:0 0 16px;">Nilai Kos = baki stok × kos pembelian (landed cost dari batch). Nilai Retail = baki stok × harga jual POS. Potensi Untung anggaran kasar sebelum kos jualan.</p>';
 
- // Status breakdown
- html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:18px;">'
-   + `<div class="sa-kpi" style="border-left:3px solid #16A34A;"><div class="sa-kpi__lbl">Sihat</div><div class="sa-kpi__val">${cHealthy.toLocaleString()}</div></div>`
-   + `<div class="sa-kpi" style="border-left:3px solid #F59E0B;"><div class="sa-kpi__lbl">Stok Rendah</div><div class="sa-kpi__val">${cLow.toLocaleString()}</div></div>`
-   + `<div class="sa-kpi" style="border-left:3px solid #DC2626;"><div class="sa-kpi__lbl">Habis (OOS)</div><div class="sa-kpi__val">${cOut.toLocaleString()}</div></div>`
-   + `<div class="sa-kpi" style="border-left:3px solid #9CA3AF;"><div class="sa-kpi__lbl">Discontinued</div><div class="sa-kpi__val">${cDisc.toLocaleString()}</div></div>`
-   + '</div>';
-
- // Restock Tracker
- const fmtD = (s) => { const d=new Date(s); return isNaN(d)?String(s):d.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'2-digit'}); };
- const timelineCell = (t) => {
-   const evs = t.events || [];
-   if(!evs.length) return '<span style="color:#9CA3AF;">— belum ada rekod</span>';
-   const MAX = 6; let show = evs, trimmed = 0;
-   if(evs.length > MAX) { show = [evs[0]].concat(evs.slice(evs.length-(MAX-1))); trimmed = evs.length - MAX; }
-   let out = '';
-   show.forEach((e, i) => {
-     const realIdx = (trimmed && i > 0) ? (evs.length-(show.length-i)) : i;
-     const lbl = realIdx === 0 ? '1st' : ('R'+realIdx);
-     const isLast = e === evs[evs.length-1];
-     if(trimmed && i === 1) out += `<div style="font-size:10px; color:#9CA3AF;">⋯ ${trimmed} lagi</div>`;
-     out += `<div style="white-space:nowrap; ${isLast?'font-weight:700; color:var(--text-color);':'color:#6B7280;'}"><span style="display:inline-block; min-width:24px; font-size:10px; color:#9CA3AF;">${lbl}</span> ${fmtD(e.date)}</div>`;
-   });
-   return out;
- };
- const pctCell = (t) => { if(t.pct==null) return '<span style="color:#9CA3AF;">—</span>'; const v=Math.round(t.pct); const col=v<=THR?'#DC2626':(v<=50?'#B45309':'#16A34A'); return `<span style="color:${col}; font-weight:700;">${v}%</span>`; };
- const badge = (s) => { const fg={'HABIS':'#DC2626','MASA RESTOCK':'#DC2626','PERHATI':'#B45309','SIHAT':'#16A34A'}; const bg={'HABIS':'#FEE2E2','MASA RESTOCK':'#FEE2E2','PERHATI':'#FEF3C7','SIHAT':'#DCFCE7'}; return `<span style="background:${bg[s]}; color:${fg[s]}; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:10px; white-space:nowrap;">${s}</span>`; };
- const thrCtrl = `<div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color); font-size:12px; background:#FCFCFD;">
+ // ============ ZONE: TINDAKAN ============
+ const ctrl = `<div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color); font-size:12px; background:#FCFCFD;">
    <span>Alert bila baki ≤ <select onchange="window.__invSetThreshold(this.value)" style="font-size:12px; padding:3px 6px; border:1px solid var(--border-color); border-radius:6px;">${[10,15,20,25,30,40].map(v=>`<option value="${v}" ${v===THR?'selected':''}>${v}%</option>`).join('')}</select></span>
    <span>Lead time China <select onchange="window.__invSetLead(this.value)" style="font-size:12px; padding:3px 6px; border:1px solid var(--border-color); border-radius:6px;">${[21,28,35,42,49].map(v=>`<option value="${v}" ${v===LEAD?'selected':''}>${v} hari (~${Math.round(v/7)} mgg)</option>`).join('')}</select></span>
  </div>`;
- let trkRows = attention.slice(0, 100).map(t => `<tr>
-   <td style="padding:8px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(t.sku)}</td>
-   <td style="padding:8px 12px;">${esc(t.name.slice(0,40))}</td>
-   <td style="padding:8px 12px; line-height:1.5;">${timelineCell(t)}</td>
-   <td style="padding:8px 12px; text-align:right; color:#6B7280;">${t.lastQty||'—'}</td>
+ const pills = `<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color);">
+   <div id="invRkPills" style="display:flex; gap:6px; flex-wrap:wrap;">
+     <span class="inv-pill ${F==='all'?'active':''}" onclick="window.__invSetRkFilter('all',this)">Semua (${action.length})</span>
+     <span class="inv-pill ${F==='reorder'?'active':''}" onclick="window.__invSetRkFilter('reorder',this)">Reorder Segera (${nReorder})</span>
+     <span class="inv-pill ${F==='perhati'?'active':''}" onclick="window.__invSetRkFilter('perhati',this)">Perhati (${nPerhati})</span>
+   </div>
+   <input id="invRkSearch" oninput="window.__invFilterRows()" value="${esc(window.__invSearch||'')}" placeholder="Cari SKU / nama…" style="margin-left:auto; font-size:12px; padding:5px 10px; border:1px solid var(--border-color); border-radius:8px; min-width:160px;">
+ </div>`;
+ const rkRows = action.map(t => `<tr class="inv-rk-row" data-cat="${t.cat}" data-skuid="${sid(t.sku)}" data-search="${esc((t.sku+' '+t.name).toLowerCase())}" onclick="window.__invToggleRow('${sid(t.sku)}')" style="cursor:pointer; border-top:1px solid var(--border-color);">
+   <td style="padding:8px 6px 8px 12px; width:16px; color:#9CA3AF;"><i id="invArr_${sid(t.sku)}" data-lucide="chevron-right" style="width:13px;height:13px; transition:transform .15s;"></i></td>
+   <td style="padding:8px 6px;"><div style="font-weight:600;">${esc(t.name.slice(0,48))}</div><div style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${esc(t.sku)}</div></td>
    <td style="padding:8px 12px; text-align:right; font-weight:700; color:${t.stock===0?'#DC2626':'inherit'};">${t.stock}</td>
    <td style="padding:8px 12px; text-align:right;">${pctCell(t)}</td>
-   <td style="padding:8px 12px; text-align:right;">${t.sold30}</td>
    <td style="padding:8px 12px; text-align:right;">${dcCell(t)}</td>
-   <td style="padding:8px 12px;">${badge(t.status)}</td>
+   <td style="padding:8px 12px; text-align:right; font-weight:700; color:var(--primary);">+${suggestOf(t)}</td>
+   <td style="padding:8px 12px;">${badge2(t.cat)}</td>
+ </tr>
+ <tr id="invDtl_${sid(t.sku)}" style="display:none; background:#FCFCFD;"><td colspan="7" style="padding:4px 16px 14px 38px;">
+   <div style="font-size:11px; color:var(--text-muted); margin:4px 0;">Sejarah Restock · supplier ${esc(supOf(t.sku))}</div>
+   ${timeline(t)}
+   <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Jual 30 hari: <b>${t.sold30}</b> · Qty restock akhir: <b>${t.lastQty||'—'}</b> · Cadang order: <b style="color:var(--primary);">+${suggestOf(t)}</b></div>
+ </td></tr>`).join('');
+ const deadRows = dead.slice(0,200).map(t => `<tr style="border-top:1px solid var(--border-color);">
+   <td style="padding:7px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11px;">${esc(t.sku)}</td>
+   <td style="padding:7px 12px;">${esc(t.name.slice(0,48))}</td>
+   <td style="padding:7px 12px; color:#9CA3AF;">${t.lastDate?fmtD(t.lastDate):'tiada rekod'}</td>
  </tr>`).join('');
- if(!trkRows) trkRows = '<tr><td colspan="9" style="text-align:center; color:#16A34A; padding:24px;">Semua produk sihat — tiada yang perlu restock sekarang.</td></tr>';
- html += card(
-   cardHead(`<i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px; color:var(--primary);"></i> Restock Tracker <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${attention.length} perlu perhatian${healthyCount?` · ${healthyCount} sihat disembunyikan`:''}</span>`)
-   + thrCtrl
-   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px;" title="Sejarah tarikh restock: 1st = order pertama, R1/R2 = restock seterusnya">Sejarah Restock</th><th style="padding:8px 12px; text-align:right;" title="Qty masuk pada restock terakhir">Qty Akhir</th><th style="padding:8px 12px; text-align:right;">Stok Kini</th><th style="padding:8px 12px; text-align:right;" title="Stok kini bahagi qty restock terakhir">% Baki</th><th style="padding:8px 12px; text-align:right;">Jual 30h</th><th style="padding:8px 12px; text-align:right;" title="Hari lagi sebelum habis ikut laju jualan">Hari Lagi</th><th style="padding:8px 12px;">Status</th></tr></thead><tbody>'
-   + trkRows + '</tbody></table></div>'
-   + (attention.length > 100 ? '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">Menunjukkan 100 paling kritikal daripada '+attention.length+'.</div>' : '')
-   + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">% Baki = stok kini ÷ qty restock terakhir (dari DO sebenar). "—" = tiada rekod DO untuk SKU ni lagi. Status MASA RESTOCK = stok habis, atau baki ≤ threshold, atau hari-lagi ≤ lead time China.</div>'
+ let zTind = card(
+   cardHead(`<i data-lucide="clipboard-check" style="width:14px;height:14px;vertical-align:-2px; color:var(--primary);"></i> Perlu Restock <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${action.length} barang (${nReorder} segera · ${nPerhati} perhati) · ${nSihat} sihat`+(nDead?` · ${nDead} stok mati`:'')+`</span>`)
+   + ctrl + pills
+   + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 6px 8px 12px;" colspan="2">Produk</th><th style="padding:8px 12px; text-align:right;">Stok</th><th style="padding:8px 12px; text-align:right;" title="Stok ÷ qty restock terakhir">% Baki</th><th style="padding:8px 12px; text-align:right;" title="Hari lagi sebelum habis">Hari Lagi</th><th style="padding:8px 12px; text-align:right;" title="Cadangan kuantiti order">Cadang</th><th style="padding:8px 12px;">Status</th></tr></thead><tbody id="invRkBody">'
+   + rkRows + '</tbody></table>'
+   + `<div id="invRkEmpty" style="display:${action.length?'none':''}; text-align:center; color:#16A34A; padding:24px;">Tiada barang perlu restock — semua sihat.</div></div>`
+   + (nDead ? `<div style="border-top:1px solid var(--border-color);"><div onclick="window.__invToggleDead()" style="cursor:pointer; padding:10px 14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;"><i id="invDeadArr" data-lucide="chevron-right" style="width:13px;height:13px; transition:transform .15s;"></i> Stok Mati — habis + 0 jualan 90 hari: <b style="margin:0 2px;">${nDead}</b> item (calon discontinue)</div><div id="invDeadWrap" style="display:none; overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:11.5px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:6px 12px;">SKU</th><th style="padding:6px 12px;">Produk</th><th style="padding:6px 12px;">Restock Akhir</th></tr></thead><tbody>${deadRows}</tbody></table>${dead.length>200?`<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">200 daripada ${dead.length}.</div>`:''}</div></div>` : '')
+   + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Klik baris untuk lihat sejarah restock penuh. % Baki = stok ÷ qty restock terakhir. REORDER = habis-tapi-laku / baki ≤ threshold / hari-lagi ≤ lead time.</div>'
  );
-
- // Senarai Order Ikut Supplier (HABIS + MASA RESTOCK, dikumpul ikut prefix SKU)
- const SUP = { ST:'Shine Trip', MH:'Mountainhiker', CD:'Chanodug', VD:'Vidalido', NH:'Naturehike', BD:'Blackdog', MG:'Mobigarden', LF:'LFO', MX:'Mix Brand' };
- const supOf = (sku) => { const m = String(sku||'').match(/^[A-Za-z]+/); const pre = m ? m[0].toUpperCase() : ''; return SUP[pre] || (pre || 'Lain'); };
- const need = attention.filter(t => t.rank <= 1);
+ // Supplier shopping list (reorder sahaja)
+ const need = action.filter(t => t.cat === 'reorder');
  const bySup = {};
- need.forEach(t => {
-   const target = Math.max(Math.ceil((t.vel||0) * (LEAD + 30)), t.lastQty||0, t.ro||0);
-   const suggest = Math.max(target - t.stock, 0) || (t.ro || 1);
-   const s = supOf(t.sku);
-   (bySup[s] || (bySup[s] = [])).push(Object.assign({}, t, { suggest }));
- });
+ need.forEach(t => { const s = supOf(t.sku); (bySup[s] || (bySup[s] = [])).push(t); });
  const supNames = Object.keys(bySup).sort((a,b) => bySup[b].length - bySup[a].length);
  let shopHtml = '';
  supNames.forEach(s => {
-   const items = bySup[s].sort((a,b) => a.rank - b.rank);
-   const totalQty = items.reduce((x,i) => x + i.suggest, 0);
+   const items = bySup[s];
+   const totalQty = items.reduce((x,i) => x + suggestOf(i), 0);
    shopHtml += `<div style="padding:10px 14px; border-bottom:1px solid var(--border-color);">
      <div style="font-weight:700; font-size:12.5px; display:flex; justify-content:space-between; gap:8px;"><span><i data-lucide="package" style="width:13px;height:13px;vertical-align:-2px;"></i> ${esc(s)}</span><span style="color:var(--text-muted); font-weight:500;">${items.length} item · cadang ${totalQty} unit</span></div>
-     <table style="width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6px;"><tbody>${items.map(i => `<tr><td style="padding:3px 0; font-family:'SF Mono',Menlo,monospace; width:70px;">${esc(i.sku)}</td><td style="padding:3px 8px;">${esc(i.name.slice(0,38))}</td><td style="padding:3px 8px; text-align:right; color:#6B7280; white-space:nowrap;">stok ${i.stock}</td><td style="padding:3px 0; text-align:right; font-weight:700; color:var(--primary); white-space:nowrap; width:80px;">order ${i.suggest}</td></tr>`).join('')}</tbody></table>
+     <table style="width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6px;"><tbody>${items.map(i => `<tr><td style="padding:3px 0; font-family:'SF Mono',Menlo,monospace; width:70px;">${esc(i.sku)}</td><td style="padding:3px 8px;">${esc(i.name.slice(0,38))}</td><td style="padding:3px 8px; text-align:right; color:#6B7280; white-space:nowrap;">stok ${i.stock}</td><td style="padding:3px 0; text-align:right; font-weight:700; color:var(--primary); white-space:nowrap; width:80px;">order ${suggestOf(i)}</td></tr>`).join('')}</tbody></table>
    </div>`;
  });
  if(!shopHtml) shopHtml = '<div style="padding:24px; text-align:center; color:#16A34A;">Tiada barang perlu diorder sekarang.</div>';
- html += card(
+ zTind += card(
    cardHead(`<i data-lucide="shopping-cart" style="width:14px;height:14px;vertical-align:-2px; color:var(--primary);"></i> Senarai Order Ikut Supplier <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${need.length} barang · ${supNames.length} supplier</span>`)
    + shopHtml
-   + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Cadang order = cukup untuk (lead time + 30 hari) jualan, atau ikut qty restock lalu / reorder point. Dikumpul ikut prefix SKU (supplier). Hanya barang HABIS + MASA RESTOCK.</div>'
+   + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Cadang order = cukup (lead time + 30 hari) jualan / qty restock lalu / reorder point. Kumpul ikut prefix SKU. Hanya barang REORDER.</div>'
  );
+ // ============ ZONE: ANALISA ============
  let slowRows = slow.slice(0, 50).map(x => `<tr>
    <td style="padding:8px 12px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(x.sku)}</td>
    <td style="padding:8px 12px;">${esc(x.name.slice(0,42))}${x.disc?' <span style="font-size:10px; color:#9CA3AF;">(disc)</span>':''}</td>
@@ -24846,26 +24886,24 @@ window.renderInventoryAnalytics = async function() {
    <td style="padding:8px 12px; text-align:right; color:${x.ageDays!=null && x.ageDays>=180?'#DC2626':'#6B7280'};">${x.ageDays != null ? x.ageDays+'h' : '—'}</td>
  </tr>`).join('');
  if(!slowRows) slowRows = '<tr><td colspan="5" style="text-align:center; color:#16A34A; padding:24px;">Tiada slow mover. Semua stok bergerak.</td></tr>';
- html += card(
+ let zAnal = card(
    cardHead(`<i data-lucide="snail" style="width:14px;height:14px;vertical-align:-2px; color:#6B7280;"></i> Slow Mover <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ${slow.length} produk · 0 jualan 90 hari · modal tersangkut ${fmtRM0(slowTied)}</span>`)
    + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">SKU</th><th style="padding:8px 12px;">Produk</th><th style="padding:8px 12px; text-align:right;">Stok</th><th style="padding:8px 12px; text-align:right;">Modal Tersangkut</th><th style="padding:8px 12px; text-align:right;" title="Umur batch tertua">Umur Stok</th></tr></thead><tbody>'
    + slowRows + '</tbody></table></div>'
    + (slow.length > 50 ? '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted);">Menunjukkan 50 teratas daripada '+slow.length+'.</div>' : '')
  );
 
- // Stock value by category
  let catRows = topCats.map(c => `<tr>
    <td style="padding:8px 12px;">${esc(c.cat)}</td>
    <td style="padding:8px 12px; text-align:right;">${fmtRM0(c.cost)}</td>
    <td style="padding:8px 12px; text-align:right; color:#6B7280;">${fmtRM0(c.retail)}</td>
  </tr>`).join('');
- if(catRows) html += card(
+ if(catRows) zAnal += card(
    cardHead('<i data-lucide="layers" style="width:14px;height:14px;vertical-align:-2px;"></i> Nilai Stok Ikut Kategori <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— di mana modal tersangkut</span>')
    + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">Kategori</th><th style="padding:8px 12px; text-align:right;">Nilai Kos</th><th style="padding:8px 12px; text-align:right;">Nilai Retail</th></tr></thead><tbody>'
    + catRows + '</tbody></table></div>'
  );
 
- // Umur Stok (aging) — hari sejak restock terakhir, modal mengikut umur
  const ageB = [
    { lbl:'0–90 hari', min:0, max:90, col:'#16A34A', n:0, units:0, val:0 },
    { lbl:'90–180 hari', min:90, max:180, col:'#65A30D', n:0, units:0, val:0 },
@@ -24889,15 +24927,28 @@ window.renderInventoryAnalytics = async function() {
    <td style="padding:8px 12px; text-align:right; font-weight:700; color:${b.col};">${fmtRM0(b.val)}</td>
  </tr>`).join('') + (noRec.n ? `<tr><td style="padding:8px 12px; color:#9CA3AF;"><span style="display:inline-block; width:9px; height:9px; border-radius:2px; background:#D1D5DB; margin-right:7px;"></span>Tiada rekod restock</td><td style="padding:8px 12px; text-align:right; color:#9CA3AF;">${noRec.n.toLocaleString()}</td><td style="padding:8px 12px; text-align:right; color:#9CA3AF;">${noRec.units.toLocaleString()}</td><td style="padding:8px 12px; text-align:right; color:#9CA3AF;">${fmtRM0(noRec.val)}</td></tr>` : '');
  const staleVal = ageB[2].val + ageB[3].val;
- html += card(
+ zAnal += card(
    cardHead(`<i data-lucide="clock" style="width:14px;height:14px;vertical-align:-2px; color:#B45309;"></i> Umur Stok <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— sejak restock terakhir · modal lama (180h+) ${fmtRM0(staleVal)}</span>`)
    + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="color:var(--text-muted); text-align:left;"><th style="padding:8px 12px;">Umur</th><th style="padding:8px 12px; text-align:right;">SKU</th><th style="padding:8px 12px; text-align:right;">Unit</th><th style="padding:8px 12px; text-align:right;">Nilai Kos</th></tr></thead><tbody>'
    + ageRows + '</tbody></table></div>'
    + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Umur = hari sejak SKU ni terakhir restock (DO). Modal lama (180h+) merah = duit tertimbun dalam stok yang dah lama tak ditambah — calon clearance kalau jualan perlahan.</div>'
  );
 
- body.innerHTML = html;
+ // ============ ASSEMBLE 3 SUB-TAB ============
+ const styleB = '<style>'
+   + '#anInvBody .inv-subtab{font-size:12.5px;font-weight:700;padding:9px 16px;border:none;border-bottom:2.5px solid transparent;background:none;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}'
+   + '#anInvBody .inv-subtab.active{color:var(--primary);border-bottom-color:var(--primary);}'
+   + '#anInvBody .inv-pill{font-size:11.5px;padding:5px 12px;border:1px solid var(--border-color);border-radius:16px;background:#F9FAFB;color:#374151;cursor:pointer;user-select:none;}'
+   + '#anInvBody .inv-pill.active{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700;}'
+   + '</style>';
+ const subtab = (k, icon, label) => `<span class="inv-subtab ${Z===k?'active':''}" onclick="window.__invSubTab('${k}', this)"><i data-lucide="${icon}" style="width:14px;height:14px;"></i> ${label}</span>`;
+ body.innerHTML = styleB
+   + `<div id="invSubTabs" style="display:flex; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:16px; flex-wrap:wrap;">${subtab('ringkasan','layout-dashboard','Ringkasan')}${subtab('tindakan','clipboard-check','Tindakan')}${subtab('analisa','bar-chart-3','Analisa')}</div>`
+   + `<div id="invZone_ringkasan" style="display:${Z==='ringkasan'?'':'none'}">${zRing}</div>`
+   + `<div id="invZone_tindakan" style="display:${Z==='tindakan'?'':'none'}">${zTind}</div>`
+   + `<div id="invZone_analisa" style="display:${Z==='analisa'?'':'none'}">${zAnal}</div>`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ window.__invFilterRows();
 };
 
 // p1_500 — Export Analytics: pilih bahagian → satu CSV berbilang seksyen

@@ -7471,13 +7471,20 @@ async function initApp() {
  console.log("Loading Cloud Omnichannel Data...");
  // p1_308 — explicit high .limit() so PostgREST's default 1000-row cap doesn't
  // silently truncate (sales_history already >4900 rows). Keeps full data loaded.
- let { data: master } = await db.from('products_master').select('*').limit(100000);
+ // p1_651 (4b) — staff (authenticated) read the full base table (incl cost); public/anon read
+ // the cost-free public_products view. Hides cost/margin/supplier from competitors.
+ let master;
+ if(window.currentUser){ ({ data: master } = await db.from('products_master').select('*').limit(100000)); }
+ else { ({ data: master } = await db.from('public_products').select('*').limit(100000)); }
  if(master) masterProducts = master;
 
  // p1_627 — shop-level marketplace promotions (coupons, BMSM) for Campaigns page
  try { const { data: mktp } = await db.from('marketplace_promotions').select('*').eq('active', true).limit(500); window.__mktPromos = mktp || []; } catch(e){ window.__mktPromos = window.__mktPromos || []; }
 
- let { data: batches } = await db.from('inventory_batches').select('*').order('inbound_date', {ascending: true}).limit(100000);
+ // p1_651 (4b) — staff read full batches (cost); public read cost-free public_stock (sku+qty only)
+ let batches;
+ if(window.currentUser){ ({ data: batches } = await db.from('inventory_batches').select('*').order('inbound_date', {ascending: true}).limit(100000)); }
+ else { ({ data: batches } = await db.from('public_stock').select('*').limit(100000)); }
  if(batches) inventoryBatches = batches;
 
  let { data: txns } = await db.from('inventory_transactions').select('*').order('created_at', {ascending: false}).limit(100000);

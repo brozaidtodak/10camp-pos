@@ -16,6 +16,15 @@ const sp = require('./_shopee');
 const DRIFT_PCT = 30;   // % gap between live and POS price to flag as drift
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const chunk = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
+// p1_658 — floor (base) price = floor_price ?? cost/(1−floor_margin%) ?? cost. Mirrors marketplace-price-push.
+const floorFor = (cost, floorPrice, floorMarginPct) => {
+    const fp = parseFloat(floorPrice) || 0;
+    if (fp > 0) return fp;
+    const fm = parseFloat(floorMarginPct) || 0;
+    if (cost > 0 && fm > 0) return round2(cost / (1 - Math.min(fm, 90) / 100));
+    return cost;
+};
+const marginPct = (price, cost) => (price > 0 ? Math.round((price - cost) / price * 100) : 0);
 
 function json(code, obj) {
     return { statusCode: code, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(obj, null, 2) };
@@ -36,7 +45,7 @@ async function computeTiktok() {
         const ss = (s.seller_sku || '').toUpperCase();
         if (ss) live[ss] = ttSkuPrice(s);
     }
-    const rows = await tt.sb('GET', '/products_master?select=sku,cost_price,tiktok_price,tiktok_campaign&metadata->>tiktok_sku_id=not.is.null');
+    const rows = await tt.sb('GET', '/products_master?select=sku,cost_price,tiktok_price,tiktok_campaign,floor_price,floor_margin_pct&metadata->>tiktok_sku_id=not.is.null');
     const findings = [];
     let checked = 0;
     for (const r of rows) {
@@ -49,9 +58,13 @@ async function computeTiktok() {
         const camp = r.tiktok_campaign && r.tiktok_campaign.active ? r.tiktok_campaign : null;
         const disc = camp && camp.discount_value != null ? Number(camp.discount_value) : 0;
         const eff = round2(lp * (1 - disc / 100));
+        const floor = floorFor(cost, r.floor_price, r.floor_margin_pct);
         if (cost > 0 && eff < cost) {
             findings.push({ sku, platform: 'TikTok', flag: 'below_cost', live_price: lp, effective_price: eff, cost, pos_price: pos, campaign_disc: disc || null,
                 detail: `Live ${lp}${disc ? ` −${disc}% = ${eff}` : ''} < kos ${cost}` });
+        } else if (floor > cost && eff < floor) {
+            findings.push({ sku, platform: 'TikTok', flag: 'below_floor', live_price: lp, effective_price: eff, cost, pos_price: pos, campaign_disc: disc || null,
+                detail: `Jual ${eff}${disc ? ` (${disc}% off ${lp})` : ''} < floor 35% ${floor} (margin ${marginPct(eff, cost)}%)` });
         } else if (pos > 0 && lp > 0 && Math.abs(lp - pos) / pos > DRIFT_PCT / 100) {
             findings.push({ sku, platform: 'TikTok', flag: 'drift', live_price: lp, effective_price: eff, cost, pos_price: pos, campaign_disc: disc || null,
                 detail: `Live ${lp} vs POS ${pos} (beza ${Math.round(Math.abs(lp - pos) / pos * 100)}%)` });
@@ -63,14 +76,16 @@ async function computeTiktok() {
 // p1_637 (#2b) — Shopee live prices via get_item_base_info (single) + get_model_list (variants).
 async function computeShopee() {
     const tok = await sp.getValidToken();
-    const rows = await sp.sb('GET', "/products_master?select=sku,cost_price,shopee_price,shopee_campaign,smid:metadata->>shopee_item_id,smod:metadata->>shopee_model_id&metadata->>shopee_item_id=not.is.null&limit=10000");
+    const rows = await sp.sb('GET', "/products_master?select=sku,cost_price,shopee_price,shopee_campaign,floor_price,floor_margin_pct,smid:metadata->>shopee_item_id,smod:metadata->>shopee_model_id&metadata->>shopee_item_id=not.is.null&limit=10000");
     const byItem = {};
     for (const r of (rows || [])) {
         const item = String(r.smid);
+        const c = parseFloat(r.cost_price) || 0;
         (byItem[item] = byItem[item] || []).push({
             sku: (r.sku || '').toUpperCase(),
             model_id: r.smod != null ? String(r.smod) : null,
-            cost: parseFloat(r.cost_price) || 0,
+            cost: c,
+            floor: floorFor(c, r.floor_price, r.floor_margin_pct),
             pos: parseFloat(r.shopee_price) || 0,
             camp: r.shopee_campaign && r.shopee_campaign.active ? r.shopee_campaign : null
         });
@@ -107,6 +122,8 @@ async function computeShopee() {
             const discPct = (orig > 0 && cur < orig) ? Math.round((1 - cur / orig) * 100) : 0;
             if (p.cost > 0 && cur < p.cost) {                       // real selling price below cost
                 findings.push({ sku: p.sku, platform: 'Shopee', flag: 'below_cost', live_price: orig, effective_price: cur, cost: p.cost, pos_price: p.pos, campaign_disc: discPct || null, detail: `Jual RM${cur}${discPct ? ` (${discPct}% off RM${orig})` : ''} < kos RM${p.cost}` });
+            } else if (p.floor > p.cost && cur < p.floor) {          // selling above cost but below the 35% floor
+                findings.push({ sku: p.sku, platform: 'Shopee', flag: 'below_floor', live_price: orig, effective_price: cur, cost: p.cost, pos_price: p.pos, campaign_disc: discPct || null, detail: `Jual RM${cur}${discPct ? ` (${discPct}% off RM${orig})` : ''} < floor 35% RM${p.floor} (margin ${marginPct(cur, p.cost)}%)` });
             } else if (p.pos > 0 && orig > 0 && Math.abs(orig - p.pos) / p.pos > DRIFT_PCT / 100) { // listing vs POS intended
                 findings.push({ sku: p.sku, platform: 'Shopee', flag: 'drift', live_price: orig, effective_price: cur, cost: p.cost, pos_price: p.pos, campaign_disc: discPct || null, detail: `Listing RM${orig} vs POS RM${p.pos} (beza ${Math.round(Math.abs(orig - p.pos) / p.pos * 100)}%)` });
             }
@@ -132,13 +149,14 @@ exports.handler = async (event) => {
     try { tkRes = await computeTiktok(); } catch (e) { out.tiktok_error = String(e).slice(0, 200); }
     try { spRes = await computeShopee(); } catch (e) { out.shopee_error = String(e).slice(0, 200); }
 
+    const cnt = (r, flag) => r.findings.filter(f => f.flag === flag).length;
     if (mode === 'peek') {
-        const sum = (r) => r ? { checked: r.checked, below_cost: r.findings.filter(f => f.flag === 'below_cost').length, drift: r.findings.filter(f => f.flag === 'drift').length, sample: r.findings.slice(0, 20) } : null;
+        const sum = (r) => r ? { checked: r.checked, below_cost: cnt(r, 'below_cost'), below_floor: cnt(r, 'below_floor'), drift: cnt(r, 'drift'), sample: r.findings.slice(0, 20) } : null;
         out.tiktok = sum(tkRes); out.shopee = sum(spRes);
         return json(200, out);
     }
-    if (tkRes) { await writeFindings('TikTok', tkRes.findings, now); out.tiktok = { checked: tkRes.checked, below_cost: tkRes.findings.filter(f => f.flag === 'below_cost').length, drift: tkRes.findings.filter(f => f.flag === 'drift').length }; }
-    if (spRes) { await writeFindings('Shopee', spRes.findings, now); out.shopee = { checked: spRes.checked, below_cost: spRes.findings.filter(f => f.flag === 'below_cost').length, drift: spRes.findings.filter(f => f.flag === 'drift').length }; }
+    if (tkRes) { await writeFindings('TikTok', tkRes.findings, now); out.tiktok = { checked: tkRes.checked, below_cost: cnt(tkRes, 'below_cost'), below_floor: cnt(tkRes, 'below_floor'), drift: cnt(tkRes, 'drift') }; }
+    if (spRes) { await writeFindings('Shopee', spRes.findings, now); out.shopee = { checked: spRes.checked, below_cost: cnt(spRes, 'below_cost'), below_floor: cnt(spRes, 'below_floor'), drift: cnt(spRes, 'drift') }; }
     out.checked_at = now;
     return json(200, out);
 };

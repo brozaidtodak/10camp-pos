@@ -108,10 +108,11 @@ async function buildDigest() {
     } catch(e){}
 
     // p1_634 (#3) — price sentinel: products selling below cost / drifted on marketplace
-    let belowCost = 0, drift = 0, belowCostSample = [];
+    let belowCost = 0, belowFloor = 0, drift = 0, belowCostSample = [];
     try {
         const ps = await sb('/price_sentinel?select=sku,platform,flag,detail');
         belowCost = (ps || []).filter(r => r.flag === 'below_cost').length;
+        belowFloor = (ps || []).filter(r => r.flag === 'below_floor').length; // p1_658
         drift = (ps || []).filter(r => r.flag === 'drift').length;
         belowCostSample = (ps || []).filter(r => r.flag === 'below_cost').slice(0, 8);
     } catch(e){}
@@ -144,7 +145,7 @@ async function buildDigest() {
         totals: { revenue: totalRevenue, orders: orderCount, aov },
         channels,
         topSkus,
-        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, drift, belowCostSample, tokenDead, tokenWarn, pushDead, pushPending, configFail }
+        alerts: { pendingStockCheck, shopeeErrors, tiktokErrors, belowCost, belowFloor, drift, belowCostSample, tokenDead, tokenWarn, pushDead, pushPending, configFail }
     };
 }
 
@@ -202,13 +203,14 @@ function buildHTML(d) {
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#7C2A20;">Ini punca kegagalan senyap (kunci salah / env hilang / DB salah). Betulkan segera.</p>
         </div>` : '';
-    const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0 || (a.tokenWarn && a.tokenWarn.length) || a.pushPending > 0;
+    const hasAlerts = a.pendingStockCheck > 0 || a.shopeeErrors > 0 || a.tiktokErrors > 0 || a.drift > 0 || a.belowFloor > 0 || (a.tokenWarn && a.tokenWarn.length) || a.pushPending > 0;
     const alertBlock = hasAlerts ? `
         <div style="background:#F8EFD7;border-left:4px solid #C68A1A;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7A5410;">PERHATIAN</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E3F0C;">
                 ${(a.tokenWarn || []).map(x => `<li>${x.message}</li>`).join('')}
                 ${a.pushPending > 0 ? `<li>${a.pushPending} push harga gagal — tengah auto-retry</li>` : ''}
+                ${a.belowFloor > 0 ? `<li>${a.belowFloor} produk jual BAWAH FLOOR 35% (atas kos tapi margin nipis di marketplace)</li>` : ''}
                 ${a.drift > 0 ? `<li>${a.drift} harga DRIFT (POS tak sama dengan harga live marketplace)</li>` : ''}
                 ${a.pendingStockCheck > 0 ? `<li>${a.pendingStockCheck} stock check report menunggu review</li>` : ''}
                 ${a.shopeeErrors > 0 ? `<li>${a.shopeeErrors} Shopee sync errors hari ni</li>` : ''}

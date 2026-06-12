@@ -27689,6 +27689,7 @@ window.__renderIntegrationAlert = async function(){
   ]);
   const f = data || [];
   const below = f.filter(x=>x.flag==='below_cost');
+  const belowFloor = f.filter(x=>x.flag==='below_floor'); // p1_658 — jual atas kos tapi bawah floor 35%
   const drift = f.filter(x=>x.flag==='drift');
   // p1_638 (#5) — dead/critical marketplace tokens (sync about to go dark)
   const tokens = (thRes && thRes.data) || [];
@@ -27697,7 +27698,7 @@ window.__renderIntegrationAlert = async function(){
   const pushDead = (pfRes && pfRes.data) || [];
   // p1_640 (#7) — config/creds failures (silent-failure root causes)
   const cfgFail = (cfgRes && cfgRes.data) || [];
-  if(!below.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length){ box.innerHTML=''; return; }
+  if(!below.length && !belowFloor.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length){ box.innerHTML=''; return; }
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const chip = (bg,txt)=>`<span style="background:${bg};color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:50px;">${txt}</span>`;
   // p1_643 — table helpers + clickable SKU (→ Bulk Edit)
@@ -27715,6 +27716,15 @@ window.__renderIntegrationAlert = async function(){
      <tbody>${below.slice(0,12).map(x=>`<tr style="border-bottom:1px solid #F0DDD8;font-size:12px;color:#5E2018;">${td(skuLink(x.sku))}${td(plat(x.platform))}${td(moneyRm(x.live_price),1)}${td(x.campaign_disc!=null?('−'+x.campaign_disc+'%'):'—',1)}${td('<b style="color:#B23A2E;">'+moneyRm(x.effective_price)+'</b>',1)}${td(moneyRm(x.cost),1)}</tr>`).join('')}</tbody>
     </table>
     ${below.length>12?`<div style="font-size:11px;color:#9ca3af;margin-top:2px;">+${below.length-12} lagi</div>`:''}
+   </div>`:'';
+  const belowFloorTable = belowFloor.length?`
+   <div style="margin-bottom:10px;">
+    <div style="font-size:11px;font-weight:800;color:#7A5410;text-transform:uppercase;margin-bottom:3px;">Bawah floor 35% (margin nipis)</div>
+    <table style="width:100%;border-collapse:collapse;">
+     <thead><tr style="border-bottom:1px solid #E6D6AE;">${th('SKU')}${th('Platform')}${th('Live',1)}${th('Disk',1)}${th('Jual',1)}${th('Kos',1)}</tr></thead>
+     <tbody>${belowFloor.slice(0,12).map(x=>`<tr style="border-bottom:1px solid #F1E7CF;font-size:12px;color:#5E3F0C;">${td(skuLink(x.sku))}${td(plat(x.platform))}${td(moneyRm(x.live_price),1)}${td(x.campaign_disc!=null?('−'+x.campaign_disc+'%'):'—',1)}${td('<b style="color:#9E7016;">'+moneyRm(x.effective_price)+'</b>',1)}${td(moneyRm(x.cost),1)}</tr>`).join('')}</tbody>
+    </table>
+    ${belowFloor.length>12?`<div style="font-size:11px;color:#9ca3af;margin-top:2px;">+${belowFloor.length-12} lagi</div>`:''}
    </div>`:'';
   const driftTable = drift.length?`
    <div>
@@ -27734,6 +27744,7 @@ window.__renderIntegrationAlert = async function(){
      ${tokBad.length?chip('#5E2018', 'SAMBUNGAN '+tokBad.map(t=>String(t.platform).toUpperCase()).join('+')+' NAK PUTUS'):''}
      ${pushDead.length?chip('#5E2018', pushDead.length+' PUSH GAGAL'):''}
      ${below.length?chip('#B23A2E', below.length+' BAWAH KOS'):''}
+     ${belowFloor.length?chip('#C68A1A', belowFloor.length+' BAWAH FLOOR 35%'):''}
      ${drift.length?chip('#9E7016', drift.length+' DRIFT harga'):''}
      <span style="margin-left:auto;font-size:11px;color:#9ca3af;">semakan harga live · auto tiap hari</span>
     </div>
@@ -27741,6 +27752,7 @@ window.__renderIntegrationAlert = async function(){
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Token marketplace</div>${tokBad.map(t=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}
     ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;">${skuLink(p.sku)} <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
     ${belowTable}
+    ${belowFloorTable}
     ${driftTable}
     <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">Klik SKU untuk buka di Bulk Edit. Betulkan harga marketplace di Shopee/TikTok Seller Center — POS flag je, tak boleh tukar harga marketplace dari sini.</div>
    </div>`;
@@ -35537,10 +35549,11 @@ window.__loadIntegrationHealth = async function(){
   };
   const arr = sent||[];
   const sBelow = arr.filter(x=>x.flag==='below_cost').length;
+  const sFloor = arr.filter(x=>x.flag==='below_floor').length; // p1_658
   const sDrift = arr.filter(x=>x.flag==='drift').length;
   const sLast = arr.reduce((a,x)=> (x.checked_at && (!a || x.checked_at>a)) ? x.checked_at : a, null);
-  const sColor = sBelow>0 ? '#B23A2E' : (sDrift>0 ? '#9E7016' : '#4E7C4A');
-  const sTxt = sBelow>0 ? (sBelow+' bawah kos') : (sDrift>0 ? (sDrift+' drift') : 'OK');
+  const sColor = sBelow>0 ? '#B23A2E' : (sFloor>0 ? '#C68A1A' : (sDrift>0 ? '#9E7016' : '#4E7C4A'));
+  const sTxt = sBelow>0 ? (sBelow+' bawah kos') : (sFloor>0 ? (sFloor+' bawah floor') : (sDrift>0 ? (sDrift+' drift') : 'OK'));
   // p1_639 (#6) — push dead-letter health
   const pfArr = pf||[];
   const pPending = pfArr.filter(x=>x.status==='pending').length;
@@ -35551,6 +35564,7 @@ window.__loadIntegrationHealth = async function(){
    card('Harga — Sentinel Harian', sColor, sTxt, [
     'Semakan terakhir: <b>'+ago(sLast)+'</b>',
     'Jual bawah kos: <b style="color:'+(sBelow>0?'#B23A2E':'#4E7C4A')+'">'+sBelow+'</b>',
+    'Bawah floor 35%: <b style="color:'+(sFloor>0?'#C68A1A':'#4E7C4A')+'">'+sFloor+'</b>',
     'Harga drift (POS≠live): <b style="color:'+(sDrift>0?'#9E7016':'#4E7C4A')+'">'+sDrift+'</b>'
    ]) +
    card('Push Harga — Auto-Retry', pColor, pTxt, [

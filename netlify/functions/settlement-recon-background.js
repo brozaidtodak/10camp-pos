@@ -85,12 +85,21 @@ exports.handler = async (event) => {
     const settle = { Shopee: {}, TikTok: {} };
     const settleMeta = { Shopee: { ok: false }, TikTok: { ok: false } };
     try {
-        const j = await fetchJson(`${SITE_URL}/api/shopee-sync?mode=escrow&since=${sinceYmd}`);
-        for (const row of (j.rows || [])) {
-            if (!row.order_sn) continue;
-            settle.Shopee[String(row.order_sn)] = { gross: round2(row.gross), net: round2(row.net_payout), date: row.order_date };
+        // Shopee escrow caps at a 15-day window per call → chunk the requested window.
+        let cur = sinceMs, lastErr = null;
+        const STEP = 15 * 24 * 60 * 60 * 1000;
+        while (cur < Date.now()) {
+            const tMs = Math.min(cur + STEP, Date.now());
+            const j = await fetchJson(`${SITE_URL}/api/shopee-sync?mode=escrow&from=${ymd(cur)}&to=${ymd(tMs)}`);
+            if (j && j.error) lastErr = j.error;
+            for (const row of (j.rows || [])) {
+                if (!row.order_sn) continue;
+                settle.Shopee[String(row.order_sn)] = { gross: round2(row.gross), net: round2(row.net_payout), date: row.order_date };
+            }
+            cur = tMs;
         }
-        settleMeta.Shopee = { ok: true, count: Object.keys(settle.Shopee).length };
+        const cnt = Object.keys(settle.Shopee).length;
+        settleMeta.Shopee = cnt > 0 ? { ok: true, count: cnt } : { ok: false, count: 0, error: lastErr || 'no escrow rows' };
     } catch (e) { settleMeta.Shopee = { ok: false, error: e.message }; }
     try {
         const j = await fetchJson(`${SITE_URL}/api/tiktok-finance?mode=rows&from=${sinceYmd}&to=${ymd(Date.now())}`);
@@ -111,8 +120,9 @@ exports.handler = async (event) => {
     const summary = {};
     for (const ch of ['Shopee', 'TikTok']) {
         let matched = 0, belum = 0, rugi = 0;
-        // skip flagging "unpaid" if we couldn't load that channel's settlements at all (avoid false alarms)
-        const haveSettle = settleMeta[ch].ok;
+        // only flag "unpaid" if we ACTUALLY loaded settlements for this channel (count>0) — a failed/
+        // empty pull must never make every old order look unpaid (false alarms).
+        const haveSettle = settleMeta[ch].ok && settleMeta[ch].count > 0;
         for (const [oid, o] of Object.entries(pos[ch])) {
             const s = settle[ch][oid];
             if (s) {

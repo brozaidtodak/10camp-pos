@@ -66,6 +66,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/settlement-recon"
+  to = "/.netlify/functions/settlement-recon-background"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/marketplace-image-import"
   to = "/.netlify/functions/marketplace-image-import"
   status = 200
@@ -176,6 +182,11 @@
 # p1_640 (#7) — Config/creds preflight (env/sanity/auth), daily 03:15 UTC.
 [functions."config-check-cron"]
   schedule = "15 3 * * *"
+
+# p1_681 (#8) — Settlement reconciliation: POS marketplace orders vs Shopee escrow + TikTok
+# finance payouts. Daily 02:00 UTC (after settlements typically finalize). Writes settlement_recon.
+[functions."settlement-recon-background"]
+  schedule = "0 2 * * *"
 
 # p1_98 Fasa 2D — Cron auto-sync every 15 min
 [functions."shopee-sync-cron"]

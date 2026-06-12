@@ -70,6 +70,7 @@ function mapTxn(t) {
     if (service < 0) service = 0;
     return {
         order_sn: String(t.id ?? t.order_id ?? ''),
+        order_id: String(t.order_id ?? ''),   // p1_681 — actual order id (for settlement reconciliation matching to POS)
         order_date: ymd(t.order_create_time ?? t.statement_time),
         gross,
         commission_fee: commission,

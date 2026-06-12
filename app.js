@@ -31456,7 +31456,7 @@ window.I18N = {
  lp_coll_nh_sub: { bm: 'Khemah, beg tidur & trail', en: 'Tents, sleeping bags & trails' },
  lp_coll_limited: { bm: 'Masa Terhad', en: 'Limited Time' },
  lp_coll_sale_title: { bm: 'Jualan Festival', en: 'Festival Sale' },
- lp_coll_sale_sub: { bm: 'Diskaun sampai 30% untuk gear pilihan', en: 'Up to 30% off selected gear' },
+ lp_coll_sale_sub: { bm: 'Diskaun sampai 50% untuk gear pilihan', en: 'Up to 50% off selected gear' },
 
  lp_shop_eyebrow: { bm: 'Kedai', en: 'Shop' },
  lp_shop_h2: { bm: 'Semua Produk', en: 'All Products' },

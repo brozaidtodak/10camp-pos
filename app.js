@@ -7519,40 +7519,29 @@ async function initApp() {
 
  try { renderQuotePOS(); } catch(e){}
  // p1_648 — load sensitive data ONLY when logged in (public landing = anon; no customer PII / finance / sales)
- if(window.currentUser){ let { data: quotes } = await db.from('quotations_log').select('*').order('created_at', {ascending: false}); if(quotes) quoteHistoryLogs = quotes; }
-
- // p1_329 — muat SEMUA order berperingkat (elak had PostgREST 1000 baris yang sorok order lama)
+ // p1_680 — muat data berat SERENTAK (Promise.all), bukan bersiri. Dulu quotations→sales→customers
+ // →finance berturut-turut = ~8 round-trip bersiri (lambat atas wifi kedai). Sekarang serentak.
+ // Dedup sales (p1_673) + pagination (__aoFetchAllSales/__fetchAllRows) kekal sama.
  if(window.currentUser){
- let sales = [];
- try { sales = await window.__aoFetchAllSales(); }
- catch(e) { try { const r = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000); sales = r.data || []; } catch(_){} }
- // p1_673 — GANTI senarai (dedupe ikut id), JANGAN tambah. Dulu [...salesHistory,...sales]
- // = setiap kali initApp jalan, senarai jualan berganda dalam memori → All Orders & Komisen
- // nampak double (Ariff). __aoFetchAllSales pulang SEMUA baris dari DB, jadi DB = sumber penuh.
- // Kekalkan mana-mana jualan in-memori yang BELUM ada dalam hasil DB (cth baru di-unshift, elak
- // hilang sekejap akibat race) — selebihnya guna DB.
+ const [quotesRes, sales, custs, finRes] = await Promise.all([
+ db.from('quotations_log').select('*').order('created_at', {ascending: false}).then(r=>r).catch(()=>({data:null})),
+ window.__aoFetchAllSales().catch(async ()=>{ try { const r = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000); return r.data || []; } catch(_){ return []; } }),
+ window.__fetchAllRows('customers', 'id', true).catch(async ()=>{ try { const r = await db.from('customers').select('*'); return r.data || []; } catch(_){ return []; } }),
+ db.from('finance_records').select('*').order('year', {ascending: false}).then(r=>r).catch(()=>({data:null}))
+ ]);
+ if(quotesRes && quotesRes.data) quoteHistoryLogs = quotesRes.data;
+ // p1_673 — GANTI senarai (dedupe ikut id); kekalkan jualan in-memori yang belum ada dalam hasil DB.
  if(sales && sales.length){
  const dbIds = new Set(sales.map(s => s && s.id).filter(x => x != null));
  const localOnly = salesHistory.filter(s => s && (s.id == null || !dbIds.has(s.id)));
  salesHistory = [...localOnly, ...sales];
  }
- }
- // p3_10: refresh fulfillment KPIs + sidebar badge once orders are loaded
- if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
- // p1_324: pasang badge "perlu pack" di sidebar Orders sebaik order dimuat
- if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
-
- // p1_330 — muat SEMUA customer berperingkat (2949 rows > had 1000 PostgREST)
- // p1_480 — order by 'id' WAJIB supaya pagination stabil (dulu tanpa order → ada customer ter-skip = tak muncul di cashier)
- if(window.currentUser){
- let custs = [];
- try { custs = await window.__fetchAllRows('customers', 'id', true); }
- catch(e) { try { const r = await db.from('customers').select('*'); custs = r.data || []; } catch(_){} }
  if(custs && custs.length) customersData = custs;
-
- let { data: fin } = await db.from('finance_records').select('*').order('year', {ascending: false});
- if(fin) financeRecords = fin;
+ if(finRes && finRes.data) financeRecords = finRes.data;
  }
+ // p3_10/p1_324: refresh fulfillment KPIs + sidebar badge once orders loaded
+ if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
+ if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
  
  // p1_675 — roster + pending requests + realtime = staff sahaja (anon landing tak baca jadual staf).
  if(window.currentUser){

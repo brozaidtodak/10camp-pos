@@ -13304,6 +13304,34 @@ window.processNewCheckout = async function() {
  // B14: optional buyer TIN for e-Invoice
  const buyerTin = (document.getElementById("customerBuyerTin")?.value || '').trim();
 
+ // p1_674 — IDEMPOTENCY: elak jualan berganda kalau wifi putus SELEPAS server simpan tapi sebelum
+ // app dapat balasan, lepas tu staff retry. Satu "cap unik" (client_txn_id) per cubaan: cart sama →
+ // cap sama (retry ditolak di DB oleh unique index); cart tukar / jualan berjaya → cap baru.
+ const __cartSig = cart.map(c => (c.sku||'') + ':' + (c.quantity||0) + ':' + (c.price||0)).join('|');
+ // Pulih dari localStorage dulu supaya cap kekal walaupun staff REFRESH page yang stuck lepas tu retry.
+ if(!window.__currentTxnId){ try { window.__currentTxnId = localStorage.getItem('pos_txn_id') || null; window.__txnSig = localStorage.getItem('pos_txn_sig') || null; } catch(e){} }
+ if(!window.__currentTxnId || window.__txnSig !== __cartSig){
+ window.__txnSig = __cartSig;
+ window.__currentTxnId = 'POS-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+ try { localStorage.setItem('pos_txn_id', window.__currentTxnId); localStorage.setItem('pos_txn_sig', window.__txnSig); } catch(e){}
+ }
+ const __txnId = window.__currentTxnId;
+ // Kalau cap ni DAH wujud dalam DB → jualan ni dah tersimpan tadi (cubaan sebelum berjaya diam-diam):
+ // JANGAN tolak stok / simpan lagi. Tunjuk berjaya + kosongkan troli (elak dupe + double komisen).
+ try {
+ const { data: __exist } = await withTimeout(db.from('sales_history').select('id').eq('client_txn_id', __txnId).limit(1), 8000, 'semak transaksi berganda');
+ if(__exist && __exist.length){
+ if(typeof showToast === 'function') showToast('Jualan ni dah tersimpan tadi — elak berganda.', 'info');
+ cart = []; if(typeof renderCart === 'function') renderCart();
+ try { document.getElementById('checkoutPaymentModal').style.display = 'none'; } catch(_){}
+ window.__currentTxnId = null; window.__txnSig = null;
+ try { localStorage.removeItem('pos_txn_id'); localStorage.removeItem('pos_txn_sig'); } catch(_){}
+ __checkoutOk = true;
+ if(btn){ btn.disabled = false; btn.textContent = 'PENGESAHAN BAYARAN'; }
+ return __checkoutOk;
+ }
+ } catch(e){ console.warn('idempotency pre-check dilangkau (non-blocking):', e); }
+
  // p1_236 — track backorder items (sold lebih dari batches available — for OOS allow flow)
  const backorderItems = [];
  for (const item of cart) {
@@ -13469,7 +13497,8 @@ window.processNewCheckout = async function() {
  payment_proof_url: proofUrl,
  payment_proof_uploaded_at: proofUploadedAt,
  payment_proof_uploaded_by: proofUploadedBy,
- payment_method_detail: pmDetail
+ payment_method_detail: pmDetail,
+ client_txn_id: __txnId
  }]).select('id').single(), 25000, 'simpan jualan');
  // p1_554 — Supabase insert pulang {error} (tak throw); kalau gagal, lempar supaya catch pulihkan stok (#1)
  if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
@@ -13579,6 +13608,8 @@ window.processNewCheckout = async function() {
  // boleh teruskan jualan seterusnya serta-merta; data UI kemas-kini bila reload selesai.
  try { Promise.resolve(initApp()).catch(e => console.warn('post-sale initApp refresh gagal (non-blocking):', e)); }
  catch(e) { console.warn('post-sale initApp refresh gagal (non-blocking):', e); }
+ window.__currentTxnId = null; window.__txnSig = null; // p1_674 — jualan berjaya → cap habis, jualan seterusnya dapat cap baru
+ try { localStorage.removeItem('pos_txn_id'); localStorage.removeItem('pos_txn_sig'); } catch(_){}
  __checkoutOk = true; // p1_672 — sampai sini = jualan berjaya disimpan + UI direset
  } catch (e) {
  console.error(e);

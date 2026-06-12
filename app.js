@@ -15211,7 +15211,7 @@ window.lpRenderPdp = function() {
                     <a href="${waBuyUrl}" target="_blank" rel="noopener" class="lp-pdp__buybtn lp-pdp__buybtn--wa"><i data-lucide="message-circle"></i><span>WhatsApp</span></a>
                 </div>
                 ${shareRow}
-                <div class="lp-pdp__buy-walk-in"><i data-lucide="map-pin"></i> Atau singgah <strong>Kedai 10 CAMP Cyberjaya</strong> &middot; Mon-Sat 10am-9pm</div>
+                <div class="lp-pdp__buy-walk-in"><i data-lucide="map-pin"></i> Atau singgah <strong>Kedai 10 CAMP Cyberjaya</strong> &middot; Mon-Sat 11am-8pm</div>
             </div>`;
 
     body.innerHTML = `
@@ -31460,6 +31460,41 @@ window.I18N = {
  lp_hero_sub_pre: { bm: 'Gear camping & outdoor premium, terus dari', en: 'Premium camping & outdoor gear, supplied directly from' },
  lp_hero_sub_post: { bm: 'jenama dipercayai.', en: 'trusted brands.' },
  lp_foot_buy: { bm: 'Beli Kami Di', en: 'Buy From Us' },
+ // p1_655 — Reviews / FAQ / Policy / Location sections
+ lp_rev_eyebrow: { bm: 'Disukai Pekhemah', en: 'Loved by Campers' },
+ lp_rev_h2: { bm: 'Ribuan pelanggan gembira', en: 'Thousands of happy campers' },
+ lp_rev_sub: { bm: 'Kami jual terus di Shopee & TikTok Shop — baca review sebenar dari pelanggan di sana.', en: 'We sell on Shopee & TikTok Shop — read real customer reviews there.' },
+ lp_rev_stat_cust: { bm: 'Pelanggan gembira', en: 'Happy customers' },
+ lp_rev_stat_brand: { bm: 'Jenama dipercayai', en: 'Trusted brands' },
+ lp_rev_stat_since: { bm: 'Sejak ditubuhkan', en: 'Established' },
+ lp_rev_shopee: { bm: 'Baca review di Shopee', en: 'Read reviews on Shopee' },
+ lp_rev_tiktok: { bm: 'Baca review di TikTok', en: 'Read reviews on TikTok' },
+ lp_faq_eyebrow: { bm: 'FAQ', en: 'FAQ' },
+ lp_faq_h2: { bm: 'Soalan Lazim', en: 'Frequently Asked Questions' },
+ lp_faq_q1: { bm: 'Macam mana nak beli?', en: 'How do I buy?' },
+ lp_faq_a1: { bm: 'Beli di Shopee atau TikTok Shop kami (penghantaran seluruh Malaysia), atau singgah terus kedai kami di Cyberjaya untuk tengok & cuba barang.', en: 'Buy via our Shopee or TikTok Shop (nationwide delivery), or visit our Cyberjaya store to see & try the gear.' },
+ lp_faq_q2: { bm: 'Ada kedai fizikal?', en: 'Do you have a physical store?' },
+ lp_faq_a2: { bm: 'Ada — di Glomac Cyberjaya. Buka Isnin–Sabtu, 11 pagi hingga 8 malam. Singgah untuk tengok stok & dapat nasihat gear.', en: 'Yes — at Glomac Cyberjaya. Open Mon–Sat, 11am to 8pm. Drop by to see stock & get gear advice.' },
+ lp_faq_q3: { bm: 'Produk asli ke?', en: 'Are the products authentic?' },
+ lp_faq_a3: { bm: '100% asli. Kami pembekal rasmi 11 jenama outdoor termasuk Naturehike, Mobi Garden, Blackdog & lain-lain.', en: '100% authentic. We are an official supplier of 11 outdoor brands incl. Naturehike, Mobi Garden, Blackdog & more.' },
+ lp_faq_q4: { bm: 'Boleh tukar kalau barang rosak?', en: 'Can I exchange a damaged item?' },
+ lp_faq_a4: { bm: 'Boleh — pertukaran untuk barang rosak/silap sahaja (bukan tukar fikiran, tiada refund). Walk-in dalam 3 hari, pembelian online dalam 7 hari, dengan resit/bukti beli. Lihat Polisi Kedai di bawah.', en: 'Yes — exchange for damaged/wrong items only (no change-of-mind, no refund). Walk-in within 3 days, online within 7 days, with proof of purchase. See Store Policy below.' },
+ lp_faq_q5: { bm: 'Penghantaran macam mana?', en: 'How does delivery work?' },
+ lp_faq_a5: { bm: 'Pembelian online dihantar terus melalui Shopee/TikTok Shop ke seluruh Malaysia. Penghantaran kos & masa ikut polisi platform.', en: 'Online orders ship via Shopee/TikTok Shop nationwide. Shipping cost & time follow the platform policy.' },
+ lp_pol_eyebrow: { bm: 'Polisi Kedai', en: 'Store Policy' },
+ lp_pol_h2: { bm: 'Polisi Kedai', en: 'Store Policy' },
+ lp_pol_ex_t: { bm: 'Pertukaran', en: 'Exchange' },
+ lp_pol_ex_d: { bm: 'Tukar barang ROSAK/SILAP sahaja. Walk-in: dalam 3 hari. Online: dalam 7 hari. Mesti ada resit/bukti beli.', en: 'Exchange for DAMAGED/WRONG items only. Walk-in: within 3 days. Online: within 7 days. Proof of purchase required.' },
+ lp_pol_ref_t: { bm: 'Tiada Refund', en: 'No Refunds' },
+ lp_pol_ref_d: { bm: 'Tiada pemulangan wang (no refund). Pertukaran sahaja, untuk barang rosak/silap.', en: 'No money refunds. Exchange only, for damaged/wrong items.' },
+ lp_pol_auth_t: { bm: 'Keaslian', en: 'Authenticity' },
+ lp_pol_auth_d: { bm: '100% produk asli dari pembekal rasmi 11 jenama. Waranti (jika ada) ikut pengeluar.', en: '100% authentic from official suppliers of 11 brands. Warranty (if any) follows the manufacturer.' },
+ lp_pol_buy_t: { bm: 'Cara Beli', en: 'How to Buy' },
+ lp_pol_buy_d: { bm: 'Shopee, TikTok Shop, atau walk-in di kedai Cyberjaya. Tiada pembayaran terus di laman web ini.', en: 'Shopee, TikTok Shop, or walk-in at our Cyberjaya store. No direct checkout on this website.' },
+ lp_loc_eyebrow: { bm: 'Lawati Kami', en: 'Visit Us' },
+ lp_loc_h2: { bm: 'Lawati Kedai Kami', en: 'Visit Our Store' },
+ lp_loc_hours: { bm: 'Isnin–Sabtu · 11 pagi – 8 malam', en: 'Mon–Sat · 11am – 8pm' },
+ lp_loc_directions: { bm: 'Dapatkan Arah', en: 'Get Directions' },
 
  lp_shop_eyebrow: { bm: 'Kedai', en: 'Shop' },
  lp_shop_h2: { bm: 'Semua Produk', en: 'All Products' },
@@ -31481,7 +31516,7 @@ window.I18N = {
  lp_foot_brand_sub: { bm: 'Gear camping & outdoor premium oleh TODAK.', en: 'Premium camping & outdoor gear by TODAK.' },
  lp_foot_visit: { bm: 'Lawat', en: 'Visit' },
  lp_foot_contact: { bm: 'Hubungi', en: 'Contact' },
- lp_foot_hours: { bm: 'Isnin–Sabtu · 10pg–9mlm', en: 'Mon–Sat · 10am–9pm' },
+ lp_foot_hours: { bm: 'Isnin–Sabtu · 11pg–8mlm', en: 'Mon–Sat · 11am–8pm' },
  lp_foot_payments: { bm: 'Pembayaran Diterima', en: 'Payments Accepted' },
 
  // Sold-out strip

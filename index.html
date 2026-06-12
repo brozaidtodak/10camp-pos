@@ -6535,8 +6535,39 @@
  <button id="bulkRefreshBtn" onclick="window.bulkRefresh && window.bulkRefresh()" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;" title="Muat semula senarai produk dari pangkalan data"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh</button>
  <span style="width:1px; height:26px; background:#E5E7EB; margin:0 3px;"></span>
  <span id="bulkEditHint" style="font-size:11px; color:#9CA3AF;"></span>
+ <!-- p1_660 — butang khusus tukar + push harga ke Shopee/TikTok (jelas, betul-betul push) -->
+ <button onclick="window.openMpPush && window.openMpPush()" style="padding:8px 16px; font-size:13px; font-weight:700; background:#fff; color:#111827; border:1.5px solid #111827; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;" title="Tukar harga di Shopee/TikTok & push terus ke Seller Centre"><i data-lucide="upload-cloud" style="width:15px;height:15px;"></i> Tukar Harga Marketplace</button>
  <button onclick="window.bulkSaveEdits && window.bulkSaveEdits()" style="padding:8px 18px; font-size:13px; font-weight:700; background:#CD7C32; color:#fff; border:none; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;" title="Simpan semua field yang diedit"><i data-lucide="save" style="width:15px;height:15px;"></i> Simpan Perubahan</button>
  </div>
+ </div>
+
+ <!-- p1_660 — Tukar Harga Marketplace modal (set Shopee/TikTok price + push terus ke Seller Centre) -->
+ <div id="mpPushModal" class="login-overlay" style="display:none; z-index:9998; align-items:flex-start; justify-content:center; padding-top:60px; background:rgba(0,0,0,0.45);">
+  <div style="background:#fff; width:95%; max-width:480px; border-radius:14px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,.25); text-align:left; max-height:85vh; overflow-y:auto;">
+   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <h2 style="margin:0; font-size:18px; font-weight:800;"><i data-lucide="upload-cloud" style="width:18px;height:18px;vertical-align:-3px;color:var(--primary);"></i> Tukar Harga Marketplace</h2>
+    <button onclick="document.getElementById('mpPushModal').style.display='none'" style="border:none;background:none;font-size:22px;cursor:pointer;color:#9CA3AF;">×</button>
+   </div>
+   <p style="font-size:12.5px; color:#6B7280; margin:0 0 16px;">Set harga &amp; <b>push terus ke Seller Centre</b> Shopee/TikTok — harga yang customer nampak akan berubah.</p>
+   <label style="font-size:12px; font-weight:700; color:#374151;">SKU produk</label>
+   <input id="mpPushSku" list="mpPushSkuList" placeholder="Cth: BD005" oninput="window.__mpPushLookup && window.__mpPushLookup()" autocomplete="off" style="width:100%; box-sizing:border-box; padding:9px; border:1.5px solid #E5E7EB; border-radius:8px; font-size:14px; text-transform:uppercase; margin:5px 0 14px;">
+   <datalist id="mpPushSkuList"></datalist>
+   <div id="mpPushInfo" style="display:none;">
+    <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:12.5px;">
+     <div id="mpPushName" style="font-weight:800; margin-bottom:6px;"></div>
+     <div style="display:flex; justify-content:space-between; color:#6B7280;"><span>Harga walk-in (POS)</span><b id="mpPushWalkin" style="color:#111827;"></b></div>
+     <div style="display:flex; justify-content:space-between; color:#6B7280;"><span>Floor minimum (35%)</span><b id="mpPushFloor" style="color:#9E7016;"></b></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+     <div><label style="font-size:11.5px; font-weight:700; color:#EE4D2D;">Harga Shopee (RM)</label><input id="mpPushShopee" type="number" step="0.01" style="width:100%; box-sizing:border-box; padding:9px; border:1.5px solid #FED7AA; border-radius:8px; font-size:15px; margin-top:4px;"></div>
+     <div><label style="font-size:11.5px; font-weight:700; color:#111827;">Harga TikTok (RM)</label><input id="mpPushTiktok" type="number" step="0.01" style="width:100%; box-sizing:border-box; padding:9px; border:1.5px solid #D1D5DB; border-radius:8px; font-size:15px; margin-top:4px;"></div>
+    </div>
+    <p style="font-size:11px; color:#9CA3AF; margin:0 0 16px;">Kosongkan untuk tak ubah channel itu. Harga bawah floor 35% auto-naik ke floor.</p>
+    <button id="mpPushBtn" onclick="window.__mpPushNow && window.__mpPushNow()" style="width:100%; padding:12px; background:#111827; color:#fff; border:none; border-radius:9px; font-size:14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="upload-cloud" style="width:16px;height:16px;"></i> Push ke Marketplace Sekarang</button>
+    <div id="mpPushResult" style="margin-top:14px; font-size:12.5px;"></div>
+   </div>
+   <div id="mpPushEmpty" style="font-size:12.5px; color:#9CA3AF; padding:8px 0;">Masukkan SKU untuk mula.</div>
+  </div>
  </div>
 
  <!-- Product table -->
@@ -8139,6 +8170,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_660', label:'Butang "Tukar Harga Marketplace" jelas (Zaid: "bina butang push harga marketplace yang jelas" — selepas faham POS memang boleh ubah harga Shopee/TikTok via API). Modal mpPushModal + butang di toolbar Bulk Edit. Flow: pilih SKU (datalist) → tunjuk nama+walk-in+floor 35% + harga Shopee/TikTok semasa (prefill) → set harga baru → "Push ke Marketplace Sekarang" → update products_master + fetch marketplace-price-push?mode=push&skus (BACA response, bukan fire-forget) → papar hasil sebenar per channel (✓ updated / gagal) + nota kalau auto-clamp ke floor. openMpPush/__mpPushLookup/__mpPushNow/__mpPushFloor. PDP savePdpData memang dah push (line 85) tapi tak jelas; ni entry-point eksplisit. app.js v658->v659.', d:'done' },
  { id:'p1_659', label:'Bulk Edit — harga Shopee/TikTok jadi READ-ONLY (info je) (Zaid: edit harga Shopee/TikTok di Bulk Edit TAK push ke Seller Centre — push cuma trigger bila harga walk-in berubah, line ~23030 if(price in payload) — jadi staf keliru sangka boleh ubah). FIX: field def shopee/tiktok tukar type num→roprice; bulkCellHtml papar "RM X" muted (bukan input) + title "Harga semasa POS, info je"; label jadi "Shopee (info)"/"TikTok (info)"; bulkSaveEdits skip roprice; bulkBuildHead right-align; liveMargin trigger buang shopee/tiktok (kekal price/cost). Margin per-channel kekal kira dari harga tersimpan (liveVal fallback). NOTA: Q2 — kotak "✓ Tersambung ke Shopee" dalam PDP takda setara TikTok (boleh tambah utk simetri, belum). app.js v657->v658.', d:'done' },
  { id:'p1_658', label:'Price sentinel diluaskan ke BELOW-FLOOR (Zaid: "luaskan price sentinel ke below-floor"). Dulu sentinel flag below_cost (rugi) + drift je. Kini tambah tahap ke-3: below_floor = jual ATAS kos tapi BAWAH floor 35% (margin nipis, cth kempen marketplace turunkan harga efektif bawah base). price-sentinel-background: tarik floor_price+floor_margin_pct, kira floor=floor_price ?? kos/(1−floor_margin%), flag below_floor bila floor>kos && eff<floor (TikTok eff=live×(1−disc); Shopee cur=harga jual). Susunan keterukan: below_cost > below_floor > drift. Consumer dikemas: (a) kad amaran POS #3 — table baru "Bawah floor 35%" amber + chip; (b) email harian — baris dalam PERHATIAN; (c) health dashboard #4 — kiraan "Bawah floor 35%". app.js v656->v657.', d:'done' },
  { id:'p1_657', label:'Marketplace AUTO BASE PRICE / floor 35% (Zaid: "set auto base price = harga margin 35%; harga TikTok & Shopee tak boleh kurang dari base price"). ISTILAH dibetulkan: "base price" yg Zaid maksud = harga LANTAI/minimum (floor) pada margin 35% = kos÷0.65, bukan harga senarai. (1) DB: set products_master.floor_margin_pct=35 utk 676 produk berkos → floor=kos/(1−0.35) auto-kira (kos ubah, floor ikut). (2) Data: hanya 1 SKU bawah floor (MH061 Shopee 148<168.14, TikTok 296 OK) — naikkan ke 169. (3) KOD marketplace-price-push: tukar dari BLOCK→CLAMP-UP. Dulu harga bawah floor di-SKIP (#1 guard). Kini auto-CLAMP NAIK ke floor (marketplace tak pernah bawah base; floor=floor_price ?? kos/(1−floor_margin%)). out.clamped[] ganti out.blocked[]; ?force=1 push literal. Caller fire-and-forget, tiada consumer .blocked lain. Server+DB (takde app.js).', d:'done' },
@@ -13227,7 +13259,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=658"></script>
+ <script src="app.js?v=659"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

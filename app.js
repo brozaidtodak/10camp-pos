@@ -22865,6 +22865,72 @@ window.bulkRefresh = async function() {
  if(btn) { btn.disabled = false; btn.innerHTML = orig; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} }
 };
 
+// p1_660 — "Tukar Harga Marketplace" modal: set Shopee/TikTok price + PUSH terus ke Seller Centre (jelas + tunjuk hasil sebenar).
+window.__mpPushFloor = function(p){
+ const cost = Number(p.cost_price)||0;
+ const fp = Number(p.floor_price)||0; if(fp>0) return fp;
+ const fm = Number(p.floor_margin_pct)||0;
+ if(cost>0 && fm>0) return Math.round(cost/(1-Math.min(fm,90)/100)*100)/100;
+ return cost;
+};
+window.openMpPush = function(sku){
+ const m = document.getElementById('mpPushModal'); if(!m) return;
+ const dl = document.getElementById('mpPushSkuList');
+ if(dl && !dl.children.length && typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)){
+  dl.innerHTML = masterProducts.filter(p=>p && p.sku).slice(0,3000).map(p=>'<option value="'+(p.sku||'').toUpperCase()+'">').join('');
+ }
+ const skuEl = document.getElementById('mpPushSku'); if(skuEl) skuEl.value = sku ? String(sku).toUpperCase() : '';
+ const resEl = document.getElementById('mpPushResult'); if(resEl) resEl.innerHTML = '';
+ m.style.display = 'flex';
+ window.__mpPushLookup();
+};
+window.__mpPushLookup = function(){
+ const sku = (document.getElementById('mpPushSku').value||'').trim().toUpperCase();
+ const info = document.getElementById('mpPushInfo'), empty = document.getElementById('mpPushEmpty');
+ const p = (typeof masterProducts!=='undefined'?masterProducts:[]).find(x=>x && (x.sku||'').toUpperCase()===sku);
+ if(!p){ info.style.display='none'; empty.style.display='block'; empty.textContent = sku?('SKU "'+sku+'" tak jumpa.'):'Masukkan SKU untuk mula.'; return; }
+ empty.style.display='none'; info.style.display='block';
+ const rm=(v)=> (v!=null && !isNaN(Number(v)) && Number(v)>0)?('RM '+Number(v).toFixed(2)):'—';
+ document.getElementById('mpPushName').textContent = (p.name||sku);
+ document.getElementById('mpPushWalkin').textContent = rm(p.price);
+ const floor = window.__mpPushFloor(p);
+ document.getElementById('mpPushFloor').textContent = floor>0?('RM '+floor.toFixed(2)):'—';
+ document.getElementById('mpPushShopee').value = (p.shopee_price!=null && Number(p.shopee_price)>0)?Number(p.shopee_price):'';
+ document.getElementById('mpPushTiktok').value = (p.tiktok_price!=null && Number(p.tiktok_price)>0)?Number(p.tiktok_price):'';
+ document.getElementById('mpPushResult').innerHTML = '';
+};
+window.__mpPushNow = async function(){
+ const sku = (document.getElementById('mpPushSku').value||'').trim().toUpperCase();
+ const p = (typeof masterProducts!=='undefined'?masterProducts:[]).find(x=>x && (x.sku||'').toUpperCase()===sku);
+ const res = document.getElementById('mpPushResult'), btn = document.getElementById('mpPushBtn');
+ if(!p || typeof db==='undefined' || !db){ if(res) res.innerHTML='<span style="color:#B23A2E;">Produk tak jumpa.</span>'; return; }
+ const spV = document.getElementById('mpPushShopee').value.trim();
+ const ttV = document.getElementById('mpPushTiktok').value.trim();
+ const payload = {};
+ if(spV!=='') payload.shopee_price = parseFloat(spV);
+ if(ttV!=='') payload.tiktok_price = parseFloat(ttV);
+ if(!Object.keys(payload).length){ res.innerHTML='<span style="color:#9E7016;">Isi sekurang-kurangnya satu harga (Shopee atau TikTok).</span>'; return; }
+ btn.disabled=true; const orig=btn.innerHTML; btn.innerHTML='Menghantar…';
+ try {
+  const { error } = await db.from('products_master').update(payload).eq('sku', p.sku);
+  if(error) throw error;
+  Object.assign(p, payload);
+  const r = await fetch('/api/marketplace-price-push?mode=push&skus='+encodeURIComponent(p.sku));
+  const j = await r.json().catch(()=>({}));
+  const sp = j.shopee||{}, tt = j.tiktok||{}, clamped = j.clamped||[];
+  let html = '<div style="background:#E6F0E4; border:1px solid #ABC6A0; border-radius:8px; padding:10px 12px; color:#2F4A2C; line-height:1.7;"><b>Berjaya dihantar ke marketplace.</b><br>';
+  if(payload.shopee_price!=null) html += 'Shopee: '+((sp.pushed||0)>0?('<b>✓ updated</b>'):((sp.failed||0)>0?'<span style="color:#B23A2E;">gagal</span>':'tiada perubahan'))+'<br>';
+  if(payload.tiktok_price!=null) html += 'TikTok: '+((tt.pushed||0)>0?('<b>✓ updated</b>'):((tt.failed||0)>0?'<span style="color:#B23A2E;">gagal</span>':'tiada perubahan'))+'<br>';
+  if(clamped.length) html += '<span style="color:#9E7016;">Nota: harga bawah floor 35% auto-naik ke floor (tak boleh bawah base).</span>';
+  html += '</div>';
+  res.innerHTML = html;
+  if(typeof showToast==='function') showToast(p.sku+' — harga marketplace dihantar.', 'success');
+  if(typeof renderBulkOps==='function') try { renderBulkOps(); } catch(e){}
+ } catch(e){ res.innerHTML = '<span style="color:#B23A2E;">Ralat: '+(e.message||e)+'</span>'; }
+ btn.disabled=false; btn.innerHTML=orig;
+ if(window.lucide && lucide.createIcons) try{lucide.createIcons();}catch(_){}
+};
+
 window.renderBulkOps = function() {
  const tbody = document.getElementById('bulkOpsTbody');
  if(!tbody) return;

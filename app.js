@@ -13252,6 +13252,17 @@ window.processNewCheckout = async function() {
 
  // p1_554 — jejak sama ada sale BETUL-BETUL disimpan; kalau gagal, pulihkan stok dlm catch (#1)
  let saleCommitted = false;
+ // p1_672 — pulangkan status (true=berjaya) supaya pemanggil (cpConfirm) tahu sama ada nak tunjuk
+ // skrin success atau reset butang. Catch di bawah TAK re-throw, jadi tanpa flag ni checkout gagal
+ // akan tersilap tunjuk "success".
+ let __checkoutOk = false;
+ // p1_672 — panggilan DB checkout TAK BOLEH hang butang. Race tiap satu dengan timeout supaya
+ // sambungan wifi kedai yang lambat/separa-buka REJECT bersih (→ ditangkap di bawah, stok rollback,
+ // butang reset) dan bukan beku "Processing…" selama-lamanya. (Ariff: checkout stuck processing.)
+ const withTimeout = (p, ms, label) => Promise.race([
+  Promise.resolve(p),
+  new Promise((_, rej) => setTimeout(() => rej(new Error('Rangkaian lambat / timeout: ' + label + ' (' + Math.round(ms/1000) + 's). Cuba lagi.')), ms))
+ ]);
  try {
  let transactionsPayload = []; let totalVal = 0;
  const cn = document.getElementById("checkoutChannel").value;
@@ -13296,7 +13307,7 @@ window.processNewCheckout = async function() {
  // p1_577 (#2/#15) — ATOMIK FIFO deduct via RPC (FOR UPDATE kunci baris) — elak lost-update / oversell
  // bila 2 device checkout SKU sama serentak. batch_alloc kekal direkod (untuk refund/rollback).
  item.batch_alloc = [];
- const { data: __alloc, error: __allocErr } = await db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity });
+ const { data: __alloc, error: __allocErr } = await withTimeout(db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity }), 15000, 'deduct stok ' + item.sku);
  if(__allocErr) {
  console.error('deduct_stock_fifo gagal', item.sku, __allocErr);
  backorderItems.push({ sku: item.sku, name: item.name, qty_short: item.quantity, qty_total: item.quantity });
@@ -13315,7 +13326,7 @@ window.processNewCheckout = async function() {
  if(typeof showToast === 'function') showToast(`AMARAN: ${backorderItems.length} item dijual backorder (stok kurang). Detail simpan dalam sale metadata.`, 'warn');
  } else { window.__lastBackorderItems = null; }
 
- if(transactionsPayload.length> 0) await db.from('inventory_transactions').insert(transactionsPayload);
+ if(transactionsPayload.length> 0) await withTimeout(db.from('inventory_transactions').insert(transactionsPayload), 15000, 'rekod transaksi stok');
 
  // p1_554 — blok auto-simpan pelanggan + mata DIPINDAH ke bawah (selepas finalTotal dikira)
  // supaya mata/total_spent guna harga LEPAS diskaun, bukan subtotal sebelum diskaun (#22/#23).
@@ -13357,7 +13368,7 @@ window.processNewCheckout = async function() {
  const payload = { name: custNameText, points: window.__pointsForSpend(totalSpent), total_spent: totalSpent, total_orders: (hist.orders || 0) + 1 };
  if(custPhoneText) payload.phone = custPhoneText;
  if(custEmailText) payload.email = custEmailText;
- const { data: newCust } = await db.from('customers').insert([payload]).select().single();
+ const { data: newCust } = await withTimeout(db.from('customers').insert([payload]).select().single(), 10000, 'simpan pelanggan baru');
  if(newCust && typeof customersData !== 'undefined' && Array.isArray(customersData)) { customersData.push(newCust); window.__pastCustomersCache = null; }
  } else {
  // p1_554 — guna jumlah belanja seumur hidup (floor penuh) + update total_spent/total_orders (dulu cuma points incremental)
@@ -13369,7 +13380,7 @@ window.processNewCheckout = async function() {
  if(window.__pendingRedeem && window.__pendingRedeem.cost > 0 && window.__pendingRedeem.customer_id === existing.id) {
  upd.points_redeemed = (Number(existing.points_redeemed) || 0) + window.__pendingRedeem.cost;
  }
- await db.from('customers').update(upd).eq('id', existing.id);
+ await withTimeout(db.from('customers').update(upd).eq('id', existing.id), 10000, 'kemas kini pelanggan');
  existing.points = upd.points; existing.total_spent = upd.total_spent; existing.total_orders = upd.total_orders;
  if(upd.points_redeemed != null) existing.points_redeemed = upd.points_redeemed;
  if(upd.phone) existing.phone = upd.phone; if(upd.email) existing.email = upd.email;
@@ -13440,7 +13451,7 @@ window.processNewCheckout = async function() {
 
  // p1_199 — capture customerEmail early so we can save with the sale row
  const earlyEmail = (document.getElementById("customerEmail").value || '').trim();
- const insertRes = await db.from('sales_history').insert([{
+ const insertRes = await withTimeout(db.from('sales_history').insert([{
  customer_name: custNameText, customer_phone: custPhoneText, customer_email: earlyEmail || null, payment_method: pm, channel: cn, status: cst,
  total: finalTotal, total_amount: finalTotal, items: cart,
  staff_name: currentUser ? currentUser.name : 'Unknown',
@@ -13450,7 +13461,7 @@ window.processNewCheckout = async function() {
  payment_proof_uploaded_at: proofUploadedAt,
  payment_proof_uploaded_by: proofUploadedBy,
  payment_method_detail: pmDetail
- }]).select('id').single();
+ }]).select('id').single(), 25000, 'simpan jualan');
  // p1_554 — Supabase insert pulang {error} (tak throw); kalau gagal, lempar supaya catch pulihkan stok (#1)
  if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
@@ -13559,6 +13570,7 @@ window.processNewCheckout = async function() {
  // boleh teruskan jualan seterusnya serta-merta; data UI kemas-kini bila reload selesai.
  try { Promise.resolve(initApp()).catch(e => console.warn('post-sale initApp refresh gagal (non-blocking):', e)); }
  catch(e) { console.warn('post-sale initApp refresh gagal (non-blocking):', e); }
+ __checkoutOk = true; // p1_672 — sampai sini = jualan berjaya disimpan + UI direset
  } catch (e) {
  console.error(e);
  // p1_554 (#1) — kalau sale GAGAL disimpan tapi stok dah ditolak, pulihkan balik supaya stok tak rosak.
@@ -13581,6 +13593,7 @@ window.processNewCheckout = async function() {
  }
 
  if(btn) { btn.disabled = false; btn.textContent = "PENGESAHAN BAYARAN"; }
+ return __checkoutOk; // p1_672 — beritahu cpConfirm sama ada berjaya (tunjuk success) atau gagal (reset)
 }
 
 window.dispatchEmailReceipt = function() {
@@ -30208,8 +30221,9 @@ window.cpConfirmSale = async function() {
  // Don't open the legacy modal — UX-3 success state replaces it
  };
 
+ let __cpOk = false;
  try {
- await window.processNewCheckout();
+ __cpOk = await window.processNewCheckout();
  } catch(e) {
  showToast('Ralat checkout: ' + e.message, 'error');
  btn.disabled = false; btn.classList.remove('is-disabled');
@@ -30218,6 +30232,14 @@ window.cpConfirmSale = async function() {
  return;
  }
  window.showReceiptModal = origShow;
+ // p1_672 — jualan TAK berjaya (timeout/ralat/dibatalkan) → JANGAN tunjuk skrin success; reset butang
+ // supaya staf boleh cuba lagi. processNewCheckout dah papar sebab (toast) + rollback stok.
+ if(!__cpOk){
+ btn.disabled = false; btn.classList.remove('is-disabled');
+ btn.innerHTML = '<i data-lucide="check-circle" style="width:18px; height:18px;"></i> Sahkan Bayaran (RM ' + finalTotal.toFixed(2) + ')';
+ if(typeof lucide !== 'undefined') lucide.createIcons();
+ return;
+ }
 
  // Save last sale for receipt actions
  __cpLastSale = {

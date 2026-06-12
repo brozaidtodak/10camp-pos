@@ -22674,8 +22674,8 @@ const BULK_FIELD_DEFS = [
  { g:'Harga',     key:'margin_sp', label:'Margin Shopee',  type:'margin', pf:'shopee_price', ch:'sp' },
  { g:'Harga',     key:'margin_tt', label:'Margin TikTok',  type:'margin', pf:'tiktok_price', ch:'tt' },
  { g:'Harga',     key:'floor',    label:'Floor Price',  type:'num',   f:'floor_price' },
- { g:'Harga',     key:'shopee',   label:'Shopee',       type:'num',   f:'shopee_price' },
- { g:'Harga',     key:'tiktok',   label:'TikTok',       type:'num',   f:'tiktok_price' },
+ { g:'Harga',     key:'shopee',   label:'Shopee (info)', type:'roprice', f:'shopee_price' },
+ { g:'Harga',     key:'tiktok',   label:'TikTok (info)', type:'roprice', f:'tiktok_price' },
  { g:'Inventori', key:'skuedit',  label:'SKU (boleh tukar)', type:'skuedit' },
  { g:'Inventori', key:'stock',    label:'Stok',         type:'stock' },
  { g:'Inventori', key:'bin',      label:'Slot / Lokasi',type:'text',  f:'location_bin' },
@@ -22755,7 +22755,7 @@ window.bulkBuildHead = function(){
  (window.__bulkCols || []).forEach(k => {
  const d = BULK_FIELD_BY_KEY[k]; if(!d) return;
  if(d.type === 'skuedit') return; // toggles core SKU cell, not a new column
- const right = (d.type === 'num' || d.type === 'int' || d.type === 'stock' || d.type === 'margin');
+ const right = (d.type === 'num' || d.type === 'int' || d.type === 'stock' || d.type === 'margin' || d.type === 'roprice');
  const align = right ? 'text-align:right;' : (d.key === 'status' ? 'text-align:center;' : '');
  h += `<th style="${stick} ${align} min-width:80px;">${hesc(d.label)}</th>`;
  });
@@ -22786,6 +22786,13 @@ window.bulkCellHtml = function(p, d){
  // p1_642 — Margin per-channel = (harga channel d.pf) − Kos. Baca-saja. Merah kalau bawah dasar min 35%.
  return `<td style="text-align:right;" id="bk_margin_${d.ch || 'walkin'}_${sku}">${window.__marginChipHtml(p[d.pf || 'price'], p.cost_price)}</td>`;
  }
+ if(d.type === 'roprice'){
+ // p1_659 — Shopee/TikTok price = INFO sahaja (BUKAN editable). Edit di sini TAK ubah harga di Seller
+ // Centre (push cuma trigger bila harga walk-in berubah) → elak staf keliru. Papar harga semasa je.
+ const rv = p[d.f];
+ const shown = (rv != null && rv !== '' && !isNaN(Number(rv)) && Number(rv) > 0) ? ('RM' + Number(rv).toFixed(2)) : '—';
+ return `<td style="text-align:right; color:#6B7280;" title="Harga semasa di POS (info). Harga di Seller Centre tak boleh diubah dari sini.">${shown}</td>`;
+ }
  if(d.type === 'text'){
  const v = d.meta ? ((p.metadata && typeof p.metadata === 'object') ? p.metadata[d.f] : null) : p[d.f];
  const val = (v != null ? String(v) : '');
@@ -22795,7 +22802,7 @@ window.bulkCellHtml = function(p, d){
  const v = p[d.f];
  const step = d.type === 'int' ? '1' : '0.01';
  // p1_585/p1_642 — Harga walk-in/Shopee/TikTok/Kos: update SEMUA kolum margin live bila ditaip
- const liveMargin = (d.key === 'price' || d.key === 'cost' || d.key === 'shopee' || d.key === 'tiktok') ? ` oninput="window.__bulkRecalcMargin('${sku}')"` : '';
+ const liveMargin = (d.key === 'price' || d.key === 'cost') ? ` oninput="window.__bulkRecalcMargin('${sku}')"` : '';
  return `<td><input id="bk_${d.key}_${sku}" type="number" step="${step}" value="${v != null ? v : ''}"${liveMargin} placeholder="-" style="width:82px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>`;
 };
 
@@ -22994,7 +23001,7 @@ window.bulkSaveEdits = async function() {
  const metaPatch = {}; // p1_433 — metadata (marketplace) fields merge separately
  for(const k of (window.__bulkCols || [])) {
  const d = BULK_FIELD_BY_KEY[k];
- if(!d || d.type === 'disp' || d.type === 'stock' || d.type === 'skuedit' || d.type === 'margin') continue; // display/stock/sku/margin (computed) handled separately
+ if(!d || d.type === 'disp' || d.type === 'stock' || d.type === 'skuedit' || d.type === 'margin' || d.type === 'roprice') continue; // display/stock/sku/margin/roprice (read-only) handled separately
  const el = document.getElementById('bk_' + k + '_' + sku);
  if(!el) continue;
  const raw = (el.value || '').trim();

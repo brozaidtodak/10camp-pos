@@ -27865,20 +27865,14 @@ window.__aimSellerUrl = function(sku, platform){
  const p = (typeof masterProducts!=='undefined' && Array.isArray(masterProducts) ? masterProducts : []).find(x=>x && (x.sku||'').toUpperCase()===String(sku||'').toUpperCase());
  const md = (p && p.metadata && typeof p.metadata==='object') ? p.metadata : {};
  if(/tiktok/i.test(platform)){
-  // TikTok Shop has no stable external per-product deep-link — land on the product
-  // management list (reliable), staff searches the SKU there. p1_667 (was a broken
-  // /product/edit?product_id= guess). Override window.__TIKTOK_EDIT_URL(pid) to deep-link
-  // if/when the exact edit URL is confirmed.
+  // p1_669 — confirmed direct deep-link (Zaid gave the real URL for BD106):
+  // path-param product_id, e.g. .../product/edit/1732740602125649661?shop_region=MY
   const pid = md.tiktok_product_id;
-  if(pid && typeof window.__TIKTOK_EDIT_URL === 'function'){ try { const u = window.__TIKTOK_EDIT_URL(pid); if(u) return u; } catch(e){} }
-  return 'https://seller-my.tiktok.com/product/manage';
+  return pid ? ('https://seller-my.tiktok.com/product/edit/'+encodeURIComponent(pid)+'?shop_region=MY') : 'https://seller-my.tiktok.com/product/manage';
  }
- // Shopee: no confirmed stable external per-product deep-link either (p1_668 — /portal/product/{id}/edit
- // landed on the wrong page) → land on the product list, staff searches the SKU there. Override
- // window.__SHOPEE_EDIT_URL(itemId) to deep-link once the real edit URL is confirmed.
+ // p1_669 — confirmed Shopee direct deep-link: /portal/product/{item_id} (NO /edit suffix).
  const iid = md.shopee_item_id;
- if(iid && typeof window.__SHOPEE_EDIT_URL === 'function'){ try { const u = window.__SHOPEE_EDIT_URL(iid); if(u) return u; } catch(e){} }
- return 'https://seller.shopee.com.my/portal/product/list/all';
+ return iid ? ('https://seller.shopee.com.my/portal/product/'+encodeURIComponent(iid)) : 'https://seller.shopee.com.my/portal/product/list/all';
 };
 window.__aimOpenSeller = function(sku, platform){ try { window.open(window.__aimSellerUrl(sku, platform), '_blank', 'noopener'); } catch(e){} };
 window.__aimCampUrl = function(platform){ return /tiktok/i.test(platform) ? 'https://seller-my.tiktok.com/promotion' : 'https://seller.shopee.com.my/portal/marketing'; };

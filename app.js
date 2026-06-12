@@ -27769,6 +27769,21 @@ window.__gotoBulkSku = function(sku){
  } catch(e){ console.warn('gotoBulkSku', e); }
 };
 
+// p1_662 — re-scan on demand: trigger the price sentinel (live pull) then refresh the card,
+// so a just-resolved issue disappears immediately (instead of waiting for the cron).
+window.__rescanIntegration = async function(){
+ const setBtn = (html, dis)=>{ const b=document.getElementById('__rescanBtn'); if(b){ b.disabled=!!dis; b.innerHTML=html; } if(window.lucide && lucide.createIcons) try{lucide.createIcons();}catch(_){} };
+ setBtn('Menyemak…', true);
+ if(typeof showToast==='function') showToast('Menyemak harga live… (~1 minit)', 'info');
+ try { await fetch('/.netlify/functions/price-sentinel-background?mode=sync').catch(()=>{}); } catch(e){}
+ // background fn returns 202 — give it time to pull TikTok+Shopee live prices & rewrite, then refresh.
+ setTimeout(()=>{
+  try { if(typeof window.__renderIntegrationAlert==='function') window.__renderIntegrationAlert(); } catch(e){}
+  setBtn('<i data-lucide="refresh-cw" style="width:11px;height:11px;"></i> Semak semula', false);
+  if(typeof showToast==='function') showToast('Amaran disemak semula — issue yang dah resolve dah dikeluarkan.', 'success');
+ }, 60000);
+};
+
 // p1_634 (#3) — Integration alert: surface price-sentinel below-cost/drift on owner landing.
 window.__renderIntegrationAlert = async function(){
  const box = document.getElementById('integrationAlertBox'); if(!box) return;
@@ -27839,7 +27854,8 @@ window.__renderIntegrationAlert = async function(){
      ${below.length?chip('#B23A2E', below.length+' BAWAH KOS'):''}
      ${belowFloor.length?chip('#C68A1A', belowFloor.length+' BAWAH FLOOR 35%'):''}
      ${drift.length?chip('#9E7016', drift.length+' DRIFT harga'):''}
-     <span style="margin-left:auto;font-size:11px;color:#9ca3af;">semakan harga live · auto tiap hari</span>
+     <span style="margin-left:auto;font-size:11px;color:#9ca3af;">auto tiap 6 jam · resolve = auto hilang</span>
+     <button id="__rescanBtn" onclick="window.__rescanIntegration && window.__rescanIntegration()" title="Semak harga live sekarang — issue yang dah resolve akan hilang" style="font-size:11px;font-weight:700;color:#7C2A20;background:#fff;border:1px solid #E3C9C2;border-radius:6px;padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="refresh-cw" style="width:11px;height:11px;"></i> Semak semula</button>
     </div>
     ${cfgFail.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Konfigurasi / creds rosak</div>${cfgFail.slice(0,5).map(c=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(c.check_key)}</b> — ${esc((c.detail||'').slice(0,80))}</div>`).join('')}</div>`:''}
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Token marketplace</div>${tokBad.map(t=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}

@@ -27806,7 +27806,20 @@ window.__renderIntegrationAlert = async function(){
   const pushDead = (pfRes && pfRes.data) || [];
   // p1_640 (#7) — config/creds failures (silent-failure root causes)
   const cfgFail = (cfgRes && cfgRes.data) || [];
-  if(!below.length && !belowFloor.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length){ box.innerHTML=''; return; }
+  // p1_663 — kempen/promo aktif (dari masterProducts in-memory): staf sedar harga didiskaun berapa & kempen mana
+  const __camps = {};
+  (typeof masterProducts!=='undefined' && Array.isArray(masterProducts) ? masterProducts : []).forEach(pr=>{
+    [['TikTok', pr.tiktok_campaign], ['Shopee', pr.shopee_campaign]].forEach(pair=>{
+      const plat=pair[0], c=pair[1];
+      if(c && c.active){
+        const key = plat+'|'+(c.name||'?')+'|'+(Number(c.discount_value)||0);
+        const g = __camps[key] || (__camps[key] = { platform:plat, name:c.name||'?', disc:Number(c.discount_value)||0, count:0, belowCost:0, skus:[] });
+        g.count++; if(c.below_cost) g.belowCost++; if(g.skus.length<8) g.skus.push(pr.sku);
+      }
+    });
+  });
+  const campList = Object.values(__camps).sort((a,b)=>b.count-a.count);
+  if(!below.length && !belowFloor.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length && !campList.length){ box.innerHTML=''; return; }
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const chip = (bg,txt)=>`<span style="background:${bg};color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:50px;">${txt}</span>`;
   // p1_643 — table helpers + clickable SKU (→ Bulk Edit)
@@ -27843,6 +27856,16 @@ window.__renderIntegrationAlert = async function(){
     </table>
     ${drift.length>12?`<div style="font-size:11px;color:#9ca3af;margin-top:2px;">+${drift.length-12} lagi</div>`:''}
    </div>`:'';
+  // p1_663 — kempen/promo aktif (staf acknowledge harga didiskaun berapa & kempen mana)
+  const campChip = (plat)=> plat==='TikTok'
+    ? '<span style="background:#111827;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;">TT</span>'
+    : '<span style="background:#EE4D2D;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;">SP</span>';
+  const campHtml = campList.length?`
+   <div style="margin-bottom:10px;padding:9px 11px;background:#FBF1E6;border:1px solid #F0C896;border-radius:8px;">
+    <div style="font-size:11px;font-weight:800;color:#7C4A1A;text-transform:uppercase;margin-bottom:5px;">Kempen / promo aktif — harga sedang didiskaun</div>
+    ${campList.map(c=>`<div style="font-size:12px;color:#5E3F0C;padding:3px 0;display:flex;align-items:center;gap:7px;flex-wrap:wrap;border-top:1px solid #F0E0C8;">${campChip(c.platform)} <b>${esc(c.name)}</b> <span style="background:#B23A2E;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:50px;">−${c.disc}%</span> <span style="color:#9ca3af;">${c.count} produk</span>${c.belowCost?`<span style="background:#F4E4DF;color:#B23A2E;font-size:10px;font-weight:800;padding:1px 7px;border-radius:50px;">${c.belowCost} BAWAH KOS!</span>`:''} <span style="color:#bbb;font-size:10px;">cth: ${c.skus.slice(0,4).map(s=>esc(s)).join(', ')}</span></div>`).join('')}
+    <div style="font-size:10.5px;color:#9a8a6a;margin-top:5px;">Harga customer = harga POS − diskaun kempen. Pastikan masih atas kos/floor.</div>
+   </div>`:'';
   box.innerHTML = `
    <div class="dash-card" style="border:1.5px solid #B23A2E; background:#FAF0EE; margin-bottom:var(--space-3); padding:14px 16px;">
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
@@ -27854,6 +27877,7 @@ window.__renderIntegrationAlert = async function(){
      ${below.length?chip('#B23A2E', below.length+' BAWAH KOS'):''}
      ${belowFloor.length?chip('#C68A1A', belowFloor.length+' BAWAH FLOOR 35%'):''}
      ${drift.length?chip('#9E7016', drift.length+' DRIFT harga'):''}
+     ${campList.length?chip('#7C4A1A', campList.length+' KEMPEN AKTIF'):''}
      <span style="margin-left:auto;font-size:11px;color:#9ca3af;">auto tiap 6 jam · resolve = auto hilang</span>
      <button id="__rescanBtn" onclick="window.__rescanIntegration && window.__rescanIntegration()" title="Semak harga live sekarang — issue yang dah resolve akan hilang" style="font-size:11px;font-weight:700;color:#7C2A20;background:#fff;border:1px solid #E3C9C2;border-radius:6px;padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="refresh-cw" style="width:11px;height:11px;"></i> Semak semula</button>
     </div>
@@ -27861,6 +27885,7 @@ window.__renderIntegrationAlert = async function(){
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Token marketplace</div>${tokBad.map(t=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}
     ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;">${skuLink(p.sku)} <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
     ${belowTable}
+    ${campHtml}
     ${belowFloorTable}
     ${driftTable}
     <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">Klik SKU untuk buka di Bulk Edit. Betulkan harga marketplace di Shopee/TikTok Seller Center — POS flag je, tak boleh tukar harga marketplace dari sini.</div>

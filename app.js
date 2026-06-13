@@ -21444,7 +21444,7 @@ window.openPdpModal = function(sku) {
  spStatusEl.innerHTML = `<div style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6;">
   <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke Shopee</div>
   <div><strong>Item ID:</strong> ${String(spItem)} <span style="color:#9CA3AF;">(produk)</span></div>
-  ${spModel ? `<div><strong>Variation ID:</strong> ${String(spModel)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : '<div style="color:#7A5410;">Variation ID variant ni belum ada — stok/harga variant tak sync.</div>'}
+  ${spModel ? `<div><strong>Variation ID:</strong> ${String(spModel)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : ((prod.parent_sku && String(prod.parent_sku).trim()) ? '<div style="color:#7A5410;">Variation ID variant ni belum ada — stok/harga variant tak sync.</div>' : '<div style="color:#345E43;">Produk single (tiada variant) — sync ikut item-level. OK.</div>')}
   <div><strong>Harga Shopee:</strong> ${spPrice != null ? 'RM ' + spPrice.toFixed(2) : '<span style="color:#7A5410;">belum set</span>'}</div>
  </div>`;
  } else {
@@ -21464,7 +21464,7 @@ window.openPdpModal = function(sku) {
  ttStatusEl.innerHTML = `<div style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6;">
   <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke TikTok</div>
   <div><strong>Product ID:</strong> ${String(ttProduct)} <span style="color:#9CA3AF;">(produk)</span></div>
-  ${ttSku ? `<div><strong>SKU ID:</strong> ${String(ttSku)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : '<div style="color:#7A5410;">SKU ID variant ni belum ada — stok/harga variant tak sync.</div>'}
+  ${ttSku ? `<div><strong>SKU ID:</strong> ${String(ttSku)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : ((prod.parent_sku && String(prod.parent_sku).trim()) ? '<div style="color:#7A5410;">SKU ID variant ni belum ada — stok/harga variant tak sync.</div>' : '<div style="color:#345E43;">Produk single (tiada variant) — sync ikut item-level. OK.</div>')}
   <div><strong>Harga TikTok:</strong> ${ttPrice != null ? 'RM ' + ttPrice.toFixed(2) : '<span style="color:#7A5410;">belum set</span>'}</div>
  </div>`;
  } else {

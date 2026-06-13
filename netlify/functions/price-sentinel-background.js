@@ -70,7 +70,7 @@ async function computeTiktok() {
                 detail: `Live ${lp} vs POS ${pos} (beza ${Math.round(Math.abs(lp - pos) / pos * 100)}%)` });
         }
     }
-    return { checked, findings };
+    return { checked, findings, prices: live };
 }
 
 // p1_637 (#2b) — Shopee live prices via get_item_base_info (single) + get_model_list (variants).
@@ -112,13 +112,14 @@ async function computeShopee() {
             if (pi) liveModel[String(m.model_id)] = px(pi);
         }
     }
-    const findings = []; let checked = 0;
+    const findings = []; let checked = 0; const prices = {};
     for (const [item, prods] of Object.entries(byItem)) {
         for (const p of prods) {
             const lv = p.model_id ? liveModel[p.model_id] : liveItem[item];
             if (!lv || !lv.cur) continue;
             checked++;
             const cur = lv.cur, orig = lv.orig || lv.cur;          // cur = actual selling price (post-discount)
+            prices[p.sku] = orig;                                   // p1_700 — base/listing price utk trace history
             const discPct = (orig > 0 && cur < orig) ? Math.round((1 - cur / orig) * 100) : 0;
             if (p.cost > 0 && cur < p.cost) {                       // real selling price below cost
                 findings.push({ sku: p.sku, platform: 'Shopee', flag: 'below_cost', live_price: orig, effective_price: cur, cost: p.cost, pos_price: p.pos, campaign_disc: discPct || null, detail: `Jual RM${cur}${discPct ? ` (${discPct}% off RM${orig})` : ''} < kos RM${p.cost}` });
@@ -129,7 +130,41 @@ async function computeShopee() {
             }
         }
     }
-    return { checked, findings };
+    return { checked, findings, prices };
+}
+
+// p1_700 — Auto-trace: rakam harga LIVE marketplace ke Price History bila berubah dari kali terakhir
+// direkod (sumber 'marketplace-trace'). Tangkap perubahan yang dibuat TERUS di Seller Centre (luar POS)
+// — yg trigger DB POS terlepas. Append-only ke product_price_history (price_type shopee/tiktok).
+async function traceHistory(platform, prices, now) {
+    const ptype = platform === 'TikTok' ? 'tiktok' : 'shopee';
+    const skus = Object.keys(prices || {}).filter(s => Number(prices[s]) > 0);
+    if (!skus.length) return { logged: 0, baseline: 0 };
+    // Harga TRACE terakhir per sku (asingkan dari baris trigger POS supaya tak silap-kira).
+    const seen = {};
+    try {
+        const hist = await tt.sb('GET', `/product_price_history?select=sku,new_price,changed_at&price_type=eq.${ptype}&change_source=in.(%22marketplace-trace%22,%22marketplace-trace-baseline%22)&order=changed_at.desc&limit=20000`);
+        for (const h of (hist || [])) { const k = (h.sku || '').toUpperCase(); if (!(k in seen)) seen[k] = Number(h.new_price); }
+    } catch (e) { /* gagal baca → anggap belum ada; baseline semula (selamat, append-only) */ }
+    // Nama produk (batch)
+    const nameBy = {};
+    for (let i = 0; i < skus.length; i += 200) {
+        const batch = skus.slice(i, i + 200).map(s => `"${s}"`).join(',');
+        try { const nr = await tt.sb('GET', `/products_master?select=sku,name&sku=in.(${batch})`); for (const r of (nr || [])) nameBy[(r.sku || '').toUpperCase()] = r.name; } catch (e) {}
+    }
+    const inserts = [];
+    for (const sku of skus) {
+        const live = round2(prices[sku]);
+        const last = seen[sku];
+        if (last == null) {
+            inserts.push({ sku, product_name: nameBy[sku] || null, old_price: null, new_price: live, delta: null, delta_pct: null, changed_by: platform + ' (auto)', change_source: 'marketplace-trace-baseline', price_type: ptype, changed_at: now });
+        } else if (round2(last) !== live) {
+            const delta = round2(live - last);
+            inserts.push({ sku, product_name: nameBy[sku] || null, old_price: last, new_price: live, delta, delta_pct: (last > 0 ? round2((delta / last) * 100) : null), changed_by: platform + ' (auto)', change_source: 'marketplace-trace', price_type: ptype, changed_at: now });
+        }
+    }
+    for (let i = 0; i < inserts.length; i += 200) await tt.sb('POST', '/product_price_history', inserts.slice(i, i + 200), { Prefer: 'return=minimal' });
+    return { logged: inserts.length, baseline: inserts.filter(x => x.change_source === 'marketplace-trace-baseline').length };
 }
 
 const writeFindings = async (platform, findings, now) => {
@@ -157,6 +192,10 @@ exports.handler = async (event) => {
     }
     if (tkRes) { await writeFindings('TikTok', tkRes.findings, now); out.tiktok = { checked: tkRes.checked, below_cost: cnt(tkRes, 'below_cost'), below_floor: cnt(tkRes, 'below_floor'), drift: cnt(tkRes, 'drift') }; }
     if (spRes) { await writeFindings('Shopee', spRes.findings, now); out.shopee = { checked: spRes.checked, below_cost: cnt(spRes, 'below_cost'), below_floor: cnt(spRes, 'below_floor'), drift: cnt(spRes, 'drift') }; }
+    // p1_700 — auto-trace harga marketplace ke Price History (append-only; log perubahan dari trace terakhir)
+    out.trace = {};
+    try { if (tkRes && tkRes.prices) out.trace.tiktok = await traceHistory('TikTok', tkRes.prices, now); } catch (e) { out.tiktok_trace_error = String(e).slice(0, 200); }
+    try { if (spRes && spRes.prices) out.trace.shopee = await traceHistory('Shopee', spRes.prices, now); } catch (e) { out.shopee_trace_error = String(e).slice(0, 200); }
     out.checked_at = now;
     return json(200, out);
 };

@@ -32107,6 +32107,7 @@ window.I18N = {
  lp_hero_sub_pre: { bm: 'Gear camping & outdoor premium, terus dari', en: 'Premium camping & outdoor gear, supplied directly from' },
  lp_hero_sub_post: { bm: 'jenama dipercayai.', en: 'trusted brands.' },
  lp_foot_buy: { bm: 'Beli Kami Di', en: 'Buy From Us' },
+ lp_foot_follow: { bm: 'Ikuti Kami', en: 'Follow Us' },
  // p1_655 — Reviews / FAQ / Policy / Location sections
  lp_rev_eyebrow: { bm: 'Disukai Pekhemah', en: 'Loved by Campers' },
  lp_rev_h2: { bm: 'Ribuan pelanggan gembira', en: 'Thousands of happy campers' },

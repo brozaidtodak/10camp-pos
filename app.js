@@ -22609,7 +22609,10 @@ window.generateBarcodes = function() {
  const p = masterProducts.find(x => x.sku === sku);
  const productName = p ? p.name : "Produk Am";
  const price = p && p.price ? `RM ${p.price.toFixed(2)}` : "";
- 
+ // p1_691 — encode barcode dari EAN sebenar (erp_barcode) bila ada supaya boleh scan di Cashier
+ // (Cashier padan erp_barcode) + nombor EAN terpapar bawah barcode; fallback SKU bila tiada EAN.
+ const barcodeVal = (p && p.erp_barcode && String(p.erp_barcode).trim()) ? String(p.erp_barcode).trim() : sku;
+
  printArea.innerHTML = ""; // Clear area
  
  for(let i=0; i<qty; i++) {
@@ -22633,7 +22636,13 @@ window.generateBarcodes = function() {
  // Barcode SVG Element
  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
  wrapper.appendChild(svg);
- 
+
+ // p1_691 — SKU jelas (teks bawah barcode kini nombor EAN, jadi SKU diasingkan)
+ const skuLine = document.createElement("div");
+ skuLine.style.cssText = "font-size:11px; font-weight:800; letter-spacing:0.5px; margin-top:1px;";
+ skuLine.innerText = sku;
+ wrapper.appendChild(skuLine);
+
  // Price Tag
  if(price) {
  const priceTag = document.createElement("div");
@@ -22641,7 +22650,13 @@ window.generateBarcodes = function() {
  priceTag.innerText = price;
  wrapper.appendChild(priceTag);
  }
- 
+
+ // p1_691 — nombor turutan label ikut Kuantiti (cth 1 / 3)
+ const seq = document.createElement("div");
+ seq.style.cssText = "font-size:10px; color:#888; margin-top:4px;";
+ seq.innerText = `${i+1} / ${qty}`;
+ wrapper.appendChild(seq);
+
  printArea.appendChild(wrapper);
  
  // Generate Barcode Graphic
@@ -22649,7 +22664,7 @@ window.generateBarcodes = function() {
  if(typeof JsBarcode === 'undefined') {
  throw new Error("JsBarcode library belum dimuatkan.");
  }
- JsBarcode(svg, sku, {
+ JsBarcode(svg, barcodeVal, {
  format: "CODE128",
  width: 1.8,
  height: 40,

@@ -3334,6 +3334,20 @@
  <label class="small-lbl" data-i18n="bc_qty">Kuantiti Label (Keping)</label>
  <input type="number" id="barcodeQtyInput" class="login-input" value="1" min="1" style="margin:0;">
  </div>
+ <div style="flex:1;">
+ <label class="small-lbl">Saiz Label</label>
+ <select id="barcodeSizeInput" class="login-input" style="margin:0;">
+ <option value="60x40">60 × 40 mm</option>
+ <option value="50x30">50 × 30 mm</option>
+ <option value="50x25">50 × 25 mm</option>
+ <option value="40x30">40 × 30 mm</option>
+ <option value="40x25">40 × 25 mm</option>
+ <option value="40x20">40 × 20 mm</option>
+ <option value="38x25">38 × 25 mm</option>
+ <option value="30x20">30 × 20 mm</option>
+ <option value="100x50">100 × 50 mm</option>
+ </select>
+ </div>
  <button class="btn-primary" style="height:42px; padding:0 20px;" onclick="window.generateBarcodes()" data-i18n="bc_generate_btn">Jana Kod Bar</button>
  <button class="btn-success" style="height:42px; padding:0 20px;" onclick="window.printBarcodes()" data-i18n="bc_print_btn">Cetak (Print)</button>
  </div>
@@ -8193,6 +8207,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_695', label:'Barcode Generator — pilihan SAIZ LABEL (Zack nak 60×40mm + tambah saiz biasa). Dropdown #barcodeSizeInput (default 60×40): 60×40, 50×30, 50×25, 40×30, 40×25, 40×20, 38×25, 30×20, 100×50 mm. generateBarcodes guna preset BC_SIZES per saiz — wrapper diset width/height mm + skala barcode (height/width/font) & teks; label kecil auto-buang header/nama/seq/price ikut muat. Print: suntik <style id=bcPrintSize> @page size = saiz label + 1 label/page + .barcode-label-wrapper mm !important (override width:100% style.css) supaya thermal printer cetak tepat. svg max-width:100% elak melebihi. app.js v685->686.', d:'done' },
  { id:'p1_694', label:'Inventory History — tambah lajur "Baki" (running balance unit) dlm Senarai Pergerakan (Zaid: "tambah balance unit"). Tiap baris papar baki stok SELEPAS pergerakan tu (macam baki penyata bank). __ihComputeBalances: per-SKU, anchor pada stok HIDUP semasa (sum qty_remaining), jalan MUNDUR ikut seq — balAfter(terbaru)=stok semasa, balAfter(k)=balAfter(k+1)−signed(k+1). Kaedah backward kebal (tak perlu sejarah lengkap dari sifar, sentiasa padan stok sebenar). r.balAfter dikira sekali masa renderInventoryHistory; lajur Baki di header+row+CSV. app.js v684->685.', d:'done' },
  { id:'p1_693', label:'Inventory History — tambah box ringkasan "Stok Semasa (Live)" (Zaid: "tambah detail box info, stock semasa"). Box ke-5 (id ihKpiStock) papar jumlah inventory_batches.qty_remaining hidup sekarang. Ikut skop carian SKU (cari SKU → stok produk tu; tiada carian → jumlah semua produk) TAPI tak ikut period (stok semasa bukan bergantung tempoh). Ada baris hint skop ("semua produk" / "padan carian" / "N produk padan"). Dikira dalam __ihApply selepas net. app.js v683->684.', d:'done' },
  { id:'p1_692', label:'PDP mobile — tambah balik butang Share (Zack: view baru dah lebih user friendly, "tetapi tiada button share"). Bila redesign full-screen p1_690, bahagian share lama (.lp-pdp__buy > Copy link) tersembunyi di phone. Tambah butang share di header sticky atas (penjuru kanan, ikon share-2) → window.lpPdpShare: native navigator.share (terus ke WhatsApp/IG/sistem) bila ada, fallback lpCopyProductLink (salin pautan ?p=SKU). .lp-pdp__mhead-title flex:1 supaya butang share ke kanan. app.js v682->683; design-tokens.css v100->101.', d:'done' },
@@ -13315,7 +13330,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=685"></script>
+ <script src="app.js?v=686"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

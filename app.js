@@ -22668,52 +22668,83 @@ window.generateBarcodes = function() {
  // (Cashier padan erp_barcode) + nombor EAN terpapar bawah barcode; fallback SKU bila tiada EAN.
  const barcodeVal = (p && p.erp_barcode && String(p.erp_barcode).trim()) ? String(p.erp_barcode).trim() : sku;
 
+ // p1_695 — preset saiz label (mm); skala barcode/teks ikut saiz, buang elemen utk label kecil.
+ const sizeKey = (document.getElementById("barcodeSizeInput") || {}).value || '60x40';
+ const BC_SIZES = {
+  '60x40': { w:60, h:40, pad:2.5, bcH:46, bcW:1.7, bcFont:13, fHead:13, fName:9,  fSku:12, fPrice:14, fSeq:9,  showHeader:1, showName:1, showPrice:1, showSeq:1 },
+  '50x30': { w:50, h:30, pad:1.8, bcH:34, bcW:1.3, bcFont:11, fHead:11, fName:8,  fSku:10, fPrice:12, fSeq:8,  showHeader:1, showName:1, showPrice:1, showSeq:1 },
+  '50x25': { w:50, h:25, pad:1.5, bcH:30, bcW:1.3, bcFont:10, fHead:10, fName:0,  fSku:10, fPrice:12, fSeq:0,  showHeader:1, showName:0, showPrice:1, showSeq:0 },
+  '40x30': { w:40, h:30, pad:1.5, bcH:30, bcW:1.0, bcFont:10, fHead:10, fName:0,  fSku:10, fPrice:12, fSeq:7,  showHeader:1, showName:0, showPrice:1, showSeq:1 },
+  '40x25': { w:40, h:25, pad:1.2, bcH:28, bcW:1.0, bcFont:10, fHead:0,  fName:0,  fSku:10, fPrice:11, fSeq:0,  showHeader:0, showName:0, showPrice:1, showSeq:0 },
+  '40x20': { w:40, h:20, pad:1.0, bcH:22, bcW:1.0, bcFont:9,  fHead:0,  fName:0,  fSku:9,  fPrice:10, fSeq:0,  showHeader:0, showName:0, showPrice:1, showSeq:0 },
+  '38x25': { w:38, h:25, pad:1.2, bcH:27, bcW:0.95,bcFont:10, fHead:0,  fName:0,  fSku:10, fPrice:11, fSeq:0,  showHeader:0, showName:0, showPrice:1, showSeq:0 },
+  '30x20': { w:30, h:20, pad:1.0, bcH:22, bcW:0.85,bcFont:9,  fHead:0,  fName:0,  fSku:9,  fPrice:0,  fSeq:0,  showHeader:0, showName:0, showPrice:0, showSeq:0 },
+  '100x50':{ w:100,h:50, pad:4,   bcH:58, bcW:2.2, bcFont:16, fHead:17, fName:12, fSku:15, fPrice:18, fSeq:11, showHeader:1, showName:1, showPrice:1, showSeq:1 }
+ };
+ const cfg = BC_SIZES[sizeKey] || BC_SIZES['60x40'];
+
+ // Print style ikut saiz: 1 label = 1 page, @page = saiz label (override width:100% style.css via specificity + !important)
+ let pstyle = document.getElementById('bcPrintSize');
+ if(!pstyle) { pstyle = document.createElement('style'); pstyle.id = 'bcPrintSize'; document.head.appendChild(pstyle); }
+ pstyle.textContent = '@media print {'
+  + ' @page { size: ' + cfg.w + 'mm ' + cfg.h + 'mm; margin: 0; }'
+  + ' #printLabelArea { gap: 0 !important; padding: 0 !important; }'
+  + ' #printLabelArea .barcode-label-wrapper { width: ' + cfg.w + 'mm !important; height: ' + cfg.h + 'mm !important; margin: 0 !important; border: none !important; box-sizing: border-box; page-break-after: always; }'
+  + ' }';
+
  printArea.innerHTML = ""; // Clear area
  
  for(let i=0; i<qty; i++) {
  // Create wrapper for thermal roll standard (1 label per row)
  const wrapper = document.createElement("div");
  wrapper.className = "barcode-label-wrapper";
- wrapper.style.cssText = "padding:10px; border:1px solid #ccc; width:240px; text-align:center; background:#fff; font-family:sans-serif;";
- 
- // Header (Store Name)
+ wrapper.style.cssText = `width:${cfg.w}mm; height:${cfg.h}mm; padding:${cfg.pad}mm; box-sizing:border-box; border:1px solid #ccc; text-align:center; background:#fff; font-family:sans-serif; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;`;
+
+ // Header (Store Name) — sembunyi utk label kecil
+ if(cfg.showHeader) {
  const header = document.createElement("div");
- header.style.cssText = "font-weight:900; font-size:14px; margin-bottom:2px;";
+ header.style.cssText = `font-weight:900; font-size:${cfg.fHead}px; line-height:1.1;`;
  header.innerText = "10CAMP STORE";
  wrapper.appendChild(header);
- 
- // Product Name (Truncated if long)
+ }
+
+ // Product Name (Truncated) — sembunyi utk label kecil
+ if(cfg.showName) {
  const title = document.createElement("div");
- title.style.cssText = "font-size:10px; font-weight:bold; margin-bottom:5px; line-height:1.2; height:24px; overflow:hidden;";
- title.innerText = productName.length> 35 ? productName.substring(0, 32) + '...' : productName;
+ title.style.cssText = `font-size:${cfg.fName}px; font-weight:bold; line-height:1.15; max-height:${Math.round(cfg.fName*2.4)}px; overflow:hidden;`;
+ title.innerText = productName.length > 38 ? productName.substring(0, 36) + '…' : productName;
  wrapper.appendChild(title);
- 
- // Barcode SVG Element
+ }
+
+ // Barcode SVG Element (max-width:100% supaya tak melebihi label)
  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+ svg.style.cssText = "max-width:100%; height:auto;";
  wrapper.appendChild(svg);
 
  // p1_691 — SKU jelas (teks bawah barcode kini nombor EAN, jadi SKU diasingkan)
  const skuLine = document.createElement("div");
- skuLine.style.cssText = "font-size:11px; font-weight:800; letter-spacing:0.5px; margin-top:1px;";
+ skuLine.style.cssText = `font-size:${cfg.fSku}px; font-weight:800; letter-spacing:0.5px; line-height:1.1;`;
  skuLine.innerText = sku;
  wrapper.appendChild(skuLine);
 
  // Price Tag
- if(price) {
+ if(cfg.showPrice && price) {
  const priceTag = document.createElement("div");
- priceTag.style.cssText = "font-weight:bold; font-size:14px; margin-top:3px;";
+ priceTag.style.cssText = `font-weight:bold; font-size:${cfg.fPrice}px; line-height:1.1;`;
  priceTag.innerText = price;
  wrapper.appendChild(priceTag);
  }
 
  // p1_691 — nombor turutan label ikut Kuantiti (cth 1 / 3)
+ if(cfg.showSeq) {
  const seq = document.createElement("div");
- seq.style.cssText = "font-size:10px; color:#888; margin-top:4px;";
+ seq.style.cssText = `font-size:${cfg.fSeq}px; color:#888; line-height:1.1;`;
  seq.innerText = `${i+1} / ${qty}`;
  wrapper.appendChild(seq);
+ }
 
  printArea.appendChild(wrapper);
- 
+
  // Generate Barcode Graphic
  try {
  if(typeof JsBarcode === 'undefined') {
@@ -22721,11 +22752,11 @@ window.generateBarcodes = function() {
  }
  JsBarcode(svg, barcodeVal, {
  format: "CODE128",
- width: 1.8,
- height: 40,
+ width: cfg.bcW,
+ height: cfg.bcH,
  displayValue: true,
- fontSize: 12,
- margin: 5
+ fontSize: cfg.bcFont,
+ margin: 2
  });
  } catch(e) {
  console.error("Barcode generation failed:", e);

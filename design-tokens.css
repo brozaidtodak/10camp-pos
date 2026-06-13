@@ -903,9 +903,10 @@ html[lang="en"] .lp-product-card__price--off::before { content: 'Save '; }
 .lp-pdp__close:hover { background: #F3F4F6; transform: rotate(90deg); }
 .lp-pdp__body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 @media (max-width: 768px) {
-  .lp-pdp__body { grid-template-columns: 1fr; }
+  /* p1_687/p1_688 — phone: body jadi satu kawasan scroll dgn max-height SENDIRI (deterministik,
+     elak bug iOS Safari flex child tak scroll bila parent guna max-height) + momentum scroll */
+  .lp-pdp__body { grid-template-columns: 1fr; max-height: calc(100vh - 20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .lp-pdp { max-height: calc(100vh - 20px); }
-  /* p1_687 — phone: satu kawasan scroll je (body), elak scroll bersarang + kandungan terpotong */
   .lp-pdp__info { overflow-y: visible; padding: 18px; }
   .lp-pdp__gallery { padding: 14px; }
   .lp-pdp__main-img { aspect-ratio: 4 / 3; }

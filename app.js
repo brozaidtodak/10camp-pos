@@ -8962,6 +8962,18 @@ function renderInventoryGrid(products) {
  const title = isGroup ? __invCleanTitle(p.name) : (p.name || 'Untitled');
  const skuLine = isGroup ? (p.parent_sku || p.sku) : p.sku;
  const variantBadge = isGroup ? `<span class="inv-card__badge" style="left:8px; right:auto; background:#101010; color:#fff;">${list.length} variants</span>` : '';
+ // p1_685 — kad bervariant papar harga SETIAP variant (ikut harga menaik); font mengecil bila banyak
+ const variantPriceList = isGroup ? (() => {
+ const n = list.length;
+ const fs = n >= 12 ? 8 : (n >= 8 ? 9 : (n >= 5 ? 10.5 : 12));
+ const rows = list.slice()
+ .sort((a, b) => (parseFloat(a.price || 0) - parseFloat(b.price || 0)))
+ .map(v => {
+ const lbl = hesc(v.variant_color || v.variant_size || v.sku || '—');
+ return `<div style="display:flex; justify-content:space-between; gap:8px; line-height:1.5;"><span style="color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lbl}</span><span style="font-weight:800; color:#111827; flex-shrink:0;">${fmt(parseFloat(v.price || 0))}</span></div>`;
+ }).join('');
+ return `<div style="width:100%; font-size:${fs}px; max-height:150px; overflow-y:auto;">${rows}</div>`;
+ })() : '';
  html += `
  <button type="button" class="inv-card" data-sku="${p.sku}" onclick="window.openPdpModal('${skuEsc}')">
  <div class="inv-card__media">
@@ -8978,14 +8990,14 @@ function renderInventoryGrid(products) {
  <h3 class="inv-card__name">${hesc(title)}</h3>
  ${window.__campaignBadge(list) ? '<div style="margin:3px 0 0;">'+window.__campaignBadge(list)+'</div>' : ''}
  <div class="inv-card__footer">
- <div class="inv-card__price-wrap">
+ ${isGroup ? variantPriceList : `<div class="inv-card__price-wrap">
  <small>Cost ${fmt(cost)}</small>
  <strong>${fmt(price)}</strong>
  </div>
  <div class="inv-card__loc" title="Lokasi gudang">
  <i data-lucide="map-pin"></i>
  <span>${p.location_bin || '—'}</span>
- </div>
+ </div>`}
  </div>
  </div>
  </button>

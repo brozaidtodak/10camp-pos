@@ -30703,6 +30703,8 @@ window.renderProductDatabase = function() {
  return Object.assign({}, lead, {
  __vcount: g.length,
  __gstock: gstock,
+ // p1_686 — senarai harga setiap variant (susun menaik) utk papar dalam kad
+ __variants: g.map(v => ({ label: v.variant_color || v.variant_size || v.sku || '—', price: Number(v.price || 0) })).sort((a, b) => a.price - b.price),
  __cleanName: g.length > 1 ? (String(lead.name || '').split('—')[0].trim() || lead.name) : (lead.name || '')
  });
  });
@@ -30778,7 +30780,9 @@ window.renderProductDatabase = function() {
  <span class="pd-card__brand">${hesc(p.brand || p.category || '·')}</span>
  <span class="pd-card__title">${hesc(((isGrp ? p.__cleanName : p.name) || '').slice(0, 90))}${isGrp ? ` <span style="background:#101010; color:#fff; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:800; white-space:nowrap;">${p.__vcount} variants</span>` : ''}</span>
  <span class="pd-card__sku">${hesc(isGrp ? (p.parent_sku || p.sku) : p.sku)}${(!isGrp && p.location_bin) ? ` · <span style="background:#F8EFD7; color:#7A5410; padding:1px 6px; border-radius:3px; font-size:9.5px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${hesc(p.location_bin)}</span>` : ''}</span>
- <span class="pd-card__price">RM ${(p.price || 0).toFixed(2)}${window.__marginTagHtml ? window.__marginTagHtml(p.price, p.cost_price) : ''}</span>
+ ${isGrp
+ ? `<div class="pd-card__varprices" style="width:100%; font-size:${p.__vcount >= 12 ? 8 : (p.__vcount >= 8 ? 9 : (p.__vcount >= 5 ? 10.5 : 12))}px; max-height:150px; overflow-y:auto; margin-top:3px;">${p.__variants.map(v => `<div style="display:flex; justify-content:space-between; gap:8px; line-height:1.5;"><span style="color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${hesc(v.label)}</span><span style="font-weight:800; color:#101010; flex-shrink:0;">RM ${v.price.toFixed(2)}</span></div>`).join('')}</div>`
+ : `<span class="pd-card__price">RM ${(p.price || 0).toFixed(2)}${window.__marginTagHtml ? window.__marginTagHtml(p.price, p.cost_price) : ''}</span>`}
  </div>
  <div class="pd-card__footer">
  <span>${hesc(p.category || '—')}</span>

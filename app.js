@@ -22737,9 +22737,10 @@ window.generateBarcodes = function() {
  wrapper.appendChild(title);
  }
 
- // Barcode SVG Element (max-width:100% supaya tak melebihi label)
+ // Barcode SVG Element — p1_697: hadkan lebar ~84% (lebih kecil dari label) supaya bar tak cecah
+ // tepi & print tak terpotong/cacat walaupun penjajaran printer sedikit terpesong.
  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
- svg.style.cssText = "max-width:100%; height:auto;";
+ svg.style.cssText = "max-width:84%; height:auto;";
  wrapper.appendChild(svg);
 
  // p1_691 — SKU jelas (teks bawah barcode kini nombor EAN, jadi SKU diasingkan)
@@ -22756,10 +22757,12 @@ window.generateBarcodes = function() {
  wrapper.appendChild(priceTag);
  }
 
- // p1_691 — nombor turutan label ikut Kuantiti (cth 1 / 3)
+ // p1_691/p1_697 — nombor turutan label ikut Kuantiti (cth 1 / 3) — DITONJOLKAN (rujukan utama FIFO):
+ // pill bold gelap supaya staf nampak susunan label sewaktu proses FIFO.
  if(cfg.showSeq) {
+ const seqFs = Math.max(11, Math.round((cfg.fSeq || 9) * 1.5));
  const seq = document.createElement("div");
- seq.style.cssText = `font-size:${cfg.fSeq}px; color:#888; line-height:1.1;`;
+ seq.style.cssText = `font-size:${seqFs}px; font-weight:900; color:#101010; line-height:1; background:#FBEFE2; border:1px solid #E7C8A8; border-radius:5px; padding:2px 10px; margin-top:2px; letter-spacing:0.3px;`;
  seq.innerText = `${i+1} / ${qty}`;
  wrapper.appendChild(seq);
  }

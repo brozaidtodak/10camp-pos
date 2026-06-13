@@ -2430,11 +2430,30 @@ window.renderSocialMedia = async function(){
    + metric('Views',vw.toLocaleString()) + metric('Likes',lk.toLocaleString()) + metric('Engage',eng) + metric('Leads',ld,'var(--primary)')
    + (c.link?('<a href="'+E(c.link)+'" target="_blank" style="font-size:11px;color:var(--primary);font-weight:700;text-decoration:none;margin-left:4px;">Tengok</a>'):'')+'</div>';
  }).join('') : '<p style="color:#9CA3AF;font-size:12px;padding:14px 0;text-align:center;">Tiada kandungan disiarkan dalam tempoh ni. Tandakan "posted" + isi Views/Likes/Leads di Content Schedule.</p>';
+ // p1_707 — Attribution: jualan POS ikut lead_source yang cashier rekod masa checkout
+ const socialSet = { Instagram:'#C13584', Facebook:'#1877F2', TikTok:'#111', WhatsApp:'#25D366' };
+ const isReal = window.__isRealSale || function(){ return true; };
+ const attr = {};
+ ((typeof salesHistory!=='undefined' && Array.isArray(salesHistory)) ? salesHistory : []).forEach(function(s){
+  if(!s || !s.lead_source || !isReal(s)) return;
+  const t = new Date(s.created_at||0).getTime(); if(t<rg.from || t>rg.to) return;
+  const k = s.lead_source; attr[k]=attr[k]||{n:0,rm:0}; attr[k].n++; attr[k].rm += Number(s.total||s.total_amount||0);
+ });
+ const attrKeys = Object.keys(attr).sort(function(a,b){ return attr[b].rm-attr[a].rm; });
+ const attrTotal = attrKeys.reduce(function(s,k){ return s+attr[k].rm; }, 0);
+ const socialRm = attrKeys.filter(function(k){ return socialSet[k]; }).reduce(function(s,k){ return s+attr[k].rm; }, 0);
+ const attrRows = attrKeys.length ? attrKeys.map(function(k){
+  const a=attr[k], col=socialSet[k]||'#6B7280', isSoc=!!socialSet[k], pct=attrTotal>0?Math.round(a.rm/attrTotal*100):0;
+  return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;"><span style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0;"></span><span style="flex:1;font-size:13px;font-weight:'+(isSoc?'800':'600')+';color:'+(isSoc?col:'#374151')+';">'+E(k)+(isSoc?' <span style="font-size:8.5px;background:'+col+';color:#fff;padding:1px 5px;border-radius:4px;">sosial</span>':'')+'</span><span style="font-size:12px;color:#9CA3AF;">'+a.n+' order</span><strong style="font-size:13px;min-width:92px;text-align:right;">RM '+a.rm.toFixed(2)+'</strong><span style="font-size:11px;color:#9CA3AF;min-width:36px;text-align:right;">'+pct+'%</span></div>';
+ }).join('') : '<p style="color:#9CA3AF;font-size:12px;padding:14px 0;text-align:center;">Belum ada data sumber. Cashier pilih "Sumber pelanggan" masa checkout → attribution muncul di sini.</p>';
+ const attrCard = '<div class="admin-card" style="padding:16px;margin-bottom:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px;"><strong style="font-size:13px;"><i data-lucide="git-merge" style="width:14px;height:14px;vertical-align:-2px;"></i> Sumber Jualan (Attribution)</strong>'+(attrTotal>0?'<span style="font-size:11px;color:#345E43;font-weight:800;">Sosial bawa RM '+socialRm.toFixed(2)+' dari RM '+attrTotal.toFixed(2)+'</span>':'')+'</div><p style="font-size:10.5px;color:#9CA3AF;margin:0 0 8px;">Jualan POS (walk-in) ikut sumber yang cashier rekod masa checkout. Tempoh ikut pilihan atas.</p>'+attrRows+'</div>';
+
  body.innerHTML = '<div class="rp-wrap">'
   + '<div class="rp-header" style="margin-bottom:6px;"><div><h2 class="rp-title"><i data-lucide="share-2" style="width:22px;height:22px;color:var(--primary);"></i> Social Media</h2><p class="rp-subtitle">Followers, views, engagement + trend mingguan TikTok/IG/FB. Isi nombor terus di bawah (Input Mingguan Pantas).</p></div></div>'
   + window.__mktPills(window.__mktRangeSocial, 'window.__mktSetSocialRange')
   + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:18px;">'+cards+'</div>'
   + quickInput
+  + attrCard
   + '<div class="admin-card" style="padding:16px;margin-bottom:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><strong style="font-size:13px;"><i data-lucide="link" style="width:14px;height:14px;vertical-align:-2px;"></i> Direktori Akaun</strong><button onclick="window.__mktSaveAccounts()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">Simpan</button></div>'+accRow+'</div>'
   + '<div class="admin-card" style="padding:16px;"><strong style="font-size:13px;"><i data-lucide="trending-up" style="width:14px;height:14px;vertical-align:-2px;"></i> Top Posts — Prestasi Kandungan</strong><div style="margin-top:10px;">'+postedList+'</div></div>'
   + '</div>';
@@ -13175,6 +13194,8 @@ window.clearCart = function() {
  try { window.posDetachCustomer(); } catch(e){}
  // p1_383 — reset resit pre-snap bila cart clear (mula sale baru / lepas sale siap)
  try { if(typeof window.__proofClearFile === 'function') window.__proofClearFile(); } catch(e){}
+ // p1_707 — reset selektor sumber pelanggan
+ try { const __ls=document.getElementById('cashierLeadSource'); if(__ls) __ls.value=''; } catch(e){}
  renderCart();
 }
 
@@ -13730,6 +13751,7 @@ window.processNewCheckout = async function() {
  total: finalTotal, total_amount: finalTotal, items: cart,
  staff_name: currentUser ? currentUser.name : 'Unknown',
  buyer_tin: buyerTin || null,
+ lead_source: (document.getElementById('cashierLeadSource') && document.getElementById('cashierLeadSource').value) || null,
  metadata: Object.keys(saleMeta).length ? saleMeta : null,
  payment_proof_url: proofUrl,
  payment_proof_uploaded_at: proofUploadedAt,

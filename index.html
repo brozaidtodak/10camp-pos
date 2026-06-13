@@ -495,6 +495,19 @@
  <input type="email" id="customerEmail" class="login-input" style="margin-bottom:5px; padding:12px; border-color:#fdba74; background:#fff8f0;" placeholder="Alamat E-mel (Untuk Auto-Resit)">
  <input type="text" id="customerBuyerTin" class="login-input" style="margin-top:5px; margin-bottom:5px; padding:12px;" placeholder="Buyer TIN (B2B sahaja — pilihan, untuk e-Invoice)" autocomplete="off">
  <small style="color:#64748b; font-size:10px; display:block;">* TIN diperlukan kalau customer business yang nak claim invoice. Tinggal kosong untuk B2C.</small>
+ <!-- p1_707 — Sumber pelanggan utk attribution sosial->jualan -->
+ <select id="cashierLeadSource" class="login-input" style="margin-top:8px; padding:12px;">
+ <option value="">Sumber pelanggan — dari mana tahu kedai? (pilihan)</option>
+ <option value="Walk-in">Walk-in / Lalu depan kedai</option>
+ <option value="Instagram">Instagram</option>
+ <option value="Facebook">Facebook</option>
+ <option value="TikTok">TikTok</option>
+ <option value="WhatsApp">WhatsApp</option>
+ <option value="Google">Google / Search</option>
+ <option value="Referral">Kawan / Referral</option>
+ <option value="Repeat">Repeat customer</option>
+ <option value="Lain-lain">Lain-lain</option>
+ </select>
  </div>
 
  <div style="background:#FAFAFA; padding:15px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:14px;">
@@ -8263,6 +8276,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_707', label:'Marketing > Social Media — FASA 3 Lead->Sales Attribution (Zaid pilih Option B: rekod sumber masa checkout). DB: sales_history + kolum lead_source. Checkout Cashier: selektor "Sumber pelanggan — dari mana tahu kedai?" (Walk-in/Instagram/Facebook/TikTok/WhatsApp/Google/Referral/Repeat/Lain-lain) dlm seksyen CRM; disimpan ke sales_history.lead_source masa insert; reset dlm clearCart. Social Media page: kad "Sumber Jualan (Attribution)" — group jualan POS real ikut lead_source dlm tempoh, papar order count + RM + %, highlight sumber sosial (IG/FB/TikTok/WA) + ringkasan "Sosial bawa RM X dari RM Y". Data mula terkumpul bila cashier guna selektor. app.js v694->695.', d:'done' },
  { id:'p1_706', label:'Marketing > Social Media — FASA 2 Content Performance. DB: marketing_content + kolum views/likes/leads (default 0). Modal Tambah/Edit Kandungan: tambah input Prestasi (Views/Likes/Leads) — staff isi bila dah siar (__mktSaveContent simpan). Social Media page: "Kandungan Terkini" → "Top Posts — Prestasi Kandungan": tarik posted (limit 60), tapis ikut tempoh dipilih, susun ikut Views desc, top 10, papar metrik Views/Likes/Engage%/Leads + platform + SKU produk + link Tengok. Guna data manual (sama prinsip Fasa 1). app.js v693->694.', d:'done' },
  { id:'p1_705', label:'Marketing > Social Media — FASA 1 dashboard (Zaid pilih semua 4 fokus: input mudah+trend, content perf, auto-API, attribution; auto-API blocked Meta jadi buat yg boleh dulu). FASA 1 (tiada API): (1) Input Mingguan Pantas INLINE terus di page Social Media — Posts/Views/Likes/Leads + FOLLOWERS per platform, pilih minggu, Simpan (upsert staff_report_submissions marketing_weekly, merge preserve notes). (2) Kad dipertingkat: Followers (latest dlm tempoh) + growth vs tempoh lalu, Engagement % (likes/views), + Posts/Views/Likes/Leads. (3) Graf sparkline Views 8 minggu per platform. Helper __smLatestFollowers/__smWeekViews/__smSpark/__smLoadWeekInputs/__smSaveWeek. FASA 2-4 (menyusul): content performance per post, lead→sales attribution; auto-pull IG/FB/TikTok bila Meta app+approval siap. app.js v692->693.', d:'done' },
  { id:'p1_704', label:'Footer landing — tambah "Ikuti Kami" social follow (Zaid dah isi link di Direktori Akaun Social Media; tapi itu localStorage admin sahaja, customer tak nampak). Tambah ikon IG/FB/TikTok dlm kolum brand footer (link sebenar: instagram.com/10campofficial, facebook.com/p/10-Camp-Store-61558971968591, tiktok.com/@10campofficial — Shopee/WA dah ada di "Beli Kami Di"). Hardcode dlm footer (kongsi DOM dgn Preview Mode → parity auto). i18n lp_foot_follow (Ikuti Kami/Follow Us). app.js v691->692.', d:'done' },
@@ -13397,7 +13411,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=694"></script>
+ <script src="app.js?v=695"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

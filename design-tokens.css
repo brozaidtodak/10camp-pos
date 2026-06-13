@@ -901,8 +901,16 @@ html[lang="en"] .lp-product-card__price--off::before { content: 'Save '; }
 .lp-pdp { background: #FFF; border-radius: 16px; width: 100%; max-width: 980px; max-height: calc(100vh - 40px); overflow: hidden; position: relative; box-shadow: 0 24px 48px rgba(0,0,0,0.25); display: flex; flex-direction: column; }
 .lp-pdp__close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.95); border: 1px solid #E5E7EB; font-size: 20px; cursor: pointer; z-index: 5; display: flex; align-items: center; justify-content: center; color: #111827; transition: 0.2s; line-height: 1; }
 .lp-pdp__close:hover { background: #F3F4F6; transform: rotate(90deg); }
-.lp-pdp__body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow-y: auto; }
-@media (max-width: 768px) { .lp-pdp__body { grid-template-columns: 1fr; } .lp-pdp { max-height: calc(100vh - 20px); } }
+.lp-pdp__body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+@media (max-width: 768px) {
+  .lp-pdp__body { grid-template-columns: 1fr; }
+  .lp-pdp { max-height: calc(100vh - 20px); }
+  /* p1_687 — phone: satu kawasan scroll je (body), elak scroll bersarang + kandungan terpotong */
+  .lp-pdp__info { overflow-y: visible; padding: 18px; }
+  .lp-pdp__gallery { padding: 14px; }
+  .lp-pdp__main-img { aspect-ratio: 4 / 3; }
+  .lp-pdp__thumb { width: 54px; height: 54px; }
+}
 .lp-pdp__gallery { padding: 24px; background: #F9FAFB; display: flex; flex-direction: column; gap: 12px; }
 .lp-pdp__main-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; background: #FFF; }
 .lp-pdp__thumbs { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -20323,31 +20323,18 @@ window.renderCommissionReport = function() {
  });
  const usersByName = {};
  if(typeof authUsers !== 'undefined' && Array.isArray(authUsers)) authUsers.forEach(u => { usersByName[u.name] = u; });
- // p1_740 — komisen Kaedah A (rekod rasmi) utk bulan-bulan dlm tempoh → bulan lepas pun ada staf
- const kaA = {};
- (window.__commHist || []).forEach(r => {
- if(r.method !== 'A' || /house/i.test(r.staff_name || '')) return;
- if(range.start && range.end) {
- const t = new Date(r.period_year, (r.period_month || 1) - 1, 15).getTime();
- if(!(t >= range.start.getTime() && t <= range.end.getTime())) return;
- }
- kaA[r.staff_name] = round2((kaA[r.staff_name] || 0) + Number(r.amount_rm || 0));
- });
- // union staf POS (buang '—' tak ber-attribution) + staf Kaedah A
- const names = new Set([...Object.keys(byStaff).filter(n => n !== '—'), ...Object.keys(kaA)]);
- const rows = [...names].map(name => {
- const b = byStaff[name] || { gross:0, refunds:0, orders:0, refundCount:0 };
- const net = round2(b.gross - b.refunds);
- const rate = __getCommissionRate(name);
- const posComm = round2(net * rate / 100);
- const aComm = round2(kaA[name] || 0);
- const comm = round2(posComm + aComm);
- const u = usersByName[name];
- return { name, gross:b.gross, refunds:b.refunds, orders:b.orders||0, refundCount:b.refundCount||0, net, rate, posComm, aComm, comm, staffId: u ? u.staff_id : null, live: round2(liveBase[name] || 0) };
+ // p1_741 — Kaedah B = kiraan POS tulen dari sales_history (staff_name dah di-backfill dari EasyStore
+ // utk era Feb-Mei 2026) + live_sessions. Tiada lagi merge Kaedah A (elak double-count). Buang '—' (online tak ber-attribution).
+ const rows = Object.values(byStaff).filter(r => r.name !== '—').map(r => {
+ const net = round2(r.gross - r.refunds);
+ const rate = __getCommissionRate(r.name);
+ const comm = round2(net * rate / 100);
+ const u = usersByName[r.name];
+ return { ...r, net, rate, comm, aComm: 0, staffId: u ? u.staff_id : null, live: round2(liveBase[r.name] || 0) };
  }).sort((a,b) => b.comm - a.comm);
 
- let totNet = 0, totComm = 0, totOrders = 0, totA = 0;
- rows.forEach(r => { totNet = round2(totNet + r.net); totComm = round2(totComm + r.comm); totOrders += r.orders; totA = round2(totA + r.aComm); });
+ let totNet = 0, totComm = 0, totOrders = 0;
+ rows.forEach(r => { totNet = round2(totNet + r.net); totComm = round2(totComm + r.comm); totOrders += r.orders; });
 
  const fmt = (n) => 'RM ' + Number(n).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
  const pill = (r, lbl) => '<button class="cm-pill' + (window.__crRange === r ? ' active' : '') + '" onclick="window.__crSetRange(\'' + r + '\', this)" style="background:' + (window.__crRange===r?'#CD7C32':'#fff') + '; color:' + (window.__crRange===r?'#fff':'#374151') + '; border:1px solid ' + (window.__crRange===r?'#CD7C32':'#E5E7EB') + '; padding:6px 13px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; margin-right:6px;">' + lbl + '</button>';
@@ -20368,7 +20355,7 @@ window.renderCommissionReport = function() {
  }).join('') : '<tr><td colspan="5" style="text-align:center; padding:28px; color:#9CA3AF;">Tiada data staf untuk tempoh ni. (Bulan lama tanpa rekod Kaedah A & tanpa attribution POS.)</td></tr>';
 
  host.innerHTML = __methodTabs +
- '<div style="background:#FEF3E2; border:1px solid #E7C8A8; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:12px; color:#7c4a1a;"><strong>Kaedah B (eksperimen):</strong> bulan semasa = kiraan POS live (+ live TikTok). Bulan lama = komisen diambil dari <strong>Kaedah A</strong> (rekod rasmi Aliff). Baris tak ber-attribution disorok.</div>' +
+ '<div style="background:#FEF3E2; border:1px solid #E7C8A8; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:12px; color:#7c4a1a;"><strong>Kaedah B:</strong> kiraan POS dari sales (staff-attribute EasyStore di-backfill Feb-Mei 2026) + live TikTok. Online tanpa attribution disorok. Untuk rekod RASMI 2025-Apr2026, lihat Kaedah A.</div>' +
  window.__crLiveSessionsHtml() +
  '<h3 style="margin:4px 0 14px; font-size:14px; font-weight:800;">Kiraan POS <span style="font-size:13px; font-weight:600; color:#9CA3AF;">· ' + esc(range.label) + '</span></h3>' +
  '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">' +

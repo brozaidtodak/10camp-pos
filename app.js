@@ -20632,9 +20632,9 @@ window.__cmShowStaffSales = function(staffName) {
  const dt = ls.session_date ? new Date(ls.session_date + 'T12:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'}) : '-';
  return `<tr style="background:#FBF7EC;">
  <td style="padding:9px 10px; white-space:nowrap;">${esc(dt)}</td>
- <td style="padding:9px 10px; font-family:monospace; font-size:11.5px; color:var(--primary); font-weight:700;">LIVE</td>
- <td style="padding:9px 10px;">${ls.items_sold ? esc(ls.items_sold) + ' items' : '—'}</td>
- <td style="padding:9px 10px; font-size:11.5px;"><i data-lucide="radio" style="width:11px;height:11px;vertical-align:-1px;"></i> TikTok Live</td>
+ <td style="padding:9px 10px; font-size:10.5px; color:var(--primary); font-weight:800; white-space:nowrap;"><i data-lucide="radio" style="width:11px;height:11px;vertical-align:-1px;"></i> SESI LIVE</td>
+ <td style="padding:9px 10px; font-size:11.5px;">Jumlah live sehari${ls.items_sold ? ' · ' + esc(ls.items_sold) + ' items' : ''}<div style="font-size:10px; color:#9CA3AF;">agregat rekod TikTok</div></td>
+ <td style="padding:9px 10px; font-size:11.5px;">TikTok Live</td>
  <td style="padding:9px 10px; text-align:right; font-weight:700;">RM ${amt.toFixed(2)}</td>
  <td style="padding:9px 10px; text-align:right; font-weight:700; color:var(--primary);">RM ${comm.toFixed(2)}</td>
  <td style="padding:9px 10px;"></td>

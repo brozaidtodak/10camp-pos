@@ -20947,12 +20947,38 @@ window.saveMasterProduct = async function() {
  const sku = get('mpSku').toUpperCase();
  const price = getNum('mpPrice');
 
- if(!name || !sku || price == null || isNaN(price)) {
- return showToast('Nama, SKU, Harga Jualan wajib diisi.', 'warn');
+ // p1_724 #4 — highlight field wajib yang kosong + skrol ke yang pertama (ganti toast je)
+ const __req = [
+ { id: 'mpName', ok: !!name },
+ { id: 'mpSku', ok: !!sku },
+ { id: 'mpPrice', ok: !(price == null || isNaN(price)) }
+ ];
+ document.querySelectorAll('#masterProductFormCard .mp-invalid').forEach(el => el.classList.remove('mp-invalid'));
+ const __missing = __req.filter(r => !r.ok);
+ if(__missing.length) {
+ __missing.forEach(r => {
+ const el = document.getElementById(r.id);
+ if(el) {
+ el.classList.add('mp-invalid');
+ el.addEventListener('input', function __clr(){ el.classList.remove('mp-invalid'); el.removeEventListener('input', __clr); });
+ }
+ });
+ const first = document.getElementById(__missing[0].id);
+ if(first) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { first.focus({ preventScroll: true }); } catch(e){} }
+ return showToast('Sila isi field wajib (*): ' + __missing.map(r => ({ mpName:'Nama', mpSku:'SKU', mpPrice:'Harga Jualan' }[r.id])).join(', '), 'warn');
  }
 
  const existingProd = masterProducts.find(p => p.sku === sku);
  const isEdit = !!existingProd;
+
+ // p1_724 #1 — guard SKU pendua: kalau SKU dah wujud TAPI borang bukan dlm mode edit
+ // (user taip SKU sedia ada dlm mode Baru), minta confirm sebelum tindih.
+ const __skuLocked = document.getElementById('mpSku')?.readOnly === true;
+ if(existingProd && !__skuLocked) {
+ const ok = confirm('SKU "' + sku + '" DAH WUJUD' + (existingProd.name ? ' (' + existingProd.name + ')' : '') +
+ '.\n\nSave akan TINDIH / UPDATE produk sedia ada ini, BUKAN cipta baru.\n\nTeruskan?');
+ if(!ok) return;
+ }
 
  const imageUrl = get('mpImageUrl');
  // p1_718 — sokong banyak gambar (mpImageUrls CSV); fallback ke mpImageUrl tunggal
@@ -21225,6 +21251,11 @@ window.loadMasterProductForEdit = async function() {
  // Lock SKU field (cannot rename via this flow)
  const skuField = document.getElementById('mpSku');
  if(skuField) { skuField.readOnly = true; skuField.style.background = '#F3F4F6'; }
+ // p1_724 #6 — tajuk jadi mode edit + #2 papar margin + sembunyi amaran dup
+ const ttl = document.getElementById('mpFormTitle'); if(ttl) { ttl.removeAttribute('data-i18n'); ttl.textContent = 'Edit Produk: ' + sku; }
+ const lbl = document.getElementById('mpSaveBtnLabel'); if(lbl) lbl.textContent = 'Simpan Perubahan';
+ if(window.mpUpdateMargin) window.mpUpdateMargin();
+ if(window.mpCheckSkuDup) window.mpCheckSkuDup();
  showToast(`Loaded ${sku} — edit semua field, klik Daftar untuk simpan.`, 'success');
  // Scroll to form
  document.getElementById('mpName')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -21243,6 +21274,11 @@ window.clearMpForm = function() {
  if(skuField) { skuField.readOnly = false; skuField.style.background = ''; }
  if(window.mpRenderGallery) window.mpRenderGallery(); // p1_718 — kosongkan thumbnail galeri
  if(window.mpVariantsReset) window.mpVariantsReset(); // p1_719 — reset variant builder
+ // p1_724 — reset tajuk + sembunyi margin/amaran + buang highlight wajib
+ const ttl = document.getElementById('mpFormTitle'); if(ttl) { ttl.setAttribute('data-i18n', 'wh_register_title'); ttl.textContent = 'Daftar Produk Baru'; }
+ const lbl = document.getElementById('mpSaveBtnLabel'); if(lbl) lbl.textContent = 'Save Produk';
+ ['mpMarginLive','mpSkuDupWarn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+ document.querySelectorAll('#masterProductFormCard .mp-invalid').forEach(el => el.classList.remove('mp-invalid'));
 };
 
 // p1_226 — Delete master product (with safety checks)
@@ -21433,7 +21469,7 @@ window.mpRebuildVariantTable = function() {
  const p = prev[label] || {};
  return '<tr data-combo="' + __MP_ESC(label) + '">' +
  '<td class="mpv-label"><span class="mp-vlabel">' + __MP_ESC(label) + '</span></td>' +
- '<td><input class="mpv-sku" type="text" placeholder="SKU" value="' + __MP_ESC(p.sku) + '"></td>' +
+ '<td><input class="mpv-sku" type="text" placeholder="SKU" value="' + __MP_ESC(p.sku) + '" oninput="window.mpVariantSkuStatus && window.mpVariantSkuStatus()"></td>' +
  '<td><input class="mpv-price" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.price) + '"></td>' +
  '<td><input class="mpv-compare" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.compare) + '"></td>' +
  '<td><input class="mpv-cost" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.cost) + '"></td>' +
@@ -21441,7 +21477,9 @@ window.mpRebuildVariantTable = function() {
  '<td><input class="mpv-qty" type="number" min="0" placeholder="0" value="' + __MP_ESC(p.qty) + '"></td>' +
  '</tr>';
  }).join('');
- wrap.innerHTML = '<table class="mp-vtable">' + head + '<tbody>' + rows + '</tbody></table>';
+ wrap.innerHTML = '<p id="mpVariantCount" style="font-size:11.5px; font-weight:600; margin:0 0 8px;"></p>' +
+ '<table class="mp-vtable">' + head + '<tbody>' + rows + '</tbody></table>';
+ if(window.mpVariantSkuStatus) window.mpVariantSkuStatus();
 };
 // Kumpul baris variant utk save → [{label, options{}, sku, price, compare, cost, barcode, qty}]
 window.__mpCollectVariantRows = function() {
@@ -21510,6 +21548,58 @@ window.mpVariantRenderFromData = function() {
 };
 // Backward-compat
 window.mpAddVariantOption = function() { window.mpVariantsOpen(); };
+
+// p1_724 #1 — amaran live bila SKU yang ditaip dah wujud (mode Baru sahaja)
+window.mpCheckSkuDup = function() {
+ const el = document.getElementById('mpSkuDupWarn');
+ const skuEl = document.getElementById('mpSku');
+ if(!el || !skuEl) return;
+ if(skuEl.readOnly) { el.style.display = 'none'; return; } // mode edit — memang sengaja
+ const sku = (skuEl.value || '').trim().toUpperCase();
+ const hit = sku && (typeof masterProducts !== 'undefined') && masterProducts.find(p => p.sku === sku);
+ if(hit) {
+ el.innerHTML = '<i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:-2px;"></i> SKU ini DAH WUJUD' + (hit.name ? ' (' + String(hit.name).slice(0,40) + ')' : '') + ' — Save akan UPDATE produk sedia ada, bukan cipta baru.';
+ el.style.display = 'block';
+ if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+ } else { el.style.display = 'none'; }
+};
+
+// p1_724 #2 — papar margin live bawah Harga & Stok + amaran bawah 35%
+window.mpUpdateMargin = function() {
+ const el = document.getElementById('mpMarginLive');
+ if(!el) return;
+ const price = parseFloat(document.getElementById('mpPrice')?.value);
+ const cost = parseFloat(document.getElementById('mpCostPrice')?.value);
+ if(isNaN(price) || price <= 0 || isNaN(cost)) { el.style.display = 'none'; return; }
+ const margin = (price - cost) / price * 100;
+ const low = margin < 35;
+ const profit = price - cost;
+ el.style.display = 'block';
+ el.style.color = low ? '#B23A2E' : '#15803D';
+ el.innerHTML = '<strong>Margin: ' + margin.toFixed(1) + '%</strong> (untung RM' + profit.toFixed(2) + ' seunit)' +
+ (low ? ' <span style="font-weight:700;">— BAWAH minimum 35%</span>' : '');
+};
+
+// p1_724 #5 — kira variant yg ada SKU + highlight baris tertinggal SKU
+window.mpVariantSkuStatus = function() {
+ const wrap = document.getElementById('mpVariantTableWrap');
+ const sum = document.getElementById('mpVariantCount');
+ if(!wrap || !sum) return;
+ const rows = [...wrap.querySelectorAll('tbody tr')];
+ if(!rows.length) { sum.style.display = 'none'; return; }
+ let withSku = 0;
+ rows.forEach(tr => {
+ const inp = tr.querySelector('.mpv-sku');
+ const has = inp && inp.value.trim();
+ if(has) withSku++;
+ if(inp) inp.style.borderColor = has ? '' : '#E11D48';
+ });
+ const missing = rows.length - withSku;
+ sum.style.display = 'block';
+ sum.style.color = missing ? '#B23A2E' : '#6B7280';
+ sum.innerHTML = withSku + ' / ' + rows.length + ' variant ada SKU (akan disimpan)' +
+ (missing ? ' — ' + missing + ' baris tiada SKU akan DILANGKAU' : '');
+};
 
 // Auto-populate brand & category & vendor & collection & SKU datalists from existing products
 window.refreshMpDatalists = function() {

@@ -6793,13 +6793,18 @@
  #masterProductFormCard .mp-vtable .mp-vlabel{font-weight:700; color:#CD7C32; white-space:nowrap;}
  #masterProductFormCard .mp-vtable input{width:100%; min-width:90px; border:1px solid #E5E7EB; border-radius:6px; padding:6px 7px; font-size:12px;}
  #masterProductFormCard .mp-vtable input:focus{border-color:#CD7C32; outline:none;}
+ /* p1_724 — highlight field wajib kosong + sticky save */
+ #masterProductFormCard .mp-invalid{border-color:#E11D48 !important; box-shadow:0 0 0 2px rgba(225,29,72,.12) !important;}
+ #masterProductFormCard .mp-savebar{position:sticky; bottom:0; z-index:5; background:linear-gradient(180deg, rgba(250,246,239,0) 0%, #FAF6EF 32%); padding:14px 0 4px; margin-top:4px;}
+ #masterProductFormCard .mp-savebar button{width:100%; background:#CD7C32; color:#fff; border:none; font-size:14px; font-weight:800; padding:13px; border-radius:10px; cursor:pointer; box-shadow:0 2px 8px rgba(205,124,50,.25);}
+ #masterProductFormCard .mp-savebar button:hover{background:#B96E2C;}
  @media(max-width:900px){#masterProductFormCard .mp-grid{grid-template-columns:1fr;} #masterProductFormCard .mp-ot-grid{grid-template-columns:1fr auto;}}
  </style>
 
  <!-- Top bar: tajuk + Save (kanan) -->
  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
  <div>
- <h3 style="margin:0; font-size:18px; color:#101010;" data-i18n="wh_register_title">Daftar Produk Baru</h3>
+ <h3 id="mpFormTitle" style="margin:0; font-size:18px; color:#101010;" data-i18n="wh_register_title">Daftar Produk Baru</h3>
  <p style="font-size:12px; color:#9CA3AF; margin:3px 0 0;">Isi maklumat produk. Field bertanda * wajib.</p>
  </div>
  <div style="display:flex; gap:8px; align-items:center;">
@@ -6870,10 +6875,11 @@
 
  <!-- SKU asas (parent) + Barcode bersebelahan -->
  <div id="mpBaseAttrRow" class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
- <div><label class="small-lbl">SKU <span style="color:#B23A2E;">*</span></label><input type="text" id="mpSku" class="login-input" placeholder="e.g. NH-CU2"></div>
+ <div><label class="small-lbl">SKU <span style="color:#B23A2E;">*</span></label><input type="text" id="mpSku" class="login-input" placeholder="e.g. NH-CU2" oninput="window.mpCheckSkuDup && window.mpCheckSkuDup()"></div>
  <div><label class="small-lbl">Barcode (EAN/UPC)</label><input type="text" id="mpErpBarcode" class="login-input" placeholder="6975641887294"></div>
  </div>
  <p class="mp-hint" style="margin:6px 0 0;">SKU asas produk. Kalau ada variant, ini jadi parent — setiap baris variant di bawah perlu SKU sendiri.</p>
+ <p id="mpSkuDupWarn" style="display:none; font-size:11.5px; font-weight:600; color:#B23A2E; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:7px 10px; margin:8px 0 0;"></p>
  <!-- Warna/Saiz disembunyi (tak berguna di sini) — input kekal utk back-compat save/load -->
  <input type="text" id="mpVariantColor" style="display:none;">
  <input type="text" id="mpVariantSize" style="display:none;">
@@ -6897,11 +6903,12 @@
  <div class="mp-card">
  <h4>Harga &amp; Stok</h4>
  <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
- <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#B23A2E;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Compare-at (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#B23A2E;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" min="0" placeholder="0.00" oninput="window.mpUpdateMargin && window.mpUpdateMargin()"></div>
+ <div><label class="small-lbl">Compare-at (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" min="0" placeholder="0.00"></div>
+ <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" min="0" placeholder="0.00" oninput="window.mpUpdateMargin && window.mpUpdateMargin()"></div>
  <div><label class="small-lbl">Initial Qty (stok awal)</label><input type="number" id="mpInitQty" class="login-input" min="0" placeholder="0"></div>
  </div>
+ <p id="mpMarginLive" style="display:none; font-size:12px; font-weight:600; margin:8px 0 0;"></p>
  <p class="mp-hint">Margin = (Harga − Kos) ÷ Harga. Compare-at lebih tinggi = papar badge diskaun + harga coret. Initial Qty auto-cipta inventory batch awal.</p>
  <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
  <div><label class="small-lbl">Harga Shopee (RM)</label><input type="number" id="mpShopeePrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
@@ -6989,8 +6996,10 @@
  </div>
  </div>
 
- <button onclick="window.saveMasterProduct()" style="margin-top:4px; width:100%; background:#101010; color:#fff; border:none; font-size:14px; font-weight:800; padding:13px; border-radius:10px; cursor:pointer;">Save Produk</button>
+ <div class="mp-savebar">
+ <button onclick="window.saveMasterProduct()"><i data-lucide="save" style="width:15px;height:15px;vertical-align:-3px;"></i> <span id="mpSaveBtnLabel">Save Produk</span></button>
  <p style="font-size:11px; color:#9CA3AF; margin:8px 0 0; text-align:center;">Lepas save, Initial Qty (kalau diisi) auto-rekod stok awal.</p>
+ </div>
  </div>
 
  <!-- Product Registration Mode (Moved to Gudang Pusat) -->
@@ -8341,6 +8350,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_724', label:'Audit UI/UX borang Daftar Produk → 4 penambahbaikan (Zaid pilih semua): #1 GUARD SKU pendua — bila taip SKU sedia ada dlm mode Baru, amaran inline merah (#mpSkuDupWarn, fn mpCheckSkuDup) + confirm() sebelum tindih masa Save (elak overwrite senyap; skip bila SKU readOnly=mode edit). #2 LIVE MARGIN — papar "Margin: X% (untung RMx)" bawah Harga&Stok masa taip harga/kos, merah kalau bawah 35% (#mpMarginLive, fn mpUpdateMargin; oninput mpPrice/mpCostPrice). #4 FIELD WAJIB — bila save gagal, highlight merah (.mp-invalid) field kosong (Nama/SKU/Harga) + skrol+focus ke yg pertama (ganti toast je); auto-clear bila taip. #5 VARIANT SKU — papar "X/Y variant ada SKU akan disimpan" + highlight merah baris tiada SKU (#mpVariantCount, fn mpVariantSkuStatus). #6 TAJUK EDIT — loadMasterProductForEdit tukar tajuk → "Edit Produk: SKU" + butang → "Simpan Perubahan"; clearMpForm reset balik. #7 STICKY SAVE — butang Save bawah jadi sticky bar bronze (.mp-savebar) + min=0 pada field harga. app.js v707->708.', d:'done' },
  { id:'p1_723', label:'Variants borang "+ Baru" (Zack): buang field "Warna" + "Saiz" dari UI (tak berguna di sini) + pindah "Barcode (EAN/UPC)" duduk sebelah "SKU" (1 baris 2 kolum). mpVariantColor/mpVariantSize dikekalkan sebagai input tersembunyi supaya saveMasterProduct/loadMasterProductForEdit tak terjejas (data sedia ada terpelihara, tak ditimpa null).', d:'done' },
  { id:'p1_722', label:'Susun semula kad borang "+ Baru" (Zack): pindah kad "Variants" ke ATAS kad "Harga & Stok". Urutan baru kolum kiri = Maklumat Produk → Variants (SKU asas + builder) → Harga & Stok → Tetapan Lanjutan. Swap blok HTML kad sahaja (tiada perubahan logik/ID).', d:'done' },
  { id:'p1_721', label:'Pindah field SKU keluar dari "Maklumat Produk" → masuk seksyen "Variants" sebagai SKU asas/parent (Zack). Nama Produk kini penuh 1 kolum dalam Maklumat Produk; SKU (id mpSku kekal sama, save/load tak berubah) di atas seksyen Variants + nota "ini jadi parent, tiap baris variant perlu SKU sendiri". app.js v706->707.', d:'done' },
@@ -13492,7 +13502,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=707"></script>
+ <script src="app.js?v=708"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

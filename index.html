@@ -8276,6 +8276,8 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_711', label:'Editor produk — box hijau "Tersambung ke Shopee/TikTok" kini CLICKABLE terus ke produk tepat di Seller Centre (Zaid). pdpShopeeStatus → seller.shopee.com.my/portal/product/{shopee_item_id}; pdpTiktokStatus → seller-my.tiktok.com/product/edit/{tiktok_product_id}?shop_region=MY (format sama __aimSellerUrl). Box jadi cursor:pointer + ikon external-link + hint "Tekan untuk buka di Seller Centre". app.js v697->698.', d:'done' },
+ { id:'p1_710', label:'Editor produk — sorok box "Product Metafields" & "Inventory" (Zaid: tak guna; stok diedit di jadual Variants). index.html: kedua-dua card display:none, ID dalaman (pdpMetafieldsContainer, pdpStockAvailable) DIKEKAL supaya savePdpData/openPdpModal tak rosak (pola p1_506). HTML sahaja.', d:'done' },
  { id:'p1_709', label:'Fix butang "Add Option" editor produk tak berfungsi (Zaid: sepatutnya tambah variant baru). Dulu pdpAddVariantOption cuma append teks ke textarea lama (pdpVariantOptions) yg dah tak guna sejak jadual variant jadi editor sebenar (p1_303) → nampak tak buat apa-apa. Kini: tambah VARIANT SEBENAR — prompt SKU baru + nama variant, insert products_master row (parent_sku = group key, name = nama group bersih + label, price disalin, cost 0, is_published=false draft, brand/category/unit disalin); kalau produk asal SINGLE, set parent_sku-nya jadikan group. initApp + reopen modal → variant baru muncul dlm jadual utk set stok/harga/Aktif. Butang relabel "Tambah Variant" + warna brand #CD7C32. app.js v696->697.', d:'done' },
  { id:'p1_708', label:'Chat Inbox — tambah tab TikTok yg tertinggal (p1_701 cuma letak Shopee/FB/IG). __CHAT_CHANNELS kini Shopee(LIVE)/TikTok/FB/IG; TikTok live:false buat masa ni (tunggu scope Customer Service API TikTok diluluskan + re-auth → flip live:true + tarik via tiktok-chat.js). app.js v695->696.', d:'done' },
  { id:'p1_707', label:'Marketing > Social Media — FASA 3 Lead->Sales Attribution (Zaid pilih Option B: rekod sumber masa checkout). DB: sales_history + kolum lead_source. Checkout Cashier: selektor "Sumber pelanggan — dari mana tahu kedai?" (Walk-in/Instagram/Facebook/TikTok/WhatsApp/Google/Referral/Repeat/Lain-lain) dlm seksyen CRM; disimpan ke sales_history.lead_source masa insert; reset dlm clearCart. Social Media page: kad "Sumber Jualan (Attribution)" — group jualan POS real ikut lead_source dlm tempoh, papar order count + RM + %, highlight sumber sosial (IG/FB/TikTok/WA) + ringkasan "Sosial bawa RM X dari RM Y". Data mula terkumpul bila cashier guna selektor. app.js v694->695.', d:'done' },
@@ -13413,7 +13415,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=697"></script>
+ <script src="app.js?v=698"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -13518,8 +13520,8 @@
  <textarea id="pdpDescription" class="login-input" rows="5" placeholder="Penerangan produk untuk customer + staff..." style="resize:vertical;"></textarea>
  </div>
 
- <!-- Card: Metafields -->
- <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <!-- Card: Metafields — p1_710 disorok (Zaid: tak guna; ID dikekal utk savePdpData) -->
+ <div style="display:none; background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
  <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
  <strong style="color:#202223;">Product Metafields</strong>
  <button style="background:none; border:none; color:#2c6ecb; cursor:pointer;" onclick="window.addMetafieldRow()">+ Add Field</button>
@@ -13529,8 +13531,8 @@
  </div>
  </div>
 
- <!-- Card: Inventory -->
- <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+ <!-- Card: Inventory — p1_710 disorok (Zaid: stok diedit di jadual Variants; ID pdpStockAvailable dikekal) -->
+ <div style="display:none; background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
  <strong style="color:#202223;">Inventory</strong>
  <button type="button" onclick="window.pdpAdjustStock()" style="background:none; border:none; color:#2c6ecb; cursor:pointer; font-size:13px;"><i data-lucide="plus-circle" style="width:13px;height:13px;vertical-align:-2px;"></i> Adjust Stock</button>

@@ -21750,11 +21750,12 @@ window.openPdpModal = function(sku) {
  const spItem = m.shopee_item_id, spModel = m.shopee_model_id;
  const spPrice = prod.shopee_price != null ? Number(prod.shopee_price) : null;
  if(spItem) {
- spStatusEl.innerHTML = `<div style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6;">
-  <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke Shopee</div>
+ spStatusEl.innerHTML = `<div onclick="window.open('https://seller.shopee.com.my/portal/product/'+encodeURIComponent('${String(spItem)}'),'_blank','noopener')" title="Tekan untuk buka produk ni di Shopee Seller Centre" style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6; cursor:pointer;">
+  <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke Shopee <i data-lucide="external-link" style="width:12px;height:12px;margin-left:auto;"></i></div>
   <div><strong>Item ID:</strong> ${String(spItem)} <span style="color:#9CA3AF;">(produk)</span></div>
   ${spModel ? `<div><strong>Variation ID:</strong> ${String(spModel)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : ((prod.parent_sku && String(prod.parent_sku).trim()) ? '<div style="color:#7A5410;">Variation ID variant ni belum ada — stok/harga variant tak sync.</div>' : '<div style="color:#345E43;">Produk single (tiada variant) — sync ikut item-level. OK.</div>')}
   <div><strong>Harga Shopee:</strong> ${spPrice != null ? 'RM ' + spPrice.toFixed(2) : '<span style="color:#7A5410;">belum set</span>'}</div>
+  <div style="margin-top:5px; font-weight:700; color:#0F6E3F;">Tekan untuk buka di Shopee Seller Centre ›</div>
  </div>`;
  } else {
  spStatusEl.innerHTML = `<div style="background:#FAF2E6; border:1px solid #FED7AA; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#9A3412; line-height:1.6;">
@@ -21770,11 +21771,12 @@ window.openPdpModal = function(sku) {
  const ttProduct = m.tiktok_product_id, ttSku = m.tiktok_sku_id;
  const ttPrice = prod.tiktok_price != null ? Number(prod.tiktok_price) : null;
  if(ttProduct) {
- ttStatusEl.innerHTML = `<div style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6;">
-  <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke TikTok</div>
+ ttStatusEl.innerHTML = `<div onclick="window.open('https://seller-my.tiktok.com/product/edit/'+encodeURIComponent('${String(ttProduct)}')+'?shop_region=MY','_blank','noopener')" title="Tekan untuk buka produk ni di TikTok Seller Centre" style="background:#ECF3EA; border:1px solid #6EE7B7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#345E43; line-height:1.6; cursor:pointer;">
+  <div style="font-weight:800; display:flex; align-items:center; gap:5px; margin-bottom:3px;"><i data-lucide="check-circle" style="width:14px;height:14px;"></i> Tersambung ke TikTok <i data-lucide="external-link" style="width:12px;height:12px;margin-left:auto;"></i></div>
   <div><strong>Product ID:</strong> ${String(ttProduct)} <span style="color:#9CA3AF;">(produk)</span></div>
   ${ttSku ? `<div><strong>SKU ID:</strong> ${String(ttSku)} <span style="color:#9CA3AF;">(variant ni)</span></div>` : ((prod.parent_sku && String(prod.parent_sku).trim()) ? '<div style="color:#7A5410;">SKU ID variant ni belum ada — stok/harga variant tak sync.</div>' : '<div style="color:#345E43;">Produk single (tiada variant) — sync ikut item-level. OK.</div>')}
   <div><strong>Harga TikTok:</strong> ${ttPrice != null ? 'RM ' + ttPrice.toFixed(2) : '<span style="color:#7A5410;">belum set</span>'}</div>
+  <div style="margin-top:5px; font-weight:700; color:#0F6E3F;">Tekan untuk buka di TikTok Seller Centre ›</div>
  </div>`;
  } else {
  ttStatusEl.innerHTML = `<div style="background:#FAF2E6; border:1px solid #FED7AA; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#9A3412; line-height:1.6;">

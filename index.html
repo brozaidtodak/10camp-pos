@@ -6859,22 +6859,6 @@
  </div>
 
  <div class="mp-card">
- <h4>Harga &amp; Stok</h4>
- <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
- <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#B23A2E;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Compare-at (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" placeholder="0.00"></div>
- <div><label class="small-lbl">Initial Qty (stok awal)</label><input type="number" id="mpInitQty" class="login-input" min="0" placeholder="0"></div>
- </div>
- <p class="mp-hint">Margin = (Harga − Kos) ÷ Harga. Compare-at lebih tinggi = papar badge diskaun + harga coret. Initial Qty auto-cipta inventory batch awal.</p>
- <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
- <div><label class="small-lbl">Harga Shopee (RM)</label><input type="number" id="mpShopeePrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
- <div><label class="small-lbl">Harga TikTok (RM)</label><input type="number" id="mpTiktokPrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
- </div>
- <p class="mp-hint">Harga sendiri per channel. Kosong = produk TAK dipush ke channel itu.</p>
- </div>
-
- <div class="mp-card">
  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
  <div>
  <h4 style="margin-bottom:4px;">Variants</h4>
@@ -6884,18 +6868,15 @@
  <button type="button" id="mpVariantDelLink" onclick="window.mpVariantsClose()" class="mp-link-del" style="white-space:nowrap; display:none;">Delete</button>
  </div>
 
- <!-- SKU asas (parent) — dipindahkan dari Maklumat Produk -->
- <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
+ <!-- SKU asas (parent) + Barcode bersebelahan -->
+ <div id="mpBaseAttrRow" class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
  <div><label class="small-lbl">SKU <span style="color:#B23A2E;">*</span></label><input type="text" id="mpSku" class="login-input" placeholder="e.g. NH-CU2"></div>
- </div>
- <p class="mp-hint" style="margin:6px 0 0;">SKU asas produk. Kalau ada variant, ini jadi parent — setiap baris variant di bawah perlu SKU sendiri.</p>
-
- <!-- Atribut produk tunggal (bukan variant) -->
- <div id="mpBaseAttrRow" class="mp-row" style="grid-template-columns:1fr 1fr 1fr; margin-top:14px;">
- <div><label class="small-lbl">Warna</label><input type="text" id="mpVariantColor" class="login-input" placeholder="Khaki"></div>
- <div><label class="small-lbl">Saiz</label><input type="text" id="mpVariantSize" class="login-input" placeholder="L / XL / 2P / 4P"></div>
  <div><label class="small-lbl">Barcode (EAN/UPC)</label><input type="text" id="mpErpBarcode" class="login-input" placeholder="6975641887294"></div>
  </div>
+ <p class="mp-hint" style="margin:6px 0 0;">SKU asas produk. Kalau ada variant, ini jadi parent — setiap baris variant di bawah perlu SKU sendiri.</p>
+ <!-- Warna/Saiz disembunyi (tak berguna di sini) — input kekal utk back-compat save/load -->
+ <input type="text" id="mpVariantColor" style="display:none;">
+ <input type="text" id="mpVariantSize" style="display:none;">
 
  <!-- Data sinks tersembunyi — kekal utk metadata.variants/has_variants (back-compat) -->
  <textarea id="mpVariantOptions" style="display:none;"></textarea>
@@ -6911,6 +6892,22 @@
  <button type="button" onclick="window.mpAddOptionType()" class="mp-link-add" style="margin-top:2px;">Add more option type</button>
  <div id="mpVariantTableWrap" style="margin-top:16px;"></div>
  </div>
+ </div>
+
+ <div class="mp-card">
+ <h4>Harga &amp; Stok</h4>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+ <div><label class="small-lbl">Harga Jualan (RM) <span style="color:#B23A2E;">*</span></label><input type="number" id="mpPrice" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Compare-at (RM)</label><input type="number" id="mpCompareAt" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Kos Modal / Unit (RM)</label><input type="number" id="mpCostPrice" class="login-input" step="0.01" placeholder="0.00"></div>
+ <div><label class="small-lbl">Initial Qty (stok awal)</label><input type="number" id="mpInitQty" class="login-input" min="0" placeholder="0"></div>
+ </div>
+ <p class="mp-hint">Margin = (Harga − Kos) ÷ Harga. Compare-at lebih tinggi = papar badge diskaun + harga coret. Initial Qty auto-cipta inventory batch awal.</p>
+ <div class="mp-row" style="grid-template-columns:1fr 1fr; margin-top:14px;">
+ <div><label class="small-lbl">Harga Shopee (RM)</label><input type="number" id="mpShopeePrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
+ <div><label class="small-lbl">Harga TikTok (RM)</label><input type="number" id="mpTiktokPrice" class="login-input" step="0.01" placeholder="auto (markup)"></div>
+ </div>
+ <p class="mp-hint">Harga sendiri per channel. Kosong = produk TAK dipush ke channel itu.</p>
  </div>
 
  <!-- Tetapan lanjutan — dilipat supaya borang nampak kemas (rujukan minimalist) -->
@@ -8344,6 +8341,8 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_723', label:'Variants borang "+ Baru" (Zack): buang field "Warna" + "Saiz" dari UI (tak berguna di sini) + pindah "Barcode (EAN/UPC)" duduk sebelah "SKU" (1 baris 2 kolum). mpVariantColor/mpVariantSize dikekalkan sebagai input tersembunyi supaya saveMasterProduct/loadMasterProductForEdit tak terjejas (data sedia ada terpelihara, tak ditimpa null).', d:'done' },
+ { id:'p1_722', label:'Susun semula kad borang "+ Baru" (Zack): pindah kad "Variants" ke ATAS kad "Harga & Stok". Urutan baru kolum kiri = Maklumat Produk → Variants (SKU asas + builder) → Harga & Stok → Tetapan Lanjutan. Swap blok HTML kad sahaja (tiada perubahan logik/ID).', d:'done' },
  { id:'p1_721', label:'Pindah field SKU keluar dari "Maklumat Produk" → masuk seksyen "Variants" sebagai SKU asas/parent (Zack). Nama Produk kini penuh 1 kolum dalam Maklumat Produk; SKU (id mpSku kekal sama, save/load tak berubah) di atas seksyen Variants + nota "ini jadi parent, tiap baris variant perlu SKU sendiri". app.js v706->707.', d:'done' },
  { id:'p1_720', label:'Variants builder ala Shopify (Zack bagi rujukan screenshot). Ganti option-row p1_719 dgn aliran: link "Add variants" → blok "Option type" + "Option value" (chip/tag input: taip nilai tekan Enter/koma jadi chip, backspace buang) → "Add more option type" (multi option) → link "Delete". Bila isi, jadual variant AUTO-JANA (cartesian product semua option values) dgn kolum: Variants(label) / SKU / Price(MYR) / Compare at(MYR) / Cost(MYR) / Barcode / Qty; nilai input dikekalkan bila rebuild (snapshot by combo). SAVE: tiap baris jadual (yg ada SKU sendiri) → upsert satu products_master row, parent_sku = SKU asas, name = "asas - label", price/compare/cost/barcode dari baris, variant_color/size auto-map dari nama option (warna/colour, saiz/size), metadata.variant_options + is_variant_child; qty>0 → inventory_batches per variant. Hidden #mpVariantOptions/#mpHasVariants kekal utk metadata.variants. Fungsi: mpAddOptionType/mpRemoveOptionType/mpChipKey/mpChipCommit/mpChipRemove/__mpAddChip/__mpGetOptionTypes/mpRebuildVariantTable/__mpCollectVariantRows + mpVariantsOpen/Close/Reset/RenderFromData dirombak. app.js v705->706.', d:'done' },
  { id:'p1_719', label:'Borang "+ Baru" — naik taraf UI/UX seksyen "Variant" (Zaid). Tambah nota "Tambah variant jika produk ini ada beberapa versi — contohnya saiz atau warna berbeza" + butang "Add variants". Default minimalist: hanya butang Add variants (dashed) nampak; klik buka builder option-row berstruktur (Nama + Nilai pisah-koma, tiap baris ada butang buang + "Tambah pilihan lagi") + Default Variant SKU + link "Buang semua". Ganti textarea Custom Options mentah & dropdown "Ada variant?". Builder sync ke field tersembunyi sedia ada (#mpVariantOptions "Nama: v1, v2" + #mpHasVariants) jadi saveMasterProduct/load/clear backend TAK berubah. Fungsi baru: mpAddOptionRow/mpRemoveOptionRow/mpSyncOptions/mpVariantsOpen/mpVariantsClose/mpVariantsReset/mpVariantRenderFromData; mpAddVariantOption kekal (back-compat). loadMasterProductForEdit panggil render (bina rows dari data); clearMpForm panggil reset. app.js v704->705.', d:'done' },

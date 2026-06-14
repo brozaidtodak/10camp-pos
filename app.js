@@ -20071,9 +20071,10 @@ window.__cmCanViewAll = function(u) {
  return u.role === 'mgmt';
 };
 // p1_622 — Export transaksi komisen tempoh semasa ke CSV. Manager+PIN unlock = semua staff; lain = sendiri.
-window.__cmExport = function() {
+window.__cmExport = function(forceOwn) {
  if (!currentUser) return;
- const isMgr = (window.__cmCanViewAll && window.__cmCanViewAll(currentUser)) && (window.__confIsUnlocked && window.__confIsUnlocked());
+ // p1_734 — forceOwn=true (cth dari My Commission) → export SENDIRI sahaja walau Bos
+ const isMgr = !forceOwn && (window.__cmCanViewAll && window.__cmCanViewAll(currentUser)) && (window.__confIsUnlocked && window.__confIsUnlocked());
  const range = __cmGetDateRange();
  const all = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => {
    if (s.is_test) return false;
@@ -20384,7 +20385,9 @@ window.renderPersonalCommission = function() {
  if (!currentUser) return;
  // p1_729 — cashier VIEW SAHAJA: muat kadar dari server (tunjang = Commission Report) dulu
  if(!window.__commissionRatesLoaded && window.__loadCommissionRates) { window.__loadCommissionRates().then(() => window.renderPersonalCommission()); }
- const isManager = window.__cmCanViewAll(currentUser); // hanya Zaid + Aliff
+ // p1_734 — My Commission ADIL: SEMUA orang (termasuk Bos/mgmt) nampak komisen SENDIRI sahaja.
+ // Tiada lagi jadual semua-staf + tiada PIN di sini. View semua-staf kekal di Commission Report (mgmt-only).
+ const isManager = false;
  const range = __cmGetDateRange();
 
  // Filter sales by date range

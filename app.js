@@ -22949,9 +22949,14 @@ window.__bcRenderCustomize = function() {
    ? `<label style="font-size:11px; color:#6B7280; white-space:nowrap;">Tinggi <input type="number" min="14" max="120" value="${L.bcHeight||46}" onchange="window.__bcSetHeight(this.value)" style="width:56px; padding:3px 6px; border:1px solid #D1D5DB; border-radius:6px;"></label>`
    : `<label style="font-size:11px; color:#6B7280; white-space:nowrap;">Font <input type="number" min="6" max="40" value="${L.font[key]||10}" onchange="window.__bcSetFont('${key}', this.value)" style="width:52px; padding:3px 6px; border:1px solid #D1D5DB; border-radius:6px;"></label>`;
   const eye = e.key === 'barcode' ? '' : `<button type="button" onclick="window.__bcToggleVis('${key}')" style="background:none; border:1px solid #E5E7EB; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; padding:4px 9px; color:${vis?'#345E43':'#9CA3AF'};">${vis?'Tunjuk':'Sorok'}</button>`;
+  // p1_712 — custom edit nombor FIFO: tetap nombor sendiri (cth "2 / 5") utk cetak semula label ganti
+  const custom = e.key === 'seq'
+   ? `<label style="font-size:11px; color:#6B7280; white-space:nowrap;">No.<input type="text" value="${String(window.__bcFifoCustom||'').replace(/"/g,'&quot;')}" oninput="window.__bcFifoSet(this.value)" placeholder="auto" title="Tetapkan nombor FIFO sendiri (cth: 2 / 5) untuk cetak semula label ganti. Kosong = auto i/qty." style="width:74px; padding:3px 6px; border:1px solid #D1D5DB; border-radius:6px; margin-right:6px;"></label>`
+   : '';
   return `<div class="bc-cust-row" draggable="true" data-key="${key}" ondragstart="window.__bcDragStart(event,'${key}')" ondragover="window.__bcDragOver(event)" ondrop="window.__bcDrop(event,'${key}')" ondragend="window.__bcDragEnd(event)" style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#fff; border:1px solid #E5E7EB; border-radius:8px; margin-bottom:6px; cursor:grab; ${vis?'':'opacity:0.5;'}">
     <span style="font-size:16px; color:#9CA3AF;">&#9776;</span>
     <span style="flex:1; font-size:12.5px; font-weight:700; color:#111827;">${e.label}</span>
+    ${custom}
     ${ctrl}
     ${eye}
    </div>`;
@@ -22965,6 +22970,9 @@ window.__bcDragStart = function(ev, key){ window.__bcDragKey = key; try { ev.dat
 window.__bcDragOver = function(ev){ ev.preventDefault(); try { ev.dataTransfer.dropEffect = 'move'; } catch(e){} };
 window.__bcDrop = function(ev, targetKey){ ev.preventDefault(); const from = window.__bcDragKey; if(!from || from === targetKey) return; const L = window.__bcGetLayout() || window.__bcSeedLayout(); const ord = (L.order||[]).filter(k => k !== from); const ti = ord.indexOf(targetKey); if(ti < 0) return; ord.splice(ti, 0, from); L.order = ord; window.__bcSaveLayout(L); window.__bcRenderCustomize(); window.generateBarcodes(); };
 window.__bcDragEnd = function(){ window.__bcDragKey = null; };
+// p1_712 — custom nombor FIFO (override "i/qty"). Transient (tak disimpan dlm layout).
+window.__bcFifoCustom = window.__bcFifoCustom || '';
+window.__bcFifoSet = function(v){ window.__bcFifoCustom = v; const s = document.getElementById('barcodeSkuInput'); if(s && s.value.trim()) window.generateBarcodes(); };
 
 // Start Barcode Generator Logic
 window.generateBarcodes = function() {
@@ -23008,7 +23016,7 @@ window.generateBarcodes = function() {
    barcode: () => { svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.style.cssText = "max-width:84%; height:auto;"; return svg; },
    sku: () => mkDiv(`font-size:${L.font.sku||12}px; font-weight:800; letter-spacing:0.5px; line-height:1.1;`, sku),
    price: () => (price ? mkDiv(`font-weight:bold; font-size:${L.font.price||14}px; line-height:1.1;`, price) : null),
-   seq: () => mkDiv(`font-size:${L.font.seq||14}px; font-weight:900; color:#101010; line-height:1; background:#FBEFE2; border:1px solid #E7C8A8; border-radius:5px; padding:2px 10px; margin-top:2px; letter-spacing:0.3px;`, `${i+1} / ${qty}`)
+   seq: () => mkDiv(`font-size:${L.font.seq||14}px; font-weight:900; color:#101010; line-height:1; background:#FBEFE2; border:1px solid #E7C8A8; border-radius:5px; padding:2px 10px; margin-top:2px; letter-spacing:0.3px;`, (window.__bcFifoCustom && String(window.__bcFifoCustom).trim()) ? String(window.__bcFifoCustom).trim() : (i+1)+' / '+qty)
   };
   (L.order || ['header','name','barcode','sku','price','seq']).forEach(key => {
    if(L.visible && L.visible[key] === false) return;

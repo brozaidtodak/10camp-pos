@@ -20006,6 +20006,124 @@ window.__cmExport = function() {
  (window.showToast || function(){})('Export ' + rows.length + ' transaksi komisen siap.', 'success');
 };
 
+// ============================================================================
+// p1_728 — Back-office COMMISSION REPORT (Reports > Commission Report, mgmt-only)
+// Guna semula __saleCommissionBase + __getCommissionRate + __cmShowStaffSales.
+// Cashier hanya VIEW komisen sendiri (My Commission); ini view pengurusan: semua
+// staf, kira komisen, edit kadar per staf, export CSV.
+// ============================================================================
+window.__crRange = window.__crRange || 'month';
+window.__crSetRange = function(r, btn) {
+ window.__crRange = r;
+ if(btn) document.querySelectorAll('#crBody .cm-pill').forEach(p => p.classList.toggle('active', p === btn));
+ window.renderCommissionReport();
+};
+function __crGetRange() {
+ const now = new Date();
+ const startOf = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+ const endOf = (d) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
+ const r = window.__crRange || 'month';
+ if(r === 'month') { const s = new Date(now.getFullYear(), now.getMonth(), 1); return { start:startOf(s), end:endOf(now), label: now.toLocaleDateString('en-MY', {month:'long', year:'numeric'}) }; }
+ if(r === 'lastmonth') { const s = new Date(now.getFullYear(), now.getMonth()-1, 1); const e = new Date(now.getFullYear(), now.getMonth(), 0); return { start:startOf(s), end:endOf(e), label: s.toLocaleDateString('en-MY', {month:'long', year:'numeric'}) }; }
+ if(r === 'week') { const s = new Date(now); s.setDate(s.getDate() - s.getDay()); return { start:startOf(s), end:endOf(now), label: 'Minggu ini' }; }
+ if(r === 'ytd') { const s = new Date(now.getFullYear(), 0, 1); return { start:startOf(s), end:endOf(now), label: now.getFullYear() + ' YTD' }; }
+ return { start:null, end:null, label: 'Semua masa' };
+}
+window.__crSaveRate = function(staffId, val) {
+ let rates = {}; try { rates = JSON.parse(localStorage.getItem('staffCommissionRates_v1') || '{}'); } catch(e){}
+ const v = parseFloat(val);
+ if(val === '' || isNaN(v)) delete rates[staffId]; else rates[staffId] = v;
+ localStorage.setItem('staffCommissionRates_v1', JSON.stringify(rates));
+ window.renderCommissionReport();
+ if(window.showToast) showToast('Kadar komisen dikemaskini.', 'success');
+};
+window.renderCommissionReport = function() {
+ const host = document.getElementById('crBody');
+ if(!host) return;
+ const esc = (typeof hesc === 'function') ? hesc : (s)=> String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ // Gate: pengurusan sahaja (selaras __cmCanViewAll)
+ if(!currentUser || currentUser.role !== 'mgmt') {
+ host.innerHTML = '<div class="admin-card" style="padding:28px; text-align:center;"><i data-lucide="lock" style="width:30px;height:30px;color:#9CA3AF;"></i><h3 style="margin:12px 0 6px;">Akses terhad</h3><p style="color:#6B7280; font-size:13px; margin:0;">Commission Report untuk pengurusan sahaja. Staf jualan lihat komisen sendiri di <strong>My Commission</strong>.</p></div>';
+ if(typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
+ return;
+ }
+ const range = __crGetRange();
+ const sales = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => {
+ if(s.is_test) return false;
+ const st = (s.status || '').toLowerCase();
+ if(st.indexOf('cancel') !== -1 || st.indexOf('void') !== -1) return false;
+ if(!range.start || !range.end) return true;
+ const t = s.created_at ? new Date(s.created_at).getTime() : 0;
+ return t >= range.start.getTime() && t <= range.end.getTime();
+ });
+ // Agregat ikut staff_name (attribution sebenar dalam sales)
+ const byStaff = {};
+ sales.forEach(s => {
+ const nm = (s.staff_name || s.cashier_name || '—').trim() || '—';
+ if(!byStaff[nm]) byStaff[nm] = { name: nm, gross: 0, refunds: 0, orders: 0, refundCount: 0 };
+ const recv = parseFloat(s.total_amount || s.total || 0) || 0;
+ const base = Math.abs(window.__saleCommissionBase(s));
+ if(recv < 0) { byStaff[nm].refunds = round2(byStaff[nm].refunds + base); byStaff[nm].refundCount++; }
+ else { byStaff[nm].gross = round2(byStaff[nm].gross + base); byStaff[nm].orders++; }
+ });
+ const usersByName = {};
+ if(typeof authUsers !== 'undefined' && Array.isArray(authUsers)) authUsers.forEach(u => { usersByName[u.name] = u; });
+ const rows = Object.values(byStaff).map(r => {
+ const net = round2(r.gross - r.refunds);
+ const rate = __getCommissionRate(r.name);
+ const comm = round2(net * rate / 100);
+ const u = usersByName[r.name];
+ return { ...r, net, rate, comm, staffId: u ? u.staff_id : null };
+ }).sort((a,b) => b.comm - a.comm);
+
+ let totNet = 0, totComm = 0, totOrders = 0;
+ rows.forEach(r => { totNet = round2(totNet + r.net); totComm = round2(totComm + r.comm); totOrders += r.orders; });
+
+ const fmt = (n) => 'RM ' + Number(n).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
+ const pill = (r, lbl) => '<button class="cm-pill' + (window.__crRange === r ? ' active' : '') + '" onclick="window.__crSetRange(\'' + r + '\', this)" style="background:' + (window.__crRange===r?'#CD7C32':'#fff') + '; color:' + (window.__crRange===r?'#fff':'#374151') + '; border:1px solid ' + (window.__crRange===r?'#CD7C32':'#E5E7EB') + '; padding:6px 13px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; margin-right:6px;">' + lbl + '</button>';
+
+ const kpi = (lbl, val, color) => '<div style="flex:1; min-width:140px; background:#fff; border:1px solid #EEEEEE; border-radius:12px; padding:14px 16px;"><div style="font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; font-weight:700;">' + lbl + '</div><div style="font-size:20px; font-weight:800; color:' + (color||'#101010') + '; margin-top:3px;">' + val + '</div></div>';
+
+ const trows = rows.length ? rows.map(r => {
+ const rateCell = r.staffId
+ ? '<input type="number" step="0.1" min="0" value="' + r.rate + '" onchange="window.__crSaveRate(\'' + esc(r.staffId) + '\', this.value)" onclick="event.stopPropagation()" style="width:72px; text-align:right; border:1px solid #E5E7EB; border-radius:6px; padding:5px 7px; font-size:12px;"> %'
+ : '<span style="color:#9CA3AF;">' + r.rate + '% (default)</span>';
+ return '<tr onclick="window.__cmShowStaffSales && window.__cmShowStaffSales(\'' + esc(String(r.name).replace(/'/g,"\\'")) + '\')" style="cursor:pointer; border-bottom:1px solid #F3F4F6;">' +
+ '<td style="padding:10px 12px; font-weight:700;">' + esc(r.name) + '</td>' +
+ '<td style="padding:10px 12px; text-align:center;">' + r.orders + (r.refundCount ? ' <span style="color:#B23A2E; font-size:10px;">(' + r.refundCount + ' refund)</span>' : '') + '</td>' +
+ '<td style="padding:10px 12px; text-align:right; font-weight:700;">' + fmt(r.net) + '</td>' +
+ '<td style="padding:10px 12px; text-align:right; white-space:nowrap;">' + rateCell + '</td>' +
+ '<td style="padding:10px 12px; text-align:right; font-weight:800; color:#CD7C32;">' + fmt(r.comm) + '</td>' +
+ '</tr>';
+ }).join('') : '<tr><td colspan="5" style="text-align:center; padding:28px; color:#9CA3AF;">Tiada transaksi komisen untuk tempoh ni.</td></tr>';
+
+ host.innerHTML =
+ '<h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="coins" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i> Commission Report <span style="font-size:13px; font-weight:600; color:#9CA3AF;">· ' + esc(range.label) + '</span></h2>' +
+ '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">' +
+ '<div>' + pill('week','Minggu Ini') + pill('month','Bulan Ini') + pill('lastmonth','Bulan Lepas') + pill('ytd','YTD') + pill('all','Semua') + '</div>' +
+ '<button onclick="window.__cmRange=window.__crRange; window.__cmExport && window.__cmExport()" style="background:#101010; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;"><i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> Export CSV</button>' +
+ '</div>' +
+ '<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">' +
+ kpi('Jumlah Base (Net)', fmt(totNet)) +
+ kpi('Jumlah Komisen', fmt(totComm), '#CD7C32') +
+ kpi('Staf Aktif', String(rows.length)) +
+ kpi('Jumlah Order', String(totOrders)) +
+ '</div>' +
+ '<div class="admin-card" style="padding:0; overflow:hidden;">' +
+ '<table style="width:100%; border-collapse:collapse; font-size:13px;">' +
+ '<thead><tr style="background:#FAFAF9; border-bottom:1px solid #EEEEEE;">' +
+ '<th style="padding:10px 12px; text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#6B7280;">Staf</th>' +
+ '<th style="padding:10px 12px; text-align:center; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#6B7280;">Order</th>' +
+ '<th style="padding:10px 12px; text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#6B7280;">Base Net</th>' +
+ '<th style="padding:10px 12px; text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#6B7280;">Kadar</th>' +
+ '<th style="padding:10px 12px; text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#6B7280;">Komisen</th>' +
+ '</tr></thead><tbody>' + trows + '</tbody>' +
+ (rows.length ? '<tfoot><tr style="border-top:2px solid #EEEEEE; background:#FAFAF9;"><td style="padding:11px 12px; font-weight:800;">JUMLAH</td><td style="padding:11px 12px; text-align:center; font-weight:800;">' + totOrders + '</td><td style="padding:11px 12px; text-align:right; font-weight:800;">' + fmt(totNet) + '</td><td></td><td style="padding:11px 12px; text-align:right; font-weight:800; color:#CD7C32;">' + fmt(totComm) + '</td></tr></tfoot>' : '') +
+ '</table></div>' +
+ '<p style="font-size:11.5px; color:#9CA3AF; margin:12px 2px 0;">Komisen = Base (harga × qty − diskaun, tolak diskaun order) × Kadar%. Kadar default 5% — ubah per staf di kolum Kadar (disimpan setempat). Klik baris staf untuk lihat transaksi. Order Cancelled/Void tak dikira; Refund ditolak. <strong>Nota:</strong> ini alat kiraan & laporan — bayaran komisen automatik belum aktif.</p>';
+ if(typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
+};
+
 window.renderPersonalCommission = function() {
  if (!currentUser) return;
  const isManager = window.__cmCanViewAll(currentUser); // hanya Zaid + Aliff

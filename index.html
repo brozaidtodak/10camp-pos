@@ -1854,6 +1854,9 @@
  <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
  <div class="nav-children" data-nav-children="reports">
+ <div class="menu-item mgmt-only" data-tab="nav_commission_report" onclick="event.stopPropagation(); switchHub(['commissionReportSection'], 'Commission Report', this); if(typeof renderCommissionReport==='function') renderCommissionReport();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="coins" style="width:15px; height:15px;"></i> <span>Commission Report</span>
+ </div>
  <div class="menu-item" data-tab="nav_exports" onclick="event.stopPropagation(); switchHub(['exportsSection'], 'Exports', this); if(typeof renderExports==='function') renderExports();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="download" style="width:15px; height:15px;"></i> <span>Exports</span>
  </div>
@@ -5192,6 +5195,11 @@
  </div>
  </div>
 
+ <!-- p1_728 — Commission Report (back office, mgmt-only) -->
+ <div id="commissionReportSection" class="tab-section" style="display: none;">
+ <div id="crBody"><!-- Populated by renderCommissionReport() --></div>
+ </div>
+
  <!-- p1_283 — Marketplaces dashboard (real platform status) -->
  <div id="marketplacesSection" class="tab-section" style="display: none;">
  <div id="mpDashboardBody"><!-- Populated by renderMarketplaces() --></div>
@@ -8349,6 +8357,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_728', label:'Back-office COMMISSION REPORT (Zaid: "cashier hanya view, create back office commission pada sidebar Reports > sub-item Commission Report"). Sidebar Reports nav-children dapat sub-item baru "Commission Report" (mgmt-only, ikon coins) → section commissionReportSection + renderCommissionReport(). View pengurusan: gate role mgmt (staf biasa nampak "Akses terhad" — komisen sendiri tetap di My Commission). Ada: pill tempoh (Minggu/Bulan/Bulan Lepas/YTD/Semua), 4 KPI (Base Net, Komisen, Staf Aktif, Order), jadual per-staf (Staf/Order/Base Net/Kadar%/Komisen) + baris JUMLAH, klik staf → modal __cmShowStaffSales, kadar % editable per staf (simpan staffCommissionRates_v1 → recompute), Export CSV (guna __cmExport, range diselaraskan). Guna semula __saleCommissionBase + __getCommissionRate; Cancelled/Void buang, Refund tolak. Helper baru __crRange/__crSetRange/__crGetRange/__crSaveRate. app.js v710->711.', d:'done' },
  { id:'p1_727', label:'Lengkapkan kolum jadual variant builder ikut jadual Product Master (Zaid). Tambah 7 kolum baru: Gambar (URL), Shopee (MYR), TikTok (MYR), Berat (kg), P (cm), L (cm), T (cm) — di samping sedia ada Variants/SKU/Price/Compare/Cost/Barcode/Qty (jumlah 14 kolum, jadual scroll mendatar). Wire penuh: prev-snapshot kekalkan semua bila rebuild; __mpCollectVariantRows baca semua; saveMasterProduct child row kini isi shopee_price/tiktok_price/weight_kg/length_cm/width_cm/height_cm/images. app.js v709->710.', d:'done' },
  { id:'p1_726', label:'Audit visual borang Daftar Produk (Zaid "audit lagi" + screenshot): BUG butang "Save" atas-kanan BERTINDIH dgn butang X tutup modal ("Sa[X]"). Sebab dah ada sticky Save Produk bawah (sentiasa nampak), butang Save atas redundant → DIBUANG (sekali gus selesai isu "dua butang Save" p1_724 #7). Top bar dapat padding-right:40px supaya tajuk/badge EDIT MODE tak tersorok bawah X. HTML sahaja, saveMasterProduct tak berubah.', d:'done' },
  { id:'p1_725', label:'Audit menyeluruh borang Daftar Produk (Zaid: "semak semula keseluruhan borang, pastikan semua function jalan"). Cross-check 59 ID + 13 handler onclick/oninput + semua fungsi save/load/clear/variant/image: SEMUA handler ada definisi, takde fungsi shadow/pendua, node --check OK. BUG dijumpai+dibaiki: mpShopeePrice & mpTiktokPrice di-save (getNum) & di-load (set) tapi TERTINGGAL dari __mpAllFieldIds → clearMpForm/Reset tak kosongkan dua field tu (harga channel boleh terbawa ke produk baru seterusnya). Ditambah ke senarai. mpSearchSku di-reset berasingan (OK); mpVariantCount/mpPushStatus dicipta dinamik (OK). app.js v708->709.', d:'done' },
@@ -13504,7 +13513,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=710"></script>
+ <script src="app.js?v=711"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

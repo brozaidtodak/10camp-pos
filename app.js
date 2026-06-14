@@ -21083,10 +21083,17 @@ window.saveMasterProduct = async function() {
  variant_color: vColor,
  variant_size: vSize,
  erp_barcode: r.barcode,
+ images: (r.img ? r.img.split(',').map(s => s.trim()).filter(Boolean) : null),
  metadata: { ...metadata, variant_options: r.options, is_variant_child: true, default_variant_sku: null }
  };
  if(r.compare != null && !isNaN(r.compare)) child.compare_at_price = r.compare;
  if(r.cost != null && !isNaN(r.cost)) child.cost_price = r.cost;
+ if(r.shopee != null && !isNaN(r.shopee)) child.shopee_price = r.shopee;
+ if(r.tiktok != null && !isNaN(r.tiktok)) child.tiktok_price = r.tiktok;
+ if(r.weight != null && !isNaN(r.weight)) child.weight_kg = r.weight;
+ if(r.length != null && !isNaN(r.length)) child.length_cm = r.length;
+ if(r.width != null && !isNaN(r.width)) child.width_cm = r.width;
+ if(r.height != null && !isNaN(r.height)) child.height_cm = r.height;
  // buang null supaya default PG bersih
  Object.keys(child).forEach(k => { if(k !== 'metadata' && (child[k] === null || child[k] === '')) delete child[k]; });
  return child;
@@ -21451,30 +21458,44 @@ window.mpRebuildVariantTable = function() {
  wrap.querySelectorAll('tbody tr').forEach(tr => {
  const key = tr.dataset.combo;
  if(key) prev[key] = {
+ img: tr.querySelector('.mpv-img')?.value || '',
  sku: tr.querySelector('.mpv-sku')?.value || '',
  price: tr.querySelector('.mpv-price')?.value || '',
  compare: tr.querySelector('.mpv-compare')?.value || '',
  cost: tr.querySelector('.mpv-cost')?.value || '',
+ shopee: tr.querySelector('.mpv-shopee')?.value || '',
+ tiktok: tr.querySelector('.mpv-tiktok')?.value || '',
  barcode: tr.querySelector('.mpv-barcode')?.value || '',
- qty: tr.querySelector('.mpv-qty')?.value || ''
+ qty: tr.querySelector('.mpv-qty')?.value || '',
+ weight: tr.querySelector('.mpv-weight')?.value || '',
+ length: tr.querySelector('.mpv-length')?.value || '',
+ width: tr.querySelector('.mpv-width')?.value || '',
+ height: tr.querySelector('.mpv-height')?.value || ''
  };
  });
 
  const combos = __mpCartesian(types.map(t => t.values)); // array of value-arrays
  const head = '<thead><tr>' +
- '<th>Variants</th><th>SKU</th><th>Price (MYR)</th><th>Compare at (MYR)</th><th>Cost (MYR)</th><th>Barcode</th><th>Qty</th>' +
+ '<th>Gambar (URL)</th><th>Variants</th><th>SKU</th><th>Price (MYR)</th><th>Compare at (MYR)</th><th>Cost (MYR)</th><th>Shopee (MYR)</th><th>TikTok (MYR)</th><th>Barcode</th><th>Qty</th><th>Berat (kg)</th><th>P (cm)</th><th>L (cm)</th><th>T (cm)</th>' +
  '</tr></thead>';
  const rows = combos.map(combo => {
  const label = combo.join(' / ');
  const p = prev[label] || {};
  return '<tr data-combo="' + __MP_ESC(label) + '">' +
+ '<td><input class="mpv-img" type="text" placeholder="URL gambar" value="' + __MP_ESC(p.img) + '" style="min-width:140px;"></td>' +
  '<td class="mpv-label"><span class="mp-vlabel">' + __MP_ESC(label) + '</span></td>' +
  '<td><input class="mpv-sku" type="text" placeholder="SKU" value="' + __MP_ESC(p.sku) + '" oninput="window.mpVariantSkuStatus && window.mpVariantSkuStatus()"></td>' +
  '<td><input class="mpv-price" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.price) + '"></td>' +
  '<td><input class="mpv-compare" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.compare) + '"></td>' +
  '<td><input class="mpv-cost" type="number" step="0.01" placeholder="0.00" value="' + __MP_ESC(p.cost) + '"></td>' +
+ '<td><input class="mpv-shopee" type="number" step="0.01" placeholder="auto" value="' + __MP_ESC(p.shopee) + '"></td>' +
+ '<td><input class="mpv-tiktok" type="number" step="0.01" placeholder="auto" value="' + __MP_ESC(p.tiktok) + '"></td>' +
  '<td><input class="mpv-barcode" type="text" placeholder="EAN/UPC" value="' + __MP_ESC(p.barcode) + '"></td>' +
  '<td><input class="mpv-qty" type="number" min="0" placeholder="0" value="' + __MP_ESC(p.qty) + '"></td>' +
+ '<td><input class="mpv-weight" type="number" step="0.001" placeholder="0" value="' + __MP_ESC(p.weight) + '"></td>' +
+ '<td><input class="mpv-length" type="number" step="0.1" placeholder="0" value="' + __MP_ESC(p.length) + '"></td>' +
+ '<td><input class="mpv-width" type="number" step="0.1" placeholder="0" value="' + __MP_ESC(p.width) + '"></td>' +
+ '<td><input class="mpv-height" type="number" step="0.1" placeholder="0" value="' + __MP_ESC(p.height) + '"></td>' +
  '</tr>';
  }).join('');
  wrap.innerHTML = '<p id="mpVariantCount" style="font-size:11.5px; font-weight:600; margin:0 0 8px;"></p>' +
@@ -21494,12 +21515,19 @@ window.__mpCollectVariantRows = function() {
  types.forEach((t, i) => { options[t.name] = parts[i]; });
  return {
  label, options,
+ img: (tr.querySelector('.mpv-img')?.value || '').trim() || null,
  sku: (tr.querySelector('.mpv-sku')?.value || '').trim().toUpperCase(),
  price: num(tr.querySelector('.mpv-price')?.value),
  compare: num(tr.querySelector('.mpv-compare')?.value),
  cost: num(tr.querySelector('.mpv-cost')?.value),
+ shopee: num(tr.querySelector('.mpv-shopee')?.value),
+ tiktok: num(tr.querySelector('.mpv-tiktok')?.value),
  barcode: (tr.querySelector('.mpv-barcode')?.value || '').trim() || null,
- qty: num(tr.querySelector('.mpv-qty')?.value)
+ qty: num(tr.querySelector('.mpv-qty')?.value),
+ weight: num(tr.querySelector('.mpv-weight')?.value),
+ length: num(tr.querySelector('.mpv-length')?.value),
+ width: num(tr.querySelector('.mpv-width')?.value),
+ height: num(tr.querySelector('.mpv-height')?.value)
  };
  });
 };

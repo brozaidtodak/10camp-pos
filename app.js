@@ -7845,7 +7845,7 @@ async function initApp() {
  if(window.currentUser){
  const [quotesRes, sales, custs, finRes] = await Promise.all([
  db.from('quotations_log').select('*').order('created_at', {ascending: false}).then(r=>r).catch(()=>({data:null})),
- window.__aoFetchAllSales().catch(async ()=>{ try { const r = await db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000); return r.data || []; } catch(_){ return []; } }),
+ db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000).then(r=>r.data||[]).catch(()=>[]),  // p1_743 — startup: 1000 sales TERKINI sahaja (laju ~1MB); sejarah penuh dimuat di latar (bawah)
  window.__fetchAllRows('customers', 'id', true).catch(async ()=>{ try { const r = await db.from('customers').select('*'); return r.data || []; } catch(_){ return []; } }),
  db.from('finance_records').select('*').order('year', {ascending: false}).then(r=>r).catch(()=>({data:null}))
  ]);
@@ -7862,6 +7862,22 @@ async function initApp() {
  // p3_10/p1_324: refresh fulfillment KPIs + sidebar badge once orders loaded
  if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
  if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
+ // p1_743 — muat SEJARAH JUALAN PENUH di latar (non-blocking) selepas UI cashier siap. Startup cuma
+ // ambil 1000 terkini supaya laju; baki sejarah (utk All Orders lama / report) menyusul ~4s kemudian.
+ if(window.currentUser && !window.__fullSalesLoaded){
+ setTimeout(function(){
+ window.__aoFetchAllSales().then(function(all){
+ if(all && all.length){
+ const localOnly = salesHistory.filter(s => s && s.id == null);
+ salesHistory = [...localOnly, ...all];
+ window.__fullSalesLoaded = true;
+ try { window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge(); } catch(e){}
+ try { const ao = document.getElementById('allOrdersSection'); if(ao && ao.style.display !== 'none' && window.renderAllOrders) window.renderAllOrders(); } catch(e){}
+ try { const cr = document.getElementById('commissionReportSection'); if(cr && cr.style.display !== 'none' && window.renderCommissionReport) window.renderCommissionReport(); } catch(e){}
+ }
+ }).catch(function(){});
+ }, 4000);
+ }
  
  // p1_675 — roster + pending requests + realtime = staff sahaja (anon landing tak baca jadual staf).
  if(window.currentUser){
@@ -12482,7 +12498,7 @@ function renderPOS(searchTerm = "") {
  htmlBuf += `
  <div class="product-card${isOOS ? ' is-oos' : ''}">
  ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : ''}
- <img src="${window.__thumbUrl(thumb, 300)}" class="pos-detail-trigger" loading="lazy" decoding="async" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
+ <img src="${window.__thumbUrl(thumb, 200)}" class="pos-detail-trigger" loading="lazy" decoding="async" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
@@ -13682,29 +13698,33 @@ window.processNewCheckout = async function() {
 
  // p1_236 — track backorder items (sold lebih dari batches available — for OOS allow flow)
  const backorderItems = [];
+ // Kira total (sync) + kumpul item bukan-custom utk deduct
+ const __realItems = [];
  for (const item of cart) {
  totalVal = round2(totalVal + item.price * item.quantity);
- // Skip Custom Sale items — no batch deduction (sku=CUSTOM-*)
- if(item.isCustom || (typeof item.sku === 'string' && item.sku.startsWith('CUSTOM-'))) {
  item.batch_alloc = [];
- continue;
+ if(item.isCustom || (typeof item.sku === 'string' && item.sku.startsWith('CUSTOM-'))) continue;
+ __realItems.push(item);
  }
- // p1_577 (#2/#15) — ATOMIK FIFO deduct via RPC (FOR UPDATE kunci baris) — elak lost-update / oversell
- // bila 2 device checkout SKU sama serentak. batch_alloc kekal direkod (untuk refund/rollback).
- item.batch_alloc = [];
- const { data: __alloc, error: __allocErr } = await withTimeout(db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity }), 15000, 'deduct stok ' + item.sku);
+ // p1_744 — ATOMIK FIFO deduct via RPC (FOR UPDATE) — TAPI jalan SERENTAK (Promise.all), bukan bersiri.
+ // Dulu for-await satu-satu = troli 5 item × wifi lambat = checkout beku lama. Sekarang semua serentak.
+ await Promise.all(__realItems.map(item =>
+ withTimeout(db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity }), 15000, 'deduct stok ' + item.sku)
+ .then(({ data: __alloc, error: __allocErr }) => {
  if(__allocErr) {
  console.error('deduct_stock_fifo gagal', item.sku, __allocErr);
  backorderItems.push({ sku: item.sku, name: item.name, qty_short: item.quantity, qty_total: item.quantity });
- } else {
+ return;
+ }
  ((__alloc && __alloc.allocated) ? __alloc.allocated : []).forEach(a => {
  transactionsPayload.push({ sku: item.sku, batch_id: a.batch_id, transaction_type: 'OUTBOUND_SALE', qty_change: -a.qty });
  item.batch_alloc.push({ batch_id: a.batch_id, qty: a.qty });
  });
  const __short = (__alloc && __alloc.short) || 0;
  if(__short > 0) backorderItems.push({ sku: item.sku, name: item.name, qty_short: __short, qty_total: item.quantity });
- }
- }
+ })
+ .catch(e => { console.error('deduct timeout/gagal', item.sku, e); backorderItems.push({ sku: item.sku, name: item.name, qty_short: item.quantity, qty_total: item.quantity }); })
+ ));
  // p1_236 — Expose backorder list ke saleMeta for sales_history.metadata transparency
  if(backorderItems.length > 0) {
  window.__lastBackorderItems = backorderItems;

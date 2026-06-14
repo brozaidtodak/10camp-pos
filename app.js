@@ -20435,6 +20435,59 @@ window.renderPersonalCommission = function() {
  document.getElementById('cmRefundCount').textContent = personal.refundCount;
  document.getElementById('cmRateInfo').textContent = 'at ' + personal.rate + '%';
 
+ // p1_735 — card tambahan: Online net / Diskaun / Performance% / AOV
+ const __num = (v) => Number(v||0)||0;
+ const __discOf = (s) => {
+ let d = 0, items = s.items;
+ if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = null; } }
+ if(Array.isArray(items)) items.forEach(it => { d += __num(it.discount); });
+ let m = s.metadata; if(typeof m === 'string'){ try { m = JSON.parse(m); } catch(e){ m = null; } }
+ if(m) d += __num(m.custom_discount_amount) + __num(m.vip_discount_amount);
+ return d;
+ };
+ let onlineGross = 0, onlineRef = 0, discTotal = 0;
+ (personal.sales || []).forEach(s => {
+ const recv = parseFloat(s.total_amount || s.total || 0) || 0;
+ const base = Math.abs(window.__saleCommissionBase(s));
+ const ch = (s.channel || '').toLowerCase();
+ const isOnline = /shopee|tiktok|web|easystore|lazada|online/.test(ch);
+ if(isOnline){ if(recv < 0) onlineRef += base; else onlineGross += base; }
+ if(recv >= 0) discTotal += __discOf(s);
+ });
+ const onlineNet = round2(onlineGross - onlineRef);
+ const setTxt = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+ setTxt('cmOnlineNet', fmt(onlineNet));
+ setTxt('cmDiscountGiven', fmt(round2(discTotal)));
+ // AOV
+ const aov = personal.txCount ? round2(personal.net / personal.txCount) : 0;
+ setTxt('cmAOV', fmt(aov));
+ // Sales performance % vs tempoh sebelum (window sama-panjang sebelum range.start)
+ const perfEl = document.getElementById('cmPerfPct');
+ if(perfEl){
+ if(range.start && range.end){
+ const span = range.end.getTime() - range.start.getTime();
+ const prevEnd = new Date(range.start.getTime() - 1);
+ const prevStart = new Date(prevEnd.getTime() - span);
+ let pg = 0, pr = 0;
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+ if(s.is_test || s.staff_name !== currentUser.name) return;
+ const st = (s.status || '').toLowerCase(); if(st.indexOf('cancel')!==-1||st.indexOf('void')!==-1) return;
+ const t = s.created_at ? new Date(s.created_at).getTime() : 0;
+ if(t >= prevStart.getTime() && t <= prevEnd.getTime()){
+ const recv = parseFloat(s.total_amount || s.total || 0) || 0;
+ const base = Math.abs(window.__saleCommissionBase(s));
+ if(recv < 0) pr += base; else pg += base;
+ }
+ });
+ const prevNet = round2(pg - pr);
+ if(prevNet > 0){
+ const pct = round2((personal.net - prevNet) / prevNet * 100);
+ perfEl.textContent = (pct >= 0 ? '+' : '') + pct + '%';
+ perfEl.style.color = pct >= 0 ? '#15803D' : '#B23A2E';
+ } else { perfEl.textContent = personal.net > 0 ? 'Baru' : '—'; perfEl.style.color = '#111'; }
+ } else { perfEl.textContent = '—'; perfEl.style.color = '#111'; }
+ }
+
  // === Manager view: all staff ===
  const mgrWrap = document.getElementById('cmManagerWrap');
  if (mgrWrap) mgrWrap.style.display = isManager ? 'block' : 'none';

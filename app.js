@@ -20229,14 +20229,14 @@ window.__crSaveLiveSession = async function() {
  const d = document.getElementById('lsDate')?.value;
  const host = (document.getElementById('lsHost')?.value || 'Ariff').trim() || 'Ariff';
  const salesV = document.getElementById('lsSales')?.value;
- const ordersV = document.getElementById('lsOrders')?.value;
+ const itemsV = document.getElementById('lsItems')?.value;
  const sales = salesV === '' || salesV == null ? null : parseFloat(salesV);
  if(!d) { if(window.showToast) showToast('Isi tarikh sesi.', 'warn'); return; }
- if(sales == null || isNaN(sales)) { if(window.showToast) showToast('Isi jualan live (RM) dari rekod TikTok.', 'warn'); return; }
+ if(sales == null || isNaN(sales)) { if(window.showToast) showToast('Isi GMV live (RM) dari rekod TikTok.', 'warn'); return; }
  try {
  const { error } = await db.from('live_sessions').insert([{
  session_date: d, host_name: host, channel: 'TikTok',
- live_sales_rm: sales, orders_count: (ordersV ? parseInt(ordersV) : null),
+ live_sales_rm: sales, items_sold: (itemsV ? parseInt(itemsV) : null),
  created_by: (currentUser && currentUser.name) || '?'
  }]);
  if(error) throw error;
@@ -20254,15 +20254,15 @@ window.__crLiveSessionsHtml = function() {
  const list = (window.__liveSessions || []);
  const fmtD = (d) => { try { return new Date(d + 'T00:00').toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'}); } catch(e){ return d; } };
  const money = (n) => 'RM ' + Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
- const rows = list.slice(0,20).map(ls => '<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:6px 8px; font-weight:700;">' + esc(ls.host_name) + '</td><td style="padding:6px 8px; font-size:11.5px; color:#374151;">' + fmtD(ls.session_date) + (ls.orders_count ? ' · ' + ls.orders_count + ' order' : '') + '</td><td style="padding:6px 8px; text-align:right; font-weight:700;">' + money(ls.live_sales_rm) + '</td><td style="padding:6px 8px; text-align:right;"><button onclick="window.__crDeleteLiveSession(' + ls.id + ')" style="background:none; border:none; color:#B23A2E; cursor:pointer; font-size:11px; font-weight:700;">padam</button></td></tr>').join('') || '<tr><td colspan="4" style="padding:12px; color:#9CA3AF; text-align:center;">Belum ada sesi live direkod.</td></tr>';
+ const rows = list.slice(0,30).map(ls => '<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:6px 8px; font-weight:700;">' + esc(ls.host_name) + '</td><td style="padding:6px 8px; font-size:11.5px; color:#374151;">' + fmtD(ls.session_date) + (ls.items_sold ? ' · ' + ls.items_sold + ' item' : '') + '</td><td style="padding:6px 8px; text-align:right; font-weight:700;">' + money(ls.live_sales_rm) + '</td><td style="padding:6px 8px; text-align:right;"><button onclick="window.__crDeleteLiveSession(' + ls.id + ')" style="background:none; border:none; color:#B23A2E; cursor:pointer; font-size:11px; font-weight:700;">padam</button></td></tr>').join('') || '<tr><td colspan="4" style="padding:12px; color:#9CA3AF; text-align:center;">Belum ada sesi live direkod.</td></tr>';
  return '<div class="admin-card" style="padding:14px 16px; margin-bottom:14px;">' +
  '<div style="font-weight:800; font-size:13px; margin-bottom:2px;"><i data-lucide="radio" style="width:14px;height:14px;vertical-align:-2px;"></i> Sesi Live TikTok</div>' +
  '<div style="font-size:11px; color:#9CA3AF; margin-bottom:10px;">Aliff ambil <strong>jualan live dari rekod TikTok</strong> → key-in di sini. Jumlah ni masuk komisen host (Ariff) untuk Kaedah B.</div>' +
  '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px;">' +
  '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">Tarikh</label><br><input type="date" id="lsDate" style="border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
  '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">Host</label><br><input type="text" id="lsHost" value="Ariff" style="width:100px; border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
- '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">Jualan Live (RM) — dari rekod TikTok</label><br><input type="number" step="0.01" id="lsSales" placeholder="0.00" style="width:170px; border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
- '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">Order (pilihan)</label><br><input type="number" id="lsOrders" placeholder="0" style="width:90px; border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
+ '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">LIVE-attributed GMV (RM)</label><br><input type="number" step="0.01" id="lsSales" placeholder="0.00" style="width:170px; border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
+ '<div><label style="font-size:10.5px; color:#6B7280; font-weight:700;">Items sold (pilihan)</label><br><input type="number" id="lsItems" placeholder="0" style="width:110px; border:1px solid #E5E7EB; border-radius:6px; padding:6px;"></div>' +
  '<button onclick="window.__crSaveLiveSession()" style="background:#CD7C32; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer;">+ Log sesi</button>' +
  '</div>' +
  '<table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="background:#FAFAF9;"><th style="padding:5px 8px; text-align:left; font-size:10px; color:#6B7280;">HOST</th><th style="padding:5px 8px; text-align:left; font-size:10px; color:#6B7280;">SESI</th><th style="padding:5px 8px; text-align:right; font-size:10px; color:#6B7280;">JUALAN LIVE</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -20458,9 +20458,18 @@ window.renderPersonalCommission = function() {
  const setTxt = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
  setTxt('cmOnlineNet', fmt(onlineNet));
  setTxt('cmDiscountGiven', fmt(round2(discTotal)));
- // AOV
- const aov = personal.txCount ? round2(personal.net / personal.txCount) : 0;
- setTxt('cmAOV', fmt(aov));
+ // p1_736 — Live Items Sold (TikTok live-attributed) dari live_sessions utk staf ni dlm tempoh
+ if(!window.__liveLoaded && window.__loadLiveSessions) { window.__loadLiveSessions().then(() => window.renderPersonalCommission()); }
+ let liveItems = 0;
+ (window.__liveSessions || []).forEach(ls => {
+ if((ls.host_name || '') !== currentUser.name) return;
+ if(range.start && range.end && ls.session_date) {
+ const t = new Date(ls.session_date + 'T12:00').getTime();
+ if(!(t >= range.start.getTime() && t <= range.end.getTime())) return;
+ }
+ liveItems += (parseInt(ls.items_sold) || 0);
+ });
+ setTxt('cmLiveItems', String(liveItems));
  // Sales performance % vs tempoh sebelum (window sama-panjang sebelum range.start)
  const perfEl = document.getElementById('cmPerfPct');
  if(perfEl){

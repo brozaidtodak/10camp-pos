@@ -20911,7 +20911,7 @@ window.__mpAllFieldIds = [
  'mpName','mpSku','mpBrand','mpCategory','mpModelNo','mpParentSku','mpUnit','mpPrice','mpCompareAt','mpCostPrice','mpInitQty',
  'mpVariantColor','mpVariantSize','mpErpBarcode','mpVariantOptions','mpHasVariants','mpDefaultVariantSku',
  'mpWeightKg','mpLengthCm','mpWidthCm','mpHeightCm','mpLocationBin',
- 'mpDescription','mpImageUrl','mpCommissionRate','mpIsPublished',
+ 'mpDescription','mpImageUrl','mpImageUrls','mpCommissionRate','mpIsPublished',
  'mpVendor','mpCollection','mpTags','mpNotes',
  'mpSeoTitle','mpSeoDescription','mpSeoSlug',
  'mpReorderPoint','mpReorderQty','mpLeadTimeDays'
@@ -20955,6 +20955,9 @@ window.saveMasterProduct = async function() {
  const isEdit = !!existingProd;
 
  const imageUrl = get('mpImageUrl');
+ // p1_718 — sokong banyak gambar (mpImageUrls CSV); fallback ke mpImageUrl tunggal
+ const __imgCsv = get('mpImageUrls');
+ const imagesArr = __imgCsv ? __imgCsv.split(',').map(s => s.trim()).filter(Boolean) : (imageUrl ? [imageUrl] : []);
  // p1_226 — pack extra fields into metadata JSONB (preserves any existing keys via merge)
  const prevMeta = (existingProd && existingProd.metadata && typeof existingProd.metadata === 'object') ? existingProd.metadata : {};
  const tagsArr = get('mpTags').split(',').map(t => t.trim()).filter(Boolean);
@@ -20999,7 +21002,7 @@ window.saveMasterProduct = async function() {
  reorder_point: getNum('mpReorderPoint'),
  reorder_qty: getNum('mpReorderQty'),
  lead_time_days: getNum('mpLeadTimeDays'),
- images: imageUrl ? [imageUrl] : null,
+ images: imagesArr.length ? imagesArr : null,
  is_published: get('mpIsPublished') === 'true',
  metadata
  };
@@ -21140,6 +21143,8 @@ window.loadMasterProductForEdit = async function() {
  set('mpLocationBin', p.location_bin);
  set('mpDescription', p.description);
  set('mpImageUrl', (p.images && p.images[0]) ? p.images[0] : '');
+ // p1_718 — isi galeri gambar (semua) + render thumbnail
+ { const __urls = (Array.isArray(p.images) ? p.images.filter(Boolean) : []); const __el = document.getElementById('mpImageUrls'); if(__el) __el.value = __urls.join(','); if(window.mpRenderGallery) window.mpRenderGallery(); }
  set('mpCommissionRate', p.commission_rate);
  set('mpIsPublished', p.is_published ? 'true' : 'false');
  set('mpReorderPoint', p.reorder_point); set('mpReorderQty', p.reorder_qty);
@@ -21178,6 +21183,7 @@ window.clearMpForm = function() {
  const badge = document.getElementById('mpEditModeBadge'); if(badge) badge.style.display = 'none';
  const skuField = document.getElementById('mpSku');
  if(skuField) { skuField.readOnly = false; skuField.style.background = ''; }
+ if(window.mpRenderGallery) window.mpRenderGallery(); // p1_718 — kosongkan thumbnail galeri
 };
 
 // p1_226 — Delete master product (with safety checks)
@@ -22246,6 +22252,70 @@ window.importPdpMediaFromEasyStore = async function() {
  }
  } catch(e){ console.error('import gambar easystore:', e); showToast('Ralat import: ' + e.message, 'error'); }
  if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+};
+
+// p1_718 — borang "+ Baru": seksyen Images (upload/drag-drop/Add from URL + galeri). Simpan banyak gambar.
+window.mpRenderGallery = function(){
+ const el = document.getElementById('mpImageUrls'); if(!el) return;
+ const urls = (el.value || '').split(',').map(s => s.trim()).filter(Boolean);
+ const first = document.getElementById('mpImageUrl'); if(first) first.value = urls[0] || ''; // sync (back-compat)
+ const g = document.getElementById('mpImageGallery'); if(!g) return;
+ g.innerHTML = urls.map((u, i) => '<div style="position:relative; width:66px; height:66px; border-radius:8px; overflow:hidden; border:1px solid #E5E7EB; background:#F3F4F6;">'
+  + '<img src="' + (window.__thumbUrl ? window.__thumbUrl(u, 140) : u) + '" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.opacity=0.2;">'
+  + '<button type="button" onclick="window.mpRemoveImage(' + i + ')" title="Buang" style="position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; border:none; background:rgba(16,16,16,0.72); color:#fff; font-size:12px; line-height:1; cursor:pointer;">&times;</button>'
+  + (i === 0 ? '<span style="position:absolute; bottom:0; left:0; right:0; background:rgba(205,124,50,0.92); color:#fff; font-size:8px; font-weight:800; text-align:center; padding:1px 0;">COVER</span>' : '')
+  + '</div>').join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.mpPushImageUrls = function(newUrls){
+ const el = document.getElementById('mpImageUrls'); if(!el) return;
+ let urls = el.value ? el.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+ urls.push(...(newUrls || []).filter(Boolean));
+ el.value = urls.join(',');
+ window.mpRenderGallery();
+};
+window.mpAddImageUrl = function(){
+ const u = (prompt('Tampal URL gambar:', '') || '').trim();
+ if(!u) return;
+ if(!/^https?:\/\//i.test(u)){ if(window.showToast) showToast('URL tak sah — mesti mula https://', 'warn'); return; }
+ window.mpPushImageUrls([u]);
+};
+window.mpRemoveImage = function(idx){
+ const el = document.getElementById('mpImageUrls'); if(!el) return;
+ let urls = el.value ? el.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+ urls.splice(idx, 1);
+ el.value = urls.join(',');
+ window.mpRenderGallery();
+};
+window.mpUploadImages = async function(input){
+ const files = Array.from((input && input.files) || []);
+ if(!files.length) return;
+ if(typeof db === 'undefined' || !db){ if(window.showToast) showToast('DB belum sedia.', 'error'); return; }
+ const sku = ((document.getElementById('mpSku') || {}).value || 'prod').replace(/[^A-Za-z0-9_-]/g, '') || 'prod';
+ const dz = document.getElementById('mpDropZone'); const dzHtml = dz ? dz.innerHTML : '';
+ if(dz) dz.innerHTML = '<div style="font-size:13px; color:#CD7C32; font-weight:700;">Memuat naik…</div>';
+ const okUrls = [];
+ for(const f of files){
+  if(!f.type || !f.type.startsWith('image/')){ if(window.showToast) showToast('Bukan fail gambar: ' + f.name, 'warning'); continue; }
+  if(f.size > 8 * 1024 * 1024){ if(window.showToast) showToast('Gambar terlalu besar (max 8MB): ' + f.name, 'warning'); continue; }
+  try {
+   const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+   const fileName = 'products/' + sku + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+   const { data, error } = await db.storage.from('product-images').upload(fileName, f, { cacheControl: '3600', upsert: false, contentType: f.type || 'image/jpeg' });
+   if(error) throw error;
+   const { data: pub } = db.storage.from('product-images').getPublicUrl(data.path);
+   if(pub && pub.publicUrl) okUrls.push(pub.publicUrl);
+  } catch(e){ console.error('upload gambar:', e); if(window.showToast) showToast('Gagal upload ' + f.name + ': ' + e.message, 'error'); }
+ }
+ if(dz) dz.innerHTML = dzHtml;
+ if(okUrls.length){ window.mpPushImageUrls(okUrls); if(window.showToast) showToast(okUrls.length + ' gambar dimuat naik.', 'success'); }
+ if(input) input.value = '';
+};
+window.mpDropImages = function(ev){
+ ev.preventDefault();
+ const dz = document.getElementById('mpDropZone'); if(dz){ dz.style.borderColor = '#D1D5DB'; dz.style.background = '#FAFAF9'; }
+ const files = (ev.dataTransfer && ev.dataTransfer.files) || [];
+ if(files.length) window.mpUploadImages({ files });
 };
 
 // p1_424 — upload gambar produk terus ke Supabase storage (bucket product-images, public).

@@ -6816,7 +6816,25 @@
  <button type="button" onclick="window.mpCleanDescriptionHtml()" title="Strip HTML tags + EasyStore sheets data → plain text" style="background:#fff; color:#CD7C32; border:1px solid #E7C8A8; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="sparkles" style="width:11px;height:11px;vertical-align:-1px;"></i> Clean HTML</button>
  </div>
  <textarea id="mpDescription" class="login-input" rows="4" placeholder="Tent ringan untuk hiking 2 orang, double-wall, 3-season..."></textarea>
- <div style="margin-top:14px;"><label class="small-lbl">Image URL (utama, pilihan)</label><input type="text" id="mpImageUrl" class="login-input" placeholder="https://..."></div>
+ <!-- p1_718 — seksyen Images: upload fail / drag-drop / Add from URL + galeri -->
+ <div style="margin-top:16px;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+ <label class="small-lbl" style="margin:0;">Gambar Produk</label>
+ <span style="font-size:11.5px;">
+ <label for="mpFileInput" style="color:#CD7C32; font-weight:700; cursor:pointer;">Add images</label>
+ <span style="color:#D1D5DB; margin:0 4px;">·</span>
+ <a onclick="window.mpAddImageUrl()" style="color:#CD7C32; font-weight:700; cursor:pointer;">Add from URL</a>
+ </span>
+ </div>
+ <input type="file" id="mpFileInput" accept="image/*" multiple style="display:none;" onchange="window.mpUploadImages(this)">
+ <div id="mpDropZone" onclick="document.getElementById('mpFileInput').click()" ondragover="event.preventDefault(); this.style.borderColor='#CD7C32'; this.style.background='#FBF3EA';" ondragleave="this.style.borderColor='#D1D5DB'; this.style.background='#FAFAF9';" ondrop="window.mpDropImages(event)" style="border:1.5px dashed #D1D5DB; border-radius:10px; background:#FAFAF9; padding:24px; text-align:center; cursor:pointer;">
+ <div style="font-size:13px; color:#6B7280;"><i data-lucide="upload" style="width:16px;height:16px;vertical-align:-3px;"></i> <strong style="color:#CD7C32;">Upload files</strong> atau drag &amp; drop</div>
+ <div style="font-size:10.5px; color:#9CA3AF; margin-top:4px;">JPG, PNG, WebP — max 8MB setiap gambar. Gambar pertama = cover.</div>
+ </div>
+ <div id="mpImageGallery" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+ <input type="hidden" id="mpImageUrls" value="">
+ <input type="hidden" id="mpImageUrl" value="">
+ </div>
  </div>
 
  <div class="mp-card">
@@ -8291,6 +8309,7 @@
  { id:'p1_628', label:'Betulkan bahasa janggal (Zaid: "settlekan language yang obvious macam dekat memo tu"). Punca: kamus i18n (window.I18N.dict, default lang bm) ada 77 entri bm===en belum translate. Betulkan 16 label jelas + 2 ayat tertanam English: Memo dept (Department:→Jabatan:, Sales→Jualan, Inventory→Inventori, Finance→Kewangan, sub dept lbl), All Orders (Channel→Saluran, Completed→Selesai, Refunded→Dipulangkan, Order→Pesanan, Items→Barang, Hide Test→Sorok Ujian), Loading…→Memuatkan…, Consent→Kebenaran, Staff→Staf; mb_sub/mb_sub_info buang "approved"/"Pending Approval". KEKAL jargon Manglish (SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit) + nama feature sidebar + teks brand landing. app.js v634->v635.', d:'done' },
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
+ { id:'p1_718', label:'Borang "+ Baru" — naik taraf "Image URL" jadi seksyen Images penuh (Zaid). Ganti satu field URL dgn: "Add images" (upload fail) + "Add from URL" + zon "Upload files / Drag & Drop" + galeri thumbnail (cover label pertama, butang buang). Upload terus ke Supabase storage bucket product-images (reuse corak p1_424). Fungsi: mpUploadImages/mpDropImages/mpAddImageUrl/mpRemoveImage/mpRenderGallery/mpPushImageUrls; hidden mpImageUrls (CSV semua) + mpImageUrl (first, back-compat). saveMasterProduct kini simpan SEMUA gambar (imagesArr); loadMasterProductForEdit isi galeri; clearMpForm kosongkan. app.js v703->704.', d:'done' },
  { id:'p1_717', label:'Fix gambar zoom/herot selepas tukar Supabase render (Ariff+Zack: gambar zoom dekat2). PUNCA: Supabase render/image dgn ?width=300 SAHAJA pulang 300×(tinggi asal, cth 2400) — bukan skala proporsional → gambar jadi jalur herot/zoom. FIX __thumbUrl: tambah &height=W&resize=contain → skala proporsional muat dlm kotak WxW (gambar PENUH, tak crop/distort; cth 2400×2400 → 300×300). Disahkan via sips. app.js v702->703.', d:'done' },
  { id:'p1_716', label:'Fix detail customer hilang + checkout stuck Processing (Ariff iPad). (1) PUNCA hilang: openCheckoutPanel kosongkan field customer bila tiada posCustomer attached → nama yg DITAIP terus hilang bila tutup checkout / refresh. Fix: draf customer (name/phone/email/tin) auto-simpan localStorage (pos_checkout_cust_v1) tiap oninput; openCheckoutPanel restore draf bila tiada posCustomer; dibuang bila jualan berjaya. Customer taip sekali, tutup tengok produk / refresh → kekal. (2) Lubang hang sebenar: upload resit (__proofUploadToStorage) tak berpagar timeout → boleh freeze butang "Processing…" selamanya di wifi kedai. Bungkus withTimeout 20s, NON-fatal (sale tetap simpan tanpa resit). app.js v701->702. NOTA: pastikan iPad refresh ke versi terkini (fix timeout DB p1_671/672 + ni).', d:'done' },
  { id:'p1_715', label:'Redesign UI/UX borang "+ Baru" Daftar Produk (masterProductFormCard) jadi minimalist & kemas gaya rujukan EasyStore/Shopify (Zaid/Zack: "sakit mata, tak minimalist, tak tersusun"). Brand-lock dipatuhi: warna brand (#CD7C32 bronze + #101010 + cream), BUKAN biru Shopify. Perubahan: (1) Top bar tajuk + butang Save bronze kanan-atas (ganti header lama). (2) Toolbar Edit/Load/Padam yg besar+beige → collapsible <details> "Edit/Padam SKU sedia ada" yg subtle. (3) Kad lembut (border #EEE + soft shadow + padding 20px + ruang lega + label kelabu 11.5px) ganti sempadan keras. (4) Tetapan Lanjutan (Model/Parent/Unit, Logistik, Reorder, SEO) dilipat dlm <details> mp-adv supaya view utama lean. (5) Butang hitam besar bawah dikekal (Save Produk). SEMUA 45 field ID + datalist + handler (saveMasterProduct/loadMasterProductForEdit/clearMpForm/deleteMasterProduct/mpCleanDescriptionHtml/mpAddVariantOption) DIKEKAL — fungsi & sync tak berubah, disahkan ID check 45/45. HTML sahaja, tiada app.js.', d:'done' },
@@ -13436,7 +13455,7 @@
  </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=703"></script>
+ <script src="app.js?v=704"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

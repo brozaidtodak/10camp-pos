@@ -4160,8 +4160,8 @@ window.__phApplyFilter = function() {
 // ===== p1_701 — Chat Inbox (omnichannel). Shopee LIVE via shopee-chat fn; FB/IG perlu setup Meta. =====
 window.__chatChannel = window.__chatChannel || 'shopee';
 window.__CHAT_CHANNELS = [
- { key:'shopee', label:'Shopee', color:'#EE4D2D', live:true },
- { key:'tiktok', label:'TikTok', color:'#111827', live:false },
+ { key:'shopee', label:'Shopee', color:'#EE4D2D', live:true, provider:'shopee-chat' },
+ { key:'tiktok', label:'TikTok', color:'#111827', live:false, pending:true, provider:'tiktok-chat' },
  { key:'fb',     label:'FB Messenger', color:'#1877F2', live:false },
  { key:'ig',     label:'Instagram', color:'#C13584', live:false }
 ];
@@ -4175,15 +4175,20 @@ window.renderChatInbox = function() {
  if(tabs) {
   tabs.innerHTML = window.__CHAT_CHANNELS.map(c => {
    const active = c.key === window.__chatChannel;
-   return `<button onclick="window.__chatSetChannel('${c.key}')" style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${active?c.color:'#E5E7EB'}; background:${active?c.color:'#fff'}; color:${active?'#fff':'#374151'};"><span style="width:8px; height:8px; border-radius:50%; background:${c.live?'#22C55E':'#D1D5DB'};"></span>${c.label}${c.live?'':' <span style="font-size:10px; opacity:0.7;">(setup)</span>'}</button>`;
+   const dot = c.live?'#22C55E':(c.pending?'#F59E0B':'#D1D5DB');
+   const suffix = c.live?'':(c.pending?' <span style="font-size:10px; opacity:0.7;">(auth)</span>':' <span style="font-size:10px; opacity:0.7;">(setup)</span>');
+   return `<button onclick="window.__chatSetChannel('${c.key}')" style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${active?c.color:'#E5E7EB'}; background:${active?c.color:'#fff'}; color:${active?'#fff':'#374151'};"><span style="width:8px; height:8px; border-radius:50%; background:${dot};"></span>${c.label}${suffix}</button>`;
   }).join('') + `<button onclick="window.renderChatInbox()" style="margin-left:auto; padding:7px 12px; border-radius:8px; border:1px solid #E5E7EB; background:#fff; font-size:12px; font-weight:700; cursor:pointer; color:#374151;">Refresh</button>`;
  }
  thread.innerHTML = '<p style="color:#9CA3AF; margin:auto;">Pilih perbualan di kiri.</p>';
  const ch = window.__CHAT_CHANNELS.find(c => c.key === window.__chatChannel);
- if(!ch || !ch.live) {
+ // Saluran tanpa provider (FB/IG) — perlu setup Meta
+ if(!ch || (!ch.live && !ch.provider)) {
   list.innerHTML = `<div style="padding:20px; color:#6B7280; font-size:13px; line-height:1.6;"><strong>${esc(ch?ch.label:'Saluran')}</strong> belum disambung.<br><br>Perlu setup Meta app + app review (permission messaging) + sambung Page/IG Business. Bagi creds pada admin, nanti disambung.</div>`;
   return;
  }
+ // p1_730 — TikTok: guna tiktok-chat fn; handle 105005 (scope belum aktif) dengan mesej boleh-tindak
+ if(window.__chatChannel === 'tiktok') { window.__chatLoadTiktok(list); return; }
  list.innerHTML = '<p style="color:#9CA3AF; padding:18px;">Memuatkan perbualan…</p>';
  fetch('/.netlify/functions/shopee-chat?mode=conversations&page_size=50').then(r=>r.json()).then(r => {
   if(r.error) { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">Shopee: '+esc(r.error)+'</p>'; return; }
@@ -4203,6 +4208,8 @@ window.renderChatInbox = function() {
  }).catch(e => { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">Error: '+esc(e.message)+'</p>'; });
 };
 window.__chatOpen = function(cid, buyerId, name) {
+ // p1_730 — route ikut channel aktif
+ if(window.__chatChannel === 'tiktok') { return window.__chatOpenTiktok(cid, buyerId, name); }
  const thread = document.getElementById('chatThread'); if(!thread) return;
  const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
  thread.innerHTML = '<p style="color:#9CA3AF; margin:auto;">Memuatkan mesej…</p>';
@@ -4226,6 +4233,73 @@ window.__chatOpen = function(cid, buyerId, name) {
      <div style="background:${bg}; color:${col}; ${brd} padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word;">${body}</div>
      <div style="font-size:10px; color:#9CA3AF; margin-top:2px; text-align:${fromBuyer?'left':'right'};">${t}</div>
     </div>`;
+  }).join('');
+  thread.scrollTop = thread.scrollHeight;
+ }).catch(e => { thread.innerHTML = '<p style="color:#B23A2E;">Error: '+esc(e.message)+'</p>'; });
+};
+
+// p1_730 — TikTok chat loader (Customer Service IM API via tiktok-chat fn).
+// Handle 105005 (scope belum aktif) dengan mesej boleh-tindak; parse perbualan kalau scope OK.
+window.__chatTiktokScopeMsg = function() {
+ return '<div style="padding:20px; color:#374151; font-size:13px; line-height:1.7;">' +
+ '<div style="font-weight:800; color:#B23A2E; margin-bottom:8px;"><i data-lucide="alert-triangle" style="width:15px;height:15px;vertical-align:-2px;"></i> TikTok Customer Service belum aktif</div>' +
+ 'Token TikTok sekarang takde kebenaran <strong>Customer Service / Message</strong> (code 105005). Sama macam fix scope finance dulu:' +
+ '<ol style="margin:10px 0 0; padding-left:20px;">' +
+ '<li>TikTok Partner Center → app → pastikan permission <strong>Customer Service (Message)</strong> diluluskan.</li>' +
+ '<li><strong>Re-authorize shop</strong> (buka link authorize, klik Authorize) — token sekarang dari 18 Mei, perlu token baru.</li>' +
+ '<li>Tekan Refresh di sini — perbualan TikTok akan keluar automatik.</li>' +
+ '</ol></div>';
+};
+window.__chatLoadTiktok = function(list) {
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ list.innerHTML = '<p style="color:#9CA3AF; padding:18px;">Memuatkan perbualan TikTok…</p>';
+ fetch('/.netlify/functions/tiktok-chat?mode=conversations&page_size=50').then(r=>r.json()).then(r => {
+  // Scope belum aktif / ralat kebenaran
+  if(r && (r.code === 105005 || (r.error && /105005|scope|denied/i.test(String(r.error))))) { list.innerHTML = window.__chatTiktokScopeMsg(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
+  if(r && r.error) { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">TikTok: '+esc(r.error)+'</p>'; return; }
+  if(r && r.code && r.code !== 0) { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">TikTok (code '+esc(r.code)+'): '+esc(r.message||'ralat')+'</p>'; return; }
+  const convs = (r.data && r.data.conversations) || (r.response && r.response.conversations) || [];
+  if(!convs.length) { list.innerHTML = '<p style="color:#9CA3AF; padding:18px;">Tiada perbualan TikTok.</p>'; return; }
+  list.innerHTML = convs.map(c => {
+   const parts = c.participants || [];
+   const buyer = parts.find(p => String(p.role||'').toUpperCase() !== 'SELLER') || parts[0] || {};
+   const cid = c.conversation_id || c.id || '';
+   const nm = buyer.nickname || buyer.user_id || 'Pembeli';
+   const lm = c.latest_message || c.last_message || {};
+   const snippet = (lm.content && (lm.content.text || lm.content.content)) || ('['+(lm.type||'mesej')+']');
+   const ts = Number(lm.create_time || c.last_message_time || 0);
+   const t = ts ? new Date(ts*1000).toLocaleString('en-MY',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+   const unread = (c.unread_count>0) ? `<span style="background:#111827; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">${c.unread_count}</span>` : '';
+   return `<div onclick="window.__chatOpen('${esc(cid)}', '${esc(buyer.user_id||'')}', '${esc(String(nm).replace(/'/g,"\\'"))}')" style="padding:12px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='#fff'">
+     <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;"><strong style="font-size:13px;">${esc(nm)}</strong>${unread}</div>
+     <div style="font-size:12px; color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px;">${esc(snippet)}</div>
+     <div style="font-size:10px; color:#9CA3AF; margin-top:3px;"><span style="color:#111827; font-weight:700;">TikTok</span> · ${t}</div>
+    </div>`;
+  }).join('');
+ }).catch(e => { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">Error: '+esc(e.message)+'</p>'; });
+};
+window.__chatOpenTiktok = function(cid, buyerId, name) {
+ const thread = document.getElementById('chatThread'); if(!thread) return;
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ thread.innerHTML = '<p style="color:#9CA3AF; margin:auto;">Memuatkan mesej…</p>';
+ fetch('/.netlify/functions/tiktok-chat?mode=messages&conversation_id='+encodeURIComponent(cid)+'&page_size=50').then(r=>r.json()).then(r => {
+  if(r && (r.code === 105005 || (r.error && /105005|scope|denied/i.test(String(r.error))))) { thread.innerHTML = window.__chatTiktokScopeMsg(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
+  if(r && r.error) { thread.innerHTML = '<p style="color:#B23A2E;">TikTok: '+esc(r.error)+'</p>'; return; }
+  let msgs = (r.data && r.data.messages) || (r.response && r.response.messages) || [];
+  msgs = msgs.slice().reverse();
+  const head = `<div style="font-weight:800; padding-bottom:10px; border-bottom:1px solid #E5E7EB; margin-bottom:12px; position:sticky; top:0; background:#FAFAFA;">${esc(name||'Pembeli')} <span style="font-size:11px; color:#9CA3AF; font-weight:600;">· TikTok</span></div>`;
+  if(!msgs.length) { thread.innerHTML = head + '<p style="color:#9CA3AF; margin:auto;">Tiada mesej.</p>'; return; }
+  thread.innerHTML = head + msgs.map(m => {
+   const sender = m.sender || {};
+   const fromBuyer = String(sender.role||'').toUpperCase() !== 'SELLER' && String(sender.user_id||'') !== '';
+   const txt = (m.content && (m.content.text != null ? m.content.text : m.content.content)) || null;
+   const body = txt != null ? esc(txt) : ('<em style="opacity:0.7;">['+esc(m.type||'mesej')+']</em>');
+   const ts = Number(m.create_time || 0);
+   const t = ts ? new Date(ts*1000).toLocaleString('en-MY',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+   const align = fromBuyer ? 'flex-start' : 'flex-end';
+   const bg = fromBuyer ? '#fff' : '#CD7C32'; const col = fromBuyer ? '#111827' : '#fff';
+   const brd = fromBuyer ? 'border:1px solid #E5E7EB;' : '';
+   return `<div style="align-self:${align}; max-width:75%; margin-bottom:8px;"><div style="background:${bg}; color:${col}; ${brd} padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word;">${body}</div><div style="font-size:10px; color:#9CA3AF; margin-top:2px; text-align:${fromBuyer?'left':'right'};">${t}</div></div>`;
   }).join('');
   thread.scrollTop = thread.scrollHeight;
  }).catch(e => { thread.innerHTML = '<p style="color:#B23A2E;">Error: '+esc(e.message)+'</p>'; });

@@ -20908,7 +20908,7 @@ window.calculateEditableTotal = function() {
 // ===================================
 // p1_226 — All Master Product form field IDs (for clear/load/save loops)
 window.__mpAllFieldIds = [
- 'mpName','mpSku','mpBrand','mpCategory','mpModelNo','mpParentSku','mpUnit','mpPrice','mpCompareAt','mpCostPrice','mpInitQty',
+ 'mpName','mpSku','mpBrand','mpCategory','mpModelNo','mpParentSku','mpUnit','mpPrice','mpCompareAt','mpCostPrice','mpInitQty','mpShopeePrice','mpTiktokPrice',
  'mpVariantColor','mpVariantSize','mpErpBarcode','mpVariantOptions','mpHasVariants','mpDefaultVariantSku',
  'mpWeightKg','mpLengthCm','mpWidthCm','mpHeightCm','mpLocationBin',
  'mpDescription','mpImageUrl','mpImageUrls','mpCommissionRate','mpIsPublished',

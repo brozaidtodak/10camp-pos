@@ -23460,12 +23460,31 @@ window.pdpConfirmPickImage = async function() {
 window.renderPdpMediaGallery = function(urls) {
  const container = document.getElementById('pdpMediaGallery');
  // p1_158 — was innerHTML += in loop (Safari OOM trigger)
+ // p1_753 — gambar pertama (idx 0) = COVER (muka depan produk di preview/landing).
+ // Boleh pilih mana-mana gambar jadi cover (butang "Set cover" → alih ke depan).
  container.innerHTML = urls.map((url, idx) => `
- <div style="position:relative; width:80px; height:80px; border-radius:8px; border:1px solid #e1e3e5; overflow:hidden; flex-shrink:0;">
+ <div style="position:relative; width:80px; height:80px; border-radius:8px; border:2px solid ${idx === 0 ? '#CD7C32' : '#e1e3e5'}; overflow:hidden; flex-shrink:0;">
  <img src="${window.__thumbUrl(url, 160)}" loading="lazy" decoding="async" onerror="window.__imgThumbErr(this, '${String(url).replace(/'/g, "\\'")}')" style="width:100%; height:100%; object-fit:cover;">
- <button onclick="window.removePdpMedia(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,0.8); border:none; border-radius:50%; width:20px; height:20px; font-size:10px; cursor:pointer; color:red;"></button>
+ <button onclick="window.removePdpMedia(${idx})" title="Buang gambar" style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,0.85); border:none; border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer; color:red; line-height:1;">&times;</button>
+ ${idx === 0
+   ? `<div style="position:absolute; bottom:0; left:0; right:0; background:#CD7C32; color:#fff; font-size:9px; font-weight:800; letter-spacing:0.3px; text-align:center; padding:2px 0; display:flex; align-items:center; justify-content:center; gap:2px;"><i data-lucide="star" style="width:9px;height:9px;"></i> COVER</div>`
+   : `<button onclick="window.setPdpCover(${idx})" title="Jadikan gambar ni sebagai cover (muka depan produk)" style="position:absolute; bottom:2px; left:2px; background:rgba(255,255,255,0.92); border:1px solid #CD7C32; color:#CD7C32; border-radius:4px; font-size:8px; font-weight:800; cursor:pointer; padding:1px 5px; line-height:1.4;">Set cover</button>`}
  </div>
  `).join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// p1_753 — pilih gambar jadi COVER: alih ke index 0 (images[0] = muka depan preview/landing).
+// Tak save terus — kemaskini pdpMediaUrls + gallery; tekan Save untuk simpan (sama macam Media lain).
+window.setPdpCover = function(idx) {
+ const el = document.getElementById('pdpMediaUrls'); if(!el) return;
+ let urls = el.value ? el.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+ if(idx <= 0 || idx >= urls.length) return;
+ const pick = urls.splice(idx, 1)[0];
+ urls.unshift(pick);
+ el.value = urls.join(',');
+ window.renderPdpMediaGallery(urls);
+ if(typeof showToast === 'function') showToast('Cover ditetapkan — tekan Save untuk simpan.', 'success');
 };
 
 window.addPdpMedia = function() {
@@ -23732,9 +23751,11 @@ window.savePdpData = async function() {
  };
 
  let imgStr = document.getElementById('pdpMediaUrls').value;
- // p1_749 — pool media dikongsi; kekalkan cover variant semasa (images[0]) bila sync.
+ // p1_749/p1_753 — pool media dikongsi. Untuk variant SEMASA: order gallery = pilihan
+ // cover (images[0]); guna __pool terus supaya "Set cover" benar2 tersimpan. Sibling
+ // kekalkan cover sendiri via __mergeCoverPool (di bawah).
  const __pool = imgStr ? imgStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
- updatePayload.images = __pool.length ? window.__mergeCoverPool(prevProd.images, __pool) : [];
+ updatePayload.images = __pool.length ? __pool.slice() : [];
 
  try {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);

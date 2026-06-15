@@ -32218,8 +32218,10 @@ window.cpConfirmSale = async function() {
  document.getElementById('cpFooter').classList.add('is-hidden');
  document.getElementById('cpSuccessAmount').textContent = finalTotal.toFixed(2);
  const __T = (typeof window.t === 'function') ? window.t : ((k) => k); // p1_404 — i18n
+ // p1_757 — e-receipt auto-hantar masa checkout (email + WhatsApp). Tunjuk mesej "dah dihantar"
+ // kalau ada email ATAU phone; walk-in tanpa contact kekal mesej biasa.
  document.getElementById('cpSuccessSub').innerHTML =
- `${__T('cp_receipt_word')} <strong>${__cpLastSale.invId}</strong> ${__T('cp_saved_suffix')} ${__cpLastSale.customer_email ? __T('cp_email_can_send') : __T('cp_walkin_customer')}`;
+ `${__T('cp_receipt_word')} <strong>${__cpLastSale.invId}</strong> ${__T('cp_saved_suffix')} ${(__cpLastSale.customer_email || __cpLastSale.customer_phone) ? __T('cp_email_can_send') : __T('cp_walkin_customer')}`;
 
  if(typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -33577,7 +33579,7 @@ window.I18N = {
  cp_receipt_saved: { bm: 'Resit dah disimpan dalam sistem.', en: 'Receipt saved in the system.' },
  cp_receipt_word: { bm: 'Resit', en: 'Receipt' },
  cp_saved_suffix: { bm: 'dah disimpan.', en: 'saved.' },
- cp_email_can_send: { bm: 'Email-resit boleh dihantar.', en: 'E-receipt can be sent.' },
+ cp_email_can_send: { bm: 'E-receipt dah dihantar secara automatik.', en: 'E-receipt sent automatically.' },
  cp_walkin_customer: { bm: 'Pelanggan walk-in.', en: 'Walk-in customer.' },
  cs_save: { bm: 'Jimat', en: 'Save' },
  cs_add_to_cart: { bm: 'Tambah ke Troli', en: 'Add to Cart' },

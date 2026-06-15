@@ -23012,9 +23012,16 @@ window.renderPdpSiblingVariants = function(prod) {
  const isCur = v.sku === prod.sku;
  const stock = stockBySku[v.sku] || 0;
  const label = [v.variant_color, v.variant_size].filter(Boolean).join(' · ') || v.sku;
- const thumb = (v.images && v.images[0]) ? v.images[0] : '';
+ // p1_745 — MODEL MEDIA DIKONGSI (Zack): produk berbilang variant berkongsi SATU
+ // sumber media (bahagian "Media" atas). Variant tak pegang gambar sendiri lagi.
+ // Tunjuk thumbnail kongsi + kolum read-only. Produk tunggal kekal edit sendiri.
+ const __sharedImgs = (sibs.find(x => Array.isArray(x.images) && x.images[0]) || {}).images;
+ const thumb = (!isSingle) ? ((__sharedImgs && __sharedImgs[0]) || '') : ((v.images && v.images[0]) ? v.images[0] : '');
+ const imgCell = isSingle
+  ? `<input id="pv_${i}_img" type="text" value="${esc((Array.isArray(v.images)?v.images.filter(Boolean):[]).join(', '))}" onclick="event.stopPropagation();" placeholder="URL gambar" title="URL gambar produk. Boleh banyak, pisah dengan koma. Gambar pertama = cover/thumbnail." style="width:150px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:10px;">`
+  : `<span style="font-size:9px; color:#9CA3AF; line-height:1.2; text-align:center;">Media dikongsi<br>(edit di &quot;Media&quot; atas)</span>`;
  rows += `<tr style="${isCur ? 'background:#FAF2E6;' : ''}border-bottom:1px solid #F3F4F6;">
- <td style="padding:6px 8px;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${thumb ? `<img src="${esc(thumb)}" onclick="window.openPdpModal('${escJs(v.sku)}')" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px;">no img</div>`}<input id="pv_${i}_img" type="text" value="${esc((Array.isArray(v.images)?v.images.filter(Boolean):[]).join(', '))}" onclick="event.stopPropagation();" placeholder="URL gambar" title="URL gambar variant ni. Boleh banyak, pisah dengan koma. Gambar pertama = cover/thumbnail." style="width:150px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:10px;"></div></td>
+ <td style="padding:6px 8px;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${thumb ? `<img src="${esc(thumb)}" onclick="window.openPdpModal('${escJs(v.sku)}')" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px;">no img</div>`}${imgCell}</div></td>
  <td style="padding:6px 8px; white-space:nowrap;"><a onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; color:#CD7C32; font-weight:${isCur?'800':'600'}; text-decoration:none;">${esc(label)}</a>${isCur ? ' <span style="color:#9CA3AF; font-size:9px;">(kini)</span>' : ''}</td>
  <td style="padding:6px 8px; font-family:monospace; font-size:11px; color:#6B7280; white-space:nowrap;">${esc(v.sku)}</td>
  <td style="padding:6px 8px;">${inp(i,'qty',stock,58,'1')}</td>
@@ -23059,6 +23066,10 @@ window.__pdpSaveVariants = async function(parentSku) {
  for(const b of (inventoryBatches || [])) if(b.qty_remaining > 0) stockBySku[b.sku] = (stockBySku[b.sku] || 0) + b.qty_remaining;
  const u = window.currentUser || {};
  const colMap = { price:'price', compare:'compare_at_price', cost:'cost_price', shopee:'shopee_price', tiktok:'tiktok_price', barcode:'erp_barcode', len:'length_cm', wid:'width_cm', hei:'height_cm', wt:'weight_kg' };
+ // p1_745 — bila >1 variant, media bahagian "Media" atas = sumber tunggal dikongsi semua.
+ const isMulti = skus.length > 1;
+ const __mediaEl = document.getElementById('pdpMediaUrls');
+ const sharedImgs = isMulti && __mediaEl ? __mediaEl.value.split(',').map(s => s.trim()).filter(Boolean) : [];
  let fieldUpdates = 0, stockAdj = 0; const errs = [];
  for(let i=0;i<skus.length;i++) {
  const sku = skus[i];
@@ -23075,12 +23086,19 @@ window.__pdpSaveVariants = async function(parentSku) {
  }
  const pubEl = document.getElementById('pv_'+i+'_pub');
  if(pubEl && (!!isPublished(prod) !== pubEl.checked)) payload.is_published = pubEl.checked;
- // p1_491 — gambar variant kini editable (URL, boleh banyak pisah koma; pertama = cover)
+ // p1_745 — MEDIA DIKONGSI: kalau multi-variant, semua variant guna SATU media
+ // dari bahagian "Media" atas (pdpMediaUrls). Kalau produk tunggal, baca input sendiri.
+ if(isMulti) {
+ // guard: kalau Media atas kosong, JANGAN padam gambar variant sedia ada.
+ const curImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : [];
+ if(sharedImgs.length && JSON.stringify(sharedImgs) !== JSON.stringify(curImgs)) payload.images = sharedImgs;
+ } else {
  const imgEl = document.getElementById('pv_'+i+'_img');
  if(imgEl) {
  const newImgs = imgEl.value.split(',').map(s => s.trim()).filter(Boolean);
  const curImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : [];
  if(JSON.stringify(newImgs) !== JSON.stringify(curImgs)) payload.images = newImgs;
+ }
  }
  // p1_351 — bila harga marketplace per-variant berubah, set mode 'rm' (harga tetap). Null harga = fallback markup global.
  if('shopee_price' in payload) payload.shopee_price_mode = 'rm';
@@ -23424,11 +23442,16 @@ window.savePdpData = async function() {
  shopee_url: metadata.shopee_url,
  tiktok_url: metadata.tiktok_url
  };
+ // p1_745 — MEDIA juga peringkat-produk: satu media dikongsi semua variant (Zack).
+ // Kalau ada gambar di "Media" atas, sebar ke semua sibling. Kosong = jangan padam.
+ const sharedMediaArr = Array.isArray(updatePayload.images) ? updatePayload.images : [];
  for(const sib of siblings) {
  const sm = (sib.metadata && typeof sib.metadata === 'object') ? sib.metadata : {};
  const newMeta = { ...sm, ...shared };
- const { error: se } = await db.from('products_master').update({ metadata: newMeta }).eq('sku', sib.sku);
- if(!se) sib.metadata = newMeta; // keep in-memory consistent
+ const sibPayload = { metadata: newMeta };
+ if(sharedMediaArr.length) sibPayload.images = sharedMediaArr;
+ const { error: se } = await db.from('products_master').update(sibPayload).eq('sku', sib.sku);
+ if(!se) { sib.metadata = newMeta; if(sharedMediaArr.length) sib.images = sharedMediaArr; } // keep in-memory consistent
  }
  }
  } catch(e){ console.warn('propagate marketplace ids ke sibling:', e); }

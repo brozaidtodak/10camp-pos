@@ -7338,6 +7338,8 @@ window.__dpRemoveProof = async function(saleId, idx) {
 };
 window.__dpRefresh = function() {
  try { if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection') && document.getElementById('allOrdersSection').style.display !== 'none') window.renderAllOrders(); } catch(e){}
+ // p1_754 — kalau modal order terbuka, buka semula supaya thumbnail Pack/Delivery refresh
+ try { const ov = document.getElementById('aoViewOverlay'); if(ov && window.__aoManageProofSaleId && typeof window.__aoViewOrder === 'function') { ov.remove(); window.__aoViewOrder(window.__aoManageProofSaleId); } } catch(e){}
 };
 
 window.renderFeedbackInbox = async function() {
@@ -28207,9 +28209,26 @@ window.__aoViewOrder = function(saleId) {
  </div>` : `<div style="font-size:12px; color:#6B7280;">Order ni dah <strong>${esc(m.label)}</strong>.</div>`;
  const sc = window.__aoSellerCentreUrl(s);
  const mpNote = isMarketplace ? `${sc ? `<a href="${esc(sc.url)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:7px; background:${sc.color}; color:#fff; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:700; text-decoration:none; margin-bottom:8px;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka ${esc(sc.label)}${sc.direct ? ' — print Airway Bill' : ' — cari order & print AWB'}</a>` : ''}<div class="soft-note soft-note--inline" style="margin-bottom:8px;"><i data-lucide="info"></i> ${sc && !sc.direct ? 'Order Shopee = migrasi EasyStore, takde ID Shopee dalam data — buka senarai To-Ship, cari order ni, print AWB. ' : ''}AWB / label penghantaran dijana di seller centre platform.</div>` : '';
+ // p1_754 — "Urus Pack/Delivery" dalam seksyen Fulfilment (Zack: akses mudah utk staff, sama macam Urus Resit)
+ window.__aoManageProofSaleId = s.id; // supaya refresh selepas urus buka balik order ni
+ const dproofs = window.__dpGetProofs ? window.__dpGetProofs(s) : [];
+ const dtiles = dproofs.map(u => {
+  const low = String(u).toLowerCase();
+  const isImg = !low.endsWith('.pdf') && !low.endsWith('.heic') && !low.endsWith('.heif');
+  return isImg
+   ? `<img src="${esc(u)}" loading="lazy" onclick="window.__ppOpenImg && window.__ppOpenImg('${esc(u).replace(/'/g, "\\'")}')" onerror="this.style.opacity='0.3'" style="width:72px; height:72px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; cursor:zoom-in;">`
+   : `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:inline-flex; flex-direction:column; align-items:center; gap:3px; width:72px; height:72px; justify-content:center; border:1px solid #E5E7EB; border-radius:8px; color:var(--primary); font-weight:700; font-size:10px; text-decoration:none;"><i data-lucide="file-text" style="width:16px;height:16px;"></i> Buka</a>`;
+ }).join('');
+ const deliveryBlock = `<div style="margin-top:12px; padding-top:11px; border-top:1px dashed #E7D9B0;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; gap:8px; flex-wrap:wrap;">
+ <span style="font-size:12px; color:#7A5410; font-weight:600;">Gambar Pack/Delivery <span style="color:#9CA3AF; font-weight:400;">(${dproofs.length}/${window.__DP_MAX || 4})</span></span>
+ <button onclick="window.__dpManageProofs(${s.id})" style="background:#fff; border:1px solid #E0B3A9; color:#7c4a1a; padding:6px 12px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700;"><i data-lucide="images" style="width:12px;height:12px;vertical-align:-2px;"></i> Urus Pack/Delivery</button>
+ </div>
+ ${dproofs.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${dtiles}</div>` : '<p style="font-size:11px; color:#9CA3AF; margin:0;">Gambar parcel sebelum/selepas hantar — tekan "Urus Pack/Delivery" untuk tambah.</p>'}
+ </div>`;
  const fulfilHtml = `<div style="border:1px solid #ECD9A4; background:#FBF7EC; border-radius:10px; padding:14px; margin-bottom:14px;">
  <div style="font-size:10.5px; font-weight:800; letter-spacing:0.5px; color:#7A5410; text-transform:uppercase; margin-bottom:8px;"><i data-lucide="truck" style="width:12px;height:12px;vertical-align:-2px;"></i> Fulfilment / Penghantaran</div>
- ${chipsHtml}${mpNote}${controls}
+ ${chipsHtml}${mpNote}${controls}${deliveryBlock}
  </div>`;
  // p1_436 — Back/Next nav across the filtered order list
  const __navList = window.__aoNavIds || [];

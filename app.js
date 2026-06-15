@@ -23046,7 +23046,7 @@ window.renderPdpSiblingVariants = function(prod) {
  <div style="border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
  <div style="background:#F9FAFB; padding:8px 10px; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between; align-items:center; gap:8px;">
  <span>${isSingle ? 'Produk · Stok: ' + totalStock : sibs.length + ' Variants · Jumlah stok: ' + totalStock}</span>
- <button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku || prod.sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> ${isSingle ? 'Simpan' : 'Simpan Variants'}</button>
+ <div style="display:flex; gap:6px; align-items:center;">${isSingle ? '' : `<button type="button" onclick="window.pdpEditOptions('${escJs(prod.parent_sku || prod.sku)}')" style="font-size:12px; padding:6px 12px; background:#fff; color:#CD7C32; border:1px solid #CD7C32; border-radius:6px; cursor:pointer; font-weight:700;"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px;"></i> Edit options</button>`}<button type="button" onclick="window.__pdpSaveVariants('${escJs(prod.parent_sku || prod.sku)}')" class="btn-brand-primary" style="font-size:12px; padding:6px 12px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> ${isSingle ? 'Simpan' : 'Simpan Variants'}</button></div>
  </div>
  <div style="overflow-x:auto;">
  <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:1040px;">
@@ -23151,6 +23151,92 @@ window.__pdpSaveVariants = async function(parentSku) {
  sync('pdpTiktokPrice', freshProd.tiktok_price);
  if(window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
  }
+};
+
+// p1_748 — "Edit options" (Zack): edit nama variant pendek (nilai option) dlm modal.
+// Had 20 patah perkataan (ikut rules TikTok/Shopee) supaya integrasi senang.
+// Disimpan ke variant_size (atau variant_color kalau itu field option yg aktif).
+window.__PEO_MAXW = 20;
+window.pdpEditOptions = function(parentSku) {
+ const skus = window.__pdpVariantSkus || [];
+ if(!skus.length) return;
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const MAXW = window.__PEO_MAXW;
+ const rows = skus.map((sku,i) => {
+  const prod = (masterProducts || []).find(x => x.sku === sku) || {};
+  const val = (prod.variant_size && String(prod.variant_size).trim()) ? prod.variant_size : (prod.variant_color || '');
+  return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+   <span style="font-family:monospace; font-size:11px; color:#6B7280; min-width:64px;">${esc(sku)}</span>
+   <input id="peo_${i}" type="text" value="${esc(val)}" oninput="window.__peoCount(${i})" placeholder="cth: 90cm" style="flex:1; padding:7px 9px; border:1px solid #E5E7EB; border-radius:6px; font-size:13px;">
+   <span id="peo_${i}_c" style="font-size:10px; color:#9CA3AF; min-width:60px; text-align:right;"></span>
+  </div>`;
+ }).join('');
+ const ov = document.createElement('div');
+ ov.id = 'editOptionsOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10050; display:flex; align-items:center; justify-content:center; padding:20px;';
+ ov.innerHTML = `<div style="background:#fff; border-radius:12px; width:520px; max-width:100%; max-height:85vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #eee;">
+   <strong style="font-size:16px; color:#101010;">Edit options — Nama Variant</strong>
+   <button type="button" onclick="window.pdpCloseEditOptions()" style="background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:#9CA3AF;">&times;</button>
+  </div>
+  <div style="padding:18px 20px;">
+   <p style="font-size:11.5px; color:#6B7280; margin:0 0 14px;">Nama pendek tiap variant (jadi nama variant di TikTok/Shopee). Had ${MAXW} patah perkataan.</p>
+   ${rows}
+  </div>
+  <div style="display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee;">
+   <button type="button" onclick="window.pdpCloseEditOptions()" style="padding:8px 16px; background:#fff; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:13px;">Cancel</button>
+   <button type="button" onclick="window.pdpSaveOptions()" class="btn-brand-primary" style="padding:8px 18px; font-size:13px;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Save</button>
+  </div>
+ </div>`;
+ ov.addEventListener('click', (e) => { if(e.target === ov) window.pdpCloseEditOptions(); });
+ document.body.appendChild(ov);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ for(let i=0;i<skus.length;i++) window.__peoCount(i);
+};
+window.__peoCount = function(i) {
+ const el = document.getElementById('peo_'+i); const c = document.getElementById('peo_'+i+'_c');
+ if(!el || !c) return;
+ const w = el.value.trim() ? el.value.trim().split(/\s+/).length : 0;
+ const MAXW = window.__PEO_MAXW; const over = w > MAXW;
+ c.textContent = w + '/' + MAXW + ' kata';
+ c.style.color = over ? '#B23A2E' : '#9CA3AF';
+ el.style.borderColor = over ? '#B23A2E' : '#E5E7EB';
+};
+window.pdpCloseEditOptions = function() {
+ const ov = document.getElementById('editOptionsOverlay'); if(ov) ov.remove();
+};
+window.pdpSaveOptions = async function() {
+ const skus = window.__pdpVariantSkus || [];
+ if(!skus.length || typeof db === 'undefined' || !db) return;
+ const MAXW = window.__PEO_MAXW; const tooLong = []; const errs = []; let updated = 0;
+ for(let i=0;i<skus.length;i++) {
+  const el = document.getElementById('peo_'+i); if(!el) continue;
+  const val = el.value.trim();
+  const w = val ? val.split(/\s+/).length : 0;
+  if(w > MAXW) tooLong.push(skus[i] + ' (' + w + ' kata)');
+ }
+ if(tooLong.length) { if(typeof showToast === 'function') showToast('Lebih ' + MAXW + ' patah: ' + tooLong.join(', '), 'warn'); return; }
+ for(let i=0;i<skus.length;i++) {
+  const sku = skus[i]; const el = document.getElementById('peo_'+i); if(!el) continue;
+  const prod = (masterProducts || []).find(x => x.sku === sku); if(!prod) continue;
+  const val = el.value.trim() || null;
+  // pilih field option: variant_size default; guna variant_color kalau size kosong tapi color ada
+  const useColor = (!prod.variant_size || !String(prod.variant_size).trim()) && (prod.variant_color && String(prod.variant_color).trim());
+  const col = useColor ? 'variant_color' : 'variant_size';
+  if(String(prod[col] == null ? '' : prod[col]) === String(val == null ? '' : val)) continue;
+  try {
+   const { error } = await db.from('products_master').update({ [col]: val }).eq('sku', sku);
+   if(error) throw error;
+   const idx = masterProducts.findIndex(x => x.sku === sku);
+   if(idx >= 0) masterProducts[idx][col] = val;
+   updated++;
+  } catch(e) { errs.push(sku + ': ' + e.message); }
+ }
+ window.pdpCloseEditOptions();
+ if(typeof showToast === 'function') showToast('Nama variant disimpan (' + updated + ' diubah)' + (errs.length ? '. Ralat: ' + errs[0] : ''), errs.length ? 'warn' : 'success');
+ const curSku = (document.getElementById('pdpOriginalSku') || {}).value || skus[0];
+ const freshProd = (masterProducts || []).find(x => x.sku === curSku) || (masterProducts || []).find(x => x.sku === skus[0]);
+ if(freshProd && window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
 };
 
 window.renderPdpMediaGallery = function(urls) {

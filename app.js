@@ -23753,8 +23753,9 @@ window.savePdpData = async function() {
  tiktok_url: metadata.tiktok_url,
  product_name: metadata.product_name // p1_746 — Product Name dikongsi semua variant
  };
- // p1_745/p1_749 — MEDIA peringkat-produk: pool media dikongsi semua variant (Zack).
- // Sebar POOL ke semua sibling TAPI kekalkan cover (images[0]) tiap sibling. Kosong = jangan padam.
+ // p1_745/p1_749/p1_752 — 3 INDUK peringkat-produk dikongsi semua variant (Zack):
+ //   (1) MEDIA pool (kekalkan cover tiap sibling), (2) Product Name (metadata.product_name
+ //   dlm objek 'shared'), (3) Description (lajur description). Sebar ke semua sibling.
  const sharedPool = __pool;
  for(const sib of siblings) {
  const sm = (sib.metadata && typeof sib.metadata === 'object') ? sib.metadata : {};
@@ -23762,8 +23763,9 @@ window.savePdpData = async function() {
  const sibPayload = { metadata: newMeta };
  const sibImgs = sharedPool.length ? window.__mergeCoverPool(sib.images, sharedPool) : null;
  if(sibImgs) sibPayload.images = sibImgs;
+ sibPayload.description = updatePayload.description; // p1_752 — Description induk dikongsi
  const { error: se } = await db.from('products_master').update(sibPayload).eq('sku', sib.sku);
- if(!se) { sib.metadata = newMeta; if(sibImgs) sib.images = sibImgs; } // keep in-memory consistent
+ if(!se) { sib.metadata = newMeta; if(sibImgs) sib.images = sibImgs; sib.description = updatePayload.description; } // keep in-memory consistent
  }
  }
  } catch(e){ console.warn('propagate marketplace ids ke sibling:', e); }

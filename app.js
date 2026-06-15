@@ -7222,6 +7222,124 @@ window.__ppRefreshSurfaces = function() {
  try { const ov = document.getElementById('aoViewOverlay'); if(ov && window.__aoManageProofSaleId) { ov.remove(); window.__aoViewOrder(window.__aoManageProofSaleId); } } catch(e){}
 };
 
+// ===================================================================
+// p1_751 — Pack/Delivery: gambar sebelum/selepas hantar parcel (cermin Resit __pp*).
+// delivery_proof_urls (JSONB) = sumber; delivery_proof_url = gambar[0] (cover).
+// Guna bucket sedia ada 'payment-proofs' dgn prefix path 'delivery/'.
+// ===================================================================
+window.__DP_MAX = 4;
+window.__dpGetProofs = function(sale) {
+ if(!sale) return [];
+ let arr = sale.delivery_proof_urls;
+ if(typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = null; } }
+ if(Array.isArray(arr) && arr.length) return arr.filter(Boolean);
+ return sale.delivery_proof_url ? [sale.delivery_proof_url] : [];
+};
+window.__dpSaveProofs = async function(saleId, urls) {
+ const clean = (urls || []).filter(Boolean).slice(0, window.__DP_MAX);
+ const uploaderName = (window.currentUser && window.currentUser.name) ? window.currentUser.name : 'Unknown';
+ await db.from('sales_history').update({
+  delivery_proof_urls: clean,
+  delivery_proof_url: clean[0] || null,
+  delivery_proof_uploaded_at: new Date().toISOString(),
+  delivery_proof_uploaded_by: uploaderName
+ }).eq('id', saleId);
+ try { const s = (typeof salesHistory !== 'undefined' ? salesHistory : []).find(x => x.id === saleId); if(s) { s.delivery_proof_urls = clean; s.delivery_proof_url = clean[0] || null; } } catch(e){}
+};
+window.__dpManageProofs = async function(saleId) {
+ let old = document.getElementById('dpManageOverlay'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'dpManageOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9600; display:flex; align-items:center; justify-content:center; padding:20px;';
+ ov.onclick = (e) => { if(e.target === ov) ov.remove(); };
+ ov.innerHTML = '<div style="background:#fff; border-radius:14px; max-width:560px; width:100%; padding:22px; box-shadow:0 24px 60px rgba(0,0,0,.35);"><div id="dpManageBody" style="text-align:center; color:#9CA3AF;">Memuatkan…</div></div>';
+ document.body.appendChild(ov);
+ try {
+  const { data } = await db.from('sales_history').select('id,delivery_proof_url,delivery_proof_urls').eq('id', saleId).single();
+  window.__dpManageUrls = window.__dpGetProofs(data || {});
+  window.__dpManageSaleId = saleId;
+  window.__dpManageRender();
+ } catch(e) {
+  const b = document.getElementById('dpManageBody'); if(b) b.innerHTML = '<p style="color:#B23A2E;">Gagal muat: ' + (e.message || e) + '</p>';
+ }
+};
+window.__dpManageRender = function() {
+ const body = document.getElementById('dpManageBody'); if(!body) return;
+ const saleId = window.__dpManageSaleId;
+ const urls = window.__dpManageUrls || [];
+ const esc = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;');
+ const label = (i) => i === 0 ? 'Sebelum' : (i === 1 ? 'Selepas' : 'Gambar ' + (i + 1));
+ const tile = (u, i) => {
+  const low = String(u).toLowerCase();
+  const isImg = !low.endsWith('.pdf') && !low.endsWith('.heic') && !low.endsWith('.heif');
+  const inner = isImg
+   ? `<img src="${esc(u)}" onclick="window.__ppOpenImg && window.__ppOpenImg('${esc(u).replace(/'/g, "\\'")}')" style="width:100%; height:120px; object-fit:cover; cursor:zoom-in;" onerror="this.style.display='none';this.parentNode.innerHTML+='<span style=&quot;font-size:11px;color:#B23A2E;&quot;>broken</span>'">`
+   : `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; height:120px; color:var(--primary); font-weight:700; font-size:12px; text-decoration:none;"><i data-lucide="file-text" style="width:18px;height:18px;"></i> Buka</a>`;
+  return `<div style="position:relative; border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; background:#F9FAFB;">${inner}<button onclick="window.__dpRemoveProof(${saleId}, ${i})" title="Buang gambar ni" style="position:absolute; top:5px; right:5px; background:#B23A2E; color:#fff; border:none; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:14px; font-weight:800; line-height:1; box-shadow:0 1px 4px rgba(0,0,0,.3);">×</button><div style="position:absolute; bottom:0; left:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:2px 6px; border-top-right-radius:6px;">${label(i)}</div></div>`;
+ };
+ const addBtn = urls.length < window.__DP_MAX
+  ? `<button onclick="window.__dpAddProof(${saleId})" style="border:2px dashed #d8c5b0; border-radius:10px; height:120px; background:#FAF6EF; color:#7c4a1a; cursor:pointer; font-size:12px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;"><i data-lucide="plus" style="width:20px;height:20px;"></i> Tambah Gambar</button>`
+  : '';
+ body.style.textAlign = 'left'; body.style.color = '';
+ body.innerHTML = `
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+   <strong style="font-size:16px; color:#101010;"><i data-lucide="truck" style="width:17px;height:17px;vertical-align:-3px;"></i> Pack/Delivery Order #${saleId} <span style="color:#9CA3AF; font-weight:600; font-size:13px;">(${urls.length}/${window.__DP_MAX})</span></strong>
+   <button onclick="document.getElementById('dpManageOverlay').remove()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+  </div>
+  <p style="font-size:11.5px; color:#6B7280; margin:0 0 14px;">Gambar parcel sebelum &amp; selepas hantar (bukti pack/delivery).</p>
+  <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
+   ${urls.map(tile).join('')}
+   ${addBtn}
+  </div>
+  ${urls.length === 0 ? '<p style="font-size:12px; color:#9CA3AF; margin-top:12px; text-align:center;">Belum ada gambar. Tekan "Tambah Gambar" untuk upload (sehingga ' + window.__DP_MAX + ').</p>' : ''}
+ `;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__dpAddProof = function(saleId) {
+ const urls = window.__dpManageUrls || [];
+ if(urls.length >= window.__DP_MAX) { if(typeof showToast === 'function') showToast('Maksimum ' + window.__DP_MAX + ' gambar.', 'warn'); return; }
+ const input = document.createElement('input');
+ input.type = 'file'; input.accept = 'image/*,.heic,.heif,application/pdf';
+ input.onchange = async () => {
+  const f = input.files && input.files[0]; if(!f) return;
+  if(f.size > 10 * 1024 * 1024) { if(typeof showToast === 'function') showToast('Saiz lebih 10MB', 'warn'); return; }
+  if(typeof db === 'undefined' || !db) return;
+  if(typeof showToast === 'function') showToast('Memuat naik gambar…', 'info');
+  try {
+   const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+   const ts = new Date().toISOString().replace(/[:.]/g, '-');
+   const fileName = 'delivery/' + saleId + '_' + ts + '_' + (urls.length + 1) + '.' + ext;
+   const extMime = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp', heic:'image/heic', heif:'image/heic', pdf:'application/pdf' };
+   const { data, error } = await db.storage.from('payment-proofs').upload(fileName, f, { cacheControl: '3600', upsert: false, contentType: f.type || extMime[ext] || 'image/jpeg' });
+   if(error) throw error;
+   const { data: pub } = db.storage.from('payment-proofs').getPublicUrl(data.path);
+   const next = (window.__dpManageUrls || []).concat([pub.publicUrl]).slice(0, window.__DP_MAX);
+   await window.__dpSaveProofs(saleId, next);
+   window.__dpManageUrls = next;
+   window.__dpManageRender();
+   window.__dpRefresh();
+   if(typeof showToast === 'function') showToast('Gambar ditambah (' + next.length + '/' + window.__DP_MAX + ').', 'success');
+  } catch(e) { if(typeof showToast === 'function') showToast('Upload gagal: ' + e.message, 'error'); }
+ };
+ input.click();
+};
+window.__dpRemoveProof = async function(saleId, idx) {
+ const urls = (window.__dpManageUrls || []).slice();
+ if(idx < 0 || idx >= urls.length) return;
+ if(!confirm('Buang gambar ' + (idx + 1) + ' dari order ni?')) return;
+ urls.splice(idx, 1);
+ try {
+  await window.__dpSaveProofs(saleId, urls);
+  window.__dpManageUrls = urls;
+  window.__dpManageRender();
+  window.__dpRefresh();
+  if(typeof showToast === 'function') showToast('Gambar dibuang.', 'success');
+ } catch(e) { if(typeof showToast === 'function') showToast('Gagal buang: ' + e.message, 'error'); }
+};
+window.__dpRefresh = function() {
+ try { if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection') && document.getElementById('allOrdersSection').style.display !== 'none') window.renderAllOrders(); } catch(e){}
+};
+
 window.renderFeedbackInbox = async function() {
  const wrap = document.getElementById('fbInboxList');
  const statsEl = document.getElementById('fbInboxStats');
@@ -27828,7 +27946,7 @@ window.renderAllOrders = function() {
  _arrow('aoSortDateArrow', 'date_asc', 'date_desc');
  _arrow('aoSortIdArrow', 'id_asc', 'id_desc');
  if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) {
- tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:#999; padding:32px;">Loading...</td></tr>';
  return;
  }
  const q = (document.getElementById('aoSearch')?.value || '').trim().toLowerCase();
@@ -27860,7 +27978,7 @@ window.renderAllOrders = function() {
  `;
 
  if(filtered.length === 0) {
- tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:#999; padding:32px;">Tiada order match filter. Cuba clear filter atau tambah order baru.</td></tr>';
  document.getElementById('aoSummaryLine').textContent = '';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  return;
@@ -27927,6 +28045,20 @@ window.renderAllOrders = function() {
  const soft = (pm === 'Cash') || /shopee|tiktok/i.test(s.channel || '');
  const st = soft ? 'background:#F3F4F6; border:1px solid #E5E7EB; color:#6B7280;' : 'background:#F4E4DF; border:1px solid #E0B3A9; color:#7C2A20;';
  return `<td style="padding:10px; text-align:center;"><button onclick="window.__ppManageProofs(${s.id})" title="Tambah resit (sehingga 3)" style="${st} padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="upload" style="width:10px;height:10px;"></i> ${soft ? '+ Resit' : 'tiada'}</button></td>`;
+ })()}
+ ${(() => {
+ // p1_751 — Pack/Delivery: gambar sebelum/selepas hantar parcel (cermin Resit, field delivery_proof_urls)
+ const dproofs = window.__dpGetProofs ? window.__dpGetProofs(s) : [];
+ const dn = dproofs.length;
+ if(dn) {
+ const u0 = dproofs[0]; const low = u0.toLowerCase();
+ const isImg = !low.endsWith('.pdf') && !low.endsWith('.heic') && !low.endsWith('.heif');
+ const thumb = isImg
+ ? `<img src="${escHtml(u0)}" loading="lazy" onerror="this.style.display='none'" style="width:42px; height:42px; object-fit:cover; border-radius:5px; border:1px solid #E5E7EB; vertical-align:middle; display:block;">`
+ : `<span style="display:inline-flex; align-items:center; gap:3px; color:var(--primary); font-weight:700; font-size:10.5px;"><i data-lucide="file-text" style="width:13px;height:13px;"></i> Fail</span>`;
+ return `<td style="padding:6px; text-align:center;"><button onclick="window.__dpManageProofs(${s.id})" title="Urus gambar pack/delivery (${dn}/${window.__DP_MAX || 4}) — klik untuk tambah/buang" style="position:relative; background:none; border:none; cursor:pointer; padding:0; line-height:0;">${thumb}${dn > 1 ? `<span style="position:absolute; top:-5px; right:-7px; background:#b86a26; color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:10px; line-height:1.3;">${dn}</span>` : ''}</button></td>`;
+ }
+ return `<td style="padding:10px; text-align:center;"><button onclick="window.__dpManageProofs(${s.id})" title="Tambah gambar pack/delivery (sebelum/selepas hantar)" style="background:#F3F4F6; border:1px solid #E5E7EB; color:#6B7280; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:700; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="truck" style="width:10px;height:10px;"></i> + Pack</button></td>`;
  })()}
  <td style="padding:10px; white-space:nowrap;">
  <button onclick="window.__ppEditSale && window.__ppEditSale(${s.id})" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:10.5px; font-weight:700;"><i data-lucide="edit-3" style="width:10px;height:10px;vertical-align:-1px;"></i> Edit</button>

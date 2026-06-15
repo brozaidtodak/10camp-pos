@@ -23014,16 +23014,15 @@ window.renderPdpSiblingVariants = function(prod) {
  const isCur = v.sku === prod.sku;
  const stock = stockBySku[v.sku] || 0;
  const label = [v.variant_color, v.variant_size].filter(Boolean).join(' · ') || v.sku;
- // p1_745 — MODEL MEDIA DIKONGSI (Zack): produk berbilang variant berkongsi SATU
- // sumber media (bahagian "Media" atas). Variant tak pegang gambar sendiri lagi.
- // Tunjuk thumbnail kongsi + kolum read-only. Produk tunggal kekal edit sendiri.
- const __sharedImgs = (sibs.find(x => Array.isArray(x.images) && x.images[0]) || {}).images;
- const thumb = (!isSingle) ? ((__sharedImgs && __sharedImgs[0]) || '') : ((v.images && v.images[0]) ? v.images[0] : '');
+ // p1_745/p1_749 — MEDIA DIKONGSI: produk berbilang variant kongsi SATU pool media
+ // (bahagian "Media" atas). Tiap variant PILIH cover sendiri dari pool tu via popup
+ // "Pick an image". thumb = cover variant ni (images[0]). Produk tunggal kekal edit URL.
+ const thumb = (v.images && v.images[0]) ? v.images[0] : '';
  const imgCell = isSingle
   ? `<input id="pv_${i}_img" type="text" value="${esc((Array.isArray(v.images)?v.images.filter(Boolean):[]).join(', '))}" onclick="event.stopPropagation();" placeholder="URL gambar" title="URL gambar produk. Boleh banyak, pisah dengan koma. Gambar pertama = cover/thumbnail." style="width:150px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:10px;">`
-  : `<span style="font-size:9px; color:#9CA3AF; line-height:1.2; text-align:center;">Media dikongsi<br>(edit di &quot;Media&quot; atas)</span>`;
+  : `<button type="button" onclick="event.stopPropagation(); window.pdpPickVariantImage('${escJs(v.sku)}')" style="font-size:10px; color:#CD7C32; background:#fff; border:1px solid #CD7C32; border-radius:5px; padding:3px 9px; cursor:pointer; font-weight:700;">Pilih gambar</button>`;
  rows += `<tr style="${isCur ? 'background:#FAF2E6;' : ''}border-bottom:1px solid #F3F4F6;">
- <td style="padding:6px 8px;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${thumb ? `<img src="${esc(thumb)}" onclick="window.openPdpModal('${escJs(v.sku)}')" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px;">no img</div>`}${imgCell}</div></td>
+ <td style="padding:6px 8px;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${thumb ? `<img src="${esc(thumb)}" onclick="event.stopPropagation(); ${isSingle ? `window.openPdpModal('${escJs(v.sku)}')` : `window.pdpPickVariantImage('${escJs(v.sku)}')`}" loading="lazy" title="${isSingle ? 'Buka produk' : 'Tukar gambar variant'}" style="width:38px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer; background:#eee; border:1px solid #E5E7EB;" onerror="this.style.visibility='hidden';">` : `<div onclick="event.stopPropagation(); ${isSingle ? '' : `window.pdpPickVariantImage('${escJs(v.sku)}')`}" style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#CBD5E1; font-size:9px; cursor:${isSingle?'default':'pointer'};">no img</div>`}${imgCell}</div></td>
  <td style="padding:6px 8px; white-space:nowrap;"><a onclick="window.openPdpModal('${escJs(v.sku)}')" style="cursor:pointer; color:#CD7C32; font-weight:${isCur?'800':'600'}; text-decoration:none;">${esc(label)}</a>${isCur ? ' <span style="color:#9CA3AF; font-size:9px;">(kini)</span>' : ''}</td>
  <td style="padding:6px 8px; font-family:monospace; font-size:11px; color:#6B7280; white-space:nowrap;">${esc(v.sku)}</td>
  <td style="padding:6px 8px;">${inp(i,'qty',stock,58,'1')}</td>
@@ -23092,8 +23091,10 @@ window.__pdpSaveVariants = async function(parentSku) {
  // dari bahagian "Media" atas (pdpMediaUrls). Kalau produk tunggal, baca input sendiri.
  if(isMulti) {
  // guard: kalau Media atas kosong, JANGAN padam gambar variant sedia ada.
+ // p1_749 — kekalkan cover variant (images[0]) bila sync pool dikongsi.
  const curImgs = Array.isArray(prod.images) ? prod.images.filter(Boolean) : [];
- if(sharedImgs.length && JSON.stringify(sharedImgs) !== JSON.stringify(curImgs)) payload.images = sharedImgs;
+ const merged = window.__mergeCoverPool(prod.images, sharedImgs);
+ if(sharedImgs.length && JSON.stringify(merged) !== JSON.stringify(curImgs)) payload.images = merged;
  } else {
  const imgEl = document.getElementById('pv_'+i+'_img');
  if(imgEl) {
@@ -23153,21 +23154,21 @@ window.__pdpSaveVariants = async function(parentSku) {
  }
 };
 
-// p1_748 — "Edit options" (Zack): edit nama variant pendek (nilai option) dlm modal.
-// Had 20 patah perkataan (ikut rules TikTok/Shopee) supaya integrasi senang.
+// p1_748/p1_750 — "Edit options" (Zack): edit nama variant pendek (nilai option) dlm modal.
+// Had 20 AKSARA (char) ikut rules TikTok/Shopee (cth "TS002 Khaki" = 11 aksara) supaya integrasi senang.
 // Disimpan ke variant_size (atau variant_color kalau itu field option yg aktif).
-window.__PEO_MAXW = 20;
+window.__PEO_MAX = 20;
 window.pdpEditOptions = function(parentSku) {
  const skus = window.__pdpVariantSkus || [];
  if(!skus.length) return;
  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
- const MAXW = window.__PEO_MAXW;
+ const MAX = window.__PEO_MAX;
  const rows = skus.map((sku,i) => {
   const prod = (masterProducts || []).find(x => x.sku === sku) || {};
   const val = (prod.variant_size && String(prod.variant_size).trim()) ? prod.variant_size : (prod.variant_color || '');
   return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
    <span style="font-family:monospace; font-size:11px; color:#6B7280; min-width:64px;">${esc(sku)}</span>
-   <input id="peo_${i}" type="text" value="${esc(val)}" oninput="window.__peoCount(${i})" placeholder="cth: 90cm" style="flex:1; padding:7px 9px; border:1px solid #E5E7EB; border-radius:6px; font-size:13px;">
+   <input id="peo_${i}" type="text" maxlength="${MAX}" value="${esc(val)}" oninput="window.__peoCount(${i})" placeholder="cth: 90cm" style="flex:1; padding:7px 9px; border:1px solid #E5E7EB; border-radius:6px; font-size:13px;">
    <span id="peo_${i}_c" style="font-size:10px; color:#9CA3AF; min-width:60px; text-align:right;"></span>
   </div>`;
  }).join('');
@@ -23180,7 +23181,7 @@ window.pdpEditOptions = function(parentSku) {
    <button type="button" onclick="window.pdpCloseEditOptions()" style="background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:#9CA3AF;">&times;</button>
   </div>
   <div style="padding:18px 20px;">
-   <p style="font-size:11.5px; color:#6B7280; margin:0 0 14px;">Nama pendek tiap variant (jadi nama variant di TikTok/Shopee). Had ${MAXW} patah perkataan.</p>
+   <p style="font-size:11.5px; color:#6B7280; margin:0 0 14px;">Nama pendek tiap variant (jadi nama variant di TikTok/Shopee). Had ${MAX} aksara.</p>
    ${rows}
   </div>
   <div style="display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee;">
@@ -23196,9 +23197,9 @@ window.pdpEditOptions = function(parentSku) {
 window.__peoCount = function(i) {
  const el = document.getElementById('peo_'+i); const c = document.getElementById('peo_'+i+'_c');
  if(!el || !c) return;
- const w = el.value.trim() ? el.value.trim().split(/\s+/).length : 0;
- const MAXW = window.__PEO_MAXW; const over = w > MAXW;
- c.textContent = w + '/' + MAXW + ' kata';
+ const n = el.value.length;
+ const MAX = window.__PEO_MAX; const over = n > MAX;
+ c.textContent = n + '/' + MAX + ' aksara';
  c.style.color = over ? '#B23A2E' : '#9CA3AF';
  el.style.borderColor = over ? '#B23A2E' : '#E5E7EB';
 };
@@ -23208,14 +23209,13 @@ window.pdpCloseEditOptions = function() {
 window.pdpSaveOptions = async function() {
  const skus = window.__pdpVariantSkus || [];
  if(!skus.length || typeof db === 'undefined' || !db) return;
- const MAXW = window.__PEO_MAXW; const tooLong = []; const errs = []; let updated = 0;
+ const MAX = window.__PEO_MAX; const tooLong = []; const errs = []; let updated = 0;
  for(let i=0;i<skus.length;i++) {
   const el = document.getElementById('peo_'+i); if(!el) continue;
   const val = el.value.trim();
-  const w = val ? val.split(/\s+/).length : 0;
-  if(w > MAXW) tooLong.push(skus[i] + ' (' + w + ' kata)');
+  if(val.length > MAX) tooLong.push(skus[i] + ' (' + val.length + ' aksara)');
  }
- if(tooLong.length) { if(typeof showToast === 'function') showToast('Lebih ' + MAXW + ' patah: ' + tooLong.join(', '), 'warn'); return; }
+ if(tooLong.length) { if(typeof showToast === 'function') showToast('Lebih ' + MAX + ' aksara: ' + tooLong.join(', '), 'warn'); return; }
  for(let i=0;i<skus.length;i++) {
   const sku = skus[i]; const el = document.getElementById('peo_'+i); if(!el) continue;
   const prod = (masterProducts || []).find(x => x.sku === sku); if(!prod) continue;
@@ -23237,6 +23237,106 @@ window.pdpSaveOptions = async function() {
  const curSku = (document.getElementById('pdpOriginalSku') || {}).value || skus[0];
  const freshProd = (masterProducts || []).find(x => x.sku === curSku) || (masterProducts || []).find(x => x.sku === skus[0]);
  if(freshProd && window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(freshProd);
+};
+
+// p1_749 — kekalkan cover variant (images[0]) bila pool media dikongsi disync ke variant.
+// Pulang [cover, ...pool tanpa cover] kalau cover masih dlm pool; kalau tak, pool je.
+window.__mergeCoverPool = function(currentImages, pool) {
+ const cur = Array.isArray(currentImages) ? currentImages.filter(Boolean) : [];
+ const p = Array.isArray(pool) ? pool.filter(Boolean) : [];
+ const cover = cur[0];
+ if(cover && p.includes(cover)) return [cover, ...p.filter(u => u !== cover)];
+ return p.slice();
+};
+
+// p1_749 — "Pick an image for this variant" (Zack): tiap variant pilih cover sendiri
+// dari POOL media dikongsi (bahagian "Media"). Pool = union pdpMediaUrls + images semua sibling.
+window.__pvpSku = null;
+window.__pvpSel = null;
+window.__pvpBuildPool = function() {
+ const pool = [];
+ const add = (u) => { u = String(u || '').trim(); if(u && !pool.includes(u)) pool.push(u); };
+ const mediaEl = document.getElementById('pdpMediaUrls');
+ if(mediaEl) mediaEl.value.split(',').map(s => s.trim()).filter(Boolean).forEach(add);
+ (window.__pdpVariantSkus || []).forEach(s => { const p = (masterProducts || []).find(x => x.sku === s); if(p && Array.isArray(p.images)) p.images.filter(Boolean).forEach(add); });
+ return pool;
+};
+window.pdpPickVariantImage = function(sku) {
+ const skus = window.__pdpVariantSkus || [];
+ if(!skus.length) return;
+ window.__pvpSku = sku;
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ const escJs = (s) => String(s == null ? '' : s).replace(/'/g, "\\'");
+ const pool = window.__pvpBuildPool();
+ const prod = (masterProducts || []).find(x => x.sku === sku) || {};
+ window.__pvpSel = (Array.isArray(prod.images) && prod.images[0]) ? prod.images[0] : null;
+ const grid = pool.map(u => {
+  const seld = (u === window.__pvpSel);
+  return `<div onclick="window.__pvpSelect('${escJs(u)}')" data-pvp-url="${esc(u)}" style="position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid ${seld ? '#CD7C32' : '#E5E7EB'}; box-shadow:${seld ? '0 0 0 2px rgba(205,124,50,0.25)' : 'none'};">
+   <img src="${window.__thumbUrl ? window.__thumbUrl(u, 200) : esc(u)}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.opacity='0.25';">
+   ${seld ? '<div style="position:absolute; top:4px; right:4px; background:#CD7C32; color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:11px;">&#10003;</div>' : ''}
+  </div>`;
+ }).join('');
+ const emptyMsg = pool.length ? '' : '<p style="font-size:12px; color:#9CA3AF; text-align:center; padding:30px 0;">Tiada gambar dalam Media. Tekan "Add image" untuk tambah.</p>';
+ const ov = document.createElement('div');
+ ov.id = 'pickImageOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10060; display:flex; align-items:center; justify-content:center; padding:20px;';
+ ov.innerHTML = `<div style="background:#fff; border-radius:12px; width:560px; max-width:100%; max-height:88vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #eee;">
+   <strong style="font-size:16px; color:#101010;">Pick an image for this variant</strong>
+   <button type="button" onclick="window.pdpClosePickImage()" style="background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:#9CA3AF;">&times;</button>
+  </div>
+  <div style="padding:16px 20px;">
+   <div style="font-size:11.5px; color:#6B7280; margin:0 0 8px;">Variant <b>${esc(sku)}</b> — pilih satu gambar dari Media yang dikongsi produk ni.</div>
+   <button type="button" onclick="window.__pvpAddImage()" style="display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:#CD7C32; font-weight:700; font-size:12.5px; cursor:pointer; padding:4px 0; margin-bottom:12px;"><i data-lucide="upload" style="width:14px;height:14px;"></i> Add image</button>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">${grid}</div>
+   ${emptyMsg}
+  </div>
+  <div style="display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee;">
+   <button type="button" onclick="window.pdpClosePickImage()" style="padding:8px 16px; background:#fff; border:1px solid #ddd; border-radius:8px; cursor:pointer; font-size:13px;">Cancel</button>
+   <button type="button" onclick="window.pdpConfirmPickImage()" class="btn-brand-primary" style="padding:8px 18px; font-size:13px;">Confirm</button>
+  </div>
+ </div>`;
+ ov.addEventListener('click', (e) => { if(e.target === ov) window.pdpClosePickImage(); });
+ document.body.appendChild(ov);
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__pvpSelect = function(url) {
+ window.__pvpSel = url;
+ const ov = document.getElementById('pickImageOverlay'); if(!ov) return;
+ ov.querySelectorAll('[data-pvp-url]').forEach(el => {
+  const on = el.getAttribute('data-pvp-url') === url;
+  el.style.border = '2px solid ' + (on ? '#CD7C32' : '#E5E7EB');
+  el.style.boxShadow = on ? '0 0 0 2px rgba(205,124,50,0.25)' : 'none';
+ });
+};
+window.pdpClosePickImage = function() { const ov = document.getElementById('pickImageOverlay'); if(ov) ov.remove(); };
+window.__pvpAddImage = function() {
+ const url = prompt('URL gambar baru (tambah ke Media produk):');
+ if(!url || !url.trim()) return;
+ const u = url.trim();
+ const el = document.getElementById('pdpMediaUrls');
+ if(el) { const cur = el.value.split(',').map(s => s.trim()).filter(Boolean); if(!cur.includes(u)) { cur.push(u); el.value = cur.join(','); if(window.renderPdpMediaGallery) window.renderPdpMediaGallery(cur); } }
+ const sku = window.__pvpSku; window.pdpClosePickImage(); window.pdpPickVariantImage(sku);
+};
+window.pdpConfirmPickImage = async function() {
+ const sku = window.__pvpSku; const sel = window.__pvpSel;
+ if(!sku) { window.pdpClosePickImage(); return; }
+ if(!sel) { if(typeof showToast === 'function') showToast('Pilih satu gambar dulu', 'warn'); return; }
+ if(typeof db === 'undefined' || !db) { window.pdpClosePickImage(); return; }
+ const prod = (masterProducts || []).find(x => x.sku === sku); if(!prod) { window.pdpClosePickImage(); return; }
+ const pool = window.__pvpBuildPool();
+ const newImgs = [sel, ...pool.filter(u => u !== sel)];
+ try {
+  const { error } = await db.from('products_master').update({ images: newImgs }).eq('sku', sku);
+  if(error) throw error;
+  const idx = masterProducts.findIndex(x => x.sku === sku); if(idx >= 0) masterProducts[idx].images = newImgs;
+  if(typeof showToast === 'function') showToast('Gambar variant ' + sku + ' dikemaskini', 'success');
+ } catch(e) { if(typeof showToast === 'function') showToast('Gagal simpan gambar: ' + e.message, 'error'); }
+ window.pdpClosePickImage();
+ const curSku = (document.getElementById('pdpOriginalSku') || {}).value || sku;
+ const fresh = (masterProducts || []).find(x => x.sku === curSku);
+ if(fresh && window.renderPdpSiblingVariants) window.renderPdpSiblingVariants(fresh);
 };
 
 window.renderPdpMediaGallery = function(urls) {
@@ -23514,7 +23614,9 @@ window.savePdpData = async function() {
  };
 
  let imgStr = document.getElementById('pdpMediaUrls').value;
- updatePayload.images = imgStr ? imgStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
+ // p1_749 — pool media dikongsi; kekalkan cover variant semasa (images[0]) bila sync.
+ const __pool = imgStr ? imgStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
+ updatePayload.images = __pool.length ? window.__mergeCoverPool(prevProd.images, __pool) : [];
 
  try {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);
@@ -23533,16 +23635,17 @@ window.savePdpData = async function() {
  tiktok_url: metadata.tiktok_url,
  product_name: metadata.product_name // p1_746 — Product Name dikongsi semua variant
  };
- // p1_745 — MEDIA juga peringkat-produk: satu media dikongsi semua variant (Zack).
- // Kalau ada gambar di "Media" atas, sebar ke semua sibling. Kosong = jangan padam.
- const sharedMediaArr = Array.isArray(updatePayload.images) ? updatePayload.images : [];
+ // p1_745/p1_749 — MEDIA peringkat-produk: pool media dikongsi semua variant (Zack).
+ // Sebar POOL ke semua sibling TAPI kekalkan cover (images[0]) tiap sibling. Kosong = jangan padam.
+ const sharedPool = __pool;
  for(const sib of siblings) {
  const sm = (sib.metadata && typeof sib.metadata === 'object') ? sib.metadata : {};
  const newMeta = { ...sm, ...shared };
  const sibPayload = { metadata: newMeta };
- if(sharedMediaArr.length) sibPayload.images = sharedMediaArr;
+ const sibImgs = sharedPool.length ? window.__mergeCoverPool(sib.images, sharedPool) : null;
+ if(sibImgs) sibPayload.images = sibImgs;
  const { error: se } = await db.from('products_master').update(sibPayload).eq('sku', sib.sku);
- if(!se) { sib.metadata = newMeta; if(sharedMediaArr.length) sib.images = sharedMediaArr; } // keep in-memory consistent
+ if(!se) { sib.metadata = newMeta; if(sibImgs) sib.images = sibImgs; } // keep in-memory consistent
  }
  }
  } catch(e){ console.warn('propagate marketplace ids ke sibling:', e); }

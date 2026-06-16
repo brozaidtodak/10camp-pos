@@ -5218,7 +5218,7 @@ window.__psListFilter = function() {
  const skuSafe = escHtml(p.sku || '');
  const imgSrc = window.__coverOf(p) || window.__psNoImg;
  const calcInp = (id, val, ph, w) => `<input id="${id}" type="number" step="0.01" inputmode="decimal" value="${val > 0 ? val : ''}" placeholder="${ph}" oninput="window.__psRowCalc(${i})" onclick="event.stopPropagation();" style="width:${w}px; padding:5px 7px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;">`;
- const calcCell = (id, val, strong) => `<td class="ps-list-cell" style="padding:9px 10px; text-align:right; color:#374151;${strong ? ' font-weight:700; color:#0F766E;' : ''}"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
+ const calcCell = (id, val, strong) => `<td class="ps-list-cell" style="padding:9px 10px; text-align:right; color:#374151;${strong ? ' font-weight:700; color:#CD7C32;' : ''}"><span id="${id}">${val > 0 ? val.toFixed(2) : '—'}</span></td>`;
  return `<tr class="ps-list-row">`
  + `<td class="ps-list-cell" style="padding:6px 10px;"><img src="${escHtml(imgSrc)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=window.__psNoImg;" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #E5E7EB; display:block;" alt=""></td>`
  + `<td class="ps-list-cell" style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-weight:700; color:var(--primary);">${skuSafe}</td>`
@@ -14851,7 +14851,7 @@ window.submitEmailLogin = async function() {
  if(meta.must_change_password === true) {
  pwEl.value = '';
  errEl.textContent = 'Sila tetapkan password baharu untuk teruskan.';
- errEl.style.color = '#0f766e';
+ errEl.style.color = '#101010';
  window.__openSetPasswordModal({ source: 'first_login' });
  return;
  }
@@ -27974,7 +27974,7 @@ window.__updateCrmSegmentCounts = function() {
  big_spender: all.filter(c => (c.total_spent||0) >= 1000).length,
  };
  const labels = {
- vip: '⭐ VIP (3+ orders)',
+ vip: 'VIP (3+ orders)',
  email_consent: 'Email consent',
  sms_consent: 'SMS consent',
  tiktok: 'TikTok customers',
@@ -29865,7 +29865,7 @@ window.checkoutVipLookup = function() {
  badge.style.color = '#7A5410';
  badge.style.border = '2px solid #E7C66A';
  badge.style.display = 'block';
- badge.innerHTML = `⭐ <strong>VIP MEMBER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` — auto-discount <strong>${pct}%</strong> applied` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual)`}`;
+ badge.innerHTML = `<strong>VIP MEMBER</strong> · ${match.name} · ${match.total_orders} orders · RM${(match.total_spent||0).toFixed(0)} spent${window.VIP_AUTO_DISCOUNT ? ` — auto-discount <strong>${pct}%</strong> applied` : ` · cadangan diskaun <strong>${pct}%</strong> (masuk manual)`}`;
  } else {
  badge.style.background = '#fff8f0';
  badge.style.color = '#7c4a1a';
@@ -29902,10 +29902,10 @@ window.recomputeCheckoutTotal = function() {
  const parent = totalEl.closest('p, div');
  if(parent) {
  parent.insertAdjacentHTML('afterend',
- `<p id="checkoutVipDiscountLine" style="font-size:12px; color:#7A5410; margin:-12px 0 12px 0;">⭐ VIP discount: −RM <strong>${discountAmt.toFixed(2)}</strong> (${window.__currentCheckoutVip.discount_pct}% off RM ${raw.toFixed(2)})</p>`);
+ `<p id="checkoutVipDiscountLine" style="font-size:12px; color:#7A5410; margin:-12px 0 12px 0;">VIP discount: −RM <strong>${discountAmt.toFixed(2)}</strong> (${window.__currentCheckoutVip.discount_pct}% off RM ${raw.toFixed(2)})</p>`);
  }
  } else {
- vipLine.innerHTML = `⭐ VIP discount: −RM <strong>${discountAmt.toFixed(2)}</strong> (${window.__currentCheckoutVip.discount_pct}% off RM ${raw.toFixed(2)})`;
+ vipLine.innerHTML = `VIP discount: −RM <strong>${discountAmt.toFixed(2)}</strong> (${window.__currentCheckoutVip.discount_pct}% off RM ${raw.toFixed(2)})`;
  vipLine.style.display = 'block';
  }
  } else if(vipLine) {
@@ -30116,7 +30116,7 @@ window.__renderDashOverviewRoster = async function() {
  }
  const SHIFT_LABEL = {
  B: { label: T('dash_shift_B'), color:'#cd7c32' },
- C: { label: T('dash_shift_C'), color:'#0F766E' },
+ C: { label: T('dash_shift_C'), color:'#101010' },
  OFF: { label: T('dash_shift_OFF'), color:'#94A3B8' },
  AL: { label: T('dash_shift_AL'), color:'#CE9420' },
  MC: { label: T('dash_shift_MC'), color:'#B23A2E' },
@@ -35744,7 +35744,7 @@ const WA_TEMPLATES = {
  cny: 'Gong Xi Fa Cai {name}! \n\nCelebrate dengan diskaun *8% off* satu store.\nCode: *{promo_code}*\nValid sampai 15 Feb.\n\nShop: 10camp.com\n\nMay your year be filled with adventure! ',
  deepavali: 'Happy Deepavali {name}! \n\nDiskaun spesial *15% off* untuk semua camping gear.\nCode: *{promo_code}*\nValid sampai 7 hari.\n\nShop: 10camp.com\n\nTerima kasih, semoga cahaya membawa kebahagiaan! ',
  merdeka: 'Selamat Hari Merdeka {name}! 🇲🇾\n\nMerdeka deal *RM57 off* untuk pembelian RM 300+.\nCode: *{promo_code}*\nValid 28 Aug – 16 Sep.\n\nShop: 10camp.com\n\nMerdeka! Merdeka! Merdeka! ',
- vip_nudge: 'Hi {name}, VIP member 10 CAMP yang dihormati ⭐\n\nAnda ada *{points} points* dalam akaun.\nRedeem untuk diskaun atau free items sebelum expire.\n\nLogin: 10camp.com/account\n\nTerima kasih atas sokongan!',
+ vip_nudge: 'Hi {name}, VIP member 10 CAMP yang dihormati\n\nAnda ada *{points} points* dalam akaun.\nRedeem untuk diskaun atau free items sebelum expire.\n\nLogin: 10camp.com/account\n\nTerima kasih atas sokongan!',
  reorder_nudge: 'Hi {name} \n\nDah {last_order_days} hari last shopping kat 10 CAMP. Rindu! \n\nKalau nak refresh gear, ada banyak new arrival.\nCheckout: 10camp.com\n\nNak tanya apa-apa? Reply je message ni. ',
  generic: 'Hi {name}! \n\nNew update dari 10 CAMP:\n[Tulis announcement di sini]\n\nUse code *{promo_code}* untuk diskaun (kalau ada).\n\nThanks!\n10 CAMP team'
 };

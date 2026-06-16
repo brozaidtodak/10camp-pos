@@ -2410,6 +2410,16 @@ a:focus-visible {
 [data-theme="dark"].checkout-panel,
 [data-theme="dark"].cmdk,
 [data-theme="dark"].cp-section { background: #27272A; border-color: #3F3F46; color: #E4E4E7; }
+/* p1_772 — dark mode: surface yg dulu hardcode putih (audit dark mode). Skrin paling kerap:
+   KPI cards (.stat-card), grid cashier (.product-card), input Reports, header landing. */
+[data-theme="dark"] .stat-card { background: #27272A; border-color: #3F3F46; }
+[data-theme="dark"] .stat-card__value { color: #FAFAFA; }
+[data-theme="dark"] .stat-card__label { color: #A1A1AA; }
+[data-theme="dark"] .product-card { background: #27272A; border-color: #3F3F46; }
+[data-theme="dark"] .product-card__title { color: #FAFAFA; }
+[data-theme="dark"] .product-card__stock { color: #A1A1AA; }
+[data-theme="dark"] .rp-comm-input, [data-theme="dark"] .rp-input, [data-theme="dark"] .rp-select { background: #18181B; color: #E4E4E7; border-color: #3F3F46; }
+[data-theme="dark"] .lp-header { background: #18181B; border-bottom-color: #3F3F46; }
 [data-theme="dark"].stat { background: #27272A; }
 [data-theme="dark"].cp-input, [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
  background: #18181B;

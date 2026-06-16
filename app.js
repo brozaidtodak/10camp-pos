@@ -30135,6 +30135,7 @@ window.__rescanIntegration = async function(){
  try { await fetch('/.netlify/functions/price-sentinel-background?mode=sync').catch(()=>{}); } catch(e){}
  // background fn returns 202 — give it time to pull TikTok+Shopee live prices & rewrite, then refresh.
  setTimeout(()=>{
+  try { if(typeof window.__renderDeptAlerts==='function') window.__renderDeptAlerts(); } catch(e){}
   try { if(typeof window.__renderIntegrationAlert==='function') window.__renderIntegrationAlert(); } catch(e){}
   setBtn('<i data-lucide="refresh-cw" style="width:11px;height:11px;"></i> Semak semula', false);
   if(typeof showToast==='function') showToast('Amaran disemak semula — issue yang dah resolve dah dikeluarkan.', 'success');
@@ -30209,13 +30210,130 @@ window.__aimCampUrl = function(platform){ return /tiktok/i.test(platform) ? 'htt
 window.__aimOpenConnections = function(){ const el=document.querySelector('[data-tab="nav_connections"]'); if(el) el.click(); };
 window.__aimOpenApps = function(){ const el=document.querySelector('[data-tab="nav_apps"]'); if(el) el.click(); };
 
+// p1_778 — PUSAT AMARAN (Alert Center): auto-detect isu bisnes dari data in-memory + route ikut department.
+// Routing: mgmt (Bos/Aliff/Farhan/Zack) nampak SEMUA (+chip dept); sales nampak Sales/Pricing; inventory nampak Inventory.
+window.__DEPT_LABEL = { system:'System', inventory:'Inventory', sales:'Sales', pricing:'Pricing', finance:'Finance' };
+window.__alertViewerDepts = function(){
+ const u = window.currentUser || {};
+ const boss = (typeof window.isBoss === 'function' && window.isBoss(u));
+ if(boss || u.role === 'mgmt') return { all:true, depts:['system','inventory','sales','pricing','finance'] };
+ if(u.role === 'sales') return { all:false, depts:['sales','pricing'] };
+ if(u.role === 'inventory') return { all:false, depts:['inventory'] };
+ return { all:false, depts:[] };
+};
+// Combined badge + empty-state + marketplace-block visibility (mgmt only). Called by both renderers.
+window.__setAlertBadge = function(){
+ const v = window.__alertViewerDepts ? window.__alertViewerDepts() : { all:true };
+ const showMp = !!v.all; // marketplace integration health = mgmt only
+ const ib = document.getElementById('integrationAlertBox'); if(ib) ib.style.display = showMp ? '' : 'none';
+ const intCount = showMp ? (Number(window.__integrationIssueCount)||0) : 0;
+ const deptCount = Number(window.__deptAlertCount)||0;
+ const total = intCount + deptCount;
+ const b = document.getElementById('ovAimBadge'); if(b){ if(total>0){ b.textContent = total>99?'99+':String(total); b.style.display=''; } else b.style.display='none'; }
+ const hasContent = (showMp && window.__integrationHasContent) || !!window.__deptAlertHasContent;
+ const em = document.getElementById('ovAimEmpty'); if(em) em.style.display = hasContent ? 'none' : '';
+};
+// Compute anomalies from in-memory data (no DB call — fast, runs every overview render).
+window.__computeDeptAlerts = function(){
+ const MP = (typeof masterProducts!=='undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const IB = (typeof inventoryBatches!=='undefined' && Array.isArray(inventoryBatches)) ? inventoryBatches : [];
+ const SH = (typeof salesHistory!=='undefined' && Array.isArray(salesHistory)) ? salesHistory : [];
+ const pub = (typeof isPublished === 'function') ? isPublished : (p)=>!!(p && p.is_published);
+ const out = [];
+ const floorDefault = Number(window.__getSetting ? window.__getSetting('pricing.floor_margin_pct', 35) : 35) || 35;
+ const stock = {};
+ IB.forEach(b=>{ if(!b||!b.sku) return; stock[b.sku] = (stock[b.sku]||0) + (Number(b.qty_remaining)||0); });
+ // A) Stok negatif (inventory + system, critical)
+ const neg = Object.keys(stock).filter(s=>stock[s] < 0).map(s=>({sku:s, qty:stock[s]}));
+ if(neg.length) out.push({ key:'stock_neg', dept:['inventory','system'], sev:'critical', icon:'package-x',
+  title:'Stok negatif (data tak konsisten)', desc:'Baki stok di bawah 0 — kemungkinan oversell atau silap rekod. Kena siasat.',
+  count:neg.length, rows:neg.slice(0,12).map(x=>({a:x.sku, b:String(x.qty)})),
+  action:{label:'Semak Stok', onclick:"document.querySelector('[data-tab=nav_sys_stocktake]')?.click()"} });
+ // B) Live tapi stok habis (inventory, warn)
+ const liveZero = MP.filter(p=> pub(p) && ((stock[p.sku]==null) || stock[p.sku] <= 0));
+ if(liveZero.length) out.push({ key:'live_zero', dept:['inventory'], sev:'warn', icon:'package',
+  title:'Produk LIVE tapi stok habis', desc:'Masih terbit/jual di marketplace tapi stok 0 — restock atau nyahterbit.',
+  count:liveZero.length, rows:liveZero.slice(0,12).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
+  action:{label:'Buka Inventory', onclick:"document.querySelector('[data-tab=nav_inventory]')?.click()"} });
+ // C) Harga walk-in bawah kos (sales + pricing, critical)
+ const belowCost = MP.filter(p=>{ const pr=Number(p.price)||0, c=Number(p.cost_price)||0; return pr>0 && c>0 && pr < c; });
+ if(belowCost.length) out.push({ key:'below_cost_cat', dept:['sales','pricing'], sev:'critical', icon:'trending-down',
+  title:'Harga walk-in bawah kos (rugi)', desc:'Harga jual kedai lebih rendah dari kos — setiap jualan rugi. Naikkan harga.',
+  count:belowCost.length, rows:belowCost.slice(0,12).map(p=>({a:p.sku, b:'RM'+(Number(p.price)||0).toFixed(2)+' < kos RM'+(Number(p.cost_price)||0).toFixed(2)})),
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+ // D) Margin bawah lantai (sales + pricing, warn) — count + sampel
+ const belowFloor = MP.filter(p=>{ const pr=Number(p.price)||0, c=Number(p.cost_price)||0; if(!(pr>0 && c>0 && pr>=c)) return false; const fm=(p.floor_margin_pct!=null && p.floor_margin_pct!=='')?Number(p.floor_margin_pct):floorDefault; return ((pr-c)/pr*100) < fm; });
+ if(belowFloor.length) out.push({ key:'below_floor_cat', dept:['sales','pricing'], sev:'warn', icon:'percent',
+  title:'Margin bawah lantai ('+floorDefault+'%)', desc:'Dijual atas kos tapi margin bawah sasaran minimum. Semak harga di Kalkulator.',
+  count:belowFloor.length, rows:belowFloor.slice(0,8).map(p=>{ const pr=Number(p.price)||0,c=Number(p.cost_price)||0; return {a:p.sku, b:Math.round((pr-c)/pr*100)+'% margin'}; }),
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+ // E) Walk-in tanpa staf bulan ini (sales, warn)
+ const now = new Date(); const ymLocal = new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,7);
+ const walkNoStaff = SH.filter(o=>{ if((o.created_at||'').slice(0,7)!==ymLocal) return false; const ch=(o.channel||'').toLowerCase(); const isWalk=ch.indexOf('cashier')!==-1||ch.indexOf('walk')!==-1; const noStaff=!o.staff_name||!String(o.staff_name).trim(); const st=(o.status||'').toLowerCase(); const ok=!(st.indexOf('cancel')!==-1||st.indexOf('void')!==-1); return isWalk&&noStaff&&ok; });
+ if(walkNoStaff.length) out.push({ key:'walk_nostaff', dept:['sales'], sev:'warn', icon:'user-x',
+  title:'Walk-in tanpa staf ('+ymLocal+')', desc:'Order kedai tak ditag staf — komisen tak boleh dikira. Assign di Commission Report.',
+  count:walkNoStaff.length, rows:[],
+  action:{label:'Jualan Tak Dituntut', onclick:"document.querySelector('[data-tab=nav_commission_report]')?.click(); setTimeout(function(){ window.__crSetMethod && window.__crSetMethod('UNCLAIM'); },350);"} });
+ // F) Produk tiada kos (inventory + sales, warn)
+ const noCost = MP.filter(p=> (Number(p.price)||0) > 0 && !((Number(p.cost_price)||0) > 0));
+ if(noCost.length) out.push({ key:'no_cost', dept:['inventory','sales'], sev:'warn', icon:'help-circle',
+  title:'Produk tiada kos (cost_price kosong)', desc:'Ada harga jual tapi takde kos — margin & komisen tak tepat.',
+  count:noCost.length, rows:noCost.slice(0,8).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+ // G) Produk belum set harga (sales + inventory, warn)
+ const noPrice = MP.filter(p=> !((Number(p.price)||0) > 0));
+ if(noPrice.length) out.push({ key:'no_price', dept:['sales','inventory'], sev:'warn', icon:'tag',
+  title:'Produk belum set harga jual', desc:'price = 0 — produk tak boleh dijual dengan betul.',
+  count:noPrice.length, rows:noPrice.slice(0,8).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+ return out;
+};
+window.__renderDeptAlerts = function(){
+ const box = document.getElementById('deptAlertBox'); if(!box) return;
+ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ let alerts = [];
+ try { alerts = window.__computeDeptAlerts() || []; } catch(e){ alerts = []; }
+ const v = window.__alertViewerDepts ? window.__alertViewerDepts() : { all:true, depts:[] };
+ const visible = alerts.filter(a => v.all || (Array.isArray(a.dept) && a.dept.some(d=> v.depts.indexOf(d)>=0)));
+ window.__deptAlertCount = visible.length; // badge = bilangan JENIS isu (bukan jumlah item — elak "99+" tak bermakna)
+ window.__deptAlertHasContent = visible.length > 0;
+ if(!visible.length){ box.innerHTML=''; if(window.__setAlertBadge) window.__setAlertBadge(); return; }
+ const sevMeta = { critical:{bd:'#B23A2E', bg:'#FAF0EE', tx:'#7C2A20', pill:'#B23A2E'}, warn:{bd:'#E2C07A', bg:'#FBF6EC', tx:'#7A5410', pill:'#C68A1A'}, info:{bd:'#BFD3C2', bg:'#F1F6F1', tx:'#2F5036', pill:'#345E43'} };
+ const order = { critical:0, warn:1, info:2 };
+ visible.sort((a,b)=> ((order[a.sev]||9)-(order[b.sev]||9)) || ((b.count||0)-(a.count||0)));
+ const deptChip = (d)=>`<span style="background:#fff;border:1px solid #CD7C32;color:#A05F22;font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:50px;text-transform:uppercase;letter-spacing:.3px;">${esc(window.__DEPT_LABEL[d]||d)}</span>`;
+ const rowsHtml = (a)=> (a.rows && a.rows.length) ? `<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px;">${a.rows.map(r=>`<span style="background:#fff;border:1px solid #ECE6DE;border-radius:6px;padding:2px 8px;font-size:11px;color:#5b5048;"><b style="font-family:monospace;color:#A05F22;">${esc(r.a)}</b>${r.b?` · ${esc(r.b)}`:''}</span>`).join('')}${a.count>a.rows.length?`<span style="font-size:11px;color:#9ca3af;align-self:center;">+${a.count-a.rows.length} lagi</span>`:''}</div>` : '';
+ const cards = visible.map(a=>{ const m=sevMeta[a.sev]||sevMeta.warn; return `
+  <div class="dash-card" style="border:1px solid ${m.bd};border-left:4px solid ${m.bd};background:${m.bg};margin-bottom:10px;padding:12px 14px;">
+   <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+    <i data-lucide="${a.icon}" style="width:17px;height:17px;color:${m.bd};"></i>
+    <strong style="color:${m.tx};font-size:13.5px;">${esc(a.title)}</strong>
+    <span style="background:${m.pill};color:#fff;font-size:11px;font-weight:800;padding:2px 9px;border-radius:50px;">${a.count}</span>
+    <span style="display:inline-flex;gap:4px;margin-left:2px;flex-wrap:wrap;">${(a.dept||[]).map(deptChip).join('')}</span>
+    ${a.action?`<button onclick="${a.action.onclick}" style="margin-left:auto;font-size:11px;font-weight:700;color:#fff;background:#CD7C32;border:none;border-radius:6px;padding:4px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;"><i data-lucide="arrow-right" style="width:11px;height:11px;"></i>${esc(a.action.label)}</button>`:''}
+   </div>
+   ${a.desc?`<div style="font-size:11.5px;color:${m.tx};opacity:.85;margin-top:5px;line-height:1.5;">${esc(a.desc)}</div>`:''}
+   ${rowsHtml(a)}
+  </div>`; }).join('');
+ const scope = v.all ? 'semua department' : 'department anda sahaja';
+ const hdr = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+   <i data-lucide="bell-ring" style="width:16px;height:16px;color:#101010;"></i>
+   <strong style="color:#101010;font-size:13px;">Pusat Amaran${v.all?'':' — '+esc(v.depts.map(d=>window.__DEPT_LABEL[d]||d).join(' / '))}</strong>
+   <span style="font-size:11px;color:#9ca3af;">${scope}</span>
+  </div>`;
+ box.innerHTML = hdr + cards;
+ if(window.__setAlertBadge) window.__setAlertBadge();
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+
 // p1_634 (#3) — Integration alert: surface price-sentinel below-cost/drift on owner landing.
 window.__renderIntegrationAlert = async function(){
  const box = document.getElementById('integrationAlertBox'); if(!box) return;
  // p1_665 — reflect state on the AIM sub-tab: red badge = actionable issues, empty-state when all clear.
  const __setAim = (issueCount, hasContent)=>{
-  const b = document.getElementById('ovAimBadge'); if(b){ if(issueCount>0){ b.textContent=issueCount; b.style.display=''; } else b.style.display='none'; }
-  const em = document.getElementById('ovAimEmpty'); if(em) em.style.display = hasContent ? 'none' : '';
+  window.__integrationIssueCount = Number(issueCount)||0;
+  window.__integrationHasContent = !!hasContent;
+  if(window.__setAlertBadge) window.__setAlertBadge();
  };
  if(typeof db === 'undefined' || !db){ __setAim(0, false); box.innerHTML=''; return; }
  try {
@@ -30352,7 +30470,13 @@ window.__renderIntegrationAlert = async function(){
 };
 
 window.__renderDashOverview = function() {
- try { if(typeof window.__renderIntegrationAlert === 'function') window.__renderIntegrationAlert(); } catch(e){}
+ // p1_778 — Pusat Amaran: dept-routed business alerts (semua viewer) + marketplace health (mgmt sahaja, elak DB call utk staf).
+ try { if(typeof window.__renderDeptAlerts === 'function') window.__renderDeptAlerts(); } catch(e){}
+ try {
+  const _v = window.__alertViewerDepts ? window.__alertViewerDepts() : { all:true };
+  if(_v.all && typeof window.__renderIntegrationAlert === 'function') window.__renderIntegrationAlert();
+  else { window.__integrationIssueCount=0; window.__integrationHasContent=false; if(window.__setAlertBadge) window.__setAlertBadge(); }
+ } catch(e){}
  try {
  const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
  const memosApproved = memos.filter(m => m.status === 'approved');

@@ -20319,6 +20319,7 @@ window.__crMethodTabsHtml = function() {
  tab('CMP','Banding A vs AI','Cari beza / human error') +
  tab('B','Kaedah B — POS live','Kiraan POS semasa + live') +
  tab('C','Kaedah C — Margin','5% margin · mula 1 Julai 2026') +
+ tab('UNCLAIM','Jualan Tak Dituntut','Walk-in tanpa staf — Aliff isi & Simpan') +
  '</div>';
 };
 window.__crRenderKaedahA = function() {
@@ -20355,6 +20356,83 @@ window.__crRenderKaedahA = function() {
 };
 window.__crRenderKaedahC = function() {
  return '<div class="admin-card" style="padding:28px; text-align:center;"><i data-lucide="clock" style="width:30px;height:30px;color:#CD7C32;"></i><h3 style="margin:12px 0 6px;">Kaedah C — Komisen Margin</h3><p style="color:#6B7280; font-size:13px; margin:0;">Kaedah baru (5% atas margin) bermula <strong>1 Julai 2026</strong>. Belum aktif — akan dibina bila tiba masa.</p></div>';
+};
+// p1_760 — Jualan Tak Dituntut: walk-in (POS Cashier) tanpa staff_name. Aliff pilih staf -> Simpan
+// -> update sales_history.staff_name (All Orders + Kaedah B / My Commission auto-reflek live).
+window.__crUnclaimMonth = window.__crUnclaimMonth || '2026-05';
+window.__crStaffOptions = function() {
+ let names = [];
+ try { names = [...new Set((Array.isArray(salesHistory)?salesHistory:[]).map(s => s && s.staff_name).filter(Boolean).map(x => String(x).trim()))]; } catch(e){}
+ if(!names.length) names = ['Ariff','Irfan','Farhan Moyy','Aliff','Tarmizi Kael','Fahmi','Zack','Zakwan'];
+ names.sort((a,b) => a.localeCompare(b));
+ return names;
+};
+window.__crSetUnclaimMonth = function(ym) { window.__crUnclaimMonth = ym || '2026-05'; if(window.__crLoadUnclaimed) window.__crLoadUnclaimed(); };
+window.__crRenderUnclaimed = function() {
+ const ym = window.__crUnclaimMonth || '2026-05';
+ return '<div style="margin-top:4px;">'
+  + '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">'
+  + '<div style="font-weight:800; font-size:14px;">Jualan Walk-in Tak Dituntut</div>'
+  + '<label style="font-size:12px; color:#374151; display:inline-flex; align-items:center; gap:6px;">Bulan <input type="month" value="' + ym + '" onchange="window.__crSetUnclaimMonth(this.value)" style="padding:5px 8px; border:1px solid #E5E7EB; border-radius:7px; font-size:12px;"></label>'
+  + '</div>'
+  + '<p style="font-size:11.5px; color:#9CA3AF; margin:0 0 14px;">Order walk-in (POS Cashier) yang tiada staf. Pilih staf yang buat jualan, tekan <strong>Simpan</strong> — sistem kemaskini All Orders + kiraan komisen (Kaedah B / My Commission auto-reflek). Order marketplace (Shopee/TikTok/Web) memang takde staf, tak masuk sini.</p>'
+  + '<div id="crUnclaimList" class="admin-card" style="padding:18px; text-align:center; color:#9CA3AF;">Memuatkan…</div>'
+  + '</div>';
+};
+window.__crLoadUnclaimed = async function() {
+ const host = document.getElementById('crUnclaimList'); if(!host) return;
+ if(typeof db === 'undefined' || !db) { host.innerHTML = 'DB tak tersedia.'; return; }
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s);
+ const ym = window.__crUnclaimMonth || '2026-05';
+ const parts = ym.split('-'); const y = Number(parts[0]); const mo = Number(parts[1]);
+ const start = ym + '-01';
+ const end = (mo>=12 ? (y+1)+'-01-01' : y+'-'+String(mo+1).padStart(2,'0')+'-01');
+ host.style.textAlign='center'; host.style.padding='18px'; host.innerHTML = 'Memuatkan…';
+ let data;
+ try {
+  const r = await db.from('sales_history').select('id,created_at,customer_name,total_amount,total,channel,staff_name,status').gte('created_at', start).lt('created_at', end).order('created_at',{ascending:true}).limit(3000);
+  if(r.error) throw r.error; data = r.data || [];
+ } catch(e) { host.innerHTML = '<span style="color:#B23A2E;">Gagal muat: ' + esc(e.message) + '</span>'; return; }
+ const rows = data.filter(o => {
+  const ch=(o.channel||'').toLowerCase(); const isWalk = ch.indexOf('cashier')!==-1 || ch.indexOf('walk')!==-1;
+  const noStaff = !o.staff_name || !String(o.staff_name).trim();
+  const st=(o.status||'').toLowerCase(); const okStatus = !(st.indexOf('cancel')!==-1 || st.indexOf('void')!==-1);
+  return isWalk && noStaff && okStatus;
+ });
+ if(!rows.length) { host.innerHTML = '<i data-lucide="check-circle" style="width:26px;height:26px;color:#345E43;"></i><p style="margin:8px 0 0; font-size:13px; color:#374151;">Tiada jualan walk-in tak dituntut untuk ' + esc(ym) + '. Semua dah ada staf.</p>'; if(window.lucide) try{lucide.createIcons();}catch(e){} return; }
+ const opts = window.__crStaffOptions();
+ const optHtml = (uid) => '<select data-uid="' + uid + '" style="padding:5px 7px; border:1px solid #CD7C32; border-radius:6px; font-size:12px; min-width:130px;"><option value="">— pilih staf —</option>' + opts.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('') + '</select>';
+ let total=0; let body='';
+ rows.forEach(o => {
+  const rm = parseFloat(o.total_amount||o.total||0)||0; total+=rm;
+  const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('en-MY',{day:'2-digit',month:'short'}) : '-';
+  body += '<tr style="border-bottom:1px solid #F3F4F6;"><td style="padding:7px 9px; white-space:nowrap; color:#6B7280;">' + dt + '</td>'
+   + '<td style="padding:7px 9px; font-family:monospace; font-size:11px; color:#b86a26;">#' + o.id + '</td>'
+   + '<td style="padding:7px 9px;">' + esc(String(o.customer_name||'Walk-In').slice(0,28)) + '</td>'
+   + '<td style="padding:7px 9px; text-align:right; font-weight:700; white-space:nowrap;">RM ' + rm.toFixed(2) + '</td>'
+   + '<td style="padding:7px 9px;">' + optHtml(o.id) + '</td></tr>';
+ });
+ host.style.textAlign='left'; host.style.padding='0';
+ host.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px;"><thead><tr style="background:#FAFAF9; border-bottom:1px solid #EEE;"><th style="padding:7px 9px; text-align:left; font-size:10px; color:#6B7280; text-transform:uppercase;">Tarikh</th><th style="padding:7px 9px; text-align:left; font-size:10px; color:#6B7280; text-transform:uppercase;">Order</th><th style="padding:7px 9px; text-align:left; font-size:10px; color:#6B7280; text-transform:uppercase;">Customer</th><th style="padding:7px 9px; text-align:right; font-size:10px; color:#6B7280; text-transform:uppercase;">RM</th><th style="padding:7px 9px; text-align:left; font-size:10px; color:#6B7280; text-transform:uppercase;">Staf Jual</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+  + '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:14px;"><span style="font-size:12px; color:#6B7280;">' + rows.length + ' order · RM ' + total.toFixed(2) + ' · komisen 5% = RM ' + (total*0.05).toFixed(2) + '</span><button onclick="window.__crSaveUnclaimed()" class="btn-brand-primary" style="padding:9px 20px; font-size:13px;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Simpan Tugasan Staf</button></div>';
+ if(window.lucide) try{lucide.createIcons();}catch(e){}
+};
+window.__crSaveUnclaimed = async function() {
+ const sels = document.querySelectorAll('#crUnclaimList select[data-uid]');
+ const updates = [];
+ sels.forEach(s => { const v=(s.value||'').trim(); if(v) updates.push({ id: parseInt(s.getAttribute('data-uid'),10), staff: v }); });
+ if(!updates.length) { if(typeof showToast==='function') showToast('Tiada staf dipilih lagi.','warn'); return; }
+ if(!confirm('Simpan ' + updates.length + ' tugasan staf?\n\nKemaskini staff_name pada order — All Orders + kiraan komisen (Kaedah B / My Commission) akan reflek.')) return;
+ let ok=0; const errs=[];
+ for(const u of updates) {
+  try { const { error } = await db.from('sales_history').update({ staff_name: u.staff }).eq('id', u.id); if(error) throw error;
+   const idx=(Array.isArray(salesHistory)?salesHistory:[]).findIndex(x=>x.id===u.id); if(idx>=0) salesHistory[idx].staff_name=u.staff;
+   ok++;
+  } catch(e){ errs.push(u.id+': '+e.message); }
+ }
+ if(typeof showToast==='function') showToast('Disimpan ' + ok + ' order' + (errs.length?'. Ralat: '+errs[0]:'') + '. All Orders + komisen dikemaskini.', errs.length?'warn':'success');
+ try { if(window.renderAllOrders) window.renderAllOrders(); } catch(e){}
+ if(window.__crLoadUnclaimed) window.__crLoadUnclaimed();
 };
 // p1_742 — AI Calculation: kiraan sistem (sales+live × 5%) per staf × bulan, dari commission_history method='AI'
 window.__crRenderAI = function() {
@@ -20487,6 +20565,7 @@ window.renderCommissionReport = function() {
  if(__m === 'AI') { host.innerHTML = __methodTabs + window.__crRenderAI(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
  if(__m === 'CMP') { host.innerHTML = __methodTabs + window.__crRenderCompare(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
  if(__m === 'C') { host.innerHTML = __methodTabs + window.__crRenderKaedahC(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
+ if(__m === 'UNCLAIM') { host.innerHTML = __methodTabs + window.__crRenderUnclaimed(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} if(window.__crLoadUnclaimed) window.__crLoadUnclaimed(); return; }
  // __m === 'B' → kiraan POS (eksperimen) di bawah
  const range = __crGetRange();
  const sales = (Array.isArray(salesHistory) ? salesHistory : []).filter(s => {

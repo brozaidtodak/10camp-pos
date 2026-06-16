@@ -6608,9 +6608,16 @@ window.__checkoutComputeTotal = function() {
  const subtotal = round2((cart || []).reduce((s, c) => s + (c.price * c.quantity), 0));
  const type = (document.getElementById('checkoutDiscType') || {}).value || 'rm';
  const amt = parseFloat((document.getElementById('checkoutDiscAmt') || {}).value) || 0;
- let discount = 0;
- if(amt > 0) discount = type === 'pct' ? round2(subtotal * amt / 100) : round2(amt);
- if(discount > subtotal) discount = subtotal;
+ let customDiscount = 0;
+ if(amt > 0) customDiscount = type === 'pct' ? round2(subtotal * amt / 100) : round2(amt);
+ if(customDiscount > subtotal) customDiscount = subtotal;
+ const afterCustom = round2(subtotal - customDiscount);
+ // H4 fix (p1_784) — selaras dengan cpRecomputeTotal (aliran checkout aktif): tolak diskaun VIP bila
+ // auto-discount ON supaya "Bayar" yang dipapar = caj sebenar (tiada over-charge). VIP_AUTO_DISCOUNT default OFF → vipDisc 0.
+ let vipDisc = 0;
+ const __vip = window.__currentCheckoutVip;
+ if(window.VIP_AUTO_DISCOUNT && __vip && __vip.discount_pct > 0) vipDisc = round2(afterCustom * __vip.discount_pct / 100);
+ const discount = round2(customDiscount + vipDisc);
  const finalTotal = round2(subtotal - discount);
  if(discount > 0) {
  previewEl.style.display = 'block';
@@ -9301,9 +9308,18 @@ window.__returnRefundConfirm = async function(){
  // 3. Update sale: metadata + status
  let md = sale.metadata; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } } md = Object.assign({}, md || {});
  md.return_done = true; md.return_type = type; md.return_reason = reason; md.return_amount = amount; md.return_items = returned; md.returned_by = staff; md.returned_at = nowIso;
- if(restock) md.stock_restored = true; // elak double-restock kalau order ni di-void selepas ni
  const soldQty = ((typeof ffParseItems === 'function') ? ffParseItems(sale.items) : []).reduce((s, it) => s + (parseInt(it.qty != null ? it.qty : (it.quantity != null ? it.quantity : 1)) || 0), 0);
  const retQty = returned.reduce((s, r) => s + r.qty, 0);
+ // H2 fix (p1_784) — jejak qty yang DAH dipulang ke stok (kumulatif merentas beberapa return separa).
+ // Hanya tanda stock_restored=true bila SEMUA unit dah balik; kalau separa, biar void kemudian pulangkan
+ // BAKI yang belum return (dulu: tanda true terus → void langkau → stok hilang selamanya).
+ if(restock){
+  const rq = (md.restored_qty && typeof md.restored_qty === 'object') ? Object.assign({}, md.restored_qty) : {};
+  returned.forEach(r => { const k = String(r.sku || '').toUpperCase(); if(k && !k.startsWith('CUSTOM-')) rq[k] = (Number(rq[k]) || 0) + (Number(r.qty) || 0); });
+  md.restored_qty = rq;
+  const totalRestored = Object.keys(rq).reduce((s, k) => s + (Number(rq[k]) || 0), 0);
+  if(totalRestored >= soldQty) md.stock_restored = true; // semua unit dah balik ke stok → blok double-restock bila void
+ }
  const newStatus = (retQty >= soldQty) ? 'Refunded' : sale.status; // penuh → Refunded; separa → kekal status (rekod dalam metadata)
  await db.from('sales_history').update({ status: newStatus, metadata: md }).eq('id', sale.id);
  sale.status = newStatus; sale.metadata = md;
@@ -28191,11 +28207,18 @@ window.__restockSaleIfVoided = async function(sale, newStatus, reason){
  if(!md.stock_deducted) return; // sale ni TAK pernah tolak stok (cth abandoned / order tak-deduct) → jangan tambah phantom stok
  let items = sale.items; if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = []; } }
  if(!Array.isArray(items)) return;
+ // H2 fix (p1_784) — kalau ada return SEPARA sebelum ni (md.restored_qty), tolak qty yang dah dipulang
+ // supaya void cuma pulangkan BAKI yang belum return (bukan langkau, bukan double-restock).
+ const alreadyRestored = (md.restored_qty && typeof md.restored_qty === 'object') ? md.restored_qty : {};
+ const usedRestore = {};
  let any = false;
  for(const it of items){
  const sku = it && it.sku;
  if(!sku || (typeof sku === 'string' && sku.startsWith('CUSTOM-'))) continue;
- const qty = (typeof window.__aoItemQty === 'function') ? window.__aoItemQty(it) : (Number(it.qty != null ? it.qty : it.quantity) || 0);
+ const k = String(sku).toUpperCase();
+ let qty = (typeof window.__aoItemQty === 'function') ? window.__aoItemQty(it) : (Number(it.qty != null ? it.qty : it.quantity) || 0);
+ const credit = Math.max(0, (Number(alreadyRestored[k]) || 0) - (Number(usedRestore[k]) || 0));
+ if(credit > 0){ const use = Math.min(credit, qty); usedRestore[k] = (Number(usedRestore[k]) || 0) + use; qty -= use; }
  if(qty > 0 && typeof window.__applyStockDelta === 'function'){
  await window.__applyStockDelta(sku, qty, reason || ('Restock: order #' + sale.id + ' → ' + newStatus));
  any = true;

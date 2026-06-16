@@ -1,0 +1,29 @@
+name: POS Guardian
+
+# Mechanical guardian for the 10 CAMP POS. Runs in GitHub's cloud (no machine needed).
+# On push: scans the lines you just added for NEW emoji / off-brand colors + JS syntax.
+# Twice a week + on-demand: full re-check. The AI judgment audit lives in .claude/agents/pos-guardian.md.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '37 1 * * 1,4'   # Mon & Thu ~01:37 UTC (off-minute)
+  workflow_dispatch:
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so git diff works
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run guardian checks
+        env:
+          GUARDIAN_BEFORE: ${{ github.event.before }}
+          GUARDIAN_AFTER: ${{ github.sha }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: node scripts/guardian-check.js

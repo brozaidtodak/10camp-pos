@@ -670,14 +670,22 @@ window.__mergeDeep = function(a, b) { const o = Object.assign({}, a); for(const 
 window.__getSetting = function(path, def) { try { const v = String(path).split('.').reduce((o,k)=> (o&&o[k]!=null)?o[k]:undefined, window.__appSettings||{}); return (v==null) ? def : v; } catch(e) { return def; } };
 window.__loadAppSettings = async function() {
  let local = {}; try { local = JSON.parse(localStorage.getItem('appSettings_v1') || '{}'); } catch(e){}
- let server = null;
+ let pub = null, server = null;
+ try {
+  if(typeof db !== 'undefined' && db) {
+   // p1_775 — public-safe subset (shop contact + links) — anon-readable, supaya landing customer dapat edit
+   const { data: pd } = await db.from('public_settings').select('payload').eq('id','shop').maybeSingle();
+   if(pd && pd.payload) pub = pd.payload;
+  }
+ } catch(e) { console.warn('load public settings:', e.message); }
  try {
   if(typeof db !== 'undefined' && db) {
    const { data } = await db.from('staff_report_submissions').select('payload').eq('submission_type','app_settings').eq('period_key','global').maybeSingle();
    if(data && data.payload && data.payload.settings) server = data.payload.settings;
   }
  } catch(e) { console.warn('load app settings:', e.message); }
- window.__appSettings = window.__mergeDeep(window.__mergeDeep(window.__appSettingsDefaults(), local), server || {});
+ // defaults <- local <- public (anon dapat ni) <- server penuh (staff sahaja, superset)
+ window.__appSettings = window.__mergeDeep(window.__mergeDeep(window.__mergeDeep(window.__appSettingsDefaults(), local), pub || {}), server || {});
  try { localStorage.setItem('appSettings_v1', JSON.stringify(window.__appSettings)); } catch(e){}
  window.__appSettingsLoaded = true;
  window.__applySettingsConsumers();
@@ -717,6 +725,9 @@ window.__saveAppSettings = async function() {
   if(typeof db !== 'undefined' && db) {
    const { error } = await db.from('staff_report_submissions').upsert({ staff_id:'__app_settings', staff_name:'App Settings Config', submission_type:'app_settings', period_key:'global', payload:{ settings:s, updated_by:(window.currentUser&&window.currentUser.name)||'?' }, submitted_at:new Date().toISOString(), bos_read_at:null }, { onConflict:'staff_id,submission_type,period_key' });
    if(!error) ok = true; else console.warn('save app settings:', error.message);
+   // p1_775 — tulis subset PUBLIC-SAFE (shop contact + links sahaja, TANPA PIN/harga/sasaran)
+   // ke public_settings (anon-readable) supaya edit kontak/link sampai ke landing customer.
+   try { await db.from('public_settings').upsert({ id:'shop', payload:{ shop:s.shop, links:s.links }, updated_at:new Date().toISOString() }, { onConflict:'id' }); } catch(e){ console.warn('save public settings:', e.message); }
   }
  } catch(e) { console.warn('save app settings:', e.message); }
  window.__applySettingsConsumers();

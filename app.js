@@ -20306,7 +20306,7 @@ window.__loadCommHistory = async function() {
  } catch(e) { console.warn('load commission_history failed:', e.message); }
  window.__commHistLoaded = true;
 };
-window.__crMethod = window.__crMethod || 'A';
+window.__crMethod = window.__crMethod || 'RK';
 window.__crHistYear = window.__crHistYear || 2026;
 window.__crSetMethod = function(m) { window.__crMethod = m; window.renderCommissionReport(); };
 window.__crSetHistYear = function(y) { window.__crHistYear = y; window.renderCommissionReport(); };
@@ -20314,6 +20314,7 @@ window.__crMethodTabsHtml = function() {
  const m = window.__crMethod || 'A';
  const tab = (k, lbl, sub) => '<button onclick="window.__crSetMethod(\'' + k + '\')" style="flex:1; min-width:150px; text-align:left; background:' + (m===k?'#101010':'#fff') + '; color:' + (m===k?'#fff':'#374151') + '; border:1px solid ' + (m===k?'#101010':'#E5E7EB') + '; border-radius:10px; padding:10px 13px; cursor:pointer;"><div style="font-size:12.5px; font-weight:800;">' + lbl + '</div><div style="font-size:10.5px; opacity:.75; margin-top:2px;">' + sub + '</div></button>';
  return '<div style="display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 14px;">' +
+ tab('RK','Ringkasan','Berapa nak bayar bulan ni + amaran') +
  tab('A','Kaedah A — Rasmi','Manual Aliff · bayaran sebenar · Jan 2025+') +
  tab('AI','AI Calculation','Kiraan sistem dari data (sales+live × 5%)') +
  tab('CMP','Banding A vs AI','Cari beza / human error') +
@@ -20544,6 +20545,124 @@ window.__crLiveSessionsHtml = function() {
  '</div>';
 };
 
+// p1_762 — RINGKASAN (Overview) dashboard: jawapan "berapa nak bayar" per staf/bulan +
+// amaran (live belum key-in, walk-in tak-ber-staf, anomali A-vs-AI) + kadar per-staf inline.
+window.__crCurrentYm = function() { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0'); };
+window.__crRkMonth = window.__crRkMonth || null;
+window.__crSetRkMonth = function(ym) { window.__crRkMonth = ym || window.__crCurrentYm(); window.renderCommissionReport(); };
+window.__crComputeMonth = function(ym) {
+ ym = ym || window.__crRkMonth || window.__crCurrentYm();
+ const parts = ym.split('-'); const y = Number(parts[0]); const mo = Number(parts[1]);
+ const start = new Date(y, mo-1, 1, 0,0,0,0), end = new Date(y, mo, 0, 23,59,59,999);
+ const inMonth = (iso) => { if(!iso) return false; const t = new Date(iso).getTime(); return t >= start.getTime() && t <= end.getTime(); };
+ const byStaff = {};
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+  if(s.is_test) return; const st = (s.status||'').toLowerCase(); if(st.indexOf('cancel')!==-1 || st.indexOf('void')!==-1) return;
+  if(!inMonth(s.created_at)) return;
+  const nm = (s.staff_name||'').trim(); if(!nm) return;
+  if(!byStaff[nm]) byStaff[nm] = { name:nm, posBase:0, live:0, orders:0, refunds:0 };
+  const recv = parseFloat(s.total_amount||s.total||0)||0;
+  const base = Math.abs(window.__saleCommissionBase(s));
+  if(recv < 0) byStaff[nm].refunds = round2(byStaff[nm].refunds + base);
+  else { byStaff[nm].posBase = round2(byStaff[nm].posBase + base); byStaff[nm].orders++; }
+ });
+ (window.__liveSessions||[]).forEach(ls => {
+  if(!ls.session_date) return; const t = new Date(ls.session_date+'T12:00').getTime();
+  if(!(t >= start.getTime() && t <= end.getTime())) return;
+  const nm = ls.host_name || 'Ariff';
+  if(!byStaff[nm]) byStaff[nm] = { name:nm, posBase:0, live:0, orders:0, refunds:0 };
+  byStaff[nm].live = round2(byStaff[nm].live + (Number(ls.live_sales_rm)||0));
+ });
+ const usersByName = {}; if(typeof authUsers !== 'undefined' && Array.isArray(authUsers)) authUsers.forEach(u => usersByName[u.name] = u);
+ const rows = Object.values(byStaff).map(r => {
+  const net = round2(r.posBase - r.refunds), totalBase = round2(net + r.live);
+  const rate = __getCommissionRate(r.name), comm = round2(totalBase * rate / 100);
+  const u = usersByName[r.name];
+  return Object.assign({}, r, { net, totalBase, rate, comm, staffId: u ? u.staff_id : null });
+ }).filter(r => r.totalBase !== 0 || r.comm !== 0).sort((a,b) => b.comm - a.comm);
+ const totalComm = round2(rows.reduce((a,r)=>a+r.comm,0)), totalBase = round2(rows.reduce((a,r)=>a+r.totalBase,0));
+ // AMARAN + AUDIT auto
+ const warnings = [];
+ let unclaimN = 0, unclaimRM = 0;
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+  if(s.is_test) return; const st = (s.status||'').toLowerCase(); if(st.indexOf('cancel')!==-1 || st.indexOf('void')!==-1) return;
+  if(!inMonth(s.created_at)) return;
+  const ch = (s.channel||'').toLowerCase(); const isWalk = ch.indexOf('cashier')!==-1 || ch.indexOf('walk')!==-1;
+  if(isWalk && (!s.staff_name || !String(s.staff_name).trim())) { unclaimN++; unclaimRM = round2(unclaimRM + (parseFloat(s.total_amount||s.total||0)||0)); }
+ });
+ if(unclaimN > 0) warnings.push({ lvl:'warn', icon:'user-x', msg: unclaimN + ' jualan walk-in belum ada staf (RM ' + unclaimRM.toFixed(2) + ') — komisen tak dikira.', action:'UNCLAIM' });
+ const liveCount = (window.__liveSessions||[]).filter(ls => { const t = ls.session_date ? new Date(ls.session_date+'T12:00').getTime() : 0; return t >= start.getTime() && t <= end.getTime(); }).length;
+ if(liveCount === 0 && ym >= '2026-06') warnings.push({ lvl:'info', icon:'radio', msg:'Tiada sesi live TikTok direkod untuk bulan ni. Kalau ada live, key-in di Kaedah B supaya host dapat komisen.', action:'B' });
+ const aRows = (window.__commHist||[]).filter(r => r.period_year===y && r.period_month===mo && r.method==='A');
+ const aiRows = (window.__commHist||[]).filter(r => r.period_year===y && r.period_month===mo && r.method==='AI');
+ if(aRows.length && aiRows.length) {
+  const aMap = {}, aiMap = {}; aRows.forEach(r=>aMap[r.staff_name]=Number(r.amount_rm)); aiRows.forEach(r=>aiMap[r.staff_name]=Number(r.amount_rm));
+  const flagged = [];
+  Array.from(new Set(Object.keys(aMap).concat(Object.keys(aiMap)))).forEach(n => {
+   const a = aMap[n]||0, ai = aiMap[n]||0;
+   if(Math.abs(a-ai) >= 100 && Math.max(Math.abs(a),Math.abs(ai)) > 0) flagged.push(n + ' (A ' + a.toFixed(0) + ' vs AI ' + ai.toFixed(0) + ')');
+  });
+  if(flagged.length) warnings.push({ lvl:'warn', icon:'alert-triangle', msg:'Beza besar A vs AI: ' + flagged.join(', ') + '.', action:'CMP' });
+ }
+ return { ym, rows, totalComm, totalBase, top: rows[0]||null, warnings, liveCount };
+};
+window.__crRenderRingkasan = function() {
+ if(!window.__crRkMonth) window.__crRkMonth = window.__crCurrentYm();
+ const ym = window.__crRkMonth;
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s);
+ const money = (n) => 'RM ' + Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const d = window.__crComputeMonth(ym);
+ let monthLabel = ym; try { const p = ym.split('-'); monthLabel = new Date(Number(p[0]),Number(p[1])-1,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'}); } catch(e){}
+ let html = '<div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; margin:2px 0 16px;">'
+  + '<div><div style="font-weight:800; font-size:15px;">Ringkasan Komisen — ' + esc(monthLabel) + '</div><div style="font-size:11.5px; color:#9CA3AF; margin-top:2px;">Berapa patut dibayar setiap staf bulan ni (POS base + live TikTok × kadar).</div></div>'
+  + '<label style="font-size:12px; color:#374151; display:inline-flex; align-items:center; gap:6px;">Bulan <input type="month" value="' + ym + '" onchange="window.__crSetRkMonth(this.value)" style="padding:6px 9px; border:1px solid #E5E7EB; border-radius:8px; font-size:12px;"></label>'
+  + '</div>';
+ const kpi = (label,val,sub,color) => '<div class="stat-card" style="border-left:4px solid ' + (color||'#CD7C32') + ';"><div class="stat-card__label">' + label + '</div><div class="stat-card__value">' + val + '</div>' + (sub?'<div style="font-size:11px; color:#9CA3AF; margin-top:2px;">' + sub + '</div>':'') + '</div>';
+ html += '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px;">'
+  + kpi('Jumlah Komisen', money(d.totalComm), d.rows.length + ' staf', '#CD7C32')
+  + kpi('Jumlah Base Jualan', money(d.totalBase), 'POS + live', '#101010')
+  + kpi('Top Earner', d.top ? esc(d.top.name) : '—', d.top ? money(d.top.comm) : '', '#CD7C32')
+  + kpi('Staf Berkomisen', String(d.rows.length), 'bulan ' + esc(monthLabel.split(' ')[0]||''), '#101010')
+  + '</div>';
+ if(d.warnings.length) {
+  html += '<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">';
+  d.warnings.forEach(w => {
+   const warn = w.lvl === 'warn';
+   const bg = warn?'#FEF3E2':'#F0F6FF', bd = warn?'#F4C77B':'#B9D4F5', cl = warn?'#7A5410':'#1E3A8A';
+   html += '<div style="display:flex; align-items:center; gap:10px; background:' + bg + '; border:1px solid ' + bd + '; color:' + cl + '; padding:10px 14px; border-radius:10px; font-size:12.5px;"><i data-lucide="' + w.icon + '" style="width:16px;height:16px; flex-shrink:0;"></i><span style="flex:1;">' + esc(w.msg) + '</span>' + (w.action?'<button onclick="window.__crSetMethod(\'' + w.action + '\')" style="background:#fff; border:1px solid ' + bd + '; color:' + cl + '; padding:4px 11px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap;">Pergi</button>':'') + '</div>';
+  });
+  html += '</div>';
+ }
+ if(!d.rows.length) {
+  html += '<div class="admin-card" style="padding:28px; text-align:center; color:#9CA3AF;">Tiada komisen dikira untuk ' + esc(monthLabel) + '. (Tiada jualan ber-attribute / live bulan ni.)</div>';
+ } else {
+  const maxComm = Math.max.apply(null, d.rows.map(r=>r.comm).concat([1]));
+  html += '<div class="admin-card" style="padding:4px 0; overflow:hidden;">';
+  d.rows.forEach((r,i) => {
+   const pct = Math.max(3, Math.round(r.comm/maxComm*100));
+   const rateCell = r.staffId
+    ? '<input type="number" step="0.5" value="' + r.rate + '" onchange="window.__crSaveRate(\'' + r.staffId + '\', this.value)" title="Kadar komisen % (boleh edit per staf)" style="width:56px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:6px; font-size:12px; text-align:right;">'
+    : '<span style="font-size:13px; font-weight:700;">' + r.rate + '%</span>';
+   html += '<div style="padding:13px 16px; border-bottom:' + (i<d.rows.length-1?'1px solid #F3F4F6':'none') + '; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">'
+    + '<div style="flex:1; min-width:170px;">'
+    + '<div style="font-weight:800; font-size:13.5px; color:#101010;">' + esc(r.name) + '</div>'
+    + '<div style="font-size:11px; color:#9CA3AF; margin-top:2px;">POS ' + money(r.net) + (r.live?' · <span style="color:#CD7C32; font-weight:700;">Live ' + money(r.live) + '</span>':'') + ' · ' + r.orders + ' order' + (r.refunds?' · <span style="color:#B23A2E;">refund -' + money(r.refunds) + '</span>':'') + '</div>'
+    + '<div style="height:7px; background:#F3F4F6; border-radius:5px; margin-top:7px; overflow:hidden;"><div style="height:100%; width:' + pct + '%; background:linear-gradient(90deg,#CD7C32,#E0A567);"></div></div>'
+    + '</div>'
+    + '<div style="display:flex; align-items:center; gap:16px;">'
+    + '<div style="text-align:center;"><div style="font-size:9px; color:#9CA3AF; text-transform:uppercase; letter-spacing:.4px;">Kadar</div>' + rateCell + '</div>'
+    + '<div style="text-align:right; min-width:100px;"><div style="font-size:9px; color:#9CA3AF; text-transform:uppercase; letter-spacing:.4px;">Komisen</div><div style="font-size:17px; font-weight:800; color:#CD7C32;">' + money(r.comm) + '</div></div>'
+    + '<button onclick="window.__cmShowStaffSales && window.__cmShowStaffSales(\'' + String(r.name).replace(/'/g,"\\'") + '\')" title="Lihat jualan staf ni" style="background:#FAF6EF; border:1px solid #EADFD0; color:#7A5410; padding:7px 10px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap;">Detail</button>'
+    + '</div>'
+    + '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; margin-top:12px; background:#101010; color:#fff; border-radius:12px;"><span style="font-size:13px; font-weight:700;"><i data-lucide="wallet" style="width:15px;height:15px;vertical-align:-3px;"></i> JUMLAH NAK BAYAR — ' + esc(monthLabel) + '</span><span style="font-size:21px; font-weight:800; color:#E0A567;">' + money(d.totalComm) + '</span></div>';
+ }
+ html += '<p style="font-size:10.5px; color:#9CA3AF; margin:14px 2px 0;">Kiraan live dari sales_history ber-attribute + sesi live. Kadar boleh edit per staf (disimpan server, semua peranti sama). Tab lain: A=rekod rasmi Aliff, AI=semak silang, Banding=cari anomali.</p>';
+ return html;
+};
+
 window.renderCommissionReport = function() {
  const host = document.getElementById('crBody');
  if(!host) return;
@@ -20560,7 +20679,8 @@ window.renderCommissionReport = function() {
  }
  // p1_732 — tab kaedah
  const __methodTabs = '<h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="coins" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i> Commission Report</h2>' + window.__crMethodTabsHtml();
- const __m = window.__crMethod || 'A';
+ const __m = window.__crMethod || 'RK';
+ if(__m === 'RK') { host.innerHTML = __methodTabs + window.__crRenderRingkasan(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
  if(__m === 'A') { host.innerHTML = __methodTabs + window.__crRenderKaedahA(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
  if(__m === 'AI') { host.innerHTML = __methodTabs + window.__crRenderAI(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
  if(__m === 'CMP') { host.innerHTML = __methodTabs + window.__crRenderCompare(); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }

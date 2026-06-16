@@ -138,16 +138,24 @@ exports.handler = async (event) => {
             // can NEVER be below the floor: clamp UP to floor when a channel price is below it (unless ?force=1).
             const spClamped = !force && floor > 0 && sp0 > 0 && sp0 < floor;
             const tpClamped = !force && floor > 0 && tp0 > 0 && tp0 < floor;
+            // p1_766 — CEILING guard (Zack: BD103 tertolak RM11,058 ke TikTok, patut RM1,438).
+            // Punca: tiktok_price_mode 'pct' tersilap → base×(1+1438/100)=15× base. Harga marketplace
+            // tak sepatutnya > 5× base walk-in; kalau lebih = glitch → JANGAN push (set 0=skip) + rekod.
+            const ceiling = (!force && base > 0) ? round2(base * 5) : 0;
+            const spCeil = ceiling > 0 && sp0 > ceiling;
+            const tpCeil = ceiling > 0 && tp0 > ceiling;
             return {
                 sku: (r.sku || '').toUpperCase(),
-                base, cost, floor,
-                shopee_price: spClamped ? floor : sp0,
-                tiktok_price: tpClamped ? floor : tp0,
+                base, cost, floor, ceiling,
+                shopee_price: spCeil ? 0 : (spClamped ? floor : sp0),
+                tiktok_price: tpCeil ? 0 : (tpClamped ? floor : tp0),
                 shopee_raw: sp0, tiktok_raw: tp0,
                 shopee_custom: customShopee != null,
                 tiktok_custom: customTiktok != null,
                 shopee_clamped: spClamped,
                 tiktok_clamped: tpClamped,
+                shopee_ceil: spCeil,
+                tiktok_ceil: tpCeil,
                 shopee_item_id: m.shopee_item_id || null,
                 shopee_model_id: m.shopee_model_id != null ? m.shopee_model_id : null,
                 tiktok_product_id: m.tiktok_product_id || null,
@@ -162,6 +170,13 @@ exports.handler = async (event) => {
             if (x.tiktok_clamped) out.clamped.push({ sku: x.sku, channel: 'tiktok', from: x.tiktok_raw, to: x.floor, cost: x.cost });
         }
         out.clamped_count = out.clamped.length;
+        // p1_766 — harga absurd (> 5× base) yang DIHALANG dari push (glitch protection)
+        out.ceiling_blocked = [];
+        for (const x of plan) {
+            if (x.shopee_ceil) out.ceiling_blocked.push({ sku: x.sku, channel: 'shopee', computed: x.shopee_raw, base: x.base, ceiling: x.ceiling });
+            if (x.tiktok_ceil) out.ceiling_blocked.push({ sku: x.sku, channel: 'tiktok', computed: x.tiktok_raw, base: x.base, ceiling: x.ceiling });
+        }
+        out.ceiling_blocked_count = out.ceiling_blocked.length;
         out.force = force;
 
         out.products = plan.length;

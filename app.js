@@ -1033,6 +1033,12 @@ window.__renderCartTabs = function(){
 // p1_558 — "Apa Baru" (What's New) untuk staff: senarai features terkini dlm bahasa mudah.
 // Curated (BUKAN ROADMAP_DATA teknikal). Newest first; id terbesar = terbaru.
 window.STAFF_UPDATES = [
+ { id: 16, date: '17 Jun 2026', tag: 'Baru', icon: 'bell-ring', title: 'Pusat Amaran di Home',
+ desc: 'Skrin Home (Overview) ada tab baru "Amaran" — tunjuk perkara yang perlu perhatian, ikut bahagian kau je. Staff Sales nampak hal harga/jualan (cth jualan walk-in tak ditag nama staf, margin nipis); staff Inventory nampak hal stok (cth produk LIVE tapi stok habis, tiada kos). Bos nampak semua. Tiap amaran ada butang terus ke tempat nak betulkan.' },
+ { id: 15, date: '17 Jun 2026', tag: 'Lebih Baik', icon: 'bell', title: 'Loceng Notifikasi Lebih Kemas',
+ desc: 'Loceng notifikasi (atas kanan) sekarang ada tapisan: "Belum baca" (default), "Penting", dan "Semua". Notifikasi lama auto-hilang supaya tak bertimbun. Buka loceng terus nampak yang belum dibaca je — bila banyak pun senang nak semak.' },
+ { id: 14, date: '17 Jun 2026', tag: 'Lebih Baik', icon: 'shield-check', title: 'Sistem Lebih Selamat & Tepat',
+ desc: 'Di belakang tabir kami perkukuh keselamatan data + ketepatan stok (sync marketplace, kiraan komisen, pulangan & refund). Kau tak perlu buat apa-apa — semua jalan lebih kemas, dan stok kurang risiko tersilap kira.' },
  { id: 13, date: '11 Jun 2026', tag: 'Lebih Baik', icon: 'coins', title: 'Komisen Lebih Tepat',
  desc: 'Komisen sekarang TAK kira lagi order yang dibatalkan (Cancelled) atau Void. Kalau jumlah komisen kau nampak berubah sikit, sebab order batal dah dikeluarkan — angka sekarang lebih betul & adil. Order yang refund pun dikira dengan betul (ditolak balik).' },
  { id: 12, date: '11 Jun 2026', tag: 'Lebih Baik', icon: 'table', title: 'Senarai Pelanggan Lebih Kemas',

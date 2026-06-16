@@ -15735,7 +15735,7 @@ window.lpRenderPdp = function() {
     if (images.length > 1) {
         images.forEach((url, i) => {
             const active = (i === state.imgIdx) ? ' is-active' : '';
-            thumbsHtml += `<button type="button" class="lp-pdp__thumb${active}" onclick="window.lpPdpPickImage(${i})"><img src="${escAttr(url)}" alt=""></button>`;
+            thumbsHtml += `<button type="button" class="lp-pdp__thumb${active}" onclick="window.lpPdpPickImage(${i})"><img src="${escAttr(url)}" alt="${escAttr(parsed.title)} ${i+1}" loading="lazy"></button>`;
         });
     }
 
@@ -15817,7 +15817,7 @@ window.lpRenderPdp = function() {
     // Elemen mobile-only ni display:none di desktop (desktop kekal guna .lp-pdp__gallery 2-lajur).
     const carouselHtml = `<div class="lp-pdp__carousel-wrap">
             <div class="lp-pdp__carousel" id="lpPdpCarousel" onscroll="window.lpPdpCarouselScroll && window.lpPdpCarouselScroll(this)">
-                ${images.map(url => `<img src="${escAttr(url)}" class="lp-pdp__cimg" alt="" loading="lazy" onerror="this.src='https://placehold.co/600x600?text=No+Img'">`).join('')}
+                ${images.map(url => `<img src="${escAttr(url)}" class="lp-pdp__cimg" alt="${escAttr(parsed.title)}" loading="lazy" onerror="this.src='https://placehold.co/600x600?text=No+Img'">`).join('')}
             </div>
             ${images.length > 1 ? `<div class="lp-pdp__carousel-count"><span id="lpPdpCImgN">1</span> / ${images.length}</div>` : ''}
         </div>`;

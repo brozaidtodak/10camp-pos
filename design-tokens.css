@@ -146,7 +146,7 @@
  font-weight: var(--weight-semibold);
  line-height: var(--line-tight);
  border: 1px solid transparent;
- border-radius: var(--radius-md);
+ border-radius: 10px; /* p1_771 — seragam dgn .btn-brand-* + legacy .btn-primary (audit) */
  cursor: pointer;
  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-fast), box-shadow var(--transition-base);
  white-space: nowrap;

@@ -62,9 +62,17 @@ exports.handler = async (event) => {
         if (event.httpMethod === 'POST') {
             let payload = {};
             try { payload = event.body ? JSON.parse(event.body) : {}; } catch(e) {}
-            const filter = payload.shop_id
-                ? `shop_id=eq.${payload.shop_id}`
-                : `environment=eq.${ENV}`;
+            // Validate shop_id is a plain positive integer before interpolating into the
+            // PostgREST filter. Without this, a value like "gt.0" turns the targeted
+            // `shop_id=eq.<id>` delete into `shop_id=gt.0`, wiping every token row.
+            let filter;
+            if (payload.shop_id !== undefined && payload.shop_id !== null && payload.shop_id !== '') {
+                const shopId = String(payload.shop_id).trim();
+                if (!/^\d+$/.test(shopId)) return json(400, { error: 'invalid shop_id (must be a positive integer)' });
+                filter = `shop_id=eq.${shopId}`;
+            } else {
+                filter = `environment=eq.${ENV}`;
+            }
             await sb('DELETE', `/shopee_tokens?${filter}`);
             return json(200, { ok: true, deleted_filter: filter, env: ENV });
         }

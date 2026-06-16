@@ -149,19 +149,28 @@ async function buildDigest() {
     };
 }
 
+// Escape product/marketplace-sourced strings before interpolating into the digest
+// HTML, otherwise a value like a product name "<img src=x onerror=...>" is stored-
+// injected into the recipient's mail client.
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function buildHTML(d) {
     const dateStr = new Date(d.date + 'T00:00:00').toLocaleDateString('ms-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const channelRows = d.channels.map(c => `
         <tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;">${c.ch}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;">${esc(c.ch)}</td>
             <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">${c.orders}</td>
             <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${fmtRMC(c.revenue)}</td>
         </tr>`).join('');
     const skuRows = d.topSkus.map((s, i) => `
         <tr>
             <td style="padding:6px 12px;border-bottom:1px solid #eee;color:#888;">#${i+1}</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #eee;font-weight:600;">${s.sku}</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;">${(s.name || '').slice(0, 50)}</td>
+            <td style="padding:6px 12px;border-bottom:1px solid #eee;font-weight:600;">${esc(s.sku)}</td>
+            <td style="padding:6px 12px;border-bottom:1px solid #eee;font-size:12px;color:#555;">${esc((s.name || '').slice(0, 50))}</td>
             <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;">${s.qty} unit</td>
         </tr>`).join('');
     const a = d.alerts;
@@ -170,7 +179,7 @@ function buildHTML(d) {
         <div style="background:#F4E4DF;border-left:4px solid #B23A2E;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7C2A20;">AMARAN: ${a.belowCost} PRODUK JUAL BAWAH KOS (marketplace)</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E2018;">
-                ${(a.belowCostSample || []).map(x => `<li><b>${x.sku}</b> (${x.platform}) — ${x.detail}</li>`).join('')}
+                ${(a.belowCostSample || []).map(x => `<li><b>${esc(x.sku)}</b> (${esc(x.platform)}) — ${esc(x.detail)}</li>`).join('')}
                 ${a.belowCost > (a.belowCostSample || []).length ? `<li>+${a.belowCost - (a.belowCostSample || []).length} lagi</li>` : ''}
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#7C2A20;">Betulkan harga/diskaun di Shopee/TikTok Seller Center.</p>
@@ -180,7 +189,7 @@ function buildHTML(d) {
         <div style="background:#F4E4DF;border-left:4px solid #B23A2E;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7C2A20;">AMARAN: SAMBUNGAN MARKETPLACE NAK PUTUS</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E2018;">
-                ${a.tokenDead.map(x => `<li><b>${x.platform}</b> — ${x.message}</li>`).join('')}
+                ${a.tokenDead.map(x => `<li><b>${esc(x.platform)}</b> — ${esc(x.message)}</li>`).join('')}
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#7C2A20;">Kalau token putus, harga & stok BERHENTI sync. Authorize semula segera.</p>
         </div>` : '';
@@ -189,7 +198,7 @@ function buildHTML(d) {
         <div style="background:#F4E4DF;border-left:4px solid #B23A2E;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7C2A20;">AMARAN: ${a.pushDead.length} PUSH HARGA GAGAL (dah cuba ${5}× — tak jadi)</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E2018;">
-                ${a.pushDead.slice(0,8).map(x => `<li><b>${x.sku}</b> (${x.channel}) — ${(x.error_message||'').slice(0,80)}</li>`).join('')}
+                ${a.pushDead.slice(0,8).map(x => `<li><b>${esc(x.sku)}</b> (${esc(x.channel)}) — ${esc((x.error_message||'').slice(0,80))}</li>`).join('')}
                 ${a.pushDead.length > 8 ? `<li>+${a.pushDead.length - 8} lagi</li>` : ''}
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#7C2A20;">Harga di marketplace mungkin tak ikut POS. Semak listing / mapping produk.</p>
@@ -199,7 +208,7 @@ function buildHTML(d) {
         <div style="background:#F4E4DF;border-left:4px solid #B23A2E;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7C2A20;">AMARAN: ${a.configFail.length} MASALAH KONFIGURASI/CREDS</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E2018;">
-                ${a.configFail.map(x => `<li><b>${x.check_key}</b> — ${(x.detail||'').slice(0,110)}</li>`).join('')}
+                ${a.configFail.map(x => `<li><b>${esc(x.check_key)}</b> — ${esc((x.detail||'').slice(0,110))}</li>`).join('')}
             </ul>
             <p style="margin:6px 0 0;font-size:12px;color:#7C2A20;">Ini punca kegagalan senyap (kunci salah / env hilang / DB salah). Betulkan segera.</p>
         </div>` : '';
@@ -208,7 +217,7 @@ function buildHTML(d) {
         <div style="background:#F8EFD7;border-left:4px solid #C68A1A;padding:14px 16px;margin:20px 0;border-radius:6px;">
             <h3 style="margin:0 0 6px;font-size:14px;color:#7A5410;">PERHATIAN</h3>
             <ul style="margin:0;padding-left:18px;font-size:13px;color:#5E3F0C;">
-                ${(a.tokenWarn || []).map(x => `<li>${x.message}</li>`).join('')}
+                ${(a.tokenWarn || []).map(x => `<li>${esc(x.message)}</li>`).join('')}
                 ${a.pushPending > 0 ? `<li>${a.pushPending} push harga gagal — tengah auto-retry</li>` : ''}
                 ${a.belowFloor > 0 ? `<li>${a.belowFloor} produk jual BAWAH FLOOR 35% (atas kos tapi margin nipis di marketplace)</li>` : ''}
                 ${a.drift > 0 ? `<li>${a.drift} harga DRIFT (POS tak sama dengan harga live marketplace)</li>` : ''}

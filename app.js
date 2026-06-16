@@ -13630,8 +13630,8 @@ window.posSetCustomer = function(c) {
  detail.innerHTML =
  '<i data-lucide="user-circle" style="width:18px; height:18px; color:var(--primary); flex-shrink:0;"></i>'
  + '<div style="flex:1; min-width:0; line-height:1.3;">'
- + '<div style="font-size:13px; font-weight:700; color:#111; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + name + '</div>'
- + '<div style="font-size:11px; color:#666;">' + phone + ' · ' + pts + ' ' + ptsLbl + '</div>'
+ + '<div style="font-size:13px; font-weight:700; color:#111; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + hesc(name) + '</div>'
+ + '<div style="font-size:11px; color:#666;">' + hesc(phone) + ' · ' + pts + ' ' + ptsLbl + '</div>'
  + '</div>'
  + '<button onclick="window.posDetachCustomer()" title="' + (typeof window.t === 'function' ? window.t('cs_remove') : 'Remove') + '" style="background:none; border:none; color:#B23A2E; font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0;">×</button>';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}

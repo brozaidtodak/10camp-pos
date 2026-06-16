@@ -689,11 +689,22 @@ window.__applySettingsConsumers = function() {
  try { window.__applyShopSettingsToDOM(); } catch(e){} // kontak landing
 };
 window.__applyShopSettingsToDOM = function() {
- const s = window.__appSettings; if(!s || !s.shop) return;
+ const s = window.__appSettings; if(!s) return;
  try {
-  const wa = (s.shop.whatsapp || '').replace(/[^0-9]/g, '');
+  const sh = s.shop || {};
+  const wa = (sh.whatsapp || '').replace(/[^0-9]/g, '');
   if(wa) document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => { const parts = a.getAttribute('href').split('?'); a.setAttribute('href', 'https://wa.me/' + wa + (parts[1] ? ('?' + parts[1]) : '')); });
-  if(s.shop.phone) document.querySelectorAll('a[href^="tel:"]').forEach(a => a.setAttribute('href', 'tel:' + s.shop.phone.replace(/\s/g,'')));
+  if(sh.phone) document.querySelectorAll('a[href^="tel:"]').forEach(a => a.setAttribute('href', 'tel:' + sh.phone.replace(/\s/g,'')));
+  // p1_774 — link store marketplace (landing hero/reviews/footer)
+  const lk = s.links || {};
+  if(lk.shopee_store) document.querySelectorAll('a[href*="shopee.com.my/10camp"]').forEach(a => { if(!a.getAttribute('href').includes('/product/')) a.setAttribute('href', lk.shopee_store); });
+  if(lk.tiktok_store) document.querySelectorAll('a[href*="vt.tiktok.com/"]').forEach(a => { if(!a.getAttribute('href').includes('/product/')) a.setAttribute('href', lk.tiktok_store); });
+  // p1_774 — waktu syif: dropdown permohonan + legend roster
+  const shifts = s.shifts || {};
+  ['A','B','C'].forEach(c => { if(!shifts[c]) return;
+   const opt = document.querySelector('#reqScheduleShift option[value="' + c + '"]'); if(opt) opt.textContent = 'Syif ' + c + ' (' + shifts[c] + ')';
+   document.querySelectorAll('[data-shiftlegend="' + c + '"]').forEach(el => el.textContent = shifts[c]);
+  });
  } catch(e){}
 };
 window.__saveAppSettings = async function() {
@@ -4996,7 +5007,7 @@ window.__fpLookup = function() {
  if(costInput && !costInput.value) costInput.value = Number(p.cost_price || 0).toFixed(2);
  // Auto-fill margin kalau dah ada
  const mInput = document.getElementById('fpMarginInput');
- if(mInput && p.floor_margin_pct) mInput.value = p.floor_margin_pct;
+ if(mInput) mInput.value = p.floor_margin_pct || (window.__getSetting && window.__getSetting('pricing.floor_margin_pct', 35)) || 35; // p1_774 — default dari Customization
  window.__fpCompute();
  // Warning kalau current price < floor
  const warn = document.getElementById('fpWarning');
@@ -15888,13 +15899,17 @@ window.lpRenderPdp = function() {
     const mmeta = (current.metadata && typeof current.metadata === 'object') ? current.metadata : {};
     const shopeeItemId = mmeta.shopee_item_id || '';
     // p1_417 — prefer the editable direct link; else build from item_id; else store search.
+    // p1_774 — fallback store + WhatsApp baca dari Customization (links.* / shop.whatsapp)
+    const __shopeeStore = (window.__getSetting && window.__getSetting('links.shopee_store', 'https://shopee.com.my/10camp.os')) || 'https://shopee.com.my/10camp.os';
+    const __tiktokStore = (window.__getSetting && window.__getSetting('links.tiktok_store', 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop')) || 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop';
+    const __waNo = ((window.__getSetting && window.__getSetting('shop.whatsapp', '601133109547')) || '601133109547').replace(/[^0-9]/g, '');
     const shopeeUrl = mmeta.shopee_url
         ? mmeta.shopee_url
         : (shopeeItemId
             ? `https://shopee.com.my/product/${SHOPEE_SHOP_ID}/${shopeeItemId}`
-            : `https://shopee.com.my/10camp.os?searchKeyword=${encodeURIComponent(current.sku)}`);
-    const tiktokUrl = mmeta.tiktok_url || 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop';
-    const waBuyUrl = `https://wa.me/601133109547?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}`;
+            : `${__shopeeStore}${__shopeeStore.includes('?') ? '&' : '?'}searchKeyword=${encodeURIComponent(current.sku)}`);
+    const tiktokUrl = mmeta.tiktok_url || __tiktokStore;
+    const waBuyUrl = `https://wa.me/${__waNo}?text=${encodeURIComponent('Hi 10 CAMP, saya berminat dengan ' + (current.name || '') + ' (SKU ' + current.sku + ')')}`;
     const shareUrl = `https://10camp.com/?p=${encodeURIComponent(current.sku)}`;
     const shareText = encodeURIComponent((parsed.title || current.sku) + ' — 10 CAMP');
     const shareRow = `<div class="lp-pdp__share">

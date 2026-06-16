@@ -20,8 +20,9 @@
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';
-// Fallback to anon public key (same as webhook function) so SUPABASE_KEY env var optional.
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzZWhqZG5mem95cGJ3ZmVhenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjE2NjMsImV4cCI6MjA5MTE5NzY2M30.34nAhmcNO_xN73OdsyxayKl_jipIk-M8DIBgibAOdaI';
+// p1_785 (C3) — env-only, no committed credential. Prefer the service key (anon is RLS-locked since
+// p1_649, so writes need service); matches the convention used by shopee-sync/tiktok-sync/etc.
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
 const ES_TOKEN     = process.env.EASYSTORE_TOKEN || '';
 const ES_BASE      = 'https://www.10camp.com/api/3.0';
 

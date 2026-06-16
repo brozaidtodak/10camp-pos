@@ -20,7 +20,8 @@ const { deductStockForItems, restockForItems } = require('./_inventory');
 
 // ===== ENV (set via Netlify dashboard or CLI) =====
 const SUPABASE_URL    = process.env.SUPABASE_URL    || 'https://asehjdnfzoypbwfeazra.supabase.co';
-const SUPABASE_KEY    = process.env.SUPABASE_KEY    || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzZWhqZG5mem95cGJ3ZmVhenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjE2NjMsImV4cCI6MjA5MTE5NzY2M30.34nAhmcNO_xN73OdsyxayKl_jipIk-M8DIBgibAOdaI';
+// p1_785 (C3) — env-only, no committed credential. Prefer service key (anon RLS-locked since p1_649).
+const SUPABASE_KEY    = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || '';
 const APP_SECRET      = process.env.EASYSTORE_APP_SECRET || '';
 
 // ===== UTILS =====

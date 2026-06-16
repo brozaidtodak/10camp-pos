@@ -15283,10 +15283,12 @@ function loginAs(user, opts) {
  // p1_440: in the mobile app, override the default landing — lock to Cashier only.
  try { if(window.__isPOSApp && typeof window.__applyPosAppScope === 'function') window.__applyPosAppScope(); } catch(e){}
  }, 200);
- // p1_558 — "Apa Baru": sync titik merah; auto-keluar sekali masa login betul (bukan silent restore) kalau ada update belum tengok
+ // p1_558 + p1_793 — "Apa Baru": sync titik merah; AUTO-KELUAR bila staff masuk back office kalau ada
+ // update belum tengok — termasuk silent restore (sesi kekal, buka semula esok). Selamat sebab seen
+ // ditanda masa modal dibuka (__showWhatsNew) → keluar SEKALI je, refresh seterusnya tak ulang.
  try {
  if(typeof window.__whatsNewSyncDot === 'function') window.__whatsNewSyncDot();
- if(!opts.silent && typeof window.__whatsNewHasUnseen === 'function' && window.__whatsNewHasUnseen()) {
+ if(typeof window.__whatsNewHasUnseen === 'function' && window.__whatsNewHasUnseen()) {
  setTimeout(() => { try { window.__showWhatsNew(); } catch(e){} }, 2600);
  }
  } catch(e){}

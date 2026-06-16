@@ -32866,7 +32866,7 @@ window.renderProductDatabase = function() {
  const reorder = p.reorder_point || 5;
  const stockClass = stock === 0 ? 'out' : (stock < reorder ? 'low' : '');
  const stockLabel = stock === 0 ? 'OOS' : `${stock} ${p.unit || 'pcs'}`;
- const img = (p.images && p.images[0]) || '';
+ const img = (window.__coverOf && window.__coverOf(p)) || (p.images && p.images[0]) || ''; // p1_765 — guna cover produk
  const pub = isPublished(p);
  const statusBadge = pub
  ? '<span class="badge badge--success pd-card__status-badge">Live</span>'
@@ -32919,7 +32919,7 @@ window.renderProductDatabase = function() {
  const stock = isGrp ? p.__gstock : (stockMap.get(p.sku) || 0);
  const reorder = p.reorder_point || 5;
  const stockColor = stock === 0 ? 'var(--danger-600)' : (stock < reorder ? 'var(--warning-600)' : 'var(--neutral-700)');
- const img = (p.images && p.images[0]) || '';
+ const img = (window.__coverOf && window.__coverOf(p)) || (p.images && p.images[0]) || ''; // p1_765 — guna cover produk
  const pub = isPublished(p);
  return `
  <tr onclick="window.openPdpModal('${p.sku.replace(/'/g, "\\'")}')" tabindex="0" role="button">

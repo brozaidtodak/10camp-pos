@@ -381,10 +381,23 @@ window.showToast = function(msg, type) {
  let cache = null;
  let openState = false;
  let outsideHandler = null;
+ let filter = 'unread'; // p1_779 — 'unread' | 'important' | 'all'
+ try { filter = localStorage.getItem('nc_filter_v1') || 'unread'; } catch(e){}
 
  function load() {
  if (cache) return cache;
  try { cache = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { cache = []; }
+ // p1_779 — auto-buang lama supaya panel tak bertimbun (staff malas check bila banyak):
+ // info >3 hari dibuang (rendah nilai), apa-apa yang dah dibaca >7 hari dibuang; warning/error belum baca kekal.
+ const now = Date.now();
+ const before = cache.length;
+ cache = cache.filter(n => {
+ const age = now - (n.ts || 0);
+ if (n.type === 'info' && age > 3 * 86400000) return false;
+ if (n.read && age > 7 * 86400000) return false;
+ return true;
+ });
+ if (cache.length !== before) save();
  return cache;
  }
  function save() { try { localStorage.setItem(KEY, JSON.stringify(cache || [])); } catch(e){} }
@@ -401,9 +414,10 @@ window.showToast = function(msg, type) {
  return ({ warning:'alert-triangle', error:'alert-octagon', success:'check-circle', info:'info' })[type] || 'info';
  }
  function dedupeRecent(item) {
- // Skip if same title+body added in last 30s — prevents spam from rapid repeated calls.
+ // p1_779 — skip kalau notifikasi sama (title+body) MASIH belum dibaca (apa-apa umur), atau ditambah dalam 30s.
+ // Elak duplikat bertimbun: selagi staff belum baca yang sama, jangan tambah lagi satu.
  const now = Date.now();
- return load().some(n => n.title === item.title && n.body === item.body && (now - n.ts) < 30000);
+ return load().some(n => n.title === item.title && n.body === item.body && (!n.read || (now - n.ts) < 30000));
  }
 
  const api = {
@@ -441,6 +455,11 @@ window.showToast = function(msg, type) {
  list.forEach(n => { if (!n.read) { n.read = true; dirty = true; } });
  if (dirty) { save(); api.renderBadge(); api.renderList(); }
  },
+ setFilter(f) {
+ filter = (f === 'all' || f === 'important') ? f : 'unread';
+ try { localStorage.setItem('nc_filter_v1', filter); } catch(e){}
+ api.renderList();
+ },
  clear() {
  cache = []; save(); api.renderBadge(); api.renderList();
  },
@@ -454,9 +473,21 @@ window.showToast = function(msg, type) {
  renderList() {
  const wrap = document.getElementById('ncList');
  if (!wrap) return;
- const list = load();
+ const all = load();
+ // p1_779 — kemaskini chip tapisan (aktif + kiraan) + tapis senarai ikut filter semasa
+ const unreadN = all.filter(n => !n.read).length;
+ const importantN = all.filter(n => (n.type === 'warning' || n.type === 'error') && !n.read).length;
+ const fu = document.getElementById('ncfUnread'); if (fu) fu.textContent = unreadN > 99 ? '99+' : String(unreadN);
+ const fi = document.getElementById('ncfImportant'); if (fi) fi.textContent = importantN > 0 ? String(importantN) : '';
+ const chips = document.querySelectorAll('#ncFilters .nc-chip');
+ chips.forEach(b => b.classList.toggle('is-on', b.getAttribute('data-ncf') === filter));
+ let list;
+ if (filter === 'important') list = all.filter(n => n.type === 'warning' || n.type === 'error');
+ else if (filter === 'all') list = all;
+ else list = all.filter(n => !n.read);
  if (list.length === 0) {
- wrap.innerHTML = '<div class="nc-empty"><i data-lucide="inbox" class="nc-empty__icon" style="width:32px; height:32px;"></i>Tiada notifikasi</div>';
+ const msg = filter === 'unread' ? 'Semua dah dibaca' : (filter === 'important' ? 'Tiada amaran penting' : 'Tiada notifikasi');
+ wrap.innerHTML = '<div class="nc-empty"><i data-lucide="inbox" class="nc-empty__icon" style="width:32px; height:32px;"></i>' + msg + '</div>';
  } else {
  wrap.innerHTML = list.map(n => (
  '<div class="nc-item ' + (n.read ? '' : 'is-unread') + '" role="listitem" data-id="' + n.id + '" onclick="window.notify.markRead(\'' + n.id + '\')">' +

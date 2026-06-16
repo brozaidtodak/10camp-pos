@@ -3115,6 +3115,14 @@ a:focus-visible {
 }
 .nc-link:hover { text-decoration: underline; }
 .nc-link--danger { color: #95342A; }
+/* p1_779 — chip tapisan notifikasi (Belum baca / Penting / Semua) */
+.nc-filters { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--neutral-200, #E4E4E7); background: var(--neutral-50, #FAFAFA); flex-wrap: wrap; }
+.nc-chip { appearance: none; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--neutral-500, #71717A); background: #fff; border: 1px solid var(--neutral-200, #E4E4E7); border-radius: 50px; padding: 4px 11px; display: inline-flex; align-items: center; gap: 5px; transition: all .12s; }
+.nc-chip:hover { border-color: #CD7C32; color: #A05F22; }
+.nc-chip.is-on { background: #101010; color: #fff; border-color: #101010; }
+.nc-chip__n { font-size: 10px; font-weight: 800; background: #CD7C32; color: #fff; border-radius: 50px; padding: 0 6px; min-width: 16px; text-align: center; }
+.nc-chip.is-on .nc-chip__n { background: rgba(255,255,255,0.25); }
+.nc-chip__n:empty { display: none; }
 .nc-list { overflow-y: auto; flex: 1; }
 .nc-item {
  display: flex; gap: 10px; padding: 12px 14px 12px 18px;

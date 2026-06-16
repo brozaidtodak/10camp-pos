@@ -23153,6 +23153,10 @@ window.pdpDuplicateProduct = async function() {
  const clone = Object.assign({}, prod);
  delete clone.id; delete clone.created_at; delete clone.updated_at;
  clone.sku = ns;
+ // p1_761 — FIX (Zack): salinan kena STANDALONE, bukan masuk grup variant asal.
+ // Dulu Object.assign copy parent_sku → salinan muncul sebagai variant dlm grup asal.
+ clone.parent_sku = ns; // grup sendiri (detach dari grup asal)
+ clone.erp_barcode = null; // jangan kongsi barcode dgn produk asal (elak pendua)
  clone.name = (prod.name || '') + ' (Copy)';
  clone.is_published = false; // Draft — semak dulu sebelum live
  const md = Object.assign({}, (prod.metadata || {}));

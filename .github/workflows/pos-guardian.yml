@@ -26,4 +26,26 @@ jobs:
           GUARDIAN_BEFORE: ${{ github.event.before }}
           GUARDIAN_AFTER: ${{ github.sha }}
           GITHUB_SHA: ${{ github.sha }}
-        run: node scripts/guardian-check.js
+        run: |
+          set -o pipefail
+          node scripts/guardian-check.js | tee guardian-report.txt
+
+      # Ping Telegram ONLY when the guardian fails. Skips silently if secrets aren't set,
+      # so the workflow stays green until Zaid adds TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID.
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets belum diset — skip notify (workflow tetap merah di GitHub)."
+            exit 0
+          fi
+          REPORT=$(tail -n 20 guardian-report.txt 2>/dev/null || echo "(tiada laporan)")
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          MSG=$(printf 'POS Guardian jumpa isu\n\nCommit: %s oleh %s\n\n%s\n\nButiran: %s' "${GITHUB_SHA:0:7}" "${GITHUB_ACTOR}" "${REPORT}" "${RUN_URL}")
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="${MSG}" \
+            -d disable_web_page_preview=true > /dev/null && echo "Telegram dihantar." || echo "Telegram gagal hantar."

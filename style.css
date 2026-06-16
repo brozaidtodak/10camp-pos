@@ -422,3 +422,6 @@ body.pos-mobile-mode .pos-prodsearch-row {
 #modeBar {
     display: none !important;
 }
+
+/* TEMP guardian telegram test — akan dibuang */
+.guardian-telegram-test { color: #0f766e; }

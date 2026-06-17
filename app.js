@@ -18141,6 +18141,24 @@ window.hrcRejectClaim = function(id) {
  window.renderHrClaim();
 };
 
+// p1_828 — palet roster PROFESIONAL & neutral (Zaid: "less colorful, easier to identify").
+// Hari kerja (A/B/C) = tint lembut + teks berwarna lembut (grid tenang, takde warna terang).
+// Rehat/cuti (OFF/AL/MC/EL/PH) = tint berbeza supaya pengecualian senang dikenal. Satu sumber, guna semula.
+window.__ROSTER_PAL = {
+ A:  { bg:'#FBF3E0', col:'#8A6D14' },   // Syif A
+ B:  { bg:'#EAF1E7', col:'#41663D' },   // Syif B
+ C:  { bg:'#F6EDDD', col:'#8E5E22' },   // Syif C
+ OFF:{ bg:'#F1F2F4', col:'#98A2B3' },   // Off day
+ AL: { bg:'#E7D6BB', col:'#6E4516' },   // Cuti Tahunan
+ MC: { bg:'#F6E7BC', col:'#876110' },   // MC
+ EL: { bg:'#EECBC4', col:'#9A2C20' },   // Emergency Leave
+ PH: { bg:'#DEE3E8', col:'#4B5563' }    // Public Holiday
+};
+window.__rosterCellStyle = function(code, rowBg){
+ const p = window.__ROSTER_PAL[code];
+ if(!p) return { bg: rowBg, col:'#D1D5DB', fw:'400' };
+ return { bg: p.bg, col: p.col, fw:'700' };
+};
 window.renderStaffSchedule = function() {
  const theadAdmin = document.getElementById("adminRosterThead");
  const tbodyAdmin = document.getElementById("scheduleTbody");
@@ -18190,8 +18208,8 @@ window.renderStaffSchedule = function() {
  const monthNames = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
  let btnHtml = "";
  monthNames.forEach((mn, mIdx) => {
- let isAct = mIdx === month ? "background:var(--primary); color:#fff; font-weight:bold;" : "background:#efefef; color:#555;";
- btnHtml += `<button onclick="setRosterMonth(${mIdx})" style="${isAct} border:1px solid #ddd; padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer; flex:1; min-width:40px;">${mn}</button>`;
+ let isAct = mIdx === month ? "background:var(--primary); color:#fff; font-weight:700; border-color:var(--primary);" : "background:#fff; color:#6B7280; border-color:#E5E7EB;";
+ btnHtml += `<button onclick="setRosterMonth(${mIdx})" style="${isAct} border:1px solid; padding:6px 12px; border-radius:6px; font-size:11px; cursor:pointer; flex:1; min-width:40px;">${mn}</button>`;
  });
  
  // Kemaskini Navigator (Public dan Admin jika wujud)
@@ -18206,14 +18224,16 @@ window.renderStaffSchedule = function() {
  if(admYr) admYr.value = year;
 
  // 1. Build Headers (1 to 31)
- let headerStr = `<tr><th style="min-width:120px; text-align:left; position:sticky; left:0; background:var(--secondary); z-index:3;">Staf / Tarikh<br><small style="font-weight:normal;">${baseDate.toLocaleString('default', { month: 'long' })} ${year}</small></th>`;
- 
+ let headerStr = `<tr><th style="min-width:120px; text-align:left; position:sticky; left:0; background:#FAF6EF; color:#6B5A45; z-index:3; font-size:11px; font-weight:700; padding:8px 10px; border-bottom:2px solid #E7DFD3;">Staf / Tarikh<br><small style="font-weight:400; color:#A2937F;">${baseDate.toLocaleString('default', { month: 'long' })} ${year}</small></th>`;
+
  for(let d=1; d<=daysInMonth; d++) {
  const loopDate = new Date(year, month, d);
  const hariArr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  const dayName = hariArr[loopDate.getDay()];
- let bgHead = loopDate.getDay() === 0 || loopDate.getDay() === 6 ? "#888" : "inherit"; // Gelapkan sikit hjg minggu
- headerStr += `<th style="min-width:30px; font-weight:bold; background:${bgHead}; border:1px solid rgba(255,255,255,0.2);">${d}<br><small style="font-size:9px; font-weight:normal;">${dayName}</small></th>`;
+ const isWknd = loopDate.getDay() === 0 || loopDate.getDay() === 6;
+ let bgHead = isWknd ? "#EFEEEA" : "#FAF6EF";   // hujung minggu = kelabu lembut
+ let colHead = isWknd ? "#9C8E7C" : "#6B5A45";
+ headerStr += `<th style="min-width:30px; font-weight:700; font-size:11px; background:${bgHead}; color:${colHead}; border-bottom:2px solid #E7DFD3; border-left:1px solid #EFEAE1; padding:6px 2px;">${d}<br><small style="font-size:9px; font-weight:400; color:${isWknd?'#B6A893':'#A2937F'};">${dayName}</small></th>`;
  }
  headerStr += `</tr>`;
 
@@ -18224,8 +18244,8 @@ window.renderStaffSchedule = function() {
  const generateTbody = (isAdmin) => {
  let rows = "";
  staffProfiles.forEach((staff, index) => {
- let rowBg = index % 2 === 0 ? "#FAFAFA" : "#FFF";
- rows += `<tr><td style="text-align:left; font-weight:600; font-size:11px; position:sticky; left:0; background:${rowBg}; border-right:1px solid #ccc;">${staff.name}</td>`;
+ let rowBg = index % 2 === 0 ? "#FBFAF8" : "#FFFFFF";
+ rows += `<tr><td style="text-align:left; font-weight:600; font-size:11px; position:sticky; left:0; background:${rowBg}; border-right:1px solid #E7DFD3; border-bottom:1px solid #F1ECE4; padding:6px 10px; color:#3A332B;">${staff.name}</td>`;
  
  for(let d=1; d<=daysInMonth; d++) {
  let dayStr = d < 10 ? '0'+d : d;
@@ -18263,15 +18283,8 @@ window.renderStaffSchedule = function() {
  }
  }
  
- let bg = rowBg, col = "#333", fw = "normal";
- if(code === 'A') { bg = "#fde047"; fw = "bold"; }
- else if(code === 'B') { bg = "#ABC6A0"; fw = "bold"; }
- else if(code === 'C') { bg = "#fdba74"; fw = "bold"; }
- else if(code === 'OFF') { col = "red"; fw = "bold"; }
- else if(code === 'AL') { bg = "#cd7c32"; col = "white"; fw = "bold"; }
- else if(code === 'MC') { bg = "#E0B248"; fw = "bold"; }
- else if(code === 'EL') { bg = "#B23A2E"; col = "white"; fw = "bold"; }
- else if(code === 'PH') { bg = "#f472b6"; col = "white"; fw = "bold"; }
+ const __cs = window.__rosterCellStyle(code, rowBg);
+ let bg = __cs.bg, col = __cs.col, fw = __cs.fw;
  
  let attachStr = code === 'MC' && shiftData && shiftData.mc_name ? `<br><span style="font-size:9px;" title="${shiftData.mc_name}"></span>` : "";
 
@@ -18287,12 +18300,12 @@ window.renderStaffSchedule = function() {
  selStr += `<option value="EL" ${code==='EL' ? 'selected' : ''}>EL</option>`;
  selStr += `<option value="PH" ${code==='PH' ? 'selected' : ''}>PH</option>`;
  selStr += `</select>`;
- rows += `<td style="border:1px solid #aaa; background:${bg}; padding:0; min-width:35px;">${selStr}${attachStr}</td>`;
+ rows += `<td style="border-left:1px solid #EFEAE1; border-bottom:1px solid #F1ECE4; background:${bg}; padding:0; min-width:35px;">${selStr}${attachStr}</td>`;
  } else {
  if(!code) {
- rows += `<td style="border:1px solid #ddd; background:${rowBg}; color:#ccc; text-align:center; font-size:10px;">-</td>`;
+ rows += `<td style="border-left:1px solid #EFEAE1; border-bottom:1px solid #F1ECE4; background:${rowBg}; color:#D1D5DB; text-align:center; font-size:10px;">-</td>`;
  } else {
- rows += `<td style="border:1px solid #ddd; background:${bg}; color:${col}; text-align:center; font-weight:${fw}; font-size:11px;">${code}${attachStr}</td>`;
+ rows += `<td style="border-left:1px solid #EFEAE1; border-bottom:1px solid #F1ECE4; background:${bg}; color:${col}; text-align:center; font-weight:${fw}; font-size:11px;">${code}${attachStr}</td>`;
  }
  }
  }
@@ -18338,15 +18351,8 @@ window.saveQuickShiftInline = function(el, staff, date, id, shiftCode) {
  }
 
  // Kemaskini visual kotak serta merta tanpa render seluruh jadual
- let bg = "#FAFAFA", col = "#333", fw = "normal";
- if(shiftCode === 'A') { bg = "#fde047"; fw = "bold"; }
- else if(shiftCode === 'B') { bg = "#ABC6A0"; fw = "bold"; }
- else if(shiftCode === 'C') { bg = "#fdba74"; fw = "bold"; }
- else if(shiftCode === 'OFF') { bg = "#FAFAFA"; col = "red"; fw = "bold"; }
- else if(shiftCode === 'AL') { bg = "#cd7c32"; col = "white"; fw = "bold"; }
- else if(shiftCode === 'MC') { bg = "#E0B248"; fw = "bold"; }
- else if(shiftCode === 'EL') { bg = "#B23A2E"; col = "white"; fw = "bold"; }
- else { bg = "#FFF"; col = "#ccc"; }
+ const __cs = window.__rosterCellStyle(shiftCode === 'KOSONG' ? '' : shiftCode, "#FFF");
+ let bg = __cs.bg, col = __cs.col, fw = __cs.fw;
 
  let td = el.parentElement;
  if(td) td.style.background = bg;

@@ -27738,6 +27738,13 @@ window.renderInventoryAnalytics = async function() {
 
  const topCats = Object.keys(catVal).map(c => ({ cat:c, ...catVal[c] })).sort((a,b)=>b.cost-a.cost).slice(0, 8);
 
+ // ---- Stock Availability keseluruhan (p1_801): 100% = semua SKU pada/atas tahap restock penuh terakhir.
+ // numerator di-cap pada lastQty per-SKU supaya puncak (stok paling banyak) = 100%, tak lebih.
+ let availNum = 0, availDen = 0, availSkus = 0;
+ tracker.forEach(t => { if(t.lastQty > 0){ availDen += t.lastQty; availNum += Math.min(t.stock, t.lastQty); availSkus++; } });
+ const availPct = availDen > 0 ? Math.round(availNum / availDen * 100) : null;
+ const availColor = availPct == null ? '#9CA3AF' : (availPct >= 70 ? '#4E7C4A' : (availPct >= 40 ? '#9E7016' : '#B23A2E'));
+
  // ---- Render helpers ----
  const card = (inner, pad) => `<div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:${pad||'0'}; overflow:hidden; margin-bottom:16px;">${inner}</div>`;
  const cardHead = (t) => `<div style="font-weight:700; font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border-color); background:#FAFAFA;">${t}</div>`;
@@ -27759,8 +27766,11 @@ window.renderInventoryAnalytics = async function() {
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Nilai Stok (Retail)</div><div class="sa-kpi__val">${fmtRM0(totalRetail)}</div></div>`
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Potensi Untung</div><div class="sa-kpi__val" style="color:#4E7C4A;">${fmtRM0(potensiUntung)}</div></div>`
    + `<div class="sa-kpi"><div class="sa-kpi__lbl">Jumlah Unit Stok</div><div class="sa-kpi__val">${totalUnits.toLocaleString()}</div><div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${skuWithStock.toLocaleString()} SKU ada stok</div></div>`
+   + `<div class="sa-kpi"><div class="sa-kpi__lbl">Stock Availability</div><div class="sa-kpi__val" style="color:${availColor};">${availPct == null ? '—' : availPct + '%'}</div>`
+     + (availPct != null ? `<div style="height:6px; background:#EFEAE3; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="height:100%; width:${availPct}%; background:${availColor};"></div></div>` : '')
+     + `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">100% = ${availSkus.toLocaleString()} SKU pada tahap restock penuh</div></div>`
    + '</div>'
-   + '<p class="soft-note" style="margin:0 0 16px;">Nilai Kos = baki stok × landed cost. Nilai Retail = baki stok × harga jual. Potensi Untung anggaran kasar sebelum kos jualan.</p>'
+   + '<p class="soft-note" style="margin:0 0 16px;">Nilai Kos = baki stok × landed cost. Nilai Retail = baki stok × harga jual. Potensi Untung anggaran kasar sebelum kos jualan. Stock Availability = berbanding tahap restock penuh terakhir (100% = baru penuh; turun bila terjual).</p>'
    + '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:10px;">'
    + `<div class="sa-kpi" style="border-left:3px solid #B23A2E;"><div class="sa-kpi__lbl">Reorder Segera</div><div class="sa-kpi__val">${nReorder.toLocaleString()}</div></div>`
    + `<div class="sa-kpi" style="border-left:3px solid #CE9420;"><div class="sa-kpi__lbl">Perhati</div><div class="sa-kpi__val">${nPerhati.toLocaleString()}</div></div>`

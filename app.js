@@ -12899,7 +12899,14 @@ function renderPOS(searchTerm = "") {
  // and convert ALL CAPS to Title Case for readability.
  let cleanName = (p.name || 'Untitled');
  cleanName = cleanName.replace(/^[A-Z0-9-]+\s*[|_]\s*/i, '').trim();
+ // p1_810 — buang sisa pencemaran nama EasyStore: selepas buang prefix, nama produk sebenar
+ // ada SEBELUM " | " pertama; segmen seterusnya (| CD090 | CD091 | … — CD091 Turquoise) cuma
+ // senarai SKU/variant yang buat 4 kad warna nampak SAMA. Ambil bahagian pertama sahaja.
+ if(/\s\|\s/.test(cleanName)) cleanName = cleanName.split(/\s*\|\s*/)[0].trim();
  cleanName = cleanName.replace(/\s*[_]\s*/g, ' — ').replace(/\s{2,}/g, ' ').trim();
+ // p1_810 — warna variant utk bezakan kad: buang token SKU di depan ("CD092 Red" → "Red"),
+ // kekalkan warna berbilang-perkataan ("Army Green" tak diusik sebab "Army" bukan kod SKU).
+ let cleanColor = String(p.variant_color || '').replace(/^[A-Z]{1,5}\d{2,}[A-Z]?\s+/i, '').trim();
  // If name is mostly uppercase (>70% caps), title-case it
  const letters = cleanName.replace(/[^A-Za-z]/g, '');
  const upperRatio = letters.length ? (letters.match(/[A-Z]/g)||[]).length / letters.length : 0;
@@ -12927,6 +12934,7 @@ function renderPOS(searchTerm = "") {
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
+ ${cleanColor ? `<span class="cat-badge" style="background:#FAF6EF; color:#CD7C32; border:1px solid #CD7C32; font-weight:600;" title="Warna / variant">${cleanColor.replace(/"/g, '&quot;')}</span>` : ''}
  ${isOnSale ? `<span class="cat-badge" style="background:#0F172A; color:#FFFFFF;">-${offPct}%</span>` : ''}
  ${p.location_bin ? `<span class="cat-badge" style="background:#F8EFD7; color:#7A5410; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;" title="Lokasi gudang">${p.location_bin}</span>` : ''}
  </div>

@@ -35220,6 +35220,30 @@ window.__UITX = (function(){
   });
   applying = false;
  }
+ // p1_827 — kamus berkongsi di server (table ui_tx): load segera masa buka (instant, takde tunggu AI)
+ // + simpan terjemahan baru balik → auto-membesar, semua staff dapat. BM = asal, EN = kamus baked.
+ let __sharedLoaded = false;
+ async function loadShared(){
+  if(__sharedLoaded) return; __sharedLoaded = true;
+  if(!window.db) return;
+  try {
+   const { data } = await window.db.from('ui_tx').select('src,en').limit(20000);
+   const serverKeys = {};
+   if(Array.isArray(data)){ data.forEach(r => { if(r && r.src != null && r.en != null){ cache[r.src] = r.en; serverKeys[r.src] = 1; } }); }
+   // bootstrap: tolak terjemahan dlm cache tempatan (warm-up sesi lepas) yg belum ada di server
+   const seed = [];
+   Object.keys(cache).forEach(k => { if(!serverKeys[k] && cache[k] != null) seed.push({ src:k, en:cache[k] }); });
+   if(seed.length) pushShared(seed);
+   saveCache();
+  } catch(e){}
+ }
+ function pushShared(rows){
+  if(!rows || !rows.length || !window.db) return;
+  for(let i=0;i<rows.length;i+=400){
+   const chunk = rows.slice(i, i+400);
+   try { window.db.from('ui_tx').upsert(chunk, { onConflict: 'src' }).then(()=>{}, ()=>{}); } catch(e){}
+  }
+ }
  async function fetchTx(strings){
   for(let i=0;i<strings.length;i+=55){
    const chunk = strings.slice(i, i+55);
@@ -35227,7 +35251,9 @@ window.__UITX = (function(){
     const r = await fetch('/api/translate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texts: chunk, target:'en' }) });
     const j = await r.json().catch(()=>({}));
     const out = (j && Array.isArray(j.translations)) ? j.translations : chunk;
-    chunk.forEach((s,k)=>{ cache[s] = (out[k]!=null) ? out[k] : s; });
+    const rows = [];
+    chunk.forEach((s,k)=>{ const en = (out[k]!=null) ? out[k] : s; cache[s] = en; rows.push({ src:s, en:en }); });
+    pushShared(rows);   // simpan ke kamus berkongsi
    } catch(e){ chunk.forEach(s => { if(cache[s]==null) cache[s] = s; }); }
   }
   saveCache();
@@ -35258,7 +35284,7 @@ window.__UITX = (function(){
  function stopObserve(){ if(observer){ observer.disconnect(); observer = null; } }
  function restore(){ applying = true; changed.forEach(n => { const o = origMap.get(n); if(o!=null && n.nodeValue!=null) n.nodeValue = o; }); changed.clear(); phChanged.forEach(el => { const o = phOrig.get(el); if(o!=null) el.setAttribute('placeholder', o); }); phChanged.clear(); applying = false; }
  return {
-  enable(){ if(lang()!=='en') return; sweep().then(startObserve); startObserve(); },
+  enable(){ if(lang()!=='en') return; loadShared().then(()=>{ sweep().then(startObserve); }); startObserve(); },
   disable(){ stopObserve(); restore(); },
   refresh(){ if(lang()==='en') scheduleSweep(); }
  };

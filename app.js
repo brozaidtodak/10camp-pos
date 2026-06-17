@@ -35010,6 +35010,96 @@ window.t = function(key) {
  return e[window.I18N.lang] || e.en || key;
 };
 
+// p1_819 — Sidebar i18n: terjemah label nav AKTIF ikut data-tab / data-nav-parent / urutan section.
+// Guna peta (bukan letak data-i18n pada ~60 span) supaya TAK sentuh onclick = selamat. Dipanggil dari applyI18N
+// (jadi jalan masa boot + tiap tukar bahasa). Item legacy/yatim (data-tab tak dlm peta) dilangkau automatik.
+window.__SIDEBAR_I18N = {
+ items: {
+  nav_home:{bm:'Utama',en:'Home'},
+  nav_roster:{bm:'Jadual Tugas',en:'Duty Roster'},
+  nav_cashier:{bm:'POS / Kaunter',en:'POS / Cashier'},
+  nav_commission:{bm:'Komisen',en:'Commission'},
+  nav_all_orders:{bm:'Semua Order',en:'All Orders'},
+  nav_returns:{bm:'Pulangan',en:'Returns'},
+  nav_abandoned:{bm:'Troli Terbiar',en:'Abandoned Checkouts'},
+  nav_customers_all:{bm:'Semua Pelanggan',en:'All Customers'},
+  nav_segments:{bm:'Segmen',en:'Segments'},
+  nav_points:{bm:'Mata & Keahlian',en:'Points & Membership'},
+  nav_store_credit:{bm:'Kredit Kedai',en:'Store Credit'},
+  nav_collection:{bm:'Produk',en:'Products'},
+  nav_collections:{bm:'Koleksi',en:'Collections'},
+  nav_bundles:{bm:'Bundle',en:'Bundles'},
+  nav_sys_stocktake:{bm:'Kira Stok',en:'Stock Take'},
+  nav_sys_fifo:{bm:'Senarai FIFO',en:'FIFO Listing'},
+  nav_sys_invhistory:{bm:'Sejarah Stok',en:'Inventory History'},
+  nav_purchase_orders:{bm:'Pesanan Belian',en:'Purchase Orders'},
+  nav_delivery_orders:{bm:'Pesanan Penghantaran',en:'Delivery Orders'},
+  nav_sys_pricecalc:{bm:'Kalkulator Harga',en:'Price Calculator'},
+  nav_sys_costcalc:{bm:'Kalkulator Kos (Shipment)',en:'Cost Calculator (Shipment)'},
+  nav_sys_pricehistory:{bm:'Sejarah Harga',en:'Price History'},
+  nav_sys_barcode:{bm:'Penjana Barcode',en:'Barcode Generator'},
+  nav_chat_inbox:{bm:'Peti Chat',en:'Chat Inbox'},
+  nav_broadcast:{bm:'Siaran',en:'Broadcast'},
+  nav_connections:{bm:'Sambungan',en:'Connections'},
+  nav_campaigns:{bm:'Kempen',en:'Campaigns'},
+  nav_vouchers:{bm:'Baucar',en:'Vouchers'},
+  nav_engagement:{bm:'Penglibatan',en:'Engagement'},
+  nav_social_media:{bm:'Media Sosial',en:'Social Media'},
+  nav_content_schedule:{bm:'Jadual Kandungan',en:'Content Schedule'},
+  nav_mktweekly:{bm:'Data Marketing (Mingguan)',en:'Marketing Data (Weekly)'},
+  nav_ads:{bm:'Iklan',en:'Ads'},
+  nav_mkt_reports:{bm:'Laporan',en:'Reports'},
+  nav_marketplaces:{bm:'Marketplace',en:'Marketplaces'},
+  nav_apps:{bm:'Apps',en:'Apps'},
+  nav_an_sales:{bm:'Jualan',en:'Sales'},
+  nav_an_inventory:{bm:'Inventori',en:'Inventory'},
+  nav_an_finance:{bm:'Kewangan',en:'Finance'},
+  nav_commission_report:{bm:'Laporan Komisen',en:'Commission Report'},
+  nav_exports:{bm:'Eksport',en:'Exports'},
+  setup_guide:{bm:'Panduan Setup',en:'Setup Guide'},
+  nav_settings:{bm:'Tetapan',en:'Settings'},
+  nav_help:{bm:'Bantuan',en:'Help'}
+ },
+ parents: {
+  cashier:{bm:'Kaunter',en:'Cashier'},
+  orders:{bm:'Order',en:'Orders'},
+  customers:{bm:'Pelanggan',en:'Customers'},
+  products:{bm:'Produk',en:'Products'},
+  inventory:{bm:'Inventori',en:'Inventory'},
+  purchasing:{bm:'Belian',en:'Purchasing'},
+  tools:{bm:'Alat',en:'Tools'},
+  messages:{bm:'Mesej',en:'Messages'},
+  marketing:{bm:'Pemasaran',en:'Marketing'},
+  channels:{bm:'Saluran',en:'Channels'},
+  analytics:{bm:'Analitik',en:'Analytics'},
+  reports:{bm:'Laporan',en:'Reports'}
+ },
+ sections: [
+  {bm:'Jual',en:'Sell'},
+  {bm:'Katalog & Stok',en:'Catalog & Stock'},
+  {bm:'Pemasaran',en:'Marketing'},
+  {bm:'Analisis',en:'Analytics'},
+  {bm:'Persediaan',en:'Setup'}
+ ]
+};
+window.__applySidebarI18N = function(){
+ try {
+  const M = window.__SIDEBAR_I18N; if(!M) return;
+  const lang = (window.I18N && window.I18N.lang) || 'bm';
+  const pick = (m)=> m ? (m[lang]||m.en||m.bm) : null;
+  document.querySelectorAll('.menu-list .menu-item[data-tab]').forEach(el=>{
+   const v = pick(M.items[el.getAttribute('data-tab')]);
+   if(v!=null){ const sp = el.querySelector('span'); if(sp) sp.textContent = v; }
+  });
+  document.querySelectorAll('.menu-list .menu-item.nav-parent[data-nav-parent]').forEach(el=>{
+   const v = pick(M.parents[el.getAttribute('data-nav-parent')]);
+   if(v!=null){ const sp = el.querySelector('span'); if(sp) sp.textContent = v; }
+  });
+  document.querySelectorAll('.menu-list .nav-section-label').forEach((el,i)=>{
+   const v = pick(M.sections[i]); if(v!=null) el.textContent = v;
+  });
+ } catch(e){}
+};
 window.applyI18N = function() {
  document.querySelectorAll('[data-i18n]').forEach(el => {
  const key = el.getAttribute('data-i18n');
@@ -35039,6 +35129,8 @@ window.applyI18N = function() {
  lbl.textContent = window.I18N.lang.toUpperCase();
  });
  document.documentElement.setAttribute('lang', window.I18N.lang === 'bm' ? 'ms' : 'en');
+ // p1_819 — terjemah label sidebar aktif (peta data-tab/nav-parent/section)
+ if(typeof window.__applySidebarI18N === 'function') window.__applySidebarI18N();
 };
 
 window.setLang = function(lang) {

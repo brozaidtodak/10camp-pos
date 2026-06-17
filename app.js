@@ -35133,6 +35133,102 @@ window.applyI18N = function() {
  if(typeof window.__applySidebarI18N === 'function') window.__applySidebarI18N();
 };
 
+// p1_821 — AUTO-TRANSLATE seluruh UI back office ke English bila mode EN (app dibina BM-dahulu;
+// majoriti kandungan hardcoded BM). Guna /api/translate (gpt-4o-mini) + cache kekal (localStorage).
+// NON-DESTRUKTIF: simpan teks BM asal per text-node → toggle balik BM pulih serta-merta. Re-apply
+// pada re-render via MutationObserver. Skop: #posAppLayout sahaja (landing dah i18n betul). Skip
+// SKU/nombor/harga/jenama + widget AI + elemen data-i18n (dah dihandle applyI18N).
+window.__UITX = (function(){
+ const CACHE_KEY = 'uiTxCache_en_v1';
+ let cache = {};
+ try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){}
+ let saveT; const saveCache = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e){} }, 1000); };
+ const origMap = new WeakMap();   // textNode -> original BM string
+ const changed = new Set();       // text nodes we translated (skip re-collect + restore on BM)
+ let observer = null, sweepT = null, inflight = false, applying = false;
+ const SKIP_TAG = { SCRIPT:1, STYLE:1, NOSCRIPT:1, INPUT:1, TEXTAREA:1, SELECT:1, OPTION:1, CODE:1, PRE:1 };
+ const SKIP_ID = { saWidget:1, saPanel:1, caWidget:1, caPanel:1, roadmapSection:1 };
+ const lang = () => (window.I18N && window.I18N.lang) || 'bm';
+ function skipped(node){
+  let el = node.parentElement;
+  while(el){
+   if(el.tagName && SKIP_TAG[el.tagName]) return true;
+   if(el.id && SKIP_ID[el.id]) return true;
+   if(el.nodeType===1 && (el.hasAttribute('data-i18n') || el.hasAttribute('data-no-tx') || el.isContentEditable)) return true;
+   el = el.parentElement;
+  }
+  return false;
+ }
+ function translatable(s){
+  const t = (s||'').trim();
+  if(t.length < 2) return false;
+  if(!/[A-Za-zÀ-ſ]/.test(t)) return false;          // mesti ada huruf
+  if(/^[\d\s.,:;%+\-/()RM×x*]+$/i.test(t)) return false;       // nombor/harga/simbol je
+  if(/^[A-Z]{1,5}\d{2,}[A-Z]?$/.test(t)) return false;         // SKU cth BD152
+  if(/^RM\s?[\d.,]+$/i.test(t)) return false;                  // harga RM
+  return true;
+ }
+ function collect(root){
+  const out = [];
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(n){
+   if(changed.has(n)) return NodeFilter.FILTER_REJECT;
+   if(!n.nodeValue || !translatable(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+   if(skipped(n)) return NodeFilter.FILTER_REJECT;
+   return NodeFilter.FILTER_ACCEPT;
+  }});
+  let n; while((n = w.nextNode())) out.push(n);
+  return out;
+ }
+ function applyCached(nodes){
+  applying = true;
+  nodes.forEach(n => {
+   const raw = n.nodeValue; const key = raw.trim(); const en = cache[key];
+   if(en && en !== key){ if(!origMap.has(n)) origMap.set(n, raw); n.nodeValue = raw.replace(key, en); changed.add(n); }
+  });
+  applying = false;
+ }
+ async function fetchTx(strings){
+  for(let i=0;i<strings.length;i+=55){
+   const chunk = strings.slice(i, i+55);
+   try {
+    const r = await fetch('/api/translate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texts: chunk, target:'en' }) });
+    const j = await r.json().catch(()=>({}));
+    const out = (j && Array.isArray(j.translations)) ? j.translations : chunk;
+    chunk.forEach((s,k)=>{ cache[s] = (out[k]!=null) ? out[k] : s; });
+   } catch(e){ chunk.forEach(s => { if(cache[s]==null) cache[s] = s; }); }
+  }
+  saveCache();
+ }
+ async function sweep(){
+  if(lang() !== 'en') return;
+  const root = document.getElementById('posAppLayout') || document.body;
+  let nodes = collect(root);
+  if(!nodes.length) return;
+  applyCached(nodes);
+  const need = [], seen = {};
+  collect(root).forEach(n => { const k = n.nodeValue.trim(); if(cache[k]==null && !seen[k]){ seen[k]=1; need.push(k); } });
+  if(need.length && !inflight){
+   inflight = true;
+   try { await fetchTx(need); } finally { inflight = false; }
+   applyCached(collect(root));
+  }
+ }
+ function scheduleSweep(){ clearTimeout(sweepT); sweepT = setTimeout(()=>{ sweep(); }, 300); }
+ function startObserve(){
+  if(observer || lang()!=='en') return;
+  const root = document.getElementById('posAppLayout'); if(!root) return;
+  observer = new MutationObserver((muts)=>{ if(applying) return; for(const m of muts){ if(m.addedNodes.length || m.type==='characterData'){ scheduleSweep(); break; } } });
+  observer.observe(root, { childList:true, subtree:true, characterData:true });
+ }
+ function stopObserve(){ if(observer){ observer.disconnect(); observer = null; } }
+ function restore(){ applying = true; changed.forEach(n => { const o = origMap.get(n); if(o!=null && n.nodeValue!=null) n.nodeValue = o; }); changed.clear(); applying = false; }
+ return {
+  enable(){ if(lang()!=='en') return; sweep().then(startObserve); startObserve(); },
+  disable(){ stopObserve(); restore(); },
+  refresh(){ if(lang()==='en') scheduleSweep(); }
+ };
+})();
+
 window.setLang = function(lang) {
  if(!['bm','en'].includes(lang)) return;
  window.I18N.lang = lang;
@@ -35153,6 +35249,8 @@ window.setLang = function(lang) {
  try { if(typeof window.renderAllOrders === 'function' && document.getElementById('allOrdersSection') && document.getElementById('allOrdersSection').style.display !== 'none') window.renderAllOrders(); } catch(e){}
  // p1_630 — re-render Memo Board (auto-translate content when EN)
  try { if(typeof window.renderMemoBoard === 'function' && document.getElementById('memoBoardSection') && document.getElementById('memoBoardSection').style.display !== 'none') window.renderMemoBoard(); } catch(e){}
+ // p1_821 — auto-translate seluruh UI bila EN; pulih BM bila BM
+ try { if(window.__UITX){ if(lang === 'en') window.__UITX.enable(); else window.__UITX.disable(); } } catch(e){}
  if(typeof showToast === 'function') {
  showToast(lang === 'bm' ? 'Bahasa: Bahasa Malaysia ' : 'Language: English ', 'success');
  }
@@ -35165,6 +35263,8 @@ window.toggleLang = function() {
 // Boot — apply on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
  setTimeout(() => { try { window.applyI18N(); } catch(e){} }, 100);
+ // p1_821 — kalau EN, mulakan auto-translate UI (observer tangkap kandungan back office lepas login)
+ setTimeout(() => { try { if((window.I18N && window.I18N.lang) === 'en' && window.__UITX) window.__UITX.enable(); } catch(e){} }, 1500);
 });
 
 // =============================================================

@@ -8023,7 +8023,7 @@ function switchHub(sectionIds, title, btnElement) {
  if (!sec) return;
  let target = sec.querySelector('[data-page-title]');
  if (!target) target = sec.querySelector('h1, h2');
- if (!target || target.hasAttribute('data-skip-title-sync')) return;
+ if (!target || target.hasAttribute('data-skip-title-sync') || target.querySelector('[data-i18n]')) return;   // p1_826 — tajuk yg ada data-i18n dah diurus i18n; jangan sync/append (elak tajuk berganda "X  X")
  let replaced = false;
  Array.from(target.childNodes).forEach(node => {
  if (node.nodeType === 3 /* TEXT_NODE */ && node.textContent.trim()) {

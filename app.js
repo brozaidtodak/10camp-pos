@@ -35145,6 +35145,8 @@ window.__UITX = (function(){
  let saveT; const saveCache = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e){} }, 1000); };
  const origMap = new WeakMap();   // textNode -> original BM string
  const changed = new Set();       // text nodes we translated (skip re-collect + restore on BM)
+ const phOrig = new WeakMap();    // input/textarea -> original BM placeholder
+ const phChanged = new Set();     // placeholder elements we translated (restore on BM)
  let observer = null, sweepT = null, inflight = false, applying = false, pending = false;
  const SKIP_TAG = { SCRIPT:1, STYLE:1, NOSCRIPT:1, INPUT:1, TEXTAREA:1, SELECT:1, OPTION:1, CODE:1, PRE:1 };
  const SKIP_ID = { saWidget:1, saPanel:1, caWidget:1, caPanel:1, roadmapSection:1, shopAppLayout:1 };
@@ -35189,6 +35191,33 @@ window.__UITX = (function(){
   });
   applying = false;
  }
+ // p1_824 — placeholder input/textarea (atribut, bukan text node) — auto-translate juga
+ function phSkip(el){
+  if(el.hasAttribute('data-i18n-placeholder') || el.hasAttribute('data-no-tx')) return true;
+  let p = el.parentElement;
+  while(p){ if(p.id && SKIP_ID[p.id]) return true; if(p.nodeType===1 && p.hasAttribute('data-no-tx')) return true; p = p.parentElement; }
+  return false;
+ }
+ function collectPh(root){
+  const out = [];
+  root.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+   if(phChanged.has(el)) return;
+   const raw = el.getAttribute('placeholder');
+   if(!raw || !translatable(raw)) return;
+   if(!visible(el) || phSkip(el)) return;
+   out.push(el);
+  });
+  return out;
+ }
+ function applyPh(els){
+  applying = true;
+  els.forEach(el => {
+   const raw = el.getAttribute('placeholder'); if(!raw) return;
+   const key = raw.trim(); const en = cache[key];
+   if(en && en !== key){ if(!phOrig.has(el)) phOrig.set(el, raw); el.setAttribute('placeholder', raw.replace(key, en)); phChanged.add(el); }
+  });
+  applying = false;
+ }
  async function fetchTx(strings){
   for(let i=0;i<strings.length;i+=55){
    const chunk = strings.slice(i, i+55);
@@ -35204,15 +35233,16 @@ window.__UITX = (function(){
  async function sweep(){
   if(lang() !== 'en') return;
   const root = document.body;   // p1_821b — body (sebahagian section bocor luar posAppLayout) + skrin nampak je
-  let nodes = collect(root);
-  if(!nodes.length) return;
-  applyCached(nodes);
+  const nodes = collect(root), phels = collectPh(root);
+  if(!nodes.length && !phels.length) return;
+  applyCached(nodes); applyPh(phels);
   const need = [], seen = {};
   collect(root).forEach(n => { const k = n.nodeValue.trim(); if(cache[k]==null && !seen[k]){ seen[k]=1; need.push(k); } });
+  collectPh(root).forEach(el => { const k = (el.getAttribute('placeholder')||'').trim(); if(k && cache[k]==null && !seen[k]){ seen[k]=1; need.push(k); } });
   if(need.length && !inflight){
    inflight = true;
    try { await fetchTx(need); } finally { inflight = false; }
-   applyCached(collect(root));
+   applyCached(collect(root)); applyPh(collectPh(root));
    if(pending){ pending = false; scheduleSweep(); }   // tangkap kandungan yg render masa fetch (page render berperingkat)
   }
  }
@@ -35224,7 +35254,7 @@ window.__UITX = (function(){
   observer.observe(root, { childList:true, subtree:true, characterData:true });
  }
  function stopObserve(){ if(observer){ observer.disconnect(); observer = null; } }
- function restore(){ applying = true; changed.forEach(n => { const o = origMap.get(n); if(o!=null && n.nodeValue!=null) n.nodeValue = o; }); changed.clear(); applying = false; }
+ function restore(){ applying = true; changed.forEach(n => { const o = origMap.get(n); if(o!=null && n.nodeValue!=null) n.nodeValue = o; }); changed.clear(); phChanged.forEach(el => { const o = phOrig.get(el); if(o!=null) el.setAttribute('placeholder', o); }); phChanged.clear(); applying = false; }
  return {
   enable(){ if(lang()!=='en') return; sweep().then(startObserve); startObserve(); },
   disable(){ stopObserve(); restore(); },

@@ -27784,6 +27784,20 @@ window.renderInventoryAnalytics = async function() {
  // ---- #3 Sell-Through Rate 90h (p1_805): unit terjual ÷ (terjual + baki). Tinggi = laku bergerak. ----
  const sellThru = (soldUnits90 + totalUnits) > 0 ? Math.round(soldUnits90 / (soldUnits90 + totalUnits) * 100) : null;
  const stColor = sellThru == null ? '#9CA3AF' : (sellThru >= 40 ? '#4E7C4A' : (sellThru >= 20 ? '#9E7016' : '#B23A2E'));
+ // ---- #5 Kesihatan Stok ikut Brand (p1_806): nilai + availability + dead stock per jenama ----
+ const lastQtyMap = {}; tracker.forEach(t => { lastQtyMap[t.sku] = t.lastQty; });
+ const slowCostMap = {}; slow.forEach(s => { slowCostMap[s.sku] = s.tied; });
+ const brandAgg = {};
+ products.forEach(p => {
+   if(isDisc(p)) return;
+   const brand = (p.brand || '').trim() || 'Lain-lain';
+   const stock = stockMap.get(p.sku) || 0;
+   const g = brandAgg[brand] || (brandAgg[brand] = { brand, cost: 0, units: 0, skus: 0, aNum: 0, aDen: 0, dead: 0 });
+   g.cost += costValMap.get(p.sku) || 0; g.units += stock; g.skus++;
+   const lq = lastQtyMap[p.sku] || 0; if(lq > 0){ g.aDen += lq; g.aNum += Math.min(stock, lq); }
+   g.dead += slowCostMap[p.sku] || 0;
+ });
+ const brandRows = Object.values(brandAgg).map(g => ({ brand: g.brand, cost: g.cost, skus: g.skus, avail: g.aDen > 0 ? Math.round(g.aNum / g.aDen * 100) : null, deadPct: g.cost > 0 ? Math.round(g.dead / g.cost * 100) : 0 })).sort((a, b) => b.cost - a.cost);
 
  // ---- Render helpers ----
  const card = (inner, pad) => `<div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:${pad||'0'}; overflow:hidden; margin-bottom:16px;">${inner}</div>`;
@@ -27835,7 +27849,13 @@ window.renderInventoryAnalytics = async function() {
    + `<div class="sa-kpi" style="border-left:3px solid #4E7C4A;"><div class="sa-kpi__lbl">Sihat</div><div class="sa-kpi__val">${nSihat.toLocaleString()}</div></div>`
    + `<div class="sa-kpi" style="border-left:3px solid #9CA3AF;"><div class="sa-kpi__lbl">Stok Mati</div><div class="sa-kpi__val">${nDead.toLocaleString()}</div></div>`
    + `<div class="sa-kpi" style="border-left:3px solid #D1D5DB;"><div class="sa-kpi__lbl">Discontinued</div><div class="sa-kpi__val">${cDisc.toLocaleString()}</div></div>`
-   + '</div>';
+   + '</div>'
+   + '<div style="margin-top:16px;">' + card(cardHead('Kesihatan Stok ikut Brand')
+     + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#FAFAFA; text-align:left; color:var(--text-muted);">'
+     + '<th style="padding:8px 12px;">Brand</th><th style="padding:8px 12px; text-align:right;">Nilai Stok</th><th style="padding:8px 12px; text-align:right;">SKU</th><th style="padding:8px 12px; text-align:right;">Availability</th><th style="padding:8px 12px; text-align:right;">Dead Stock</th></tr></thead><tbody>'
+     + brandRows.map(g => { const ac = g.avail == null ? '#9CA3AF' : (g.avail >= 70 ? '#4E7C4A' : (g.avail >= 40 ? '#9E7016' : '#B23A2E')); const dc = g.deadPct >= 30 ? '#B23A2E' : (g.deadPct >= 15 ? '#9E7016' : '#4E7C4A'); return `<tr><td style="padding:8px 12px; font-weight:600;">${esc(g.brand)}</td><td style="padding:8px 12px; text-align:right;">${fmtRM0(g.cost)}</td><td style="padding:8px 12px; text-align:right; color:var(--text-muted);">${g.skus.toLocaleString()}</td><td style="padding:8px 12px; text-align:right; color:${ac}; font-weight:700;">${g.avail == null ? '—' : g.avail + '%'}</td><td style="padding:8px 12px; text-align:right; color:${dc}; font-weight:700;">${g.deadPct}%</td></tr>`; }).join('')
+     + '</tbody></table></div>'
+     + '<p class="soft-note" style="margin:8px 14px 12px;">Availability rendah / Dead Stock tinggi pada satu brand = modal tersangkut di situ — guna untuk clearance atau negotiate supplier.</p>') + '</div>';
 
  // ============ ZONE: TINDAKAN ============
  const ctrl = `<div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color); font-size:12px; background:#FCFCFD;">

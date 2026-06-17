@@ -12,6 +12,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/staff-assistant"
+  to = "/.netlify/functions/staff-assistant"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/easystore-webhook"
   to = "/.netlify/functions/easystore-webhook"
   status = 200

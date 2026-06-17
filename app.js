@@ -1108,6 +1108,60 @@ window.__showWhatsNew = function(){
  try { localStorage.setItem('whatsNewSeen_v1', String(window.__whatsNewLatestId)); } catch(e){}
  window.__whatsNewSyncDot();
 };
+// p1_795 — Staff AI Assistant widget (back office). Answers how-to/SOP via /api/staff-assistant.
+window.__saHistory = [];
+window.__saOpen = false;
+window.__saBusy = false;
+window.__saShow = function(show){
+ const w = document.getElementById('saWidget'); if(w) w.style.display = show ? 'block' : 'none';
+ if(show){ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){} }
+ else { window.__saOpen = false; const p = document.getElementById('saPanel'); if(p) p.hidden = true; }
+};
+window.__saToggle = function(){
+ const p = document.getElementById('saPanel'); if(!p) return;
+ window.__saOpen = !window.__saOpen;
+ p.hidden = !window.__saOpen;
+ if(window.__saOpen){
+  if(!window.__saHistory.length){ window.__saHistory.push({ role:'assistant', content:'Hai! Aku pembantu AI staf 10 CAMP. Tanya aku cara guna POS atau SOP — cth "macam mana buat refund?", "macam mana check stok?", "SOP cuti macam mana?". Nota: aku tak boleh tengok data live lagi (cth stok sebenar) — tu check sendiri atau tanya Bos/Aliff.' }); }
+  window.__saRender();
+  setTimeout(()=>{ const i = document.getElementById('saInput'); if(i) i.focus(); }, 60);
+ }
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+window.__saRender = function(){
+ const box = document.getElementById('saMessages'); if(!box) return;
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ box.innerHTML = window.__saHistory.map(m => '<div class="sa-bubble sa-bubble--' + (m.role==='user'?'me':(m.typing?'bot sa-bubble--typing':'bot')) + '">' + esc(m.content) + '</div>').join('');
+ box.scrollTop = box.scrollHeight;
+};
+window.__saSend = function(e){
+ if(e && e.preventDefault) e.preventDefault();
+ const input = document.getElementById('saInput'); if(!input) return false;
+ const q = (input.value || '').trim();
+ if(!q || window.__saBusy) return false;
+ input.value = '';
+ window.__saHistory.push({ role:'user', content:q });
+ window.__saHistory.push({ role:'assistant', content:'menaip…', typing:true });
+ window.__saRender();
+ window.__saBusy = true;
+ const btn = document.querySelector('#saPanel .sa-send'); if(btn) btn.disabled = true;
+ const msgs = window.__saHistory.filter(m => !m.typing).map(m => ({ role:m.role, content:m.content }));
+ (async ()=>{
+  let reply = 'Maaf, ada masalah sambungan. Cuba lagi sekejap.';
+  try {
+   const res = await fetch('/api/staff-assistant', { method:'POST', headers: await window.__authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ messages: msgs }) });
+   const j = await res.json().catch(()=>({}));
+   if(res.ok && j.reply) reply = j.reply; else if(j && j.error) reply = 'Maaf: ' + j.error;
+  } catch(err){ /* keep default */ }
+  window.__saHistory = window.__saHistory.filter(m => !m.typing);
+  window.__saHistory.push({ role:'assistant', content: reply });
+  window.__saRender();
+  window.__saBusy = false;
+  const b2 = document.querySelector('#saPanel .sa-send'); if(b2) b2.disabled = false;
+ })();
+ return false;
+};
+
 let salesChartInst = null; // Chart.js Object
 
 // ===================================
@@ -15292,6 +15346,8 @@ function loginAs(user, opts) {
  setTimeout(() => { try { window.__showWhatsNew(); } catch(e){} }, 2600);
  }
  } catch(e){}
+ // p1_795 — tunjuk widget Tanya AI (staf log masuk = back office)
+ try { if(typeof window.__saShow === 'function') window.__saShow(true); } catch(e){}
 }
 
 // Apply capability-based mode tab visibility
@@ -15355,6 +15411,7 @@ window.backToPOS = function() {
 function handleLogout() {
  // p1_71: also sign out of Supabase Auth so email/password session cleared
  try { if(db && db.auth && db.auth.signOut) db.auth.signOut(); } catch(e){}
+ try { if(typeof window.__saShow === 'function') { window.__saShow(false); window.__saHistory = []; } } catch(e){} // p1_795 — sorok widget AI + reset bila logout
  currentUser = null;
  currentUserRole = null;
  document.getElementById("shopAppLayout").style.display = "block";

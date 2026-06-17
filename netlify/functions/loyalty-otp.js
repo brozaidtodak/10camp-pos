@@ -58,6 +58,13 @@ exports.handler = async (event) => {
       if (!custs || !custs.length) {
         return { statusCode: 200, headers: cors, body: JSON.stringify({ sent: true }) }; // generik
       }
+      // p1_794 — cooldown: jangan hantar OTP baru kalau yang lama dihantar <60s lalu (elak spam emel + kos Resend).
+      try {
+        const recent = await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}&select=created_at&limit=1`);
+        if (recent && recent.length && recent[0].created_at && (Date.now() - new Date(recent[0].created_at).getTime()) < 60000) {
+          return { statusCode: 200, headers: cors, body: JSON.stringify({ sent: true, cooldown: true }) };
+        }
+      } catch (_) { /* kalau check gagal, teruskan hantar (lebih baik dari blok sah) */ }
       if (!RESEND_KEY) return { statusCode: 200, headers: cors, body: JSON.stringify({ sent: false, reason: 'RESEND_API_KEY tak set' }) };
 
       const code = String(Math.floor(100000 + Math.random() * 900000));

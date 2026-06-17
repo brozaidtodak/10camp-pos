@@ -2758,8 +2758,8 @@ window.__mktDeleteContent = async function(id){
 // =================== 3) ADS (money behind PIN) ===================
 window.__mktAdsFilter = { status:'all', platform:'all' };
 window.__mktSetAdsFilter = function(k,v){ window.__mktAdsFilter[k]=v; window.renderAds(); };
-window.__mktMoney = function(v, show){ return show ? ('RM '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})) : '•••🔒'; };
-window.__mktRoas = function(rev, spend, show){ if(!show) return '•••🔒'; const s=Number(spend)||0; if(s<=0) return '—'; const r=(Number(rev)||0)/s; return r.toFixed(2)+'x'; };
+window.__mktMoney = function(v, show){ return show ? ('RM '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})) : '•••'; };
+window.__mktRoas = function(rev, spend, show){ if(!show) return '•••'; const s=Number(spend)||0; if(s<=0) return '—'; const r=(Number(rev)||0)/s; return r.toFixed(2)+'x'; };
 window.__mktRoasColor = function(rev, spend){ const s=Number(spend)||0; if(s<=0) return '#9CA3AF'; const r=(Number(rev)||0)/s; return r>=2?'#4E7C4A':(r>=1?'#7A5410':'#B23A2E'); };
 window.renderAds = async function(){
  const body = document.getElementById('adsBody');
@@ -2799,7 +2799,7 @@ window.renderAds = async function(){
   + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">'
   + kpi('Total Spend', window.__mktMoney(tSpend, showMoney))
   + kpi('Revenue', window.__mktMoney(tRev, showMoney))
-  + kpi('Blended ROAS', showMoney?(tSpend>0?blendedRoas.toFixed(2)+'x':'—'):'•••🔒')
+  + kpi('Blended ROAS', showMoney?(tSpend>0?blendedRoas.toFixed(2)+'x':'—'):'•••')
   + kpi('Conversions', String(tOrders), 'orders')
   + kpi('Kos / Order', window.__mktMoney(costPerOrder, showMoney))
   + '</div>'
@@ -2888,7 +2888,7 @@ window.renderMarketingReports = async function(){
   + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">'
   + '<div style="text-align:center;"><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">Spend</div><div style="font-size:18px;font-weight:800;">'+window.__mktMoney(aSpend,showMoney)+'</div></div>'
   + '<div style="text-align:center;"><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">Revenue</div><div style="font-size:18px;font-weight:800;">'+window.__mktMoney(aRev,showMoney)+'</div></div>'
-  + '<div style="text-align:center;"><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">ROAS</div><div style="font-size:18px;font-weight:800;color:'+(showMoney?window.__mktRoasColor(aRev,aSpend):'#9CA3AF')+';">'+(showMoney?(aSpend>0?aRoas.toFixed(2)+'x':'—'):'•••🔒')+'</div></div>'
+  + '<div style="text-align:center;"><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">ROAS</div><div style="font-size:18px;font-weight:800;color:'+(showMoney?window.__mktRoasColor(aRev,aSpend):'#9CA3AF')+';">'+(showMoney?(aSpend>0?aRoas.toFixed(2)+'x':'—'):'•••')+'</div></div>'
   + '<div style="text-align:center;"><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">Conversions</div><div style="font-size:18px;font-weight:800;">'+aOrders+'</div></div>'
   + '</div></div>';
  // submission accountability
@@ -4643,7 +4643,7 @@ window.__scOpenReview = function(id) {
  <div style="background:#FFF; padding:6px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:11px;"><strong>RM:</strong> ${Number(r.rm_variance || 0).toFixed(2)}</div>
  </div>
  <div style="background:#FFF; padding:8px 10px; border-radius:6px; border:1px solid #E5E7EB; font-size:12px; white-space:pre-wrap;">${escAttr(r.summary_text || '')}</div>
- ${r.attachments && r.attachments.url ? `<p style="margin:6px 0 0; font-size:11px;"><a href="${escAttr(r.attachments.url)}" target="_blank" rel="noopener">📎 Attachment →</a></p>` : ''}`;
+ ${r.attachments && r.attachments.url ? `<p style="margin:6px 0 0; font-size:11px;"><a href="${escAttr(r.attachments.url)}" target="_blank" rel="noopener">Attachment →</a></p>` : ''}`;
  document.getElementById('scReviewNotes').value = r.review_notes || '';
  document.getElementById('scReviewOverlay').style.display = 'flex';
 };
@@ -6370,7 +6370,7 @@ window.renderPaymentProofs = async function() {
  <button onclick="window.__sendReceiptPdfEmail(${r.id})" title="Hantar resit PDF via Email" style="background:#fff8f0; border:1px solid #A5B4FC; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="mail" style="width:11px;height:11px;vertical-align:-1px;"></i> Email</button>
  <button onclick="window.__ppManageProofs(${r.id})" title="Urus bukti bayar — sehingga 3 gambar" style="background:#fff8f0; border:1px solid #fed7aa; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="images" style="width:11px;height:11px;vertical-align:-1px;"></i> Resit (${(window.__ppGetProofs ? window.__ppGetProofs(r).length : (r.payment_proof_url ? 1 : 0))}/3)</button>
  <button onclick="window.__ppEditSale(${r.id})" title="Edit maklumat customer / method / amount" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; margin-right:4px;"><i data-lucide="edit-3" style="width:11px;height:11px;vertical-align:-1px;"></i> Edit</button>
- <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#ffedd5; border:1px solid #fdba74; color:#1E3A8A; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
+ <button onclick="window.__ppResendEmail(${r.id})" title="${r.email_status === 'sent' ? 'Hantar semula email receipt' : 'Hantar email receipt'}" style="background:#ffedd5; border:1px solid #fdba74; color:#101010; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;"><i data-lucide="${r.email_status === 'sent' ? 'mail-check' : 'send'}" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r.email_status === 'sent' ? 'Resend' : 'Send'}</button>
  </td>
  </tr>`;
  }).join('');
@@ -20858,7 +20858,7 @@ window.__crRenderRingkasan = function() {
   html += '<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">';
   d.warnings.forEach(w => {
    const warn = w.lvl === 'warn';
-   const bg = warn?'#FEF3E2':'#F0F6FF', bd = warn?'#F4C77B':'#B9D4F5', cl = warn?'#7A5410':'#1E3A8A';
+   const bg = warn?'#FEF3E2':'#FAF6EF', bd = warn?'#F4C77B':'#ECE6DE', cl = warn?'#7A5410':'#101010';
    html += '<div style="display:flex; align-items:center; gap:10px; background:' + bg + '; border:1px solid ' + bd + '; color:' + cl + '; padding:10px 14px; border-radius:10px; font-size:12.5px;"><i data-lucide="' + w.icon + '" style="width:16px;height:16px; flex-shrink:0;"></i><span style="flex:1;">' + esc(w.msg) + '</span>' + (w.action?'<button onclick="window.__crSetMethod(\'' + w.action + '\')" style="background:#fff; border:1px solid ' + bd + '; color:' + cl + '; padding:4px 11px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap;">Pergi</button>':'') + '</div>';
   });
   html += '</div>';
@@ -29486,7 +29486,7 @@ window.openCustomerDetail = function(id) {
  + '<div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;">'
  + '<button onclick="window.openEditCustomerModal(\'' + cid.replace(/'/g,"\\'") + '\')" style="background:#fff8f0; border:1px solid #fdba74; color:#7c4a1a; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Edit</button>'
  + (waLink ? '<a href="' + waLink + '" target="_blank" rel="noopener" style="background:#E6F0E4; border:1px solid #ABC6A0; color:#34522F; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="message-circle" style="width:13px;height:13px;"></i> WhatsApp</a>' : '')
- + (mailLink ? '<a href="' + mailLink + '" style="background:#ffedd5; border:1px solid #fdba74; color:#1E3A8A; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="mail" style="width:13px;height:13px;"></i> Email</a>' : '')
+ + (mailLink ? '<a href="' + mailLink + '" style="background:#ffedd5; border:1px solid #fdba74; color:#101010; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="mail" style="width:13px;height:13px;"></i> Email</a>' : '')
  + (telLink ? '<a href="' + telLink + '" style="background:#F8EFD7; border:1px solid #E7C66A; color:#7A5410; padding:8px 12px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700; min-height:36px; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="phone" style="width:13px;height:13px;"></i> Call</a>' : '')
  + '</div>'
  // Stats grid

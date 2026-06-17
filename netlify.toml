@@ -18,6 +18,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/public-assistant"
+  to = "/.netlify/functions/public-assistant"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/easystore-webhook"
   to = "/.netlify/functions/easystore-webhook"
   status = 200

@@ -3149,6 +3149,18 @@ body.pos-app-scoped #saWidget { bottom: calc(84px + env(safe-area-inset-bottom))
 body.checkout-panel-open #saWidget { display: none !important; }
 body:has(#posCartDrawer.drawer-open) #saWidget,
 body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
+/* p1_812 — Customer AI shopping assistant (landing). Reuses .sa-* panel internals; pill FAB to invite. */
+#caWidget { position: fixed; right: 20px; bottom: 20px; z-index: 9600; }
+#caFab { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px 0 16px; border-radius: 26px; border: 0; cursor: pointer; background: linear-gradient(135deg,#CD7C32,#A05F22); color: #fff; box-shadow: 0 8px 22px rgba(16,16,16,.28); font-family: inherit; font-size: 14px; font-weight: 800; letter-spacing: .2px; transition: transform .12s; }
+#caFab:hover { transform: scale(1.05); }
+#caFab .ca-fab-label { white-space: nowrap; }
+#caPanel { position: absolute; right: 0; bottom: 64px; width: 360px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 110px); background: #fff; border: 1px solid var(--neutral-200,#E4E4E7); border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.28); display: flex; flex-direction: column; overflow: hidden; }
+#caPanel[hidden] { display: none; }
+@media (max-width: 600px) {
+ #caPanel { width: calc(100vw - 24px); right: -4px; height: 72vh; }
+ #caFab .ca-fab-label { display: none; }
+ #caFab { width: 54px; padding: 0; justify-content: center; border-radius: 50%; }
+}
 .nc-list { overflow-y: auto; flex: 1; }
 .nc-item {
  display: flex; gap: 10px; padding: 12px 14px 12px 18px;

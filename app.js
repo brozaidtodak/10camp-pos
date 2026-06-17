@@ -1187,6 +1187,63 @@ window.__saSend = function(e){
  return false;
 };
 
+// p1_812 — Customer AI shopping assistant (landing page). Public, no auth → /api/public-assistant.
+// Helps shoppers find/choose gear from the live catalogue + guides to Shopee/TikTok/walk-in.
+window.__caHistory = [];
+window.__caOpen = false;
+window.__caBusy = false;
+window.__caShow = function(show){
+ const w = document.getElementById('caWidget'); if(w) w.style.display = show ? 'block' : 'none';
+ if(show){ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){} }
+ else { window.__caOpen = false; const p = document.getElementById('caPanel'); if(p) p.hidden = true; }
+};
+window.__caToggle = function(){
+ const p = document.getElementById('caPanel'); if(!p) return;
+ window.__caOpen = !window.__caOpen;
+ p.hidden = !window.__caOpen;
+ if(window.__caOpen){
+  if(!window.__caHistory.length){ window.__caHistory.push({ role:'assistant', content:'Hai! Selamat datang ke 10 CAMP. Saya boleh tolong cari gear camping yang sesuai — cuba tanya "ada tent untuk 4 orang?", "kerusi lipat bawah RM50?", atau "cadang cooler box". Nak beli? Saya tunjuk cara di Shopee, TikTok, atau walk-in kedai.' }); }
+  window.__caRender();
+  setTimeout(()=>{ const i = document.getElementById('caInput'); if(i) i.focus(); }, 60);
+ }
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+window.__caRender = function(){
+ const box = document.getElementById('caMessages'); if(!box) return;
+ const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ // linkify bare URLs so Shopee/TikTok/wa.me suggestions are clickable
+ const fmt = (t)=> esc(t).replace(/(https?:\/\/[^\s]+|wa\.me\/[0-9]+)/g, (u)=>{ const href = u.indexOf('http')===0?u:('https://'+u); return '<a href="'+href+'" target="_blank" rel="noopener" style="color:#A05F22;font-weight:700;text-decoration:underline;">'+u+'</a>'; });
+ box.innerHTML = window.__caHistory.map(m => '<div class="sa-bubble sa-bubble--' + (m.role==='user'?'me':(m.typing?'bot sa-bubble--typing':'bot')) + '">' + (m.typing?esc(m.content):fmt(m.content)) + '</div>').join('');
+ box.scrollTop = box.scrollHeight;
+};
+window.__caSend = function(e){
+ if(e && e.preventDefault) e.preventDefault();
+ const input = document.getElementById('caInput'); if(!input) return false;
+ const q = (input.value || '').trim();
+ if(!q || window.__caBusy) return false;
+ input.value = '';
+ window.__caHistory.push({ role:'user', content:q });
+ window.__caHistory.push({ role:'assistant', content:'menaip…', typing:true });
+ window.__caRender();
+ window.__caBusy = true;
+ const btn = document.querySelector('#caPanel .sa-send'); if(btn) btn.disabled = true;
+ const msgs = window.__caHistory.filter(m => !m.typing).map(m => ({ role:m.role, content:m.content })).slice(-6);
+ (async ()=>{
+  let reply = 'Maaf, ada masalah sambungan. Cuba lagi sekejap, atau WhatsApp kami di wa.me/601133109547.';
+  try {
+   const res = await fetch('/api/public-assistant', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ messages: msgs }) });
+   const j = await res.json().catch(()=>({}));
+   if(res.ok && j.reply) reply = j.reply; else if(j && j.error) reply = 'Maaf: ' + j.error;
+  } catch(err){ /* keep default */ }
+  window.__caHistory = window.__caHistory.filter(m => !m.typing);
+  window.__caHistory.push({ role:'assistant', content: reply });
+  window.__caRender();
+  window.__caBusy = false;
+  const b2 = document.querySelector('#caPanel .sa-send'); if(b2) b2.disabled = false;
+ })();
+ return false;
+};
+
 let salesChartInst = null; // Chart.js Object
 
 // ===================================
@@ -15381,6 +15438,8 @@ function loginAs(user, opts) {
  } catch(e){}
  // p1_795 — tunjuk widget Tanya AI (staf log masuk = back office)
  try { if(typeof window.__saShow === 'function') window.__saShow(true); } catch(e){}
+ // p1_812 — sorok widget AI customer bila masuk back office (elak silap + kos)
+ try { if(typeof window.__caShow === 'function') window.__caShow(false); } catch(e){}
 }
 
 // Apply capability-based mode tab visibility
@@ -15425,6 +15484,7 @@ window.previewLanding = function() {
  banner.style.display = 'block';
  // Add top padding to landing so banner doesn't overlap content
  shop.style.paddingTop = '50px';
+ try { if(typeof window.__caShow === 'function') window.__caShow(true); } catch(e){} // p1_812 — preview = tunjuk widget AI customer
  window.scrollTo({ top: 0, behavior: 'smooth' });
  if(window.lucide && lucide.createIcons) lucide.createIcons();
 };
@@ -15435,6 +15495,7 @@ window.backToPOS = function() {
  const banner = document.getElementById('previewBackBanner');
  if(shop) { shop.style.display = 'none'; shop.style.paddingTop = ''; }
  if(pos) pos.style.display = 'block';
+ try { if(typeof window.__caShow === 'function') window.__caShow(false); } catch(e){} // p1_812 — balik POS = sorok widget AI customer
  // p1_656 — restore the section that was active before preview
  if(window.__previewPrevSection){ const sec = document.getElementById(window.__previewPrevSection); if(sec) sec.style.display = 'block'; }
  if(banner) banner.style.display = 'none';
@@ -15445,6 +15506,7 @@ function handleLogout() {
  // p1_71: also sign out of Supabase Auth so email/password session cleared
  try { if(db && db.auth && db.auth.signOut) db.auth.signOut(); } catch(e){}
  try { if(typeof window.__saShow === 'function') { window.__saShow(false); window.__saHistory = []; } } catch(e){} // p1_795 — sorok widget AI + reset bila logout
+ try { if(typeof window.__caShow === 'function') window.__caShow(true); } catch(e){} // p1_812 — landing balik = tunjuk widget AI customer
  currentUser = null;
  currentUserRole = null;
  document.getElementById("shopAppLayout").style.display = "block";

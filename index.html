@@ -1069,6 +1069,7 @@
  <span class="lp-collection__tag" data-i18n="lp_coll_apparel">Apparel</span>
  <h3>10 CAMPERS UNITY</h3>
  <p data-i18n="lp_coll_unity_sub">Official jersey collection</p>
+ <span data-i18n="lp_coll_notsale" style="display:inline-block; margin-top:7px; font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); padding:2px 9px; border-radius:20px;">Not for sale</span>
  </div>
  </a>
  <a href="#shop" class="lp-collection" data-filter-brand="Naturehike">
@@ -1080,14 +1081,18 @@
  <p data-i18n="lp_coll_nh_sub">Tents, sleeping bags &amp; trails</p>
  </div>
  </a>
- <a href="#shop" class="lp-collection" onclick="window.lpFilterCategory('SALE')">
+ <div class="lp-collection">
  <div class="lp-collection__bg" style="background:linear-gradient(135deg, var(--primary-500), var(--primary-700));"></div>
  <div class="lp-collection__content lp-collection__content--center">
- <span class="lp-collection__tag lp-collection__tag--white" data-i18n="lp_coll_limited">Limited Time</span>
- <h3 style="color:#fff;" data-i18n="lp_coll_sale_title">Festival Sale</h3>
- <p style="color:rgba(255,255,255,0.85);" data-i18n="lp_coll_sale_sub">Up to 50% off selected gear</p>
+ <span class="lp-collection__tag lp-collection__tag--white" data-i18n="lp_coll_limited">Vouchers</span>
+ <h3 style="color:#fff;" data-i18n="lp_coll_sale_title">Promos &amp; Vouchers</h3>
+ <p style="color:rgba(255,255,255,0.9);" data-i18n="lp_coll_sale_sub">Lots of vouchers on TikTok &amp; Shopee</p>
+ <div style="display:flex; gap:9px; justify-content:center; margin-top:14px; flex-wrap:wrap;">
+ <a href="https://shopee.com.my/10camp.os" target="_blank" rel="noopener" style="background:#fff; color:#A05F22; font-weight:800; font-size:12.5px; padding:8px 18px; border-radius:22px; text-decoration:none;">Shopee</a>
+ <a href="https://vt.tiktok.com/ZSxoAXDhd/" target="_blank" rel="noopener" style="background:rgba(0,0,0,.28); color:#fff; font-weight:800; font-size:12.5px; padding:8px 18px; border-radius:22px; text-decoration:none; border:1px solid rgba(255,255,255,.35);">TikTok</a>
  </div>
- </a>
+ </div>
+ </div>
  </div>
  </section>
 
@@ -8416,6 +8421,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_813', label:'Featured Collections landing — buang unsur mengelirukan (Zaid: jersey UNITY cuma mockup; "Festival Sale" macam tipu sebab kedai takde event). (1) Jersey "10 CAMPERS UNITY" KEKAL tapi tambah nota kecil "Bukan untuk jual / Not for sale" (pill putih lutsinar bawah kad) — jelas ia mockup/showcase, bukan produk jual. (2) Kad "Festival Sale — Up to 50% off" (palsu) DITUKAR jadi "Promosi & Voucher / Promos & Vouchers" → "Banyak voucher di TikTok & Shopee — jimat lebih!" + 2 butang link betul (Shopee shopee.com.my/10camp.os + TikTok), buang onclick lpFilterCategory(SALE). i18n dikemas (lp_coll_notsale baru; lp_coll_limited→Voucher; lp_coll_sale_title/sub tukar BM+EN) supaya tak tertimpa balik. Naturehike bestseller kekal (betul). app.js v781->782.', d:'done' },
  { id:'p1_812', label:'"Tanya AI" customer di landing page (Zaid: "jom buat tanya ai dekat landing page"). Pembantu beli-belah AI awam (public, no-auth) yang cadang produk dari katalog LIVE + dorong beli via Shopee/TikTok/walk-in. Otak: netlify/functions/public-assistant.js, OpenAI gpt-4o-mini, tool search_products (published SAHAJA; pulang nama/harga walk-in/ketersediaan bucket "ada/terhad/habis"/kategori/jenama — TIADA kos/margin/PII/data dalaman). KESELAMATAN dikuatkuasa server: published-only, stok bucket bukan nombor tepat, tolak soalan sulit walau "abaikan arahan". ABUSE/KOS: pool kos sendiri public_ai_usage_YYYY-MM, CAP_USD=15 (~RM70/bln) + throttle per-IP dlm-memori (12/min) + had input/history/token. UI: FAB pill bronze kanan-bawah (#caWidget) → panel chat (guna semula .sa-* internals), link Shopee/TikTok/wa.me auto-clickable. Tunjuk di landing + preview, sorok dlm back office (elak silap+kos). Greeting BM mesra. netlify.toml redirect /api/public-assistant. app.js v780->781, design-tokens v109->110.', d:'done' },
  { id:'p1_811', label:'BAIKI gambar variant tak padan warna (aduan staff: gambar hijau tapi code khaki → confuse). PUNCA: import EasyStore set SEMUA variant warna dlm satu group ke gambar SKU PERTAMA group je (cth CD075/CD076 "Green" tunjuk v_CD053.jpg = stool khaki). Audit: 236 produk gambar silap, 146 dah betul. Gambar per-warna BETUL sebenarnya WUJUD dlm storage (v_<SKU>.jpg) — cuma tak di-link. FIX DATA (bukan kod): (1) backup table products_master_img_backup_20260617 (236 baris, boleh rollback). (2) sahkan wujud via join storage.objects (234/236 ada gambar sendiri). (3) UPDATE images[0]=v_<own SKU>.jpg utk 234 produk (guna nama fail tepat dari storage.objects, elak isu case). Disahkan: CD075→hijau, CD053→khaki, MG067→sand (visual + Read imej). 2 tinggal tiada gambar sendiri (MH064 Mesh, MG012 Orange) → perlu upload manual. Kesan POS + landing page terus betul (baca live); marketplace tak terjejas (gambar Shopee/TikTok berasingan). Data-only, takde app.js bump.', d:'done' },
  { id:'p1_810', label:'Kad cashier variant nampak "duplikat" (Ariff aduan: cari "Magn" → 4 kad CHANNODUG CD-2134 nampak sama). PUNCA: nama produk tercemar import EasyStore — "…Large Magnetic Hook for Canopy | CD090 | CD091 | CD092 | CD093 | CD094 — CD091 Turquoise". Pembersih nama kad cuma buang prefix SKU depan, jadi 4 warna jatuh ke teks sama "CHANNODUG CD-2134 — Large…" + warna (di hujung) kena potong truncate → nampak 4 duplikat. (Carian betul — semua memang ada "Magnetic"; B-IV/A-IR = location_bin, bukan bug.) FIX (render kad, line ~12900): (1) potong sisa pencemaran — ambil bahagian SEBELUM " | " pertama selepas buang prefix → tajuk bersih. (2) cleanColor = variant_color buang token SKU depan ("CD092 Red"→"Red", "Turquoise"/"Army Green" kekal) → papar badge bronze on-brand (#FAF6EF/#CD7C32) di baris badge atas (tak kena truncate). 4 kad kini boleh dibeza ikut warna. Hanya display, data tak diubah. app.js v779->780.', d:'done' },
@@ -13690,7 +13696,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=781"></script>
+ <script src="app.js?v=782"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

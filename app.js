@@ -35148,7 +35148,7 @@ window.__UITX = (function(){
  const phOrig = new WeakMap();    // input/textarea -> original BM placeholder
  const phChanged = new Set();     // placeholder elements we translated (restore on BM)
  let observer = null, sweepT = null, inflight = false, applying = false, pending = false;
- const SKIP_TAG = { SCRIPT:1, STYLE:1, NOSCRIPT:1, INPUT:1, TEXTAREA:1, SELECT:1, OPTION:1, CODE:1, PRE:1 };
+ const SKIP_TAG = { SCRIPT:1, STYLE:1, NOSCRIPT:1, INPUT:1, TEXTAREA:1, CODE:1, PRE:1 };   // p1_825 — SELECT/OPTION dibuang dari skip supaya teks dropdown diterjemah
  const SKIP_ID = { saWidget:1, saPanel:1, caWidget:1, caPanel:1, roadmapSection:1, shopAppLayout:1 };
  function visible(el){ if(!el) return false; if(el.offsetParent !== null) return true; return !!(el.getClientRects && el.getClientRects().length); }
  const lang = () => (window.I18N && window.I18N.lang) || 'bm';
@@ -35176,7 +35176,9 @@ window.__UITX = (function(){
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(n){
    if(changed.has(n)) return NodeFilter.FILTER_REJECT;
    if(!n.nodeValue || !translatable(n.nodeValue)) return NodeFilter.FILTER_REJECT;
-   if(!visible(n.parentElement)) return NodeFilter.FILTER_REJECT;   // hidden section / landing tersembunyi → langkau
+   const pe = n.parentElement;
+   const vEl = (pe && pe.tagName === 'OPTION') ? pe.closest('select') : pe;   // option tutup = offsetParent null → semak select
+   if(!visible(vEl)) return NodeFilter.FILTER_REJECT;   // hidden section / landing tersembunyi → langkau
    if(skipped(n)) return NodeFilter.FILTER_REJECT;
    return NodeFilter.FILTER_ACCEPT;
   }});

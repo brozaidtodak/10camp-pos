@@ -1033,6 +1033,8 @@ window.__renderCartTabs = function(){
 // p1_558 — "Apa Baru" (What's New) untuk staff: senarai features terkini dlm bahasa mudah.
 // Curated (BUKAN ROADMAP_DATA teknikal). Newest first; id terbesar = terbaru.
 window.STAFF_UPDATES = [
+ { id: 17, date: '17 Jun 2026', tag: 'Baru', icon: 'sparkles', title: 'Tanya AI — Pembantu Staf',
+ desc: 'Ada bulatan bronze di kanan-bawah skrin — klik untuk tanya AI apa-apa! Dia boleh ajar cara guna POS + SOP (cth "macam mana buat refund?", "SOP cuti macam mana?") DAN check data live: stok & harga produk, jualan + komisen KAU SENDIRI, barang nak habis, jualan kedai hari ni. Jawab BM/English. Nota: dia tak tunjuk kos/untung atau data staf lain (privasi terjaga). Cuba je tanya!' },
  { id: 16, date: '17 Jun 2026', tag: 'Baru', icon: 'bell-ring', title: 'Pusat Amaran di Home',
  desc: 'Skrin Home (Overview) ada tab baru "Amaran" — tunjuk perkara yang perlu perhatian, ikut bahagian kau je. Staff Sales nampak hal harga/jualan (cth jualan walk-in tak ditag nama staf, margin nipis); staff Inventory nampak hal stok (cth produk LIVE tapi stok habis, tiada kos). Bos nampak semua. Tiap amaran ada butang terus ke tempat nak betulkan.' },
  { id: 15, date: '17 Jun 2026', tag: 'Lebih Baik', icon: 'bell', title: 'Loceng Notifikasi Lebih Kemas',

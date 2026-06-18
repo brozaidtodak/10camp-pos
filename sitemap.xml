@@ -31,6 +31,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.10camp.com/blog/barang-camping-wajib-first-timer.html</loc>
+    <lastmod>2026-06-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.10camp.com/privacy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

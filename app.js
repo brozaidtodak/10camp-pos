@@ -18862,6 +18862,146 @@ window.memoCloseSubmit = function() {
  document.getElementById('memoSubmitOverlay').style.display = 'none';
  window.__memoEditId = null; // p1_385
 };
+
+// p1_798 — MEMO PDF: kad memo cuma tunjuk tajuk besar; staf buka PDF berjenama 10 CAMP untuk baca penuh.
+// Guna pipeline jsPDF + html2canvas yang sama dgn resit (__loadPdfLibs).
+window.__memoMonthsBM = ['JAN','FEB','MAC','APR','MEI','JUN','JUL','OGOS','SEP','OKT','NOV','DIS'];
+window.__memoDateBM = function(iso){
+ const d = iso ? new Date(iso) : new Date();
+ if(isNaN(d.getTime())) return '';
+ return d.getDate() + ' ' + window.__memoMonthsBM[d.getMonth()] + ' ' + d.getFullYear();
+};
+// Bina HTML dokumen memo berjenama (header logo + alamat, tarikh, MEMO, tajuk, badan, footer).
+window.__buildMemoDocHtml = function(memo){
+ const esc = (s) => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+ let shop = {};
+ try { shop = (typeof window.__getSetting === 'function' ? (window.__getSetting('shop') || {}) : {}); } catch(e){}
+ if(!shop || !shop.name) { try { shop = Object.assign({}, shop, (typeof window.getShopInfo === 'function' ? window.getShopInfo() : {})); } catch(e){} }
+ const coName = (shop.name && /enterprise/i.test(shop.name)) ? shop.name : '10 CAMP ENTERPRISE';
+ const addr = shop.address || 'No. 9-G, Block H, Glomac Cyberjaya, Jalan GC 9, 63000 Cyberjaya, Selangor';
+ const email = shop.email || 'admin@10camp.com';
+ const phone = shop.phone || '+60 11-3310 9547';
+ const website = (shop.website || 'WWW.10CAMP.COM').toUpperCase().replace(/^HTTPS?:\/\//,'');
+ const origin = window.location.origin;
+ const logoUrl = origin + '/assets/brand/logo/10camp-logo-color.png';
+ const dateStr = window.__memoDateBM(memo.posted_at || memo.approved_at);
+ const title = (memo.title || 'MEMO').toUpperCase();
+ const catLabel = (memo.category && memo.category !== 'umum' && typeof window.__memoCatLabel === 'function') ? window.__memoCatLabel(memo.category) : '';
+ // Badan: kekalkan baris baru (white-space: pre-wrap pada container).
+ const bodyHtml = esc(memo.body || '');
+ const signName = memo.posted_by_name || '';
+ return `
+<div class="mdoc-stripe"></div>
+<div class="mdoc-inner">
+ <div class="mdoc-header">
+  <div class="mdoc-hdr-left">
+   <img class="mdoc-hdr-logo" src="${esc(logoUrl)}" crossorigin="anonymous" onerror="this.style.display='none';">
+   <div class="mdoc-co">
+    <div class="mdoc-co-name">${esc(coName)}</div>
+    <div class="mdoc-co-line">${esc(addr)}</div>
+    <div class="mdoc-co-line">${esc(email)} &nbsp;·&nbsp; ${esc(phone)}</div>
+   </div>
+  </div>
+ </div>
+ <div class="mdoc-rule"></div>
+ <div class="mdoc-date">TARIKH: ${esc(dateStr)}</div>
+ <div class="mdoc-center-logo"><img src="${esc(logoUrl)}" crossorigin="anonymous" onerror="this.style.display='none';"></div>
+ <div class="mdoc-memo-label">MEMO</div>
+ <div class="mdoc-title">${esc(title)}</div>
+ ${catLabel ? `<div class="mdoc-cat">${esc(catLabel)}</div>` : ''}
+ <div class="mdoc-body">${bodyHtml || '<span style="color:#9CA3AF;">(Tiada kandungan)</span>'}</div>
+ <div class="mdoc-signoff">
+  <div>SEKIAN, TERIMA KASIH.</div>
+  <div class="mdoc-sign-by">ARAHAN:<br><strong>${esc(signName || 'PENGURUSAN 10 CAMP ENTERPRISE')}</strong></div>
+ </div>
+</div>
+<div class="mdoc-footer"><span class="mdoc-foot-pill">${esc(website)}</span></div>`;
+};
+// Jana PDF blob dari memo.
+window.__generateMemoPdfBlob = async function(memo){
+ await window.__loadPdfLibs();
+ const container = document.createElement('div');
+ container.id = 'memoPdfStage';
+ container.style.cssText = 'position:fixed; left:-9999px; top:0; width:794px; min-height:1123px; background:#fff; font-family:Poppins, Arial, sans-serif; color:#101010; display:flex; flex-direction:column;';
+ container.innerHTML = `<style>
+#memoPdfStage * { box-sizing:border-box; }
+#memoPdfStage .mdoc-stripe { position:absolute; left:0; top:0; bottom:0; width:12px; background:#CD7C32; }
+#memoPdfStage .mdoc-inner { flex:1; padding:34px 48px 24px 54px; }
+#memoPdfStage .mdoc-header { display:flex; justify-content:space-between; align-items:flex-start; }
+#memoPdfStage .mdoc-hdr-left { display:flex; gap:12px; align-items:center; }
+#memoPdfStage .mdoc-hdr-logo { width:56px; height:auto; }
+#memoPdfStage .mdoc-co-name { font-size:17px; font-weight:800; color:#101010; letter-spacing:.4px; line-height:1.1; }
+#memoPdfStage .mdoc-co-line { font-size:9px; color:#444; line-height:1.5; margin-top:1px; }
+#memoPdfStage .mdoc-rule { height:3px; background:#CD7C32; margin:10px 0 4px; border-radius:2px; }
+#memoPdfStage .mdoc-date { text-align:right; font-size:12px; font-weight:700; color:#101010; margin-bottom:14px; }
+#memoPdfStage .mdoc-center-logo { text-align:center; margin:6px 0 4px; }
+#memoPdfStage .mdoc-center-logo img { width:74px; height:auto; }
+#memoPdfStage .mdoc-memo-label { text-align:center; font-size:16px; font-weight:800; text-decoration:underline; letter-spacing:1px; margin-top:6px; }
+#memoPdfStage .mdoc-title { text-align:center; font-size:15px; font-weight:800; text-decoration:underline; line-height:1.35; margin:4px auto 0; max-width:80%; }
+#memoPdfStage .mdoc-cat { text-align:center; font-size:10px; font-weight:700; color:#7c4a1a; background:#fff8f0; display:inline-block; padding:3px 12px; border-radius:999px; margin:10px auto 0; }
+#memoPdfStage .mdoc-body { white-space:pre-wrap; word-break:break-word; font-size:12.5px; line-height:1.7; color:#1a1a1a; margin-top:22px; text-align:justify; }
+#memoPdfStage .mdoc-signoff { margin-top:30px; font-size:12px; font-weight:600; }
+#memoPdfStage .mdoc-sign-by { margin-top:18px; line-height:1.5; }
+#memoPdfStage .mdoc-sign-by strong { color:#101010; }
+#memoPdfStage .mdoc-footer { background:#101010; height:38px; display:flex; justify-content:flex-end; align-items:center; padding-right:30px; margin-top:24px; }
+#memoPdfStage .mdoc-footer .mdoc-foot-pill { color:#fff; font-size:11px; font-weight:700; letter-spacing:.5px; }
+</style>` + window.__buildMemoDocHtml(memo);
+ // jadikan inner relatif supaya stripe absolute ikut tinggi penuh
+ container.style.position = 'fixed';
+ document.body.appendChild(container);
+ try {
+  const imgs = container.querySelectorAll('img');
+  await Promise.all(Array.from(imgs).map(img => new Promise((resolve) => {
+   if(img.complete) { resolve(); return; }
+   img.onload = resolve; img.onerror = resolve; setTimeout(resolve, 1500);
+  })));
+  const canvas = await window.html2canvas(container, { scale: 2, backgroundColor: '#fff', useCORS: true, logging: false });
+  const imgData = canvas.toDataURL('image/jpeg', 0.92);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const imgW = pageW;
+  const imgH = (canvas.height * imgW) / canvas.width;
+  let position = 0;
+  let remaining = imgH;
+  while(remaining > 0) {
+   pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH, undefined, 'FAST');
+   remaining -= pageH;
+   if(remaining > 0) { pdf.addPage(); position -= pageH; }
+  }
+  return pdf.output('blob');
+ } finally {
+  container.remove();
+ }
+};
+// Buka PDF memo dalam tab baru (jana atas permintaan, cache objectURL per memo).
+window.__memoPdfCache = window.__memoPdfCache || {};
+window.memoOpenPdf = async function(id){
+ const m = window.memoLoad().find(x => x.id === id);
+ if(!m) { if(typeof showToast==='function') showToast('Memo tak dijumpai', 'warn'); return; }
+ if(typeof showToast==='function') showToast('Menjana PDF memo…', 'info');
+ try {
+  let url = window.__memoPdfCache[id];
+  if(!url) {
+   const blob = await window.__generateMemoPdfBlob(m);
+   url = URL.createObjectURL(blob);
+   window.__memoPdfCache[id] = url;
+  }
+  const w = window.open(url, '_blank');
+  if(!w) {
+   // Popup disekat — muat turun sebagai fallback
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = 'MEMO ' + (m.title || 'memo').replace(/[^\w\s-]/g,'').slice(0,60) + '.pdf';
+   document.body.appendChild(a); a.click(); a.remove();
+  }
+ } catch(e) {
+  console.error('memo pdf gagal:', e);
+  if(typeof showToast==='function') showToast('Gagal jana PDF memo: ' + (e.message||e), 'danger');
+ }
+};
+
 // p1_385 — Pin/Unpin toggle (Bos sahaja, memo approved). Memo pinned popup masa staf login.
 window.memoTogglePin = function(id) {
  const u = window.memoCurrentUser();
@@ -18895,6 +19035,8 @@ window.memoSubmit = function() {
  if(m) {
  m.department = dept; m.category = category; m.title = title; m.body = body; m.pinned = pinned;
  m.edited_at = new Date().toISOString(); m.edited_by_name = u.name;
+ // p1_798 — buang PDF cache lama supaya jana semula ikut kandungan baru
+ try { if(window.__memoPdfCache && window.__memoPdfCache[m.id]) { URL.revokeObjectURL(window.__memoPdfCache[m.id]); delete window.__memoPdfCache[m.id]; } } catch(e){}
  window.memoSaveAll(memos);
  if(typeof window.memoUpsertRemote === 'function') window.memoUpsertRemote(m);
  }
@@ -19230,7 +19372,7 @@ window.renderMemoBoard = function() {
  const avatarBg = deptColor[m.department] || '#6B7280';
  const pinIcon = (m.pinned ? '<i data-lucide="pin" class="memo-pin-icon" style="width:14px; height:14px;"></i> ' : '');
 
- return `<div class="${cardClass}">
+ return `<div class="${cardClass} memo-card--doc">
  <div class="memo-card__head">
  <h4 class="memo-card__title">${pinIcon}${escapeHtml(window.__memoTx(m.title))}</h4>
  </div>
@@ -19239,7 +19381,7 @@ window.renderMemoBoard = function() {
  ${(m.category && m.category !== 'umum') ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:#fff8f0; color:#7c4a1a;"><i data-lucide="tag" style="width:9px;height:9px;"></i> ${escapeHtml(window.__memoCatLabel(m.category))}</span>` : ''}
  <span class="memo-status-pill memo-status-pill--${m.status}">${escapeHtml(T('mb_status_'+m.status, m.status))}</span>
  </div>
- <div class="memo-card__body">${escapeHtml(window.__memoTx(m.body))}</div>
+ <button class="memo-card__pdfbtn" onclick="window.memoOpenPdf('${m.id}')" title="Buka memo penuh dalam PDF"><i data-lucide="file-text" style="width:15px; height:15px;"></i> Buka Memo (PDF)</button>
  ${reasonHtml}
  <div class="memo-card__foot">
  <span class="memo-card__author" title="${window.memoFormatFull(m.posted_at)}">

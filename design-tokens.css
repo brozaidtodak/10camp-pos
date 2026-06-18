@@ -3893,12 +3893,18 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 #homeSection .dash-fresh .dot { width:6px; height:6px; border-radius:50%; background:#101010; }
 
 #homeSection .dash-hero { display:grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap:14px; margin-bottom:14px; }
-#homeSection .dash-hero-card { background:var(--card-bg); padding:18px; border-radius:12px; border:1px solid var(--border-color); }
-#homeSection .dash-hero-card.primary { background:linear-gradient(135deg, var(--primary) 0%, #b86a26 100%); color:#fff; border:none; }
-#homeSection .dash-hero-card.primary h3, #homeSection .dash-hero-card.primary .lbl { color:rgba(255,255,255,.85); }
-#homeSection .dash-hero-card.primary .val { color:#fff; }
+/* p1_835 — visual polish: soft elevation replaces flat 1px look */
+#homeSection .dash-hero-card { background:var(--card-bg); padding:20px; border-radius:14px; border:1px solid #ECECEC; box-shadow:var(--shadow-sm); transition:box-shadow .18s ease, transform .18s ease; }
+#homeSection .dash-hero-card:hover { box-shadow:var(--shadow-md); }
+/* p1_835 — primary "Jualan" card = signature: richer bronze + faint topographic contour (10 Camp outdoor identity) */
+#homeSection .dash-hero-card.primary { position:relative; overflow:hidden; background:linear-gradient(135deg, #D98A3D 0%, var(--primary) 46%, #9A571E 100%); color:#fff; border:none; box-shadow:0 10px 26px -8px rgba(205,124,50,.50); }
+#homeSection .dash-hero-card.primary::after { content:''; position:absolute; inset:0; background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='160'%20viewBox='0%200%20240%20160'%3E%3Cg%20fill='none'%20stroke='%23ffffff'%20stroke-width='1.3'%20stroke-opacity='0.14'%3E%3Cpath%20d='M-20%2038%20Q60%208%20140%2038%20T320%2038'/%3E%3Cpath%20d='M-20%2068%20Q60%2038%20140%2068%20T320%2068'/%3E%3Cpath%20d='M-20%2098%20Q60%2068%20140%2098%20T320%2098'/%3E%3Cpath%20d='M-20%20128%20Q60%2098%20140%20128%20T320%20128'/%3E%3C/g%3E%3C/svg%3E"); background-size:240px 160px; pointer-events:none; }
+#homeSection .dash-hero-card.primary:hover { box-shadow:0 14px 32px -8px rgba(205,124,50,.58); }
+#homeSection .dash-hero-card.primary > * { position:relative; z-index:1; }
+#homeSection .dash-hero-card.primary h3, #homeSection .dash-hero-card.primary .lbl { color:rgba(255,255,255,.88); }
+#homeSection .dash-hero-card.primary .val { color:#fff; font-size:34px; text-shadow:0 1px 2px rgba(0,0,0,.12); }
 #homeSection .dash-hero-card .lbl { font-size:11.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); font-weight:700; margin-bottom:6px; }
-#homeSection .dash-hero-card .val { font-size:28px; font-weight:900; color:#111; line-height:1.1; }
+#homeSection .dash-hero-card .val { font-size:30px; font-weight:900; color:#111; line-height:1.08; letter-spacing:-.6px; }
 /* p1_440 — Sales Analytics block */
 .sa-kpi { background:#FAFAFA; border:1px solid var(--border-color); border-radius:10px; padding:11px 13px; }
 .sa-kpi__lbl { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#9CA3AF; margin-bottom:3px; }
@@ -3917,11 +3923,12 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 #homeSection .dash-grid-3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
 #homeSection .dash-grid-2 { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-top:14px; }
 
-#homeSection .dash-alert { background:#fff; border:1px solid var(--border-color); border-left:4px solid; border-radius:10px; padding:14px 16px; cursor:pointer; transition:.18s; display:flex; justify-content:space-between; align-items:center; }
-#homeSection .dash-alert:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.06); }
-#homeSection .dash-alert.sev-red { border-left-color:#B23A2E; }
-#homeSection .dash-alert.sev-amber { border-left-color:#CE9420; }
-#homeSection .dash-alert.sev-blue { border-left-color:#cd7c32; }
+/* p1_835 — alerts: resting elevation + soft severity tint for scannability */
+#homeSection .dash-alert { background:#fff; border:1px solid #ECECEC; border-left:4px solid; border-radius:12px; padding:14px 16px; cursor:pointer; transition:transform .18s ease, box-shadow .18s ease; box-shadow:var(--shadow-xs); display:flex; justify-content:space-between; align-items:center; }
+#homeSection .dash-alert:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+#homeSection .dash-alert.sev-red { border-left-color:#B23A2E; background:linear-gradient(90deg,#FDF4F2 0%,#fff 58%); }
+#homeSection .dash-alert.sev-amber { border-left-color:#CE9420; background:linear-gradient(90deg,#FDF9EE 0%,#fff 58%); }
+#homeSection .dash-alert.sev-blue { border-left-color:#cd7c32; background:linear-gradient(90deg,#FFF8F0 0%,#fff 58%); }
 #homeSection .dash-alert.sev-gray { border-left-color:#9ca3af; }
 #homeSection .dash-alert.sev-green { border-left-color:#101010; }
 #homeSection .dash-alert .meta { display:flex; flex-direction:column; gap:2px; }
@@ -3936,7 +3943,9 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 #homeSection .dash-alert .arrow { font-size:14px; color:var(--text-muted); margin-left:8px; opacity:.5; }
 #homeSection .dash-alert:hover .arrow { opacity:1; color:var(--primary); }
 
-#homeSection .dash-card2 { background:var(--card-bg); border:1px solid var(--border-color); border-radius:10px; padding:14px 16px; }
+/* p1_835 — elevation on bottom + memo/roster cards */
+#homeSection .dash-card { box-shadow:var(--shadow-sm); border-color:#ECECEC; }
+#homeSection .dash-card2 { background:var(--card-bg); border:1px solid #ECECEC; border-radius:12px; padding:16px 18px; box-shadow:var(--shadow-sm); }
 #homeSection .dash-card2 h3 { font-size:13px; font-weight:700; color:#111; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
 #homeSection .dash-card2 h3 .hint { font-size:11px; font-weight:500; color:var(--text-muted); }
 #homeSection .dash-mini-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-size:13px; }

@@ -39661,19 +39661,87 @@ window.__marginTagHtml = function(price, cost){
     set('referralsBody', shell('users','Referrals','Tukar pelanggan gembira jadi tenaga jualan. Sambung dengan loyalty points untuk dorong word-of-mouth tanpa kos iklan.',body));
   };
 
-  // 5) Audiences / Segmen
+  // 5) Audiences / Segmen — KIRA AUTO dari customersData (p1_843)
+  window.__audSegments = {};
+  window.__audExport = function(key){
+    var arr = (window.__audSegments||{})[key] || [];
+    if(!arr.length){ window.showToast && showToast('Segmen kosong, tiada untuk dieksport', 'warn'); return; }
+    var head = ['name','phone','email','total_orders','total_spent','points','is_member','accepts_email_marketing','created_at'];
+    var lines = [head.join(',')];
+    arr.forEach(function(c){
+      var row = [c.name, c.phone, c.email, c.total_orders||0, c.total_spent||0, c.points||0, c.is_member?'YES':'', c.accepts_email_marketing?'YES':'', c.created_at||''];
+      lines.push(row.map(function(x){ return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'; }).join(','));
+    });
+    try {
+      var blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'segmen_'+key+'_'+new Date().toISOString().slice(0,10)+'.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+      window.showToast && showToast('Eksport '+arr.length+' pelanggan ('+key+')', 'success');
+    } catch(e){ window.showToast && showToast('Eksport gagal: '+(e.message||e), 'error'); }
+  };
   window.renderAudiences = function(){
-    function seg(name,desc){ return '<div style="padding:11px 13px;border:1px solid #ECECEC;border-radius:10px;margin-bottom:8px;"><div style="font-size:13.5px;font-weight:700;color:var(--text-main);">'+name+'</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">'+desc+'</div></div>'; }
-    var body=
-      card('Segmen berguna',
-          seg('Pembeli khemah','Hantar gear pelengkap (groundsheet, lampu, sleeping) — upsell')
-        + seg('VIP / belanja tinggi','Layanan awal stok baru, jemputan khas')
-        + seg('Lama tak beli (90 hari+)','Re-engage dengan tawaran balik (lihat Engagement)')
-        + seg('Ada loyalty points','Dorong tebus / beli lagi untuk naik tier')
-        + seg('Pelanggan walk-in Cyberjaya','Jemput event / promo tempatan'))
-      + card('Cara guna',todo('Sasarkan broadcast WhatsApp ikut segmen (bukan blast semua)')+todo('Muat naik senarai ke Meta/TikTok untuk retargeting iklan')+todo('Hantar tawaran berbeza ikut segmen (pembeli khemah ≠ pembeli aksesori)'))
-      + card('Nota','<p style="margin:0;font-size:12.5px;color:var(--text-muted);line-height:1.5;">Kiraan & eksport automatik segmen boleh di-wire dari data pelanggan + jualan yang sedia ada. Beritahu kami segmen mana paling kerap kau guna, kami buatkan dulu.</p>');
-    set('audiencesBody', shell('target','Audiences / Segmen','Berhenti blast semua orang mesej sama. Pecah pelanggan jadi segmen supaya mesej & iklan lebih kena, dan retargeting lebih murah.',body));
+    var list = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData : [];
+    var now = Date.now(), DAY = 24*3600*1000;
+    function dsince(d){ return d ? (now - new Date(d).getTime())/DAY : null; }
+    function isB2B(c){ return !!(c.is_b2b || (c.tags && /b2b/i.test(String(c.tags)))); }
+    // Tarikh beli terakhir TIADA dalam table customers → derive dari salesHistory ikut phone.
+    var lastByPhone = {};
+    try {
+      var sh = (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory)) ? salesHistory : [];
+      sh.forEach(function(s){
+        if(!s) return;
+        var ph = s.customer_phone || (s.customer && s.customer.phone);
+        if(!ph) return;
+        var t = new Date(s.created_at || s.timestamp || 0).getTime();
+        if(!t) return;
+        if(!lastByPhone[ph] || t > lastByPhone[ph]) lastByPhone[ph] = t;
+      });
+    } catch(e){}
+    function lastOrderMs(c){
+      if(c.last_order_at){ var t = new Date(c.last_order_at).getTime(); if(t) return t; }
+      return (c.phone && lastByPhone[c.phone]) ? lastByPhone[c.phone] : null;
+    }
+    var segs = [
+      {key:'semua', name:'Semua pelanggan', desc:'Seluruh pangkalan data', fn:function(){ return true; }},
+      {key:'berulang', name:'Pelanggan berulang', desc:'2+ kali beli — paling bernilai, jaga elok', fn:function(c){ return (c.total_orders||0)>=2; }},
+      {key:'sekali', name:'Beli sekali sahaja', desc:'Dorong beli kali kedua', fn:function(c){ return (c.total_orders||0)===1; }},
+      {key:'vip', name:'VIP / Ahli', desc:'Layanan awal stok baru, jemputan khas', fn:function(c){ return !!c.is_member; }},
+      {key:'belanja-tinggi', name:'Belanja tinggi (RM500+)', desc:'Upsell gear premium', fn:function(c){ return (c.total_spent||0)>=500; }},
+      {key:'ada-mata', name:'Ada loyalty points', desc:'Dorong tebus / naik tier', fn:function(c){ return (c.points||0)>0; }},
+      {key:'lama-tak-beli', name:'Lama tak beli (90 hari+)', desc:'Re-engage — berdasarkan jualan POS', fn:function(c){ var t=lastOrderMs(c); return t!=null && (now-t)/DAY >= 90; }},
+      {key:'baru', name:'Pelanggan baru (30 hari)', desc:'Welcome + cross-sell', fn:function(c){ var d=dsince(c.created_at); return d!=null && d<=30; }},
+      {key:'email-ok', name:'Setuju email marketing', desc:'Boleh hantar email campaign (PDPA)', fn:function(c){ return !!c.accepts_email_marketing; }},
+      {key:'b2b', name:'Akaun B2B', desc:'Tawaran pukal / korporat', fn:isB2B}
+    ];
+    if(!list.length){
+      set('audiencesBody', shell('target','Audiences / Segmen','Pecah pelanggan jadi segmen supaya mesej & iklan lebih kena.',
+        card('Data belum dimuat','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.5;">Senarai pelanggan belum dimuat dalam sesi ni. Buka mana-mana skrin <b>Pelanggan</b> atau <b>Orders</b> dahulu, kemudian buka semula Audiences.</p>')));
+      return;
+    }
+    var total = list.length;
+    var withPhone = list.filter(function(c){ return c.phone; }).length;
+    window.__audSegments = {};
+    var rows = segs.map(function(s){
+      var arr = list.filter(s.fn);
+      window.__audSegments[s.key] = arr;
+      var pct = total ? Math.round(arr.length/total*100) : 0;
+      var btn = '<button onclick="window.__audExport(\''+s.key+'\')"'+(arr.length?'':' disabled')+' style="font-size:11.5px;font-weight:700;color:'+(arr.length?'var(--primary)':'#bbb')+';background:#fff;border:1px solid '+(arr.length?'var(--primary)':'#e5e5e5')+';padding:5px 11px;border-radius:7px;cursor:'+(arr.length?'pointer':'default')+';">Eksport CSV</button>';
+      return '<tr>'
+        +'<td style="padding:10px 11px;border-bottom:1px solid #F1F1F1;"><div style="font-weight:700;font-size:13px;color:var(--text-main);">'+s.name+'</div><div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">'+s.desc+'</div></td>'
+        +'<td style="padding:10px 11px;border-bottom:1px solid #F1F1F1;text-align:right;font-weight:800;font-size:16px;color:var(--primary-600,#B86A26);">'+arr.length+'</td>'
+        +'<td style="padding:10px 11px;border-bottom:1px solid #F1F1F1;text-align:right;font-size:12px;color:var(--text-muted);">'+pct+'%</td>'
+        +'<td style="padding:10px 11px;border-bottom:1px solid #F1F1F1;text-align:right;">'+btn+'</td>'
+        +'</tr>';
+    }).join('');
+    var table = '<div style="background:#fff;border:1px solid #ECECEC;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm,0 2px 4px rgba(0,0,0,.06));margin-bottom:14px;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#FAFAFA;"><th style="text-align:left;padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);font-weight:700;">Segmen</th><th style="text-align:right;padding:9px 11px;font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">Bilangan</th><th style="text-align:right;padding:9px 11px;font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">%</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    var body =
+      card('Ringkasan','<div style="font-size:13.5px;color:var(--text-main);"><b>'+total+'</b> pelanggan &middot; <b>'+withPhone+'</b> ada nombor telefon (boleh broadcast WhatsApp)</div>')
+      + table
+      + card('Cara guna',todo('Eksport CSV segmen → import ke Broadcast WhatsApp (sasar, bukan blast semua)')+todo('Muat naik CSV ke Meta / TikTok Ads jadi Custom Audience untuk retargeting')+todo('Hantar tawaran berbeza ikut segmen (berulang ≠ sekali beli)'));
+    set('audiencesBody', shell('target','Audiences / Segmen','Dikira terus dari pangkalan pelanggan kau. Eksport mana-mana segmen jadi CSV untuk broadcast atau retargeting iklan.',body));
   };
 
   // 6) Local / Google Business

@@ -3249,6 +3249,9 @@ body:has(#posCartDrawer.drawer-open) #saWidget,
 body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 /* p1_816 — sidebar workflow section labels (Jual / Katalog & Stok / Pemasaran / Analisis). Bronze = readable on any bg, on-brand. */
 .nav-section-label { font-size: 9.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--primary, #CD7C32); opacity: .8; padding: 14px 12px 4px; user-select: none; pointer-events: none; }
+/* p1_842 — sub-header kluster dalam nav-children (cth Marketing: Promosi/Pelanggan/Kandungan/Ukur) */
+.nav-children .nav-subhead { font-size: 9px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--primary, #CD7C32); opacity: .6; padding: 11px 10px 3px; user-select: none; pointer-events: none; }
+.nav-children .nav-subhead:first-child { padding-top: 4px; }
 /* p1_812 — Customer AI shopping assistant (landing). Reuses .sa-* panel internals; pill FAB to invite. */
 #caWidget { position: fixed; right: 20px; bottom: 20px; z-index: 9600; }
 #caFab { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px 0 16px; border-radius: 26px; border: 0; cursor: pointer; background: linear-gradient(135deg,#CD7C32,#A05F22); color: #fff; box-shadow: 0 8px 22px rgba(16,16,16,.28); font-family: inherit; font-size: 14px; font-weight: 800; letter-spacing: .2px; transition: transform .12s; }

@@ -37,7 +37,7 @@
  <link rel="stylesheet" href="style.css?v=61">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
- <link rel="stylesheet" href="design-tokens.css?v=120">
+ <link rel="stylesheet" href="design-tokens.css?v=121">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1803,9 +1803,6 @@
  <div class="menu-item" data-tab="nav_chat_inbox" onclick="event.stopPropagation(); switchHub(['chatInboxSection'], 'Chat Inbox', this); if(typeof renderChatInbox==='function') renderChatInbox();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="messages-square" style="width:15px; height:15px;"></i> <span>Chat Inbox</span>
  </div>
- <div class="menu-item" data-tab="nav_broadcast" onclick="event.stopPropagation(); switchHub(['waBroadcastSection'], 'Broadcast', this); if(typeof renderWABroadcast==='function') renderWABroadcast();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="send" style="width:15px; height:15px;"></i> <span>Broadcast</span>
- </div>
  <div class="menu-item" data-tab="nav_connections" onclick="event.stopPropagation(); switchHub(['connectionsSection'], 'Connections', this); if(typeof renderConnections==='function') renderConnections();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="plug" style="width:15px; height:15px;"></i> <span>Connections</span>
  </div>
@@ -1816,26 +1813,52 @@
  <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
  <div class="nav-children" data-nav-children="marketing">
+ <!-- p1_842 — kluster IA: Promosi & Iklan / Pelanggan & Jangkauan / Kandungan & Web / Ukur -->
+ <div class="nav-subhead">Promosi &amp; Iklan</div>
  <div class="menu-item" data-tab="nav_campaigns" onclick="event.stopPropagation(); switchHub(['campaignsSection'], 'Campaigns', this); if(typeof renderCampaigns==='function') renderCampaigns();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="trophy" style="width:15px; height:15px;"></i> <span>Campaigns</span>
  </div>
  <div class="menu-item" data-tab="nav_vouchers" onclick="event.stopPropagation(); switchHub(['promotionsSection'], 'Vouchers', this); if(typeof renderPromotionsV2==='function') renderPromotionsV2();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="ticket" style="width:15px; height:15px;"></i> <span>Vouchers</span>
  </div>
+ <div class="menu-item" data-tab="nav_ads" onclick="event.stopPropagation(); switchHub(['adsSection'], 'Ads', this); if(typeof renderAds==='function') renderAds();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="badge-dollar-sign" style="width:15px; height:15px;"></i> <span>Ads</span>
+ </div>
+ <div class="nav-subhead">Pelanggan &amp; Jangkauan</div>
  <div class="menu-item" data-tab="nav_engagement" onclick="event.stopPropagation(); switchHub(['reengageSection'], 'Engagement', this); if(typeof renderReengage==='function') renderReengage();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="heart-handshake" style="width:15px; height:15px;"></i> <span>Engagement</span>
  </div>
+ <div class="menu-item" data-tab="nav_broadcast" onclick="event.stopPropagation(); switchHub(['waBroadcastSection'], 'Broadcast', this); if(typeof renderWABroadcast==='function') renderWABroadcast();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="send" style="width:15px; height:15px;"></i> <span>Broadcast</span>
+ </div>
+ <div class="menu-item" data-tab="nav_referrals" onclick="event.stopPropagation(); switchHub(['referralsSection'], 'Referrals', this); if(typeof renderReferrals==='function') renderReferrals();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="users" style="width:15px; height:15px;"></i> <span>Referrals</span>
+ </div>
+ <div class="menu-item" data-tab="nav_audiences" onclick="event.stopPropagation(); switchHub(['audiencesSection'], 'Audiences', this); if(typeof renderAudiences==='function') renderAudiences();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="target" style="width:15px; height:15px;"></i> <span>Audiences</span>
+ </div>
+ <div class="menu-item" data-tab="nav_reviews" onclick="event.stopPropagation(); switchHub(['reviewsHubSection'], 'Reviews', this); if(typeof renderReviewsHub==='function') renderReviewsHub();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="star" style="width:15px; height:15px;"></i> <span>Reviews</span>
+ </div>
+ <div class="nav-subhead">Kandungan &amp; Web</div>
  <div class="menu-item" data-tab="nav_social_media" onclick="event.stopPropagation(); switchHub(['socialMediaSection'], 'Social Media', this); if(typeof renderSocialMedia==='function') renderSocialMedia();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="share-2" style="width:15px; height:15px;"></i> <span>Social Media</span>
  </div>
  <div class="menu-item" data-tab="nav_content_schedule" onclick="event.stopPropagation(); switchHub(['contentScheduleSection'], 'Content Schedule', this); if(typeof renderContentSchedule==='function') renderContentSchedule();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="calendar-days" style="width:15px; height:15px;"></i> <span>Content Schedule</span>
  </div>
+ <div class="menu-item" data-tab="nav_content_seo" onclick="event.stopPropagation(); switchHub(['contentSeoSection'], 'Content & SEO', this); if(typeof renderContentSeo==='function') renderContentSeo();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="file-text" style="width:15px; height:15px;"></i> <span>Content &amp; SEO</span>
+ </div>
+ <div class="menu-item" data-tab="nav_web_traffic" onclick="event.stopPropagation(); switchHub(['webTrafficSection'], 'Web Traffic', this); if(typeof renderWebTraffic==='function') renderWebTraffic();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="activity" style="width:15px; height:15px;"></i> <span>Web Traffic</span>
+ </div>
+ <div class="menu-item" data-tab="nav_local_seo" onclick="event.stopPropagation(); switchHub(['localSeoSection'], 'Local & Google', this); if(typeof renderLocalSeo==='function') renderLocalSeo();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="map-pin" style="width:15px; height:15px;"></i> <span>Local &amp; Google</span>
+ </div>
+ <div class="nav-subhead">Ukur</div>
  <div class="menu-item" data-tab="nav_mktweekly" onclick="event.stopPropagation(); switchHub(['marketingWeeklySection'], 'Marketing Weekly Data', this); if(typeof renderMktWeekly==='function') renderMktWeekly();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="bar-chart-2" style="width:15px; height:15px;"></i> <span>Marketing Data (Weekly)</span>
- </div>
- <div class="menu-item" data-tab="nav_ads" onclick="event.stopPropagation(); switchHub(['adsSection'], 'Ads', this); if(typeof renderAds==='function') renderAds();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="badge-dollar-sign" style="width:15px; height:15px;"></i> <span>Ads</span>
  </div>
  <div class="menu-item" data-tab="nav_mkt_reports" onclick="event.stopPropagation(); switchHub(['marketingReportsSection'], 'Marketing Reports', this); if(typeof renderMarketingReports==='function') renderMarketingReports();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="bar-chart-3" style="width:15px; height:15px;"></i> <span>Reports</span>
@@ -4691,6 +4714,13 @@
  <div id="marketingReportsSection" class="tab-section" style="display:none;">
  <div id="marketingReportsBody"></div>
  </div>
+ <!-- p1_842 — Marketing hub: 6 seksyen baru (audit sidebar marketing) -->
+ <div id="reviewsHubSection" class="tab-section" style="display:none;"><div id="reviewsHubBody"></div></div>
+ <div id="contentSeoSection" class="tab-section" style="display:none;"><div id="contentSeoBody"></div></div>
+ <div id="webTrafficSection" class="tab-section" style="display:none;"><div id="webTrafficBody"></div></div>
+ <div id="referralsSection" class="tab-section" style="display:none;"><div id="referralsBody"></div></div>
+ <div id="audiencesSection" class="tab-section" style="display:none;"><div id="audiencesBody"></div></div>
+ <div id="localSeoSection" class="tab-section" style="display:none;"><div id="localSeoBody"></div></div>
 
  <!-- ============================================== -->
  <!-- p1_122 — MARKETING WEEKLY DATA FORM -->
@@ -8453,6 +8483,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_842', label:'Audit + rombak sidebar Marketing (Zaid: "fokus sidebar marketing, sub item dah cukup? audit + cadangan" → pilih P1+P2+reorg). AUDIT: 8 item lama berat sebelah (log manual + tindih), Broadcast otak-terbelah bawah Messages, takde rumah untuk blog/tracking baru + jurang Reviews/Local/Referrals. FIX: (1) 6 SEKSYEN BARU + render fn (app.js append): Reviews & Reputasi (link+balas review Shopee/TikTok/Google + templat minta review WA), Content & SEO (4 artikel blog + status SEO + backlog + Search Console), Web Traffic (status pixel GA4/Meta/TikTok baca window.__ANALYTICS + cara aktif + dashboard), Referrals (program + templat kongsi + loyalty), Audiences/Segmen (segmen + cara guna), Local & Google Business (checklist GBP + NAP rasmi). (2) REORG IA: nav-children Marketing 4 kluster sub-header (Promosi & Iklan/Pelanggan & Jangkauan/Kandungan & Web/Ukur) + .nav-subhead CSS. (3) Broadcast DIPINDAH Messages→Marketing. Div balance tak berubah (diff 6 noise). Brand-lock. app.js v801->802, design-tokens v120->121.', d:'done' },
  { id:'p1_841', label:'Artikel #4 blog: 10 Barang Camping Wajib First-Timer (checklist/lead-magnet) (Zaid: "sambung artikel #4"; rank 3 backlog content plan). Top-funnel pemula, tiap barang = link produk SEBENAR. Query products_master distinct-on-category termurah mesra-pemula tiap kategori penting (Tent/Sleeping Bag/Air Mattress/Ground Sheet/Hanging Lamp/Lanterns/Stove/Pots/Chairs/Camping Cots) + shopee_url tepat. 10 barang bernombor (khemah RM200 → katil camping RM196) + seksyen "barang sendiri jangan lupa" (jujur, tak jual) + ringkasan table + nota "4 asas ~RM400". CTA UTAMA WhatsApp starter pack (pre-fill text) ikut plan. /blog/barang-camping-wajib-first-timer.html + BlogPosting+FAQPage schema. Ditambah hub + sitemap + cross-link. 4 artikel kini live.', d:'done' },
  { id:'p1_840', label:'Artikel #3 blog: Naturehike vs Mobi Garden (Zaid: "sambung artikel #3"). Format perbandingan jenama (paling kerap dipetik AI). Data SEBENAR dari katalog: query products_master spread kategori kedua-dua jenama → Naturehike kuat khemah/sleeping/furniture/ringan (6 tent, 5 sleeping bag, 9 chair); Mobi Garden kuat gear masak/camp-living (7 kettle, 5 stove, 4 pots, wagon). Verdict jujur "bergantung keperluan, ramai campur dua-dua" (bukan clickbait satu menang). LINK SHOPEE TEPAT flagship tiap jenama (Cloud Up 3/Village 6.0/Sea Star chair vs Mei Yan stove/Enamel kettle/Cloudy wagon) dari metadata.shopee_url. /blog/naturehike-vs-mobi-garden.html + BlogPosting+FAQPage schema. Ditambah ke /blog/ hub + sitemap.xml + cross-link dari artikel #1/#2. Brand-lock + analytics.js. 3 artikel kini live.', d:'done' },
  { id:'p1_839', label:'Blog/Panduan system + 2 artikel pertama LIVE (Zaid: pilih "bina sistem blog ringkas + draft artikel #2 + link produk tepat"). Seni bina: page statik HTML berjenama di /blog/ (terbaik SEO — HTML sebenar crawlable, bukan SPA), guna semula style.css+design-tokens.css+Fraunces. (1) /blog/index.html — hub senarai panduan (kad ber-elevation, hover lift). (2) /blog/khemah-camping-terbaik-malaysia-2026.html — artikel #1 (khemah ikut bilangan orang) dengan PRODUK SEBENAR + LINK SHOPEE TEPAT setiap khemah (shopee_url dari products_master.metadata: LFO/Mountainhiker/Naturehike/Vidalido/Blackdog/Chanodug), jawapan 40-60 patah, comparison table, CTA, FAQ + BlogPosting+FAQPage JSON-LD. (3) /blog/tempat-camping-best-selangor.html — artikel #2 (10 tapak Selangor sebenar, nota jujur, tiada fakta direka) + schema. (4) Nav landing tambah link "Panduan" → /blog/ (internal link + discovery). (5) sitemap.xml tambah /blog/ + 2 artikel. (6) analytics.js dimuat pada blog pages (UTM + outbound events jalan). Draft sumber di docs/articles/. Brand-lock + Landing=Preview parity. Belum bump app.js (statik baru; index.html nav fresh).', d:'done' },
@@ -13756,7 +13787,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=801"></script>
+ <script src="app.js?v=802"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

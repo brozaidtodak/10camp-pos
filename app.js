@@ -39578,3 +39578,112 @@ window.__marginTagHtml = function(price, cost){
  const tip = isMgmt ? ('Margin ' + m.pct.toFixed(1) + '% (dasar min ' + (window.MARGIN_FLOOR_PCT||35) + '%)') : ('Status margin — harga kos disembunyikan dari staf');
  return `<span class="pd-card__price-sub" title="${tip}" style="color:${col}; background:${bg}; padding:1px 7px; border-radius:5px; font-weight:700; display:inline-block;">${label}</span>`;
 };
+
+/* ============================================================
+   p1_842 — Marketing hub: 6 seksyen baru hasil audit sidebar marketing
+   (Reviews & Reputasi, Content & SEO, Web Traffic, Referrals,
+   Audiences/Segmen, Local/Google Business). Page permulaan berguna
+   (action + status), brand-lock, BM. Tiada data wiring berat.
+   ============================================================ */
+(function(){
+  var SHOP='https://shopee.com.my/10camp.os', TT='https://vt.tiktok.com/ZSxoAXDhd/', WA='https://wa.me/601133109547', MAPS='https://maps.google.com/?q=10+CAMP+Glomac+Cyberjaya';
+  function shell(icon,title,sub,body){
+    return '<div style="max-width:1100px;margin:0 auto;padding:4px 2px 60px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:0 0 4px;"><i data-lucide="'+icon+'" style="width:22px;height:22px;color:var(--primary);"></i>'
+      +'<h2 style="margin:0;font-size:22px;font-weight:800;color:var(--text-main);">'+title+'</h2></div>'
+      +'<p style="margin:0 0 20px;font-size:13px;color:var(--text-muted);max-width:700px;line-height:1.55;">'+sub+'</p>'+body+'</div>';
+  }
+  function card(title,inner){
+    return '<div style="background:#fff;border:1px solid #ECECEC;border-radius:12px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow-sm,0 2px 4px rgba(0,0,0,.06));">'
+      +(title?'<h3 style="margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text-main);">'+title+'</h3>':'')+inner+'</div>';
+  }
+  function ext(href,label,bg){
+    return '<a href="'+href+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:'+(bg?'#fff':'var(--primary)')+';background:'+(bg||'#fff')+';border:1px solid '+(bg||'var(--primary)')+';padding:8px 13px;border-radius:8px;text-decoration:none;margin:4px 6px 4px 0;">'+label+' <i data-lucide="external-link" style="width:12px;height:12px;"></i></a>';
+  }
+  function done(t){ return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-main);margin:7px 0;line-height:1.45;"><i data-lucide="check-circle" style="width:16px;height:16px;color:#2e7d32;flex:0 0 auto;margin-top:1px;"></i><span>'+t+'</span></div>'; }
+  function todo(t){ return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-muted);margin:7px 0;line-height:1.45;"><i data-lucide="circle" style="width:16px;height:16px;color:#CE9420;flex:0 0 auto;margin-top:1px;"></i><span>'+t+'</span></div>'; }
+  function copyBtn(text,label){
+    var safe=String(text).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<button data-copy="'+safe+'" onclick="if(navigator.clipboard){navigator.clipboard.writeText(this.getAttribute(\'data-copy\'));window.showToast&&showToast(\'Teks disalin\',\'success\');}" style="margin-top:10px;font-size:12.5px;font-weight:700;color:#fff;background:var(--primary);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;">'+label+'</button>';
+  }
+  function quote(t){ return '<div style="background:#FAF6EF;border:1px solid #ECECEC;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.55;color:var(--text-main);white-space:pre-wrap;">'+t+'</div>'; }
+  function set(id,html){ var el=document.getElementById(id); if(el){ el.innerHTML=html; if(window.lucide&&lucide.createIcons){try{lucide.createIcons();}catch(e){}} } }
+
+  // 1) Reviews & Reputasi
+  window.renderReviewsHub = function(){
+    var msg='Hi! Terima kasih beli dengan 10 CAMP. Kalau berpuas hati dengan gear kau, sudi tinggalkan review? Sangat membantu kedai kecil macam kami. Klik je rating bintang di pesanan kau. Terima kasih!';
+    var body=
+      card('Pantau & balas review','<p style="margin:0 0 10px;font-size:13px;color:var(--text-muted);">Balas SEMUA review (baik atau buruk) dalam 1-2 hari. Ia naikkan ranking listing + tunjuk kedai aktif.</p>'
+        + ext(SHOP,'Review Shopee','#EE4D2D') + ext(TT,'Review TikTok','#101010') + ext('https://search.google.com/local/reviews?placeid=','Review Google'))
+      + card('Minta review selepas jual','<p style="margin:0 0 10px;font-size:13px;color:var(--text-muted);">Hantar mesej ni 2-3 hari selepas customer terima barang (bila dia dah sempat guna). Templat WhatsApp:</p>'
+        + quote(msg) + copyBtn(msg,'Salin templat'))
+      + card('Tip reputasi',todo('Letak QR / link review dalam bungkusan & resit')+todo('Reply review negatif dengan tenang + tawar selesaikan (calon pelanggan baca)')+todo('Daftar & minta review Google Business untuk walk-in (lihat Local / Google Business)'));
+    set('reviewsHubBody', shell('star','Reviews & Reputasi','Review marketplace = nyawa peniaga online. Pantau, balas, dan minta review secara konsisten supaya listing kau naik dan calon pembeli percaya.',body));
+  };
+
+  // 2) Content & SEO
+  window.renderContentSeo = function(){
+    function art(href,tag,title){ return '<a href="'+href+'" target="_blank" rel="noopener" style="display:block;padding:11px 13px;border:1px solid #ECECEC;border-radius:10px;margin-bottom:8px;text-decoration:none;"><span style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--primary-600,#B86A26);">'+tag+'</span><div style="font-size:13.5px;font-weight:700;color:var(--text-main);margin-top:2px;">'+title+'</div></a>'; }
+    var body=
+      card('Status SEO',done('Blog /panduan LIVE (4 artikel)')+done('sitemap.xml + robots.txt + llms.txt')+done('Schema FAQPage + BlogPosting + Store')+todo('Daftar sitemap di Google Search Console')+todo('Sambung artikel #5+ dari content plan'))
+      + card('Artikel diterbitkan',
+          art('/blog/khemah-camping-terbaik-malaysia-2026.html','Panduan Gear','Khemah Camping Terbaik Malaysia 2026 (Ikut Bilangan Orang)')
+        + art('/blog/tempat-camping-best-selangor.html','Tempat','10 Tempat Camping Best dekat Selangor')
+        + art('/blog/naturehike-vs-mobi-garden.html','Perbandingan','Naturehike vs Mobi Garden: Brand Mana Lebih Baik?')
+        + art('/blog/barang-camping-wajib-first-timer.html','Pemula','10 Barang Camping Wajib untuk First-Timer')
+        + ext('/blog/','Buka Blog'))
+      + card('Akan datang (backlog)','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.6;">Camping Musim Hujan + gear · Review Naturehike jujur · Cara Pasang Khemah (HowTo) · Budget Camping breakdown · Sleeping Bag rating suhu · Camping Cyberjaya/Putrajaya. Pelan penuh: <b>docs/MARKETING_CONTENT_PLAN.md</b>.</p>')
+      + card('Alat',ext('https://search.google.com/search-console','Google Search Console')+ext('https://www.10camp.com/sitemap.xml','Lihat sitemap'));
+    set('contentSeoBody', shell('file-text','Content & SEO','Enjin trafik organik kau. Tiap artikel = pintu masuk Google + bahan AI (ChatGPT/Perplexity) + funnel ke Shopee/TikTok/walk-in. Sasaran: terbit 1 artikel seminggu.',body));
+  };
+
+  // 3) Web Traffic
+  window.renderWebTraffic = function(){
+    var A=window.__ANALYTICS||{};
+    function pill(on){ return on?'<span style="font-size:11px;font-weight:800;color:#fff;background:#2e7d32;padding:2px 9px;border-radius:50px;">HIDUP</span>':'<span style="font-size:11px;font-weight:800;color:#fff;background:#9ca3af;padding:2px 9px;border-radius:50px;">MATI</span>'; }
+    function row(name,on){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F1F1F1;font-size:13.5px;font-weight:600;color:var(--text-main);">'+name+' '+pill(on)+'</div>'; }
+    var body=
+      card('Status tracking',row('Google Analytics 4',!!A.ga4)+row('Meta (Facebook) Pixel',!!A.metaPixel)+row('TikTok Pixel',!!A.tiktokPixel)
+        +'<p style="margin:10px 0 0;font-size:12.5px;color:var(--text-muted);line-height:1.5;">UTM + event klik ke Shopee/TikTok/WhatsApp dipasang automatik. Pixel HIDUP bila ID diisi dalam window.__ANALYTICS (head index.html).</p>')
+      + card('Cara aktifkan',todo('GA4: analytics.google.com → Admin → Data Streams → ID rupa G-XXXXXXXXXX')+todo('Meta Pixel: business.facebook.com → Events Manager → ID ~15 digit')+todo('TikTok Pixel: TikTok Ads Manager → Assets → Events → Web')+'<p style="margin:8px 0 0;font-size:12.5px;color:var(--text-muted);">Bagi ID pada admin, kami isikan. Lepas tu hard-refresh.</p>')
+      + card('Dashboard',ext('https://analytics.google.com','Google Analytics')+ext('https://search.google.com/search-console','Search Console')+ext('https://business.facebook.com/events_manager2','Meta Events')+ext('https://ads.tiktok.com','TikTok Ads'));
+    set('webTrafficBody', shell('activity','Web Traffic','Mata kau untuk landing + blog. Tengok berapa orang masuk, dari mana, dan berapa klik ke marketplace. Tanpa ni semua keputusan marketing jadi tekaan.',body));
+  };
+
+  // 4) Referrals
+  window.renderReferrals = function(){
+    var msg='Aku beli gear camping dari 10 CAMP, memang berbaloi. Kalau kau nak start camping, cuba tengok stok diorang (Naturehike, Mobi Garden, Blackdog & lebih) di Shopee/TikTok atau kedai Cyberjaya: '+SHOP;
+    var body=
+      card('Cadangan program','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.6;">Refer-a-friend mudah: pelanggan refer kawan, <b>dua-dua dapat ganjaran</b> (contoh: 50 mata loyalti atau diskaun walk-in). Sambung dengan sistem loyalty points kau yang sedia ada. Murah, dan word-of-mouth paling dipercayai untuk gear outdoor.</p>')
+      + card('Mesej kongsi (templat)','<p style="margin:0 0 8px;font-size:13px;color:var(--text-muted);">Bagi pelanggan setia templat ni untuk kongsi pada kawan:</p>'+quote(msg)+copyBtn(msg,'Salin mesej'))
+      + card('Loyalty sedia ada',ext('/loyalty.html','Buka Loyalty Portal'))
+      + card('Untuk hidupkan penuh',todo('Tetapkan ganjaran (mata / diskaun) untuk perujuk + dirujuk')+todo('Cara jejak: kod rujukan ringkas atau "siapa refer?" masa walk-in')+todo('Beritahu kami — kami boleh wire ke loyalty points'));
+    set('referralsBody', shell('users','Referrals','Tukar pelanggan gembira jadi tenaga jualan. Sambung dengan loyalty points untuk dorong word-of-mouth tanpa kos iklan.',body));
+  };
+
+  // 5) Audiences / Segmen
+  window.renderAudiences = function(){
+    function seg(name,desc){ return '<div style="padding:11px 13px;border:1px solid #ECECEC;border-radius:10px;margin-bottom:8px;"><div style="font-size:13.5px;font-weight:700;color:var(--text-main);">'+name+'</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">'+desc+'</div></div>'; }
+    var body=
+      card('Segmen berguna',
+          seg('Pembeli khemah','Hantar gear pelengkap (groundsheet, lampu, sleeping) — upsell')
+        + seg('VIP / belanja tinggi','Layanan awal stok baru, jemputan khas')
+        + seg('Lama tak beli (90 hari+)','Re-engage dengan tawaran balik (lihat Engagement)')
+        + seg('Ada loyalty points','Dorong tebus / beli lagi untuk naik tier')
+        + seg('Pelanggan walk-in Cyberjaya','Jemput event / promo tempatan'))
+      + card('Cara guna',todo('Sasarkan broadcast WhatsApp ikut segmen (bukan blast semua)')+todo('Muat naik senarai ke Meta/TikTok untuk retargeting iklan')+todo('Hantar tawaran berbeza ikut segmen (pembeli khemah ≠ pembeli aksesori)'))
+      + card('Nota','<p style="margin:0;font-size:12.5px;color:var(--text-muted);line-height:1.5;">Kiraan & eksport automatik segmen boleh di-wire dari data pelanggan + jualan yang sedia ada. Beritahu kami segmen mana paling kerap kau guna, kami buatkan dulu.</p>');
+    set('audiencesBody', shell('target','Audiences / Segmen','Berhenti blast semua orang mesej sama. Pecah pelanggan jadi segmen supaya mesej & iklan lebih kena, dan retargeting lebih murah.',body));
+  };
+
+  // 6) Local / Google Business
+  window.renderLocalSeo = function(){
+    var nap='10 CAMP\nNo. 9-G, Block H, Glomac Cyberjaya, Jalan GC 9, 63000 Cyberjaya, Selangor\nTel: +60 11-3310 9547\nIsnin-Sabtu 11 pagi-8 malam (Rabu mula 2 petang)';
+    var body=
+      card('Kenapa penting','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.6;">Kau ada kedai fizikal. Google Business Profile = muncul di "camping store near me" + Google Maps = walk-in PERCUMA. ROI tertinggi untuk kedai fizikal, dan ia percuma.</p>')
+      + card('Checklist Google Business',todo('Claim / sahkan listing di google.com/business')+todo('Pastikan Nama, Alamat, Telefon SAMA dengan website (NAP di bawah)')+todo('Set waktu buka betul (termasuk Rabu half-day)')+todo('Muat naik 10+ gambar kedai & produk')+todo('Post berkala (stok baru, promo) — macam social')+todo('Jawab soalan & balas SEMUA review')+todo('Tambah link Shopee/TikTok/WhatsApp'))
+      + card('NAP rasmi (guna sama merata)',quote(nap)+copyBtn(nap,'Salin NAP'))
+      + card('Alat',ext('https://business.google.com','Google Business Profile')+ext(MAPS,'Lihat di Maps'));
+    set('localSeoBody', shell('map-pin','Local / Google Business','Kedai Cyberjaya kau patut senang dijumpai di Google Maps & carian tempatan. NAP konsisten + GBP aktif = walk-in percuma.',body));
+  };
+})();

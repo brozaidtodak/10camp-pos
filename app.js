@@ -19402,6 +19402,28 @@ window.memoSelect = function(id){
   if(detail && window.matchMedia && window.matchMedia('(max-width: 860px)').matches) detail.scrollIntoView({ behavior:'smooth', block:'start' });
  } catch(e){}
 };
+// p1_833 — Dari mana-mana (cth widget Overview): buka Memo Board + terus pilih memo ini.
+window.memoGoTo = function(id){
+ const m = window.memoLoad().find(x => x.id === id);
+ // Tetapkan pilihan + reset tapis supaya memo sasaran pasti kelihatan
+ window.__memoSelectedId = id;
+ if(m){ window.__memoStatus = m.status || 'approved'; }
+ window.__memoDept = 'all'; window.__memoCategory = 'all'; window.__memoSearch = '';
+ // Navigasi ke seksyen Memo Board (guna butang nav supaya rail + switchHub konsisten)
+ const navBtn = document.querySelector('.menu-item[data-tab="memo_board"]');
+ if(navBtn) { navBtn.click(); }
+ else if(typeof switchHub === 'function') { switchHub(['memoBoardSection'], 'Memo Board'); }
+ // Selaras kelas aktif tab/pill + kotak carian
+ try {
+  document.querySelectorAll('[data-memo-status]').forEach(b => b.classList.toggle('memo-tab--active', b.getAttribute('data-memo-status') === window.__memoStatus));
+  document.querySelectorAll('[data-memo-dept]').forEach(b => b.classList.toggle('memo-dept--active', b.getAttribute('data-memo-dept') === 'all'));
+  document.querySelectorAll('[data-memo-cat]').forEach(b => b.classList.toggle('memo-dept--active', b.getAttribute('data-memo-cat') === 'all'));
+  const si = document.getElementById('memoSearchInput'); if(si) si.value = '';
+ } catch(e){}
+ if(typeof window.renderMemoBoard === 'function') window.renderMemoBoard();
+ // Pastikan highlight + preview keluar (renderMemoBoard dah render detail kalau __memoSelectedId set)
+ setTimeout(() => { if(typeof window.memoSelect === 'function') window.memoSelect(id); }, 60);
+};
 window.__memoRenderDetail = function(m){
  const detail = document.getElementById('memoBoardDetail');
  if(!detail || !m) return;
@@ -30635,7 +30657,7 @@ window.__renderDashOverviewMemo = function() {
  const bodyPreview = m.body
  ? '<div style="font-size:12px; color:#7A5410; margin-top:3px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + esc(window.__memoTx(m.body)) + '</div>'
  : '';
- return '<div style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:#FBF7EC; border:1px solid #E7C66A; border-radius:6px;">'
+ return '<div class="dash-memo-item" onclick="window.memoGoTo(\''+m.id+'\')" title="Klik untuk buka memo" style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:#FBF7EC; border:1px solid #E7C66A; border-radius:6px; cursor:pointer;">'
  + '<div style="flex:1; min-width:0;">'
  + '<div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">'
  + '<span style="font-size:9px; font-weight:700; padding:1px 6px; border-radius:999px; background:'+dColor+'22; color:'+dColor+'; text-transform:uppercase;">'+esc(dLabel)+'</span>'
@@ -30645,6 +30667,7 @@ window.__renderDashOverviewMemo = function() {
  + bodyPreview
  + '<div style="font-size:11px; color:var(--neutral-500); margin-top:4px;">' + esc(ago) + '</div>'
  + '</div>'
+ + '<i data-lucide="chevron-right" class="dash-memo-item__chev" style="width:16px; height:16px; color:#B68A3C; flex-shrink:0; align-self:center;"></i>'
  + '</div>';
  }).join('');
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}

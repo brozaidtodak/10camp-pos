@@ -548,6 +548,11 @@
 .memo-pin-icon { color: #CE9420; font-size: 14px; }
 
 .memo-card__body { font-size: 13px; line-height: 1.5; color: #374151; white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto; padding: 8px 10px; background: #F9FAFB; border-radius: 6px; margin-bottom: 8px; }
+/* p1_833 — kad memo dlm widget Overview boleh klik → terus ke Memo Board */
+.dash-memo-item { transition: border-color .15s, box-shadow .15s, transform .15s; }
+.dash-memo-item:hover { border-color: #CD7C32 !important; box-shadow: 0 4px 12px rgba(205,124,50,0.18); transform: translateY(-1px); }
+.dash-memo-item:hover .dash-memo-item__chev { color: #CD7C32 !important; }
+
 /* p1_832 — Memo Board master-detail: senarai kiri + pane pratonton kanan */
 .memo-split { display: flex; gap: 16px; align-items: flex-start; margin-top: 14px; }
 .memo-split__list { flex: 0 0 320px; max-width: 320px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 320px); overflow-y: auto; padding-right: 4px; }

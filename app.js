@@ -18988,18 +18988,45 @@ window.memoOpenPdf = async function(id){
    url = URL.createObjectURL(blob);
    window.__memoPdfCache[id] = url;
   }
-  const w = window.open(url, '_blank');
-  if(!w) {
-   // Popup disekat — muat turun sebagai fallback
-   const a = document.createElement('a');
-   a.href = url;
-   a.download = 'MEMO ' + (m.title || 'memo').replace(/[^\w\s-]/g,'').slice(0,60) + '.pdf';
-   document.body.appendChild(a); a.click(); a.remove();
-  }
+  // p1_799 — paparan terus dalam overlay (elak popup disekat), butang Muat Turun + Buka Tab kekal ada
+  window.__memoShowPdfOverlay(url, m);
  } catch(e) {
   console.error('memo pdf gagal:', e);
   if(typeof showToast==='function') showToast('Gagal jana PDF memo: ' + (e.message||e), 'danger');
  }
+};
+// p1_799 — Overlay pratonton PDF memo (iframe) + tindakan muat turun / buka tab baru.
+window.__memoShowPdfOverlay = function(url, memo){
+ const esc = (s) => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+ const fileName = 'MEMO ' + (memo.title || 'memo').replace(/[^\w\s-]/g,'').trim().slice(0,60) + '.pdf';
+ let ov = document.getElementById('memoPdfOverlay');
+ if(ov) ov.remove();
+ ov = document.createElement('div');
+ ov.id = 'memoPdfOverlay';
+ ov.className = 'memo-pdf-overlay';
+ ov.innerHTML = `
+ <div class="memo-pdf-modal">
+  <div class="memo-pdf-modal__head">
+   <div class="memo-pdf-modal__title"><i data-lucide="file-text" style="width:16px;height:16px;"></i> <span>${esc(memo.title || 'Memo')}</span></div>
+   <button class="memo-pdf-modal__x" onclick="window.__memoClosePdfOverlay()" title="Tutup"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+  </div>
+  <div class="memo-pdf-modal__body">
+   <iframe class="memo-pdf-frame" src="${esc(url)}#toolbar=1" title="Memo PDF"></iframe>
+  </div>
+  <div class="memo-pdf-modal__foot">
+   <a class="memo-pdf-act memo-pdf-act--ghost" href="${esc(url)}" target="_blank" rel="noopener"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka Tab Baru</a>
+   <a class="memo-pdf-act memo-pdf-act--primary" href="${esc(url)}" download="${esc(fileName)}"><i data-lucide="download" style="width:14px;height:14px;"></i> Muat Turun</a>
+  </div>
+ </div>`;
+ ov.addEventListener('click', (e) => { if(e.target === ov) window.__memoClosePdfOverlay(); });
+ document.body.appendChild(ov);
+ document.body.style.overflow = 'hidden';
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+window.__memoClosePdfOverlay = function(){
+ const ov = document.getElementById('memoPdfOverlay');
+ if(ov) ov.remove();
+ document.body.style.overflow = '';
 };
 
 // p1_385 — Pin/Unpin toggle (Bos sahaja, memo approved). Memo pinned popup masa staf login.

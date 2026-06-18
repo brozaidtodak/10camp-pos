@@ -36437,10 +36437,39 @@ function __reCustomerKey(c) {
     return c.phone || c.email || c.id || c.name;
 }
 
+// p1_844 — enrich customersData.last_order_at dari salesHistory.
+// Table `customers` TIADA column last_order_at, dan tak pernah diisi → dulu
+// reTierCustomers (+detail +templat {last_order_days}) sentiasa kosong.
+// Ambil tarikh jualan POS TERKINI ikut customer_phone; set/segarkan (ambil
+// yang paling baru, tak pernah undur, selamat kalau column sebenar ditambah).
+window.__enrichCustomerLastOrder = function() {
+    try {
+        if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return;
+        if(typeof salesHistory === 'undefined' || !Array.isArray(salesHistory)) return;
+        const lastByPhone = {};
+        salesHistory.forEach(function(s){
+            if(!s) return;
+            const ph = s.customer_phone || (s.customer && s.customer.phone);
+            if(!ph) return;
+            const t = new Date(s.created_at || s.timestamp || 0).getTime();
+            if(!t) return;
+            if(!lastByPhone[ph] || t > lastByPhone[ph]) lastByPhone[ph] = t;
+        });
+        customersData.forEach(function(c){
+            if(!c || !c.phone) return;
+            const derived = lastByPhone[c.phone];
+            if(!derived) return;
+            const cur = c.last_order_at ? new Date(c.last_order_at).getTime() : 0;
+            if(derived > cur) c.last_order_at = new Date(derived).toISOString();
+        });
+    } catch(e){}
+};
+
 // Tier customers by days since last_order_at
 window.reTierCustomers = function() {
     const out = { sleeping: [], cold: [], lost: [] };
     if(typeof customersData === 'undefined' || !Array.isArray(customersData)) return out;
+    if(window.__enrichCustomerLastOrder) window.__enrichCustomerLastOrder(); // p1_844 — isi last_order_at dari sales
     const now = Date.now();
     customersData.forEach(c => {
         if(!c.phone) return; // can't message via wa.me

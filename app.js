@@ -18922,32 +18922,10 @@ window.__generateMemoPdfBlob = async function(memo){
  await window.__loadPdfLibs();
  const container = document.createElement('div');
  container.id = 'memoPdfStage';
- container.style.cssText = 'position:fixed; left:-9999px; top:0; width:794px; min-height:1123px; background:#fff; font-family:Poppins, Arial, sans-serif; color:#101010; display:flex; flex-direction:column;';
- container.innerHTML = `<style>
-#memoPdfStage * { box-sizing:border-box; }
-#memoPdfStage .mdoc-stripe { position:absolute; left:0; top:0; bottom:0; width:12px; background:#CD7C32; }
-#memoPdfStage .mdoc-inner { flex:1; padding:34px 48px 24px 54px; }
-#memoPdfStage .mdoc-header { display:flex; justify-content:space-between; align-items:flex-start; }
-#memoPdfStage .mdoc-hdr-left { display:flex; gap:12px; align-items:center; }
-#memoPdfStage .mdoc-hdr-logo { width:56px; height:auto; }
-#memoPdfStage .mdoc-co-name { font-size:17px; font-weight:800; color:#101010; letter-spacing:.4px; line-height:1.1; }
-#memoPdfStage .mdoc-co-line { font-size:9px; color:#444; line-height:1.5; margin-top:1px; }
-#memoPdfStage .mdoc-rule { height:3px; background:#CD7C32; margin:10px 0 4px; border-radius:2px; }
-#memoPdfStage .mdoc-date { text-align:right; font-size:12px; font-weight:700; color:#101010; margin-bottom:14px; }
-#memoPdfStage .mdoc-center-logo { text-align:center; margin:6px 0 4px; }
-#memoPdfStage .mdoc-center-logo img { width:74px; height:auto; }
-#memoPdfStage .mdoc-memo-label { text-align:center; font-size:16px; font-weight:800; text-decoration:underline; letter-spacing:1px; margin-top:6px; }
-#memoPdfStage .mdoc-title { text-align:center; font-size:15px; font-weight:800; text-decoration:underline; line-height:1.35; margin:4px auto 0; max-width:80%; }
-#memoPdfStage .mdoc-cat { text-align:center; font-size:10px; font-weight:700; color:#7c4a1a; background:#fff8f0; display:inline-block; padding:3px 12px; border-radius:999px; margin:10px auto 0; }
-#memoPdfStage .mdoc-body { white-space:pre-wrap; word-break:break-word; font-size:12.5px; line-height:1.7; color:#1a1a1a; margin-top:22px; text-align:justify; }
-#memoPdfStage .mdoc-signoff { margin-top:30px; font-size:12px; font-weight:600; }
-#memoPdfStage .mdoc-sign-by { margin-top:18px; line-height:1.5; }
-#memoPdfStage .mdoc-sign-by strong { color:#101010; }
-#memoPdfStage .mdoc-footer { background:#101010; height:38px; display:flex; justify-content:flex-end; align-items:center; padding-right:30px; margin-top:24px; }
-#memoPdfStage .mdoc-footer .mdoc-foot-pill { color:#fff; font-size:11px; font-weight:700; letter-spacing:.5px; }
-</style>` + window.__buildMemoDocHtml(memo);
- // jadikan inner relatif supaya stripe absolute ikut tinggi penuh
- container.style.position = 'fixed';
+ // .mdoc-page (design-tokens.css) = satu sumber gaya dokumen; di sini cuma off-screen positioning.
+ container.className = 'mdoc-page';
+ container.style.cssText = 'position:fixed; left:-9999px; top:0;';
+ container.innerHTML = window.__buildMemoDocHtml(memo);
  document.body.appendChild(container);
  try {
   const imgs = container.querySelectorAll('img');
@@ -19408,6 +19386,10 @@ window.renderMemoBoard = function() {
  ${(m.category && m.category !== 'umum') ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:#fff8f0; color:#7c4a1a;"><i data-lucide="tag" style="width:9px;height:9px;"></i> ${escapeHtml(window.__memoCatLabel(m.category))}</span>` : ''}
  <span class="memo-status-pill memo-status-pill--${m.status}">${escapeHtml(T('mb_status_'+m.status, m.status))}</span>
  </div>
+ <div class="memo-doc-thumb" onclick="window.memoOpenPdf('${m.id}')" title="Klik untuk buka memo penuh">
+ <div class="mdoc-page">${window.__buildMemoDocHtml(m)}</div>
+ <div class="memo-doc-thumb__hint"><i data-lucide="maximize-2" style="width:13px; height:13px;"></i> Klik untuk buka penuh</div>
+ </div>
  <button class="memo-card__pdfbtn" onclick="window.memoOpenPdf('${m.id}')" title="Buka memo penuh dalam PDF"><i data-lucide="file-text" style="width:15px; height:15px;"></i> Buka Memo (PDF)</button>
  ${reasonHtml}
  <div class="memo-card__foot">
@@ -19421,12 +19403,33 @@ window.renderMemoBoard = function() {
  }).join('');
  window.memoRefreshSidebarBadge();
  if(window.lucide && lucide.createIcons) lucide.createIcons();
+ // p1_800 — kecilkan pratonton dokumen A4 supaya muat lebar kad
+ window.__memoLayoutThumbs();
  // p1_630 — EN mode: auto-translate memo title+body (cached), re-render when ready
  if(window.I18N && window.I18N.lang === 'en'){
   const txt = []; rows.forEach(m => { if(m.title) txt.push(m.title); if(m.body) txt.push(m.body); });
   window.__txEnsure(txt, () => window.renderMemoBoard());
  }
 };
+// p1_800 — Skala pratonton dokumen: page asal 794×1123 (A4) → kecil ikut lebar kad.
+window.__memoLayoutThumbs = function(){
+ try {
+  document.querySelectorAll('.memo-doc-thumb').forEach(wrap => {
+   const page = wrap.querySelector('.mdoc-page');
+   if(!page) return;
+   const w = wrap.clientWidth;
+   if(!w) return;
+   const scale = w / 794;
+   page.style.transform = 'scale(' + scale + ')';
+   wrap.style.height = (1123 * scale) + 'px';
+  });
+ } catch(e){}
+};
+// Skala semula bila tetingkap berubah saiz (debounce ringan)
+window.addEventListener('resize', function(){
+ clearTimeout(window.__memoThumbT);
+ window.__memoThumbT = setTimeout(function(){ if(typeof window.__memoLayoutThumbs==='function') window.__memoLayoutThumbs(); }, 150);
+});
 
 // Boot: load memo from localStorage so it survives reload (was bug — globalMemo was in-memory only)
 (function __finMemoBoot(){

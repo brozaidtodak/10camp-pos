@@ -548,6 +548,37 @@
 .memo-pin-icon { color: #CE9420; font-size: 14px; }
 
 .memo-card__body { font-size: 13px; line-height: 1.5; color: #374151; white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto; padding: 8px 10px; background: #F9FAFB; border-radius: 6px; margin-bottom: 8px; }
+/* p1_800 — Dokumen memo A4 berjenama (SATU SUMBER gaya) dipakai oleh PDF stage + pratonton dlm-kad */
+.mdoc-page { width: 794px; min-height: 1123px; background: #fff; color: #101010; font-family: Poppins, Arial, sans-serif; display: flex; flex-direction: column; position: relative; }
+.mdoc-page * { box-sizing: border-box; }
+.mdoc-page .mdoc-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: #CD7C32; }
+.mdoc-page .mdoc-inner { flex: 1; padding: 34px 48px 24px 54px; }
+.mdoc-page .mdoc-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.mdoc-page .mdoc-hdr-left { display: flex; gap: 12px; align-items: center; }
+.mdoc-page .mdoc-hdr-logo { width: 56px; height: auto; }
+.mdoc-page .mdoc-co-name { font-size: 17px; font-weight: 800; color: #101010; letter-spacing: .4px; line-height: 1.1; }
+.mdoc-page .mdoc-co-line { font-size: 9px; color: #444; line-height: 1.5; margin-top: 1px; }
+.mdoc-page .mdoc-rule { height: 3px; background: #CD7C32; margin: 10px 0 4px; border-radius: 2px; }
+.mdoc-page .mdoc-date { text-align: right; font-size: 12px; font-weight: 700; color: #101010; margin-bottom: 14px; }
+.mdoc-page .mdoc-center-logo { text-align: center; margin: 6px 0 4px; }
+.mdoc-page .mdoc-center-logo img { width: 74px; height: auto; }
+.mdoc-page .mdoc-memo-label { text-align: center; font-size: 16px; font-weight: 800; text-decoration: underline; letter-spacing: 1px; margin-top: 6px; }
+.mdoc-page .mdoc-title { text-align: center; font-size: 15px; font-weight: 800; text-decoration: underline; line-height: 1.35; margin: 4px auto 0; max-width: 80%; }
+.mdoc-page .mdoc-cat { text-align: center; font-size: 10px; font-weight: 700; color: #7c4a1a; background: #fff8f0; display: inline-block; padding: 3px 12px; border-radius: 999px; margin: 10px auto 0; }
+.mdoc-page .mdoc-body { white-space: pre-wrap; word-break: break-word; font-size: 12.5px; line-height: 1.7; color: #1a1a1a; margin-top: 22px; text-align: justify; }
+.mdoc-page .mdoc-signoff { margin-top: 30px; font-size: 12px; font-weight: 600; }
+.mdoc-page .mdoc-sign-by { margin-top: 18px; line-height: 1.5; }
+.mdoc-page .mdoc-sign-by strong { color: #101010; }
+.mdoc-page .mdoc-footer { background: #101010; height: 38px; display: flex; justify-content: flex-end; align-items: center; padding-right: 30px; margin-top: 24px; }
+.mdoc-page .mdoc-footer .mdoc-foot-pill { color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+
+/* Pratonton dokumen dalam kad memo: page A4 dikecilkan (transform via JS), boleh klik buka penuh */
+.memo-doc-thumb { position: relative; width: 100%; overflow: hidden; border: 1px solid #E7DECF; border-radius: 10px; background: #fff; cursor: pointer; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(16,16,16,0.06); transition: box-shadow .15s, transform .15s; }
+.memo-doc-thumb:hover { box-shadow: 0 6px 18px rgba(205,124,50,0.22); }
+.memo-doc-thumb .mdoc-page { position: absolute; top: 0; left: 0; transform-origin: top left; pointer-events: none; }
+.memo-doc-thumb__hint { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; font-weight: 700; color: #fff; padding: 18px 0 8px; background: linear-gradient(to top, rgba(16,16,16,0.55), rgba(16,16,16,0)); opacity: 0; transition: opacity .15s; }
+.memo-doc-thumb:hover .memo-doc-thumb__hint { opacity: 1; }
+
 /* p1_799 — overlay pratonton PDF memo (iframe) + tindakan muat turun / buka tab */
 .memo-pdf-overlay { position: fixed; inset: 0; z-index: 11000; background: rgba(16,16,16,0.62); display: flex; align-items: center; justify-content: center; padding: 24px; }
 .memo-pdf-modal { background: #fff; width: 100%; max-width: 880px; height: 92vh; max-height: 1000px; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.35); }

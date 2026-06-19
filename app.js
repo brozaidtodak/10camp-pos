@@ -26593,6 +26593,7 @@ window.openReceivePOModal = async function(poId) {
  <td style="text-align:center;">${it.qty_ordered}</td>
  <td style="text-align:center;">${it.qty_received}</td>
  <td><input type="number" id="grnQty_${idx}" data-itemid="${it.id}" data-sku="${it.sku}" min="0" max="${remaining}" value="${remaining}" class="login-input" style="margin:0; padding:4px; width:70px; text-align:center;"></td>
+ <td><input type="number" id="grnDmg_${idx}" min="0" value="0" title="Berapa antara yang diterima ni ROSAK/silap (tak masuk stok jual)" class="login-input" style="margin:0; padding:4px; width:60px; text-align:center; color:#B23A2E;"></td>
  <td><input type="number" id="grnCost_${idx}" min="0" step="0.01" value="${it.unit_cost_rm}" class="login-input" style="margin:0; padding:4px; width:80px;"></td>
  </tr>
  `;
@@ -26614,7 +26615,7 @@ window.openReceivePOModal = async function(poId) {
 
  <div class="table-responsive" style="max-height:300px; border:1px solid var(--border-color);">
  <table class="data-table" style="font-size:12px;">
- <thead style="position:sticky; top:0; background:#FAFAFA;"><tr><th>SKU / Barcode / Nama</th><th>Ordered</th><th>Sebelum</th><th>Terima Sekarang</th><th>Kos/Unit (RM)</th></tr></thead>
+ <thead style="position:sticky; top:0; background:#FAFAFA;"><tr><th>SKU / Barcode / Nama</th><th>Ordered</th><th>Sebelum</th><th>Terima Sekarang</th><th style="color:#B23A2E;">Rosak</th><th>Kos/Unit (RM)</th></tr></thead>
  <tbody>${linesHtml}</tbody>
  </table>
  </div>
@@ -26754,27 +26755,34 @@ window.confirmReceivePO = async function(poId) {
  const items = purchaseOrderItemsV2.filter(i => i.po_id === poId);
  const notes = document.getElementById('grnNotes').value.trim();
 
- // Read each line's qty + cost
+ // Read each line's qty + damaged + cost (p1_846 — tangkap qty ROSAK berasingan)
  const receipts = [];
  items.forEach((it, idx) => {
  const qtyEl = document.getElementById(`grnQty_${idx}`);
  const costEl = document.getElementById(`grnCost_${idx}`);
- const qty = parseInt(qtyEl.value) || 0;
+ const dmgEl = document.getElementById(`grnDmg_${idx}`);
+ const qty = parseInt(qtyEl.value) || 0; // jumlah fizikal diterima (termasuk rosak)
  const cost = parseFloat(costEl.value) || 0;
- if(qty> 0) receipts.push({ item: it, qty, cost });
+ const dmg = Math.min(Math.max(parseInt((dmgEl||{}).value) || 0, 0), qty); // rosak tak boleh > diterima
+ const good = Math.max(0, qty - dmg); // hanya yang baik masuk stok jual
+ if(qty> 0) receipts.push({ item: it, qty, dmg, good, cost });
  });
 
  if(receipts.length === 0) return showToast('Tiada qty diterima.', 'warn');
 
- if(!confirm(`Sahkan penerimaan ${receipts.length} item untuk ${po.po_number}?`)) return;
+ const totGood = receipts.reduce((s,r)=>s+r.good,0);
+ const totDmg = receipts.reduce((s,r)=>s+r.dmg,0);
+ const totShort = receipts.reduce((s,r)=>s+Math.max(0,(r.item.qty_ordered - r.item.qty_received) - r.qty),0);
+ if(!confirm(`Sahkan penerimaan ${po.po_number}?\n\nMasuk stok jual: ${totGood}\nRosak (ke log): ${totDmg}\nKurang dari order: ${totShort}`)) return;
 
  try {
  const inboundDate = new Date().toISOString().split('T')[0];
  // Insert one batch per received line — with cost + PO link
- const batchRows = receipts.map(r => ({
+ // Hanya barang BAIK masuk stok jual (FIFO batches). Rosak TIDAK masuk.
+ const batchRows = receipts.filter(r => r.good > 0).map(r => ({
  sku: r.item.sku,
- qty_received: r.qty,
- qty_remaining: r.qty,
+ qty_received: r.good,
+ qty_remaining: r.good,
  inbound_date: inboundDate,
  cost_price: r.cost,
  landed_cost: r.cost, // for now equal; freight/tax can be added later
@@ -26782,8 +26790,32 @@ window.confirmReceivePO = async function(poId) {
  supplier_name: po.supplier_name,
  notes: notes || null
  }));
+ if(batchRows.length){
  const { error: bErr } = await db.from('inventory_batches').insert(batchRows);
  if(bErr) throw bErr;
+ }
+
+ // p1_846 — barang ROSAK masa terima → returns_log (tak jadi stok jual; jejak kos + utk claim)
+ const dmgRows = receipts.filter(r => r.dmg > 0).map(r => {
+ const prod = (typeof masterProducts !== 'undefined') ? masterProducts.find(p => p.sku === r.item.sku) : null;
+ return {
+ sku: r.item.sku,
+ product_name: prod ? prod.name : null,
+ qty: r.dmg,
+ type: 'damaged',
+ reason: 'Rosak masa terima PO',
+ notes: `PO ${po.po_number}${notes ? ' — ' + notes : ''}`,
+ order_ref: po.po_number,
+ supplier: po.supplier_name,
+ cost_impact: r.cost, // per unit (sistem darab dgn qty)
+ reported_by_name: currentUser ? currentUser.name : 'System',
+ reported_at: new Date().toISOString(),
+ source: 'po_receive'
+ };
+ });
+ if(dmgRows.length){
+ try { await db.from('returns_log').insert(dmgRows); } catch(e){ console.warn('returns_log (PO damage) gagal:', e); }
+ }
 
  // Update PO line qty_received
  for(const r of receipts) {
@@ -26806,12 +26838,12 @@ window.confirmReceivePO = async function(poId) {
  received_by: currentUser ? currentUser.name : 'System'
  }).eq('id', poId);
 
- // Inventory transactions log
- await db.from('inventory_transactions').insert(receipts.map(r => ({
+ // Inventory transactions log — qty BAIK sahaja (rosak dah ke returns_log)
+ await db.from('inventory_transactions').insert(receipts.filter(r => r.good > 0).map(r => ({
  sku: r.item.sku,
  transaction_type: 'IN',
- qty: r.qty,
- reason: `PO ${po.po_number} received from ${po.supplier_name}${notes ? ' — ' + notes : ''}`,
+ qty: r.good,
+ reason: `PO ${po.po_number} received from ${po.supplier_name}${r.dmg ? ' (' + r.dmg + ' rosak dikecualikan)' : ''}${notes ? ' — ' + notes : ''}`,
  staff_name: currentUser ? currentUser.name : 'System',
  created_at: new Date().toISOString()
  })));
@@ -26824,15 +26856,18 @@ window.confirmReceivePO = async function(poId) {
  po_number: po.po_number, supplier: po.supplier_name,
  items_count: receipts.length,
  total_qty: receipts.reduce((s, r) => s + r.qty, 0),
+ total_good: receipts.reduce((s, r) => s + r.good, 0),
+ total_damaged: receipts.reduce((s, r) => s + r.dmg, 0),
  new_status: newStatus, notes
  }),
  created_at: new Date().toISOString()
  }]);
 
  document.getElementById('grnOverlay').remove();
- showToast(`PO ${po.po_number} → ${newStatus}`, 'success');
+ showToast(`PO ${po.po_number} → ${newStatus} · ${totGood} masuk stok${totDmg ? ' · ' + totDmg + ' rosak' : ''}`, 'success');
  await loadPosV2();
  await window.initApp();
+ try { if(document.getElementById('receivingSection') && document.getElementById('receivingSection').style.display !== 'none' && window.renderReceiving) window.renderReceiving(); } catch(e){}
  } catch(e) {
  showToast('Ralat: ' + e.message, 'error');
  }
@@ -39908,4 +39943,73 @@ window.__slExport = function(){
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
     window.showToast && showToast('Eksport '+rows.length+' SKU','success');
   } catch(e){ window.showToast && showToast('Eksport gagal','error'); }
+};
+
+/* ============================================================
+   p1_846 — WMS Fasa 2: Receiving (view fokus). Reuse PO V2 data
+   (purchaseOrdersV2 + purchaseOrderItemsV2). "Untuk diterima" =
+   Pending/Partial (butang Terima → openReceivePOModal yg kini tangkap
+   qty rosak). "Sejarah" = yg dah diterima.
+   ============================================================ */
+window.renderReceiving = function(){
+  var body = document.getElementById('receivingBody');
+  if(!body) return;
+  var pos = (typeof purchaseOrdersV2 !== 'undefined' && Array.isArray(purchaseOrdersV2)) ? purchaseOrdersV2 : [];
+  var items = (typeof purchaseOrderItemsV2 !== 'undefined' && Array.isArray(purchaseOrderItemsV2)) ? purchaseOrderItemsV2 : [];
+  function prog(poId){
+    var its = items.filter(function(i){ return i.po_id === poId; });
+    var ord = its.reduce(function(s,i){ return s + (i.qty_ordered||0); }, 0);
+    var rec = its.reduce(function(s,i){ return s + (i.qty_received||0); }, 0);
+    return { ord:ord, rec:rec, lines:its.length };
+  }
+  var esc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+  var pending = pos.filter(function(p){ return p.status === 'Pending' || p.status === 'Partial'; });
+  var history = pos.filter(function(p){ return p.status === 'Completed' || (p.status === 'Partial' && p.received_date); })
+                   .sort(function(a,b){ return String(b.received_date||'').localeCompare(String(a.received_date||'')); }).slice(0,30);
+
+  function pendRow(p){
+    var pr = prog(p.id);
+    var badge = p.status === 'Partial'
+      ? '<span style="background:#FDF9EE;color:#7A5410;border:1px solid #F0DCA8;padding:2px 8px;border-radius:50px;font-size:11px;font-weight:700;">Separa</span>'
+      : '<span style="background:#FDF4F2;color:#7C2A20;border:1px solid #F1C9C0;padding:2px 8px;border-radius:50px;font-size:11px;font-weight:700;">Belum terima</span>';
+    return '<tr style="border-bottom:1px solid #F1F1F1;">'
+      + '<td style="padding:10px 11px;font-weight:700;">'+esc(p.po_number)+'</td>'
+      + '<td style="padding:10px 11px;color:#374151;">'+esc(p.supplier_name||'-')+'</td>'
+      + '<td style="padding:10px 11px;color:var(--text-muted);">'+esc(p.eta_date||'-')+'</td>'
+      + '<td style="padding:10px 11px;text-align:right;">'+pr.rec+' / '+pr.ord+'</td>'
+      + '<td style="padding:10px 11px;text-align:center;">'+badge+'</td>'
+      + '<td style="padding:10px 11px;text-align:right;"><button onclick="window.openReceivePOModal&&window.openReceivePOModal('+p.id+')" style="font-size:12px;font-weight:700;color:#fff;background:var(--primary);border:none;padding:7px 14px;border-radius:8px;cursor:pointer;">Terima</button></td>'
+    + '</tr>';
+  }
+  function histRow(p){
+    var pr = prog(p.id);
+    var badge = p.status === 'Completed'
+      ? '<span style="background:#EAF3E8;color:#2e5d34;border:1px solid #CBE3C4;padding:2px 8px;border-radius:50px;font-size:11px;font-weight:700;">Selesai</span>'
+      : '<span style="background:#FDF9EE;color:#7A5410;border:1px solid #F0DCA8;padding:2px 8px;border-radius:50px;font-size:11px;font-weight:700;">Separa</span>';
+    return '<tr style="border-bottom:1px solid #F1F1F1;">'
+      + '<td style="padding:9px 11px;font-weight:700;">'+esc(p.po_number)+'</td>'
+      + '<td style="padding:9px 11px;color:#374151;">'+esc(p.supplier_name||'-')+'</td>'
+      + '<td style="padding:9px 11px;color:var(--text-muted);">'+esc(p.received_date||'-')+'</td>'
+      + '<td style="padding:9px 11px;color:var(--text-muted);">'+esc(p.received_by||'-')+'</td>'
+      + '<td style="padding:9px 11px;text-align:right;">'+pr.rec+' / '+pr.ord+'</td>'
+      + '<td style="padding:9px 11px;text-align:center;">'+badge+'</td>'
+    + '</tr>';
+  }
+  function tbl(headCells, rowsHtml, empty){
+    return '<div style="background:#fff;border:1px solid #ECECEC;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm,0 2px 4px rgba(0,0,0,.06));margin-bottom:20px;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#FAFAFA;">'
+      + headCells.map(function(h){ return '<th style="text-align:'+(h.a||'left')+';padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);font-weight:700;">'+h.t+'</th>'; }).join('')
+      + '</tr></thead><tbody>'+(rowsHtml||('<tr><td colspan="'+headCells.length+'" style="padding:16px;text-align:center;color:var(--text-muted);font-size:12.5px;">'+empty+'</td></tr>'))+'</tbody></table></div>';
+  }
+
+  var html = '<div style="max-width:1100px;margin:0 auto;padding:4px 2px 60px;">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin:0 0 4px;"><i data-lucide="package-check" style="width:22px;height:22px;color:var(--primary);"></i><h2 style="margin:0;font-size:22px;font-weight:800;color:var(--text-main);">Receiving (Terima Barang)</h2></div>'
+    + '<p style="margin:0 0 18px;font-size:13px;color:var(--text-muted);max-width:720px;line-height:1.55;">Terima barang masuk ikut PO. Masa terima, isi qty sebenar + qty <b style="color:#B23A2E;">rosak</b> — yang baik je masuk stok jual, yang rosak masuk log untuk jejak kos & claim pembekal. Idea dari WMS (ASN).</p>'
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px;">Untuk diterima ('+pending.length+')</div>'
+    + tbl([{t:'PO'},{t:'Pembekal'},{t:'ETA'},{t:'Terima',a:'right'},{t:'Status',a:'center'},{t:'',a:'right'}], pending.map(pendRow).join(''), 'Tiada PO menunggu penerimaan. Cipta PO di Purchasing › Purchase Orders.')
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px;">Sejarah penerimaan (30 terkini)</div>'
+    + tbl([{t:'PO'},{t:'Pembekal'},{t:'Tarikh'},{t:'Oleh'},{t:'Terima',a:'right'},{t:'Status',a:'center'}], history.map(histRow).join(''), 'Belum ada penerimaan direkod.')
+    + '<p style="font-size:11.5px;color:var(--text-muted);margin:0 2px;">Barang rosak masa terima direkod di Returns/Damage log (sumber: po_receive). Fasa lanjut: papar baki "rosak/hold" dalam Stock Levels.</p>'
+    + '</div>';
+  body.innerHTML = html;
+  if(window.lucide && lucide.createIcons){ try{ lucide.createIcons(); }catch(e){} }
 };

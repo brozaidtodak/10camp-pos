@@ -20353,8 +20353,10 @@ window.renderStockRecon = async function(){
   // lebih dari yang diterima. Floor di situ supaya takde "Tak Terjelas" negatif palsu (cth DO tak lengkap).
   // Tak Terjelas = berapa LEBIH diterima (DO/batch) dari yang dikira keluar = kerugian sebenar belum direkod (>=0).
   const impliedReceived = sales + movements + a.onhand;
-  const doOrBatch = (doTotal[a.sku] > 0) ? doTotal[a.sku] : a.received;
-  const received = Math.max(doOrBatch, impliedReceived);
+  // p1_889 — JANGAN guna batch qty_received sbg "Diterima": ia DIGELEMBUNG oleh batch stock-check
+  // (stock take cipta batch BARU utk padan kiraan fizikal, batch lama kekal qty_received tapi baki 0
+  // → sum qty_received jadi 2x). Guna DO total + floor (jualan+pergerakan+stok) sahaja.
+  const received = Math.max(doTotal[a.sku] || 0, impliedReceived);
   const unexplained = received - sales - movements - a.onhand;
   const avgCost = a.costQty ? (a.costSum / a.costQty) : 0;
   return Object.assign(a, { received, sales, unexplained, avgCost, name: nameOf(a.sku) });
@@ -20400,7 +20402,7 @@ window.renderStockRecon = async function(){
   }).join('');
  }
  const sum = document.getElementById('reconSummary');
- if(sum) sum.innerHTML = rows.length.toLocaleString() + ' SKU' + (rows.length > 600 ? ' (papar 600 teratas ikut beza terbesar)' : '') + '. <strong>Tak Terjelas</strong> = unit diterima yang TAK dapat dikira (kerugian sebenar belum direkod). <span style="color:#9a948b;">Diterima = MAX(DO, batch, jualan+pergerakan+stok) — mustahil kurang dari yang dah keluar/ada, jadi takde negatif palsu. SKU habis-jual = 0 (semua terjelas).</span>';
+ if(sum) sum.innerHTML = rows.length.toLocaleString() + ' SKU' + (rows.length > 600 ? ' (papar 600 teratas ikut beza terbesar)' : '') + '. <strong>Tak Terjelas</strong> = unit diterima yang TAK dapat dikira (kerugian sebenar belum direkod). <span style="color:#9a948b;">Diterima = MAX(DO total, jualan+pergerakan+stok) — mustahil kurang dari yang dah keluar/ada, jadi takde negatif palsu. SKU habis-jual = 0 (semua terjelas). Batch qty_received tak diguna (digelembung stock-check).</span>';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 window.__reconExport = function(){

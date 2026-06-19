@@ -29197,7 +29197,7 @@ window.renderAllOrders = function() {
  const selChk = window.__aoSelected && window.__aoSelected.has(s.id);
  return `<tr style="border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(184, 106, 38,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
  <td style="padding:10px; text-align:center;"><input type="checkbox" onchange="window.__aoToggleSelect(${s.id}, this.checked)" ${selChk ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer;"></td>
- <td style="padding:10px;">${dt}</td>
+ <td data-label="Tarikh" style="padding:10px;">${dt}</td>
  ${(() => {
  // p1_321 — kolum Order boleh diklik (ganti butang Lihat). Papar no ref marketplace + #id POS
  const omd = s.metadata || {};
@@ -29206,14 +29206,14 @@ window.renderAllOrders = function() {
  const sub = ref ? ('#' + s.id) : '';
  const sc = window.__aoSellerCentreUrl(s);
  const scIcon = sc ? `<a href="${escHtml(sc.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Buka ${escHtml(sc.label)}${sc.direct ? ' — print Airway Bill' : ' — cari order & print AWB'}" style="margin-left:6px; color:${sc.color}; vertical-align:middle; display:inline-flex;"><i data-lucide="external-link" style="width:12px;height:12px;"></i></a>` : '';
- return `<td style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#b86a26; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${scIcon}${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
+ return `<td data-label="Pesanan" style="padding:10px;"><a onclick="window.__aoViewOrder && window.__aoViewOrder(${s.id})" title="Klik untuk butiran order" style="cursor:pointer; color:#b86a26; font-weight:700; font-family:'SF Mono',Menlo,monospace; font-size:11.5px; text-decoration:none;">${escHtml(main)}</a>${scIcon}${testBadge}${sub ? `<br><span style="font-size:10px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace;">${sub}</span>` : ''}</td>`;
  })()}
- <td style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
- <td style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
- <td style="padding:10px; font-size:11.5px;">${escHtml(s.payment_method || '-')}</td>
- <td style="padding:10px;">${statusBadge(s.status)}</td>
+ <td data-label="Pelanggan" style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
+ <td data-label="Channel" style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
+ <td data-label="Bayar" style="padding:10px; font-size:11.5px;">${escHtml(s.payment_method || '-')}</td>
+ <td data-label="Status" style="padding:10px;">${statusBadge(s.status)}</td>
  <td style="padding:10px; text-align:right;">${itemsCount}</td>
- <td style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
+ <td data-label="Jumlah" style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
  ${(() => {
  // p1_526 — Resit column boleh KLIK → Urus Resit (sehingga 3) untuk SEMUA order.
  const pm = s.payment_method || 'Cash';

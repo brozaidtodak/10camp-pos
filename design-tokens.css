@@ -4302,6 +4302,25 @@ body.pos-app-scoped textarea,
 body.pos-app-scoped .cp-input,
 body.pos-app-scoped .login-input { font-size: 16px !important; }
 
+/* p1_872 — All Orders mesra-PHONE: jadual lebar → kad bertindan (label:nilai), takde slide kiri/kanan.
+   Phone sahaja (<=768px); tablet/desktop kekal jadual. */
+@media (max-width: 768px) {
+  body.pos-app-scoped #allOrdersSection .data-table thead { display: none !important; }
+  body.pos-app-scoped #allOrdersSection .data-table,
+  body.pos-app-scoped #allOrdersSection .data-table tbody,
+  body.pos-app-scoped #allOrdersSection .data-table tr { display: block !important; width: auto !important; }
+  body.pos-app-scoped #allOrdersSection .data-table tr { border: 1px solid #EEE7DA !important; border-radius: 12px; margin-bottom: 10px; padding: 8px 12px; background: #fff; box-shadow: 0 1px 4px rgba(16,16,16,.05); }
+  body.pos-app-scoped #allOrdersSection .data-table td { display: flex !important; justify-content: space-between; align-items: center; gap: 10px; width: auto !important; text-align: right !important; padding: 5px 0 !important; border: none !important; font-size: 13px; }
+  body.pos-app-scoped #allOrdersSection .data-table td[data-label]::before { content: attr(data-label); font: 700 11px 'Poppins',sans-serif; color: #9a948b; text-transform: uppercase; letter-spacing: .3px; text-align: left; flex: 0 0 auto; }
+  /* sorok sel bising di phone (akses via klik order): checkbox(1) item(8) resit(10) pack(11) */
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(1),
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(8),
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(10),
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(11) { display: none !important; }
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(9) { font-size: 15px !important; font-weight: 800; }
+  body.pos-app-scoped #allOrdersSection .data-table td:nth-child(12) { display: flex !important; justify-content: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px !important; border-top: 1px solid #F3F4F6 !important; }
+}
+
 body.pos-app-scoped #saFab { display: none !important; }
 /* p1_869 — FIX KRITIKAL: #saWidget jangan jadi lapisan penuh skrin yg tangkap semua tekanan.
    #saPanel dah position:fixed (sangkut viewport sendiri) → #saWidget boleh kekal 0x0 + pointer-events:none. */

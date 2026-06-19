@@ -140,6 +140,16 @@ window.__posAppGo = function(key){
  if(typeof switchHub === 'function') switchHub(t.sections, t.title);
  if(t.render && typeof window[t.render] === 'function') window[t.render]();
  } catch(e){ console.warn('posAppGo', e); }
+ // p1_870 — FIX gap: #main-content ada padding besar; kalau seksyen tab ini DI LUAR #main-content
+ // (cth Orders/Stok/Komisen — tersilap struktur), #main-content jadi blok kosong = gap. Sorok ia
+ // bila seksyen aktif bukan dalam #main-content; tunjuk bila dalam (cth Cashier/posSection).
+ try {
+ const mc = document.getElementById('main-content');
+ if(mc){
+ const insideMC = (t.sections || []).some(id => { const el = document.getElementById(id); return el && mc.contains(el); });
+ mc.style.display = insideMC ? 'block' : 'none';
+ }
+ } catch(e){}
  document.querySelectorAll('#posAppTabBar .posAppTab').forEach(b => b.classList.toggle('active', b.getAttribute('data-key') === key));
  const ti = document.getElementById('posAppTitle'); if(ti) ti.textContent = t.title;
  try { const mc = document.getElementById('main-content'); if(mc) mc.scrollTop = 0; window.scrollTo(0,0); } catch(e){}

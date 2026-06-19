@@ -4168,7 +4168,10 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .rp-pick-row:active { transform: scale(.99); background: #FAF6EF; }
 
 /* p1_856 — KPI Cashier (Jualan Hari Ini / Jualan Aku / Komisen Aku) + UX polish nombor tabular */
-.pos-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+.pos-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; position: relative; }
+/* p1_867 — butang mata (sembunyi/tunjuk angka KPI) */
+.pos-kpi__eye { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.9); border: 1px solid #EEE7DA; color: #9a948b; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 3; -webkit-tap-highlight-color: transparent; transition: transform .06s; }
+.pos-kpi__eye:active { transform: scale(.9); }
 .pos-kpi__card { background: #FAF6EF; border: 1px solid #EEE7DA; border-radius: 12px; padding: 11px 12px; min-width: 0; }
 .pos-kpi__card--comm { background: #FBF1E4; border-color: #E7C68A; cursor: pointer; transition: transform .06s; -webkit-tap-highlight-color: transparent; }
 .pos-kpi__card--comm:active { transform: scale(.97); }
@@ -4280,5 +4283,16 @@ body.pos-cart-rail.pos-app-scoped #main-content { padding-bottom: calc(20px + en
 
 /* p1_862 — Tanya AI jadi tab bottom bar dalam app: sorok FAB terapung; panel chat = sheet penuh atas tab bar */
 body.pos-app-scoped #saFab { display: none !important; }
-body.pos-app-scoped #saWidget { left: 8px !important; right: 8px !important; bottom: calc(64px + env(safe-area-inset-bottom)) !important; }
-body.pos-app-scoped #saPanel { left: 0; right: 0; bottom: 0; width: auto; max-width: none; height: 66vh; max-height: 66vh; }
+/* p1_867 — panel chat = SHEET penuh kawasan kandungan (bawah top bar → atas tab bar), bukan kad terapung */
+body.pos-app-scoped #saWidget { left: 0 !important; right: 0 !important; bottom: 0 !important; top: 0 !important; }
+body.pos-app-scoped #saPanel {
+  position: fixed !important;
+  top: calc(var(--pos-app-header-h, 60px) + 8px) !important;
+  bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  left: 8px !important; right: 8px !important;
+  width: auto !important; max-width: none !important;
+  height: auto !important; max-height: none !important;
+  border-radius: 16px !important;
+}
+/* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
+body.pos-tablet-pane #saPanel { left: calc(220px + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }

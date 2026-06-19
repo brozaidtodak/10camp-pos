@@ -12912,7 +12912,11 @@ window.__renderCashierKPI = function(){
  const myNet = round2(myBase - myRefund);
  const rate = (typeof __getCommissionRate === 'function' && staffName) ? __getCommissionRate(staffName) : 0;
  const myComm = round2(myNet * rate / 100);
- const fmt = n => 'RM ' + Number(n).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
+ // p1_867 — privasi: sembunyi angka (icon mata). Disimpan localStorage.
+ let hidden = false; try { hidden = localStorage.getItem('pos_kpi_hidden') === '1'; } catch(e){}
+ const fmt = n => 'RM ' + window.__money(n);
+ const val = n => hidden ? 'RM ••••' : fmt(n);
+ const cnt = n => hidden ? '••• jualan' : (n + ' jualan');
  let el = document.getElementById('posTodayKpi');
  if(!el){
  el = document.createElement('div'); el.id = 'posTodayKpi'; el.className = 'pos-kpi';
@@ -12921,9 +12925,17 @@ window.__renderCashierKPI = function(){
  else sec.insertBefore(el, sec.firstChild);
  }
  el.innerHTML =
- '<div class="pos-kpi__card"><div class="pos-kpi__lbl">Jualan Hari Ini</div><div class="pos-kpi__val">' + fmt(storeToday) + '</div></div>'
- + '<div class="pos-kpi__card"><div class="pos-kpi__lbl">Jualan Aku</div><div class="pos-kpi__val">' + fmt(myNet) + '</div><div class="pos-kpi__sub">' + myCount + ' jualan</div></div>'
- + '<div class="pos-kpi__card pos-kpi__card--comm" onclick="window.__posAppGo ? window.__posAppGo(\'commission\') : (window.switchHub && switchHub([\'commissionSection\'],\'My Commission\'), window.renderPersonalCommission && window.renderPersonalCommission())" title="Lihat komisen penuh"><div class="pos-kpi__lbl">Komisen Aku</div><div class="pos-kpi__val">' + fmt(myComm) + '</div><div class="pos-kpi__sub">' + rate + '%</div></div>';
+ '<div class="pos-kpi__card"><div class="pos-kpi__lbl">Jualan Hari Ini</div><div class="pos-kpi__val">' + val(storeToday) + '</div></div>'
+ + '<div class="pos-kpi__card"><div class="pos-kpi__lbl">Jualan Aku</div><div class="pos-kpi__val">' + val(myNet) + '</div><div class="pos-kpi__sub">' + cnt(myCount) + '</div></div>'
+ + '<div class="pos-kpi__card pos-kpi__card--comm" onclick="window.__posAppGo ? window.__posAppGo(\'commission\') : (window.switchHub && switchHub([\'commissionSection\'],\'My Commission\'), window.renderPersonalCommission && window.renderPersonalCommission())" title="Lihat komisen penuh"><div class="pos-kpi__lbl">Komisen Aku</div><div class="pos-kpi__val">' + val(myComm) + '</div><div class="pos-kpi__sub">' + rate + '%</div></div>'
+ + '<button class="pos-kpi__eye" onclick="event.stopPropagation(); window.__toggleKpiHide();" aria-label="' + (hidden ? 'Tunjuk angka jualan' : 'Sembunyi angka jualan') + '" title="' + (hidden ? 'Tunjuk angka' : 'Sembunyi angka') + '"><i data-lucide="' + (hidden ? 'eye-off' : 'eye') + '" style="width:16px;height:16px;"></i></button>';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+// p1_867 — toggle sembunyi/tunjuk angka KPI (privasi di kaunter)
+window.__toggleKpiHide = function(){
+ let hidden = false; try { hidden = localStorage.getItem('pos_kpi_hidden') === '1'; } catch(e){}
+ try { localStorage.setItem('pos_kpi_hidden', hidden ? '0' : '1'); } catch(e){}
+ if(typeof window.__renderCashierKPI === 'function') window.__renderCashierKPI();
 };
 // p1_570 — Thumbnail via proxy percuma images.weserv.nl (Supabase resize tak aktif — free plan).
 // Gambar grid kecik dari ~140KB → ~15KB (webp 300px) = load laju + scroll smooth atas phone/data.

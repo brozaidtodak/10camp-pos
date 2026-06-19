@@ -4238,40 +4238,64 @@ body.pos-app-scoped #posAppLayout > .tab-section {
 }
 body.pos-offline-on.pos-app-scoped #posAppLayout > .tab-section { padding-top: calc(54px + env(safe-area-inset-top) + 48px) !important; }
 /* tablet: seksyen terkeluar pun kena geser kanan sidebar */
-body.pos-tablet-pane.pos-app-scoped #posAppLayout > .tab-section { margin-left: 220px !important; }
+body.pos-tablet-pane.pos-app-scoped #posAppLayout > .tab-section { margin-left: var(--pos-sidebar-w, 220px) !important; }
 
 /* ===== p1_865 — TABLET master-detail (gaya iPad): SIDEBAR nav kiri (ganti bottom tab bar) =====
-   pos-tablet-pane = lebar>=768 & tinggi>=600. Hanya app (pos-app-scoped). Phone/desktop tak terjejas. */
-.posAppNavBrand { display: none; }
+   pos-tablet-pane = lebar>=768 & tinggi>=600. Hanya app (pos-app-scoped). Phone/desktop tak terjejas.
+   p1_880 — sidebar boleh kecil/besar: --pos-sidebar-w (220px besar / 66px kecil = ikon sahaja);
+   semua offset kandungan guna var ni supaya geser auto bila toggle. */
+body.pos-tablet-pane { --pos-sidebar-w: 220px; }
+body.pos-tablet-pane.pos-sidebar-collapsed { --pos-sidebar-w: 66px; }
+.posAppNavBrand, .posAppNavToggle { display: none; }
 body.pos-tablet-pane #posAppTabBar {
   flex-direction: column !important;
   top: 0 !important; bottom: 0 !important; left: 0 !important; right: auto !important;
-  width: 220px !important; height: 100% !important;
-  padding: calc(env(safe-area-inset-top) + 14px) 12px calc(env(safe-area-inset-bottom) + 14px) 12px !important;
+  width: var(--pos-sidebar-w) !important; height: 100% !important;
+  padding: calc(env(safe-area-inset-top) + 14px) 10px calc(env(safe-area-inset-bottom) + 14px) 10px !important;
   border-top: none !important; border-right: 1px solid #2a241d !important;
   background: #101010 !important;
   justify-content: flex-start !important; align-items: stretch !important;
   gap: 3px !important; z-index: 120 !important;
   box-shadow: 2px 0 16px rgba(0,0,0,.18) !important;
+  overflow-x: hidden !important;
+  transition: width .18s ease !important;
 }
 body.pos-tablet-pane .posAppNavBrand {
   display: flex !important; align-items: center; gap: 9px;
-  color: #FAF6EF; font-weight: 800; font-size: 15px; letter-spacing: .3px; padding: 8px 12px 16px;
+  color: #FAF6EF; font-weight: 800; font-size: 15px; letter-spacing: .3px; padding: 8px 8px 14px;
 }
-body.pos-tablet-pane .posAppNavBrand i { color: #CD7C32; }
+body.pos-tablet-pane .posAppNavBrand__logo { color: #CD7C32; flex: 0 0 auto; }
+body.pos-tablet-pane .posAppNavBrand__txt { white-space: nowrap; overflow: hidden; }
+/* butang toggle kecil/besar sidebar */
+body.pos-tablet-pane .posAppNavToggle {
+  display: flex !important; align-items: center; justify-content: center;
+  margin-left: auto; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,.08); border: 0; color: #C9C2B8; cursor: pointer;
+  transition: background .12s;
+}
+body.pos-tablet-pane .posAppNavToggle:hover { background: rgba(255,255,255,.16); color: #FAF6EF; }
+body.pos-tablet-pane .posAppNavToggle i { width: 17px; height: 17px; transition: transform .18s; }
 body.pos-tablet-pane .posAppTab {
   flex: 0 0 auto !important; flex-direction: row !important; justify-content: flex-start !important;
   gap: 13px !important; padding: 13px 14px !important; border-radius: 10px !important;
-  color: #C9C2B8 !important; transition: background .12s, color .12s;
+  color: #C9C2B8 !important; transition: background .12s, color .12s; overflow: hidden;
 }
-body.pos-tablet-pane .posAppTab span { font-size: 14px !important; }
-body.pos-tablet-pane .posAppTab i { width: 21px !important; height: 21px !important; }
+body.pos-tablet-pane .posAppTab span { font-size: 14px !important; white-space: nowrap; }
+body.pos-tablet-pane .posAppTab i { width: 21px !important; height: 21px !important; flex: 0 0 auto; }
 body.pos-tablet-pane .posAppTab.active { background: rgba(205,124,50,.16) !important; color: #E59A56 !important; }
-/* geser top bar + kandungan + overlay ke kanan sidebar */
-body.pos-tablet-pane #posAppTopBar { left: 220px !important; }
-body.pos-tablet-pane.pos-app-scoped #main-content { margin-left: 220px !important; padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important; }
-body.pos-tablet-pane .pos-offline-banner { left: 220px !important; }
-body.pos-tablet-pane #mobileCartFloatingBar { left: calc(220px + 16px) !important; bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
+/* ---- KECIL (collapsed): ikon sahaja ---- */
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppNavBrand { justify-content: center; padding: 8px 0 14px; gap: 0; }
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppNavBrand__logo,
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppNavBrand__txt { display: none !important; }
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppNavToggle { margin: 0 auto; }
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppNavToggle i { transform: rotate(180deg); }
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppTab { justify-content: center !important; gap: 0 !important; padding: 13px 0 !important; }
+body.pos-tablet-pane.pos-sidebar-collapsed .posAppTab span { display: none !important; }
+/* geser top bar + kandungan + overlay ke kanan sidebar (ikut --pos-sidebar-w) */
+body.pos-tablet-pane #posAppTopBar { left: var(--pos-sidebar-w) !important; transition: left .18s ease; }
+body.pos-tablet-pane.pos-app-scoped #main-content { margin-left: var(--pos-sidebar-w) !important; padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important; transition: margin-left .18s ease; }
+body.pos-tablet-pane .pos-offline-banner { left: var(--pos-sidebar-w) !important; }
+body.pos-tablet-pane #mobileCartFloatingBar { left: calc(var(--pos-sidebar-w) + 16px) !important; bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
 
 /* ===== p1_865 — CART RAIL (hanya landscape lebar>=1100): troli tetap di kanan ===== */
 body.pos-cart-rail #posSection > .main-content { display: flex !important; gap: 16px; align-items: flex-start; padding-bottom: 0 !important; }
@@ -4367,7 +4391,7 @@ body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; padding-botto
    (elak WKWebView auto-scroll halaman yg buatkan input terapung ke atas skrin). */
 body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
-body.pos-tablet-pane #saPanel { left: calc(220px + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
+body.pos-tablet-pane #saPanel { left: calc(var(--pos-sidebar-w, 220px) + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
 /* p1_874/p1_875 — sorok bar troli terapung "Lihat Troli" bila panel Tanya AI dibuka (cart bar z-4999
    dulu terapung ATAS sheet chat → nampak macam ada troli dalam skrin Tanya AI). Terpakai phone+tablet.
    Guna body.sa-panel-open (di-toggle dlm __saToggle/__saShow, kukuh dlm WebView) + :has sbg sokongan. */

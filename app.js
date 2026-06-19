@@ -116,11 +116,28 @@ window.__injectPosAppTabBar = function(){
  const bar = document.createElement('div');
  bar.id = 'posAppTabBar';
  // p1_865 — brand header (nampak hanya bila sidebar tablet); di phone (bottom bar) disorok via CSS
- bar.innerHTML = '<div class="posAppNavBrand"><i data-lucide="tent" style="width:18px;height:18px;"></i><span>10 CAMP POS</span></div>'
+ // p1_880 — butang toggle kecil/besar sidebar (tablet). title=label supaya bila kecil (ikon sahaja) ada tooltip.
+ bar.innerHTML = '<div class="posAppNavBrand"><i data-lucide="tent" class="posAppNavBrand__logo" style="width:18px;height:18px;"></i><span class="posAppNavBrand__txt">10 CAMP POS</span><button type="button" class="posAppNavToggle" onclick="window.__togglePosSidebar()" aria-label="Kecil/besarkan sidebar" title="Kecil/besarkan sidebar"><i data-lucide="chevrons-left"></i></button></div>'
  + window.__POS_APP_TABS.map(t =>
- `<button class="posAppTab" data-key="${t.key}" onclick="window.__posAppGo('${t.key}')"><i data-lucide="${t.icon}"></i><span>${t.label}</span></button>`
+ `<button class="posAppTab" data-key="${t.key}" title="${t.label}" onclick="window.__posAppGo('${t.key}')"><i data-lucide="${t.icon}"></i><span>${t.label}</span></button>`
  ).join('');
  document.body.appendChild(bar);
+ window.__applyPosSidebarState();
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+// p1_880 — sidebar tablet boleh kecil (ikon sahaja) / besar. Disimpan dalam localStorage.
+window.__POS_SIDEBAR_KEY = 'pos_sidebar_collapsed';
+window.__applyPosSidebarState = function(){
+ let collapsed = false;
+ try { collapsed = localStorage.getItem(window.__POS_SIDEBAR_KEY) === '1'; } catch(e){}
+ document.body.classList.toggle('pos-sidebar-collapsed', collapsed);
+};
+window.__togglePosSidebar = function(){
+ const collapsed = !document.body.classList.contains('pos-sidebar-collapsed');
+ document.body.classList.toggle('pos-sidebar-collapsed', collapsed);
+ try { localStorage.setItem(window.__POS_SIDEBAR_KEY, collapsed ? '1' : '0'); } catch(e){}
+ // kira semula tinggi header & layout (offset kandungan berubah ikut lebar sidebar)
+ try { if(typeof window.__setPosHeaderH === 'function') window.__setPosHeaderH(); } catch(e){}
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 // Navigasi tab: switchHub + render + highlight tab aktif + update tajuk + scroll atas.

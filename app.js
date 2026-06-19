@@ -20163,11 +20163,12 @@ window.renderFifoListing = function() {
  let rows = inventoryBatches.filter(b => (Number(b.qty_remaining) || 0) > 0);
  if(q) rows = rows.filter(b => (b.sku || '').toLowerCase().includes(q) || nameOf(b.sku).toLowerCase().includes(q));
  rows.sort((a, b) => (a.inbound_date || '').localeCompare(b.inbound_date || '')); // lama dahulu = FIFO
- // p1_882 — nombor batch per SKU ikut tarikh mendarat (paling lama = #1, dijual dulu)
- const __seqBySku = {}; const __batchSeq = new Map();
- inventoryBatches.filter(b => (Number(b.qty_remaining) || 0) > 0)
-   .slice().sort((a, b) => (String(a.sku||'')).localeCompare(String(b.sku||'')) || (a.inbound_date || '').localeCompare(b.inbound_date || '') || ((a.id||0) - (b.id||0)))
-   .forEach(b => { __seqBySku[b.sku] = (__seqBySku[b.sku] || 0) + 1; __batchSeq.set(b.id, __seqBySku[b.sku]); });
+ // p1_885 — nombor batch SEBENAR per SKU = urutan shipment ikut tarikh, dikira ATAS SEMUA batch
+ // (termasuk yang dah habis) supaya #1 = kali PERTAMA produk masuk. Paparan #B/1–N: B=shipment,
+ // 1–N = julat unit individu (1..qty_received). Tiap unit = SKU #B/u.
+ const __batchNoAll = new Map(); const __cntBySku = {};
+ inventoryBatches.slice().sort((a, b) => (String(a.sku||'')).localeCompare(String(b.sku||'')) || (a.inbound_date || '').localeCompare(b.inbound_date || '') || ((a.id||0) - (b.id||0)))
+   .forEach(b => { __cntBySku[b.sku] = (__cntBySku[b.sku] || 0) + 1; __batchNoAll.set(b.id, __cntBySku[b.sku]); });
  const totalUnits = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0), 0);
  const totalValue = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0) * (Number(b.cost_price || b.landed_cost) || 0), 0);
  const aging = rows.filter(b => ageDays(b.inbound_date) >= 180).length;
@@ -20189,10 +20190,14 @@ window.renderFifoListing = function() {
  const dt = b.inbound_date ? new Date(b.inbound_date).toLocaleDateString('en-MY', {day:'2-digit', month:'short', year:'numeric'}) : '-';
  const cost = Number(b.cost_price || b.landed_cost) || 0;
  const poSup = [b.po_number, b.supplier_name].filter(Boolean).join(' · ');
- const seqNo = __batchSeq.get(b.id) || '';
- const seqTot = __seqBySku[b.sku] || seqNo;
+ const bn = __batchNoAll.get(b.id) || 1;
+ const recv = Number(b.qty_received) || 0;
+ const skuJs = String(b.sku || '').replace(/'/g, "\\'");
  return `<tr>
- <td style="padding:10px; text-align:center; font-weight:800; color:#7A5410;" title="Batch ke-${seqNo} daripada ${seqTot} batch aktif SKU ni (ikut tarikh mendarat)">${seqNo ? '#' + seqNo + '/' + seqTot : '—'}</td>
+ <td style="padding:10px; text-align:center; white-space:nowrap;" title="Shipment ke-${bn} (ikut tarikh) · unit 1 hingga ${recv}. Tiap unit = ${esc(b.sku||'')} #${bn}/u">
+   <div style="font-weight:800; color:#7A5410;">#${bn}/1–${recv}</div>
+   <button onclick="event.stopPropagation(); window.__unitLabelsPrint('${skuJs}', ${bn}, ${recv})" title="Cetak label barcode tiap unit batch ni" style="margin-top:4px; background:#FBEFE2; border:1px solid #E7C8A8; color:#7A5410; border-radius:5px; font-size:10px; font-weight:700; padding:2px 7px; cursor:pointer;"><i data-lucide="tag" style="width:10px;height:10px;vertical-align:-1px;"></i> Label</button>
+ </td>
  <td style="padding:10px; white-space:nowrap;">${esc(dt)}</td>
  <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(b.sku || '-')}</td>
  <td style="padding:10px;">${esc(nameOf(b.sku).slice(0, 45) || '-')}</td>
@@ -20380,6 +20385,49 @@ window.__reconExport = function(){
  const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8;' });
  const url = URL.createObjectURL(blob); const a = document.createElement('a');
  a.href = url; a.download = 'rekonsiliasi-stok.csv'; a.click(); URL.revokeObjectURL(url);
+};
+
+// =============================================================
+// p1_885 — Label barcode PER UNIT: SKU #batch/unit (cth MG012 #1/1 .. #1/22).
+// Tiap unit fizikal dapat identiti sendiri (SKU + shipment# + nombor unit). Cetak sticker barcode.
+// Kod barcode = SKU-B-U (scanner-safe); teks manusia = SKU #B/u.
+// =============================================================
+window.__unitLabelsPrint = function(sku, batchNo, qty){
+ qty = Number(qty) || 0; batchNo = Number(batchNo) || 1;
+ if(qty <= 0) return (typeof showToast==='function') && showToast('Batch ni tiada unit diterima.', 'warn');
+ if(qty > 300 && !window.confirm(qty + ' label akan dijana untuk ' + sku + ' batch #' + batchNo + '. Teruskan?')) return;
+ const prod = (typeof masterProducts !== 'undefined') ? masterProducts.find(p => p.sku === sku) : null;
+ let nm = prod ? (prod.name || '') : '';
+ nm = nm.replace(/^[A-Z0-9-]+\s*[|_]\s*/i, '').split(/\s*\|\s*/)[0].replace(/\s*[_]\s*/g,' ').trim().slice(0, 40);
+ const esc = (s) => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ const w = window.open('', '_blank');
+ if(!w) return (typeof showToast==='function') && showToast('Popup disekat — benarkan popup untuk cetak label.', 'warn');
+ let cards = '';
+ for(let u = 1; u <= qty; u++){
+  const code = sku + '-' + batchNo + '-' + u;           // scannable (CODE128)
+  const human = esc(sku) + ' #' + batchNo + '/' + u;    // identiti unit (papar)
+  cards += '<div class="lbl"><div class="h">10 CAMP</div><div class="nm">' + esc(nm) + '</div><svg class="bc" data-code="' + esc(code) + '"></svg><div class="uid">' + human + '</div></div>';
+ }
+ w.document.write('<html><head><title>Label ' + esc(sku) + ' #' + batchNo + '</title>'
+  + '<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></scr' + 'ipt>'
+  + '<style>'
+  + 'body{font-family:sans-serif;margin:0;padding:10px;}'
+  + '.bar{position:fixed;top:8px;right:8px;z-index:9;}'
+  + '@media print{.bar{display:none;}}'
+  + '.info{font-size:12px;color:#444;margin:0 0 10px;}'
+  + '.grid{display:flex;flex-wrap:wrap;gap:6px;}'
+  + '.lbl{width:48mm;height:30mm;border:1px solid #ccc;box-sizing:border-box;padding:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-inside:avoid;}'
+  + '.h{font-weight:900;font-size:11px;line-height:1.1;}'
+  + '.nm{font-size:8px;font-weight:bold;line-height:1.1;max-height:20px;overflow:hidden;}'
+  + '.bc{max-width:92%;height:auto;}'
+  + '.uid{font-size:11px;font-weight:800;letter-spacing:.3px;line-height:1.1;}'
+  + '</style></head><body>'
+  + '<button class="bar" onclick="window.print()" style="padding:9px 18px;background:#CD7C32;color:#fff;border:0;border-radius:6px;font-weight:bold;cursor:pointer;">Print</button>'
+  + '<p class="info">' + esc(sku) + (nm ? ' — ' + esc(nm) : '') + ' · Batch #' + batchNo + ' · ' + qty + ' unit (' + esc(sku) + ' #' + batchNo + '/1 … #' + batchNo + '/' + qty + ')</p>'
+  + '<div class="grid">' + cards + '</div>'
+  + '<scr' + 'ipt>window.onload=function(){document.querySelectorAll("svg.bc").forEach(function(s){try{JsBarcode(s,s.getAttribute("data-code"),{format:"CODE128",width:1.3,height:30,displayValue:false,margin:2});}catch(e){}});setTimeout(function(){window.print();},600);};</scr' + 'ipt>'
+  + '</body></html>');
+ w.document.close();
 };
 
 // p1_274 — Stock Transfer stub (build flow later)

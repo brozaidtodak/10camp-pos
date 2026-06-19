@@ -1183,18 +1183,22 @@ window.__saToggle = function(){
  if(window.__saOpen){
   if(!window.__saHistory.length){ window.__saHistory.push({ role:'assistant', content:'Hai! Aku pembantu AI staf 10 CAMP. Tanya aku cara guna POS atau SOP — cth "macam mana buat refund?", "macam mana check stok?", "SOP cuti macam mana?". Nota: aku tak boleh tengok data live lagi (cth stok sebenar) — tu check sendiri atau tanya Bos/Aliff.' }); }
   window.__saRender();
-  setTimeout(()=>{ const i = document.getElementById('saInput'); if(i) i.focus(); }, 60);
+  // p1_877 — JANGAN auto-focus input (focus cetus iOS tolak halaman → input terapung ke atas skrin).
+  // Panel dipapar bersih dulu; user tap input sendiri bila nak taip (gaya WhatsApp).
+  try { document.documentElement.style.removeProperty('--sa-top'); document.documentElement.style.removeProperty('--sa-h'); } catch(e){}
   if(typeof window.__saViewportSync === 'function') window.__saViewportSync();
  } else {
-  // tutup → reset offset keyboard
-  try { document.documentElement.style.setProperty('--sa-kb', '0px'); } catch(e){}
+  // tutup → reset offset/keadaan keyboard
+  try { document.documentElement.style.removeProperty('--sa-top'); document.documentElement.style.removeProperty('--sa-h'); } catch(e){}
  }
  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
 };
-// p1_873/p1_876 — gaya WhatsApp: bila keyboard buka, angkat panel chat ATAS keyboard (input+mesej
-// kekal nampak), bukan tersorok bawah keyboard. Guna visualViewport (tinggi sebenar selepas keyboard).
-// p1_876: lebih kukuh di iOS — kira tinggi keyboard tepat (innerHeight − vv.height; abai offsetTop
-// yg silap-kira bila WKWebView auto-scroll), scroll mesej ke bawah selepas layout settle (rAF + delay).
+// p1_873/p1_876/p1_877 — gaya WhatsApp: panel chat sentiasa muat tepat dalam kawasan-nampak ATAS
+// keyboard, conversation kekal kelihatan. p1_877 = pendekatan kukuh utk iOS WKWebView:
+//  • Bukan lagi position:fixed + bottom:keyboard (yg iOS displace bila input difokus) — sebaliknya
+//    JEJAK visualViewport: set TOP + HEIGHT panel = kawasan-nampak sebenar (offsetTop..keyboard).
+//  • Reset window.scrollTo(0,0) setiap sync → batalkan auto-scroll iOS yg tolak input ke atas skrin.
+//  • Tak lagi auto-focus input bila buka (focus itu yg cetus lonjakan) — user tap input sendiri.
 window.__saScrollMsgsBottom = function(){
  const box = document.getElementById('saMessages'); if(!box) return;
  try { box.scrollTop = box.scrollHeight; } catch(e){}
@@ -1204,11 +1208,19 @@ window.__saViewportSync = function(){
  const p = document.getElementById('saPanel');
  if(!p || p.hidden) return;
  if(!(document.body && document.body.classList.contains('pos-app-scoped'))) return;
+ const root = document.documentElement;
+ // batalkan sebarang auto-scroll dokumen yg iOS buat bila input difokus (punca input terapung ke atas)
+ try { if((window.pageYOffset||0) !== 0) window.scrollTo(0,0); } catch(e){}
  const vv = window.visualViewport;
- // tinggi keyboard = berapa banyak viewport-nampak mengecut dari tinggi penuh skrin.
- // (offsetTop SENGAJA tak ditolak — di WKWebView bila page auto-scroll ia silap-kecilkan nilai → input tenggelam)
- const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height)) : 0;
- try { document.documentElement.style.setProperty('--sa-kb', kb + 'px'); } catch(e){}
+ const headerH = parseFloat(getComputedStyle(root).getPropertyValue('--pos-app-header-h')) || 60;
+ if(vv){
+  // kawasan-nampak atas keyboard: dari headerH (bawah bar native) hingga atas keyboard
+  const kb = Math.max(0, Math.round(window.innerHeight - vv.height)); // tinggi keyboard
+  const top = headerH;
+  const h = Math.max(160, Math.round(window.innerHeight - top - kb));
+  try { root.style.setProperty('--sa-top', top + 'px'); } catch(e){}
+  try { root.style.setProperty('--sa-h', h + 'px'); } catch(e){}
+ }
  window.__saScrollMsgsBottom();
 };
 (function __initSaViewport(){
@@ -1217,19 +1229,19 @@ window.__saViewportSync = function(){
    window.visualViewport.addEventListener('resize', function(){ window.__saViewportSync(); });
    window.visualViewport.addEventListener('scroll', function(){ window.__saViewportSync(); });
   }
-  // bila input fokus → keyboard beranimasi ~300ms di iOS; sync beberapa kali supaya nilai akhir betul
+  // keyboard iOS beranimasi ~300ms → sync beberapa kali supaya kedudukan akhir betul + batal auto-scroll
   document.addEventListener('focusin', function(e){
    if(e.target && e.target.id === 'saInput'){
-    [0,80,200,350].forEach(function(t){ setTimeout(window.__saViewportSync, t); });
+    [0,60,160,300,450].forEach(function(t){ setTimeout(window.__saViewportSync, t); });
    }
   });
-  // bila input blur (keyboard tutup) → resize event sepatutnya set kb=0 sendiri; ini fallback
+  // bila input blur (keyboard tutup) → resize sepatutnya pulih sendiri; ini fallback re-sync
   document.addEventListener('focusout', function(e){
    if(e.target && e.target.id === 'saInput'){
     setTimeout(function(){
      const a = document.activeElement;
      if(a && a.id === 'saInput') return; // masih fokus (cuma re-render) — jangan reset
-     try{ document.documentElement.style.setProperty('--sa-kb','0px'); }catch(_){}
+     window.__saViewportSync();
      window.__saScrollMsgsBottom();
     }, 250);
    }

@@ -4325,23 +4325,25 @@ body.pos-app-scoped #saFab { display: none !important; }
 /* p1_869 — FIX KRITIKAL: #saWidget jangan jadi lapisan penuh skrin yg tangkap semua tekanan.
    #saPanel dah position:fixed (sangkut viewport sendiri) → #saWidget boleh kekal 0x0 + pointer-events:none. */
 body.pos-app-scoped #saWidget { left: auto !important; right: 0 !important; bottom: 0 !important; top: auto !important; width: 0 !important; height: 0 !important; pointer-events: none !important; }
-/* p1_871 — panel chat = SHEET PENUH bawah top bar → bawah skrin (lebih ruang; header kekal atas).
-   Bottom:0 (tutup tab bar masa chat; tutup via X). Input ada padding safe-area. */
+/* p1_871/p1_877 — panel chat = SHEET PENUH bawah top bar → atas keyboard (gaya WhatsApp).
+   p1_877: TOP + HEIGHT didorong JS (--sa-top/--sa-h jejak visualViewport) supaya panel SENTIASA
+   muat tepat dalam kawasan-nampak atas keyboard — elak input terapung ke atas skrin (bug iOS). */
 body.pos-app-scoped #saPanel {
   pointer-events: auto !important;
   position: fixed !important;
-  top: var(--pos-app-header-h, 60px) !important;
-  bottom: var(--sa-kb, 0px) !important; /* p1_873 — JS set tinggi keyboard (visualViewport) → input+mesej kekal atas keyboard, gaya WhatsApp */
+  top: var(--sa-top, var(--pos-app-header-h, 60px)) !important;
+  height: var(--sa-h, calc(100dvh - var(--pos-app-header-h, 60px))) !important;
+  bottom: auto !important;
   left: 0 !important; right: 0 !important;
   width: auto !important; max-width: none !important;
-  height: auto !important; max-height: none !important;
+  max-height: none !important;
   border-radius: 16px 16px 0 0 !important;
 }
 /* mesej = kawasan scroll yg mengecut bila keyboard buka (latest mesej kekal nampak) */
 body.pos-app-scoped #saPanel .sa-msgs { flex: 1 1 auto !important; overflow-y: auto !important; min-height: 0 !important; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; }
-/* p1_876 — kunci scroll halaman bawah masa panel Tanya AI buka → position:fixed kekal stabil di iOS
-   (elak WKWebView auto-scroll halaman yg buatkan kira-kira keyboard tersilap). */
+body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; padding-bottom: 10px !important; }
+/* p1_876/p1_877 — kunci scroll halaman bawah masa panel Tanya AI buka → position:fixed kekal stabil di iOS
+   (elak WKWebView auto-scroll halaman yg buatkan input terapung ke atas skrin). */
 body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(220px + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }

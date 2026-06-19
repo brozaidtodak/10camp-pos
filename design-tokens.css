@@ -4392,6 +4392,18 @@ body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; padding-botto
 body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(var(--pos-sidebar-w, 220px) + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
+
+/* p1_881 — Image Zoom Lightbox (full-page) untuk gambar Cashier */
+#imgZoomOverlay { display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(16,16,16,.94); align-items: center; justify-content: center; }
+.imgZoom__stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+#imgZoomImg { max-width: 100vw; max-height: 100vh; object-fit: contain; transform-origin: center center; will-change: transform; user-select: none; -webkit-user-drag: none; -webkit-user-select: none; touch-action: none; }
+.imgZoom__btn { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .12s; }
+.imgZoom__btn:hover { background: rgba(255,255,255,.26); }
+.imgZoom__btn i { width: 22px; height: 22px; }
+.imgZoom__close { position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 16px; z-index: 2; }
+.imgZoom__bar { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 22px); left: 50%; transform: translateX(-50%); display: flex; gap: 14px; z-index: 2; }
+body.img-zoom-open { overflow: hidden !important; }
+.pos-zoom-trigger { cursor: zoom-in; }
 /* p1_874/p1_875 — sorok bar troli terapung "Lihat Troli" bila panel Tanya AI dibuka (cart bar z-4999
    dulu terapung ATAS sheet chat → nampak macam ada troli dalam skrin Tanya AI). Terpakai phone+tablet.
    Guna body.sa-panel-open (di-toggle dlm __saToggle/__saShow, kukuh dlm WebView) + :has sbg sokongan. */

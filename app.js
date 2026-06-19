@@ -13188,7 +13188,7 @@ function renderPOS(searchTerm = "") {
  htmlBuf += `
  <div class="product-card${isOOS ? ' is-oos' : ''}">
  ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : (totalStock <= (window.__POS_LOW_STOCK || 3) ? `<span class="product-card__low"><i data-lucide="alert-triangle" style="width:11px;height:11px;"></i> Stok rendah</span>` : '')}
- <img src="${window.__thumbUrl(thumb, 200)}" class="pos-detail-trigger" loading="lazy" decoding="async" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
+ <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="window.__imgZoomOpen('${String(thumb).replace(/'/g, "\\'")}','${skuEsc}')" title="Tap untuk zoom gambar penuh" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
@@ -13214,6 +13214,84 @@ function renderPOS(searchTerm = "") {
  `;
  list.innerHTML = htmlBuf;
 }
+
+// =============================================================
+// p1_881 — Image Zoom Lightbox (full-page): tap gambar Cashier → zoom penuh skrin.
+// Sokong pinch-zoom (2 jari), double-tap toggle, pan (seret bila zoom), butang +/−/reset,
+// scroll-wheel (desktop), klik latar/X untuk tutup. Reusable: __imgZoomOpen(url, alt).
+// =============================================================
+(function(){
+ let scale = 1, tx = 0, ty = 0;
+ let startDist = 0, startScale = 1;
+ let panning = false, panStartX = 0, panStartY = 0;
+ let lastTap = 0;
+ const MIN = 1, MAX = 5;
+ const el = (id) => document.getElementById(id);
+ function apply(){ const img = el('imgZoomImg'); if(img) img.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+ function clampPan(){
+  const img = el('imgZoomImg'); if(!img) return;
+  const r = img.getBoundingClientRect();
+  const maxX = Math.max(0, (r.width - window.innerWidth) / 2 + 40);
+  const maxY = Math.max(0, (r.height - window.innerHeight) / 2 + 40);
+  tx = Math.max(-maxX, Math.min(maxX, tx));
+  ty = Math.max(-maxY, Math.min(maxY, ty));
+ }
+ function setScale(s){
+  scale = Math.max(MIN, Math.min(MAX, s));
+  if(scale === MIN){ tx = 0; ty = 0; }
+  clampPan(); apply();
+ }
+ function dist(a, b){ return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+ function build(){
+  const ov = document.createElement('div');
+  ov.id = 'imgZoomOverlay';
+  ov.innerHTML =
+    '<button class="imgZoom__btn imgZoom__close" onclick="window.__imgZoomClose()" aria-label="Tutup"><i data-lucide="x"></i></button>'
+  + '<div class="imgZoom__stage" id="imgZoomStage"><img id="imgZoomImg" alt="" draggable="false"></div>'
+  + '<div class="imgZoom__bar">'
+  +   '<button class="imgZoom__btn" onclick="window.__imgZoomBtn(-1)" aria-label="Zoom out"><i data-lucide="zoom-out"></i></button>'
+  +   '<button class="imgZoom__btn" onclick="window.__imgZoomBtn(0)" aria-label="Reset"><i data-lucide="maximize"></i></button>'
+  +   '<button class="imgZoom__btn" onclick="window.__imgZoomBtn(1)" aria-label="Zoom in"><i data-lucide="zoom-in"></i></button>'
+  + '</div>';
+  document.body.appendChild(ov);
+  const stage = el('imgZoomStage'), img = el('imgZoomImg');
+  ov.addEventListener('click', function(e){ if(e.target === ov || e.target === stage) window.__imgZoomClose(); });
+  stage.addEventListener('wheel', function(e){ e.preventDefault(); setScale(scale * (e.deltaY < 0 ? 1.15 : 1/1.15)); }, { passive:false });
+  img.addEventListener('dblclick', function(e){ e.preventDefault(); setScale(scale > 1 ? 1 : 2.5); });
+  img.addEventListener('touchstart', function(e){
+   if(e.touches.length === 2){ e.preventDefault(); startDist = dist(e.touches[0], e.touches[1]); startScale = scale; }
+   else if(e.touches.length === 1){
+    const now = Date.now();
+    if(now - lastTap < 300){ e.preventDefault(); setScale(scale > 1 ? 1 : 2.5); }
+    lastTap = now;
+    if(scale > 1){ panning = true; panStartX = e.touches[0].clientX - tx; panStartY = e.touches[0].clientY - ty; }
+   }
+  }, { passive:false });
+  img.addEventListener('touchmove', function(e){
+   if(e.touches.length === 2){ e.preventDefault(); const d = dist(e.touches[0], e.touches[1]); if(startDist > 0) setScale(startScale * (d / startDist)); }
+   else if(e.touches.length === 1 && panning && scale > 1){ e.preventDefault(); tx = e.touches[0].clientX - panStartX; ty = e.touches[0].clientY - panStartY; clampPan(); apply(); }
+  }, { passive:false });
+  img.addEventListener('touchend', function(e){ if(e.touches.length === 0){ panning = false; startDist = 0; } });
+  return ov;
+ }
+ window.__imgZoomOpen = function(url, alt){
+  if(!url) return;
+  let ov = el('imgZoomOverlay'); if(!ov) ov = build();
+  const img = el('imgZoomImg'); img.src = url; img.alt = alt || '';
+  scale = 1; tx = 0; ty = 0; apply();
+  ov.style.display = 'flex';
+  document.body.classList.add('img-zoom-open');
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__imgZoomClose = function(){
+  const ov = el('imgZoomOverlay'); if(ov) ov.style.display = 'none';
+  document.body.classList.remove('img-zoom-open');
+  scale = 1; tx = 0; ty = 0;
+ };
+ window.__imgZoomBtn = function(dir){ if(dir === 0) setScale(1); else setScale(scale * (dir > 0 ? 1.5 : 1/1.5)); };
+ // ESC tutup (desktop)
+ document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && document.getElementById('imgZoomOverlay') && document.getElementById('imgZoomOverlay').style.display === 'flex') window.__imgZoomClose(); });
+})();
 
 // =============================================================
 // p1_24 — POS Product Detail Modal (gallery + variants + add)

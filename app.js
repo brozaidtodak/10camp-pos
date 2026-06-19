@@ -20303,14 +20303,25 @@ window.renderStockRecon = async function(){
  const now = Date.now();
  if(!window.__reconCache || (now - (window.__reconCacheAt||0)) > 90000){
   tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;padding:32px;">Mengira pergerakan stok…</td></tr>';
-  let txns = [], rets = [];
+  let txns = [], rets = [], doItems = [];
   try { if(typeof db !== 'undefined' && db){
    const t = await db.from('inventory_transactions').select('sku,transaction_type,qty_change,reason').limit(200000); txns = (t.data) || [];
    const r = await db.from('returns_log').select('sku,qty').limit(50000); rets = (r.data) || [];
+   const dq = await db.from('delivery_order_items').select('sku,qty').limit(100000); doItems = (dq.data) || [];
   }} catch(e){ console.warn('recon fetch', e); }
-  window.__reconCache = { txns, rets }; window.__reconCacheAt = now;
+  window.__reconCache = { txns, rets, doItems }; window.__reconCacheAt = now;
  }
- const { txns, rets } = window.__reconCache;
+ const { txns, rets, doItems } = window.__reconCache;
+ // p1_886 — Diterima = JUMLAH DO sebenar (sepanjang hayat); fallback batch qty_received kalau takde DO.
+ const doTotal = {};
+ (doItems||[]).forEach(d => { if(!d.sku) return; doTotal[d.sku] = (doTotal[d.sku]||0) + (Number(d.qty)||0); });
+ // Jualan = sepanjang hayat dari salesHistory (real sales sahaja)
+ const salesBySku = {};
+ (typeof salesHistory !== 'undefined' && Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+  if(typeof window.__isRealSale === 'function' && !window.__isRealSale(s)) return;
+  let items = s.items; if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = []; } }
+  (Array.isArray(items) ? items : []).forEach(it => { const sk = it.sku; if(!sk) return; const qy = parseInt(it.qty || it.quantity || 1) || 0; salesBySku[sk] = (salesBySku[sk]||0) + qy; });
+ });
  const nameOf = (sku) => { const p = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts.find(x => x.sku === sku) : null; return p ? (p.name || '') : ''; };
  const agg = {};
  const ensure = (sku) => agg[sku] || (agg[sku] = { sku, received:0, onhand:0, costSum:0, costQty:0, sales:0, display:0, rental:0, scud:0, retdmg:0, other:0 });
@@ -20319,8 +20330,8 @@ window.renderStockRecon = async function(){
   if(!t.sku || !agg[t.sku]) { if(!t.sku) return; }
   const a = ensure(t.sku);
   const qc = Number(t.qty_change)||0; const tt = (t.transaction_type||'').toUpperCase(); const rs = (t.reason||'').toLowerCase();
-  if(tt === 'OUTBOUND_SALE'){ a.sales += Math.abs(qc); return; }
-  if(qc >= 0) return; // IN / receiving / pelarasan-tambah — jangan kira (received dari batch)
+  if(tt === 'OUTBOUND_SALE') return; // jualan dikira dari salesHistory (sepanjang hayat), elak double
+  if(qc >= 0) return; // IN / receiving / pelarasan-tambah — jangan kira (received dari DO/batch)
   const out = Math.abs(qc);
   if(/display|cud/.test(rs)) a.display += out;
   else if(/rental|sewa|\bcur\b|\bcr\b/.test(rs)) a.rental += out;
@@ -20329,19 +20340,25 @@ window.renderStockRecon = async function(){
   else a.other += out;
  });
  (rets||[]).forEach(r => { if(!r.sku) return; const a = ensure(r.sku); a.retdmg += Math.abs(Number(r.qty)||0); });
+ // pastikan SKU yang ada DO (diterima sebenar) turut masuk walau tiada batch
+ Object.keys(doTotal).forEach(sku => ensure(sku));
  const q = (document.getElementById('reconSearch')?.value || '').trim().toLowerCase();
  const gapOnly = !!(document.getElementById('reconGapOnly')?.checked);
- let rows = Object.values(agg).map(a => {
-  const unexplained = a.received - a.onhand - a.sales - a.display - a.rental - a.scud - a.retdmg - a.other;
+ // p1_886 — finalisasi: Diterima = DO total (fallback batch qty_received), Jualan = sepanjang hayat
+ const finalize = (a) => {
+  const received = (doTotal[a.sku] > 0) ? doTotal[a.sku] : a.received;
+  const sales = salesBySku[a.sku] || 0;
+  const unexplained = received - sales - a.display - a.rental - a.scud - a.retdmg - a.other - a.onhand;
   const avgCost = a.costQty ? (a.costSum / a.costQty) : 0;
-  return Object.assign(a, { unexplained, avgCost, name: nameOf(a.sku) });
- });
+  return Object.assign(a, { received, sales, unexplained, avgCost, name: nameOf(a.sku) });
+ };
+ let rows = Object.values(agg).map(finalize);
  if(q) rows = rows.filter(r => (r.sku||'').toLowerCase().includes(q) || (r.name||'').toLowerCase().includes(q));
  if(gapOnly) rows = rows.filter(r => r.unexplained !== 0);
  rows.sort((x,y) => Math.abs(y.unexplained) - Math.abs(x.unexplained) || (x.sku||'').localeCompare(y.sku||''));
  window.__reconRows = rows;
  // KPIs (atas SEMUA SKU, bukan ikut carian)
- const all = Object.values(agg).map(a => Object.assign(a, { unexplained: a.received - a.onhand - a.sales - a.display - a.rental - a.scud - a.retdmg - a.other, avgCost: a.costQty ? a.costSum/a.costQty : 0 }));
+ const all = Object.values(agg);
  const withGap = all.filter(r => r.unexplained !== 0);
  const totalGapUnits = all.reduce((s,r) => s + Math.abs(r.unexplained), 0);
  const totalGapVal = all.reduce((s,r) => s + Math.abs(r.unexplained) * (r.avgCost||0), 0);
@@ -20373,7 +20390,7 @@ window.renderStockRecon = async function(){
   }).join('');
  }
  const sum = document.getElementById('reconSummary');
- if(sum) sum.innerHTML = rows.length.toLocaleString() + ' SKU' + (rows.length > 600 ? ' (papar 600 teratas ikut beza terbesar)' : '') + '. <strong>−</strong> = stok hilang/belum direkod · <strong>+</strong> = lebih dari dijangka. <span style="color:#9a948b;">Nota Fasa 1: "Jualan" = jualan POS yang tolak batch; tepat penuh selepas import DO + sejarah CUD/CUR/SCUD/R&R dari Drive.</span>';
+ if(sum) sum.innerHTML = rows.length.toLocaleString() + ' SKU' + (rows.length > 600 ? ' (papar 600 teratas ikut beza terbesar)' : '') + '. <strong>−</strong> = stok hilang/belum direkod · <strong>+</strong> = lebih dari dijangka. <span style="color:#9a948b;">Diterima = jumlah DO sebenar (fallback batch kalau takde DO); Jualan = sepanjang hayat. Tambah baik bila lagi banyak sejarah CUD/CUR/R&R diimport dari Drive.</span>';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 window.__reconExport = function(){

@@ -4227,6 +4227,19 @@ body.pos-app-scoped .pos-offline-banner { top: calc(54px + env(safe-area-inset-t
 body.pos-offline-on.pos-app-scoped #main-content { padding-top: calc(54px + env(safe-area-inset-top) + 48px) !important; }
 body.pos-offline-on.pos-app-scoped .pos-prodsearch-row { top: calc(var(--pos-app-header-h, 64px) + 40px); }
 
+/* p1_868 — FIX gap kosong tab Orders/Stok/Komisen (+~70 seksyen lain). PUNCA: stray </div> tutup
+   #main-content awal → seksyen2 selepas floorPriceSection jadi anak TERUS #posAppLayout (di LUAR
+   #main-content) → dlm app tak dapat padding clearance top-bar → tertindih + gap. FIX selamat:
+   beri padding sama pada .tab-section anak-terus #posAppLayout (posSection di dlm #main-content tak
+   terkesan). Disahkan via parser HTML. Web (bukan app) tak terjejas. */
+body.pos-app-scoped #posAppLayout > .tab-section {
+  padding: calc(54px + env(safe-area-inset-top) + 10px) 12px calc(134px + env(safe-area-inset-bottom)) 12px !important;
+  max-width: none !important; width: 100% !important; box-sizing: border-box;
+}
+body.pos-offline-on.pos-app-scoped #posAppLayout > .tab-section { padding-top: calc(54px + env(safe-area-inset-top) + 48px) !important; }
+/* tablet: seksyen terkeluar pun kena geser kanan sidebar */
+body.pos-tablet-pane.pos-app-scoped #posAppLayout > .tab-section { margin-left: 220px !important; }
+
 /* ===== p1_865 — TABLET master-detail (gaya iPad): SIDEBAR nav kiri (ganti bottom tab bar) =====
    pos-tablet-pane = lebar>=768 & tinggi>=600. Hanya app (pos-app-scoped). Phone/desktop tak terjejas. */
 .posAppNavBrand { display: none; }

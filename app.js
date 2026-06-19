@@ -13023,7 +13023,7 @@ function renderPOS(searchTerm = "") {
  const isOOS = totalStock <= 0;
  htmlBuf += `
  <div class="product-card${isOOS ? ' is-oos' : ''}">
- ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : ''}
+ ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : (totalStock <= (window.__POS_LOW_STOCK || 3) ? `<span class="product-card__low"><i data-lucide="alert-triangle" style="width:11px;height:11px;"></i> Stok rendah</span>` : '')}
  <img src="${window.__thumbUrl(thumb, 200)}" class="pos-detail-trigger" loading="lazy" decoding="async" onclick="window.posOpenProductDetail('${skuEsc}')" title="Klik untuk detail" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
@@ -13034,7 +13034,7 @@ function renderPOS(searchTerm = "") {
  </div>
  <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
- <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : ''}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
+ <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : (totalStock <= (window.__POS_LOW_STOCK || 3) ? ' style="color:#B45309; font-weight:700;"' : '')}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
  <button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? `style="background:#FED7AA; color:#9A3412; border:1px solid #FB923C;" title="${(window.t?window.t('cs_oos_hint'):'Out of stock — backorder')}"` : ''}>${(window.t?window.t('cs_add_to_cart'):'Add to Cart')}</button>
  </div>
  `;
@@ -33340,6 +33340,44 @@ window.cashOutSave = async function(){
  } finally {
  if(btn){ btn.disabled = false; btn.textContent = 'Simpan Duit Keluar'; }
  }
+};
+
+// p1_855 — Pulangan/Refund dari Cashier: picker jualan terkini → buka flow return sedia ada (__returnRefundOpen)
+window.openReturnPicker = function(){
+ const m = document.getElementById('returnPickerModal'); if(!m) return;
+ const s = document.getElementById('returnPickerSearch'); if(s) s.value = '';
+ window.__renderReturnPicker('');
+ m.style.display = 'flex';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.closeReturnPicker = function(){ const m = document.getElementById('returnPickerModal'); if(m) m.style.display = 'none'; };
+window.__renderReturnPicker = function(filter){
+ const list = document.getElementById('returnPickerList'); if(!list) return;
+ const f = (filter || '').toLowerCase().trim();
+ let rows = (typeof salesHistory !== 'undefined' ? salesHistory : []).slice();
+ rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+ if(f) rows = rows.filter(s => String(s.id).includes(f) || (s.customer_name || '').toLowerCase().includes(f) || (s.customer_phone || '').includes(f));
+ rows = rows.slice(0, 40);
+ if(rows.length === 0){ list.innerHTML = '<p style="text-align:center; color:#9a948b; padding:24px 0; font-size:13px;">Tiada jualan dijumpai.</p>'; return; }
+ list.innerHTML = rows.map(s => {
+ const tot = round2(parseFloat(s.total || s.total_amount || 0) || 0);
+ const d = s.created_at ? new Date(s.created_at) : null;
+ const dstr = d ? (d.toLocaleDateString('ms-MY', { day:'2-digit', month:'short' }) + ' ' + d.toLocaleTimeString('ms-MY', { hour:'2-digit', minute:'2-digit' })) : '';
+ const nm = (typeof hesc === 'function') ? hesc(s.customer_name || 'Walk-in') : (s.customer_name || 'Walk-in');
+ const isRef = (s.status === 'refunded' || s.status === 'Refunded');
+ const refunded = isRef ? ' &middot; <span style="color:#B23A2E; font-weight:700;">DAH REFUND</span>' : '';
+ return '<button type="button" onclick="window.__returnPickerPick(' + s.id + ')" class="rp-pick-row">'
+ + '<div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#101010;">#' + s.id + ' &middot; ' + nm + '</div><div style="font-size:11.5px; color:#6B7280;">' + dstr + ' &middot; ' + (s.channel || 'POS') + refunded + '</div></div>'
+ + '<div style="font-weight:800; font-size:14px; color:#101010; font-variant-numeric:tabular-nums;">RM ' + tot.toFixed(2) + '</div>'
+ + '<i data-lucide="chevron-right" style="width:16px; height:16px; color:#CD7C32;"></i>'
+ + '</button>';
+ }).join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__returnPickerPick = function(saleId){
+ window.closeReturnPicker();
+ if(typeof window.__returnRefundOpen === 'function') window.__returnRefundOpen(saleId);
+ else if(typeof showToast === 'function') showToast('Fungsi return tak dijumpai.', 'error');
 };
 
 // p1_33 — Walk-in quick toggle: skip customer info for fast counter sales

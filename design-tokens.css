@@ -4160,3 +4160,8 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .co-cat { min-height: 44px; border: 1px solid #E2D9C8; background: #fff; border-radius: 9px; font: 600 12.5px 'Poppins', sans-serif; color: #101010; cursor: pointer; padding: 8px 10px; transition: transform .06s, background .12s, border-color .12s; -webkit-tap-highlight-color: transparent; }
 .co-cat:active { transform: scale(.96); }
 .co-cat.is-active { background: #FBE9E7; border-color: #E5897E; color: #B23A2E; }
+
+/* p1_855 — Badge stok rendah (kad produk Cashier) + baris picker Pulangan */
+.product-card__low { position: absolute; top: 8px; right: 8px; z-index: 4; background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; padding: 4px 9px; border-radius: 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.3px; line-height: 1; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(180,83,9,0.2); }
+.rp-pick-row { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid #EEE7DA; border-radius: 10px; margin-bottom: 7px; cursor: pointer; text-align: left; transition: background .12s, transform .06s; -webkit-tap-highlight-color: transparent; }
+.rp-pick-row:active { transform: scale(.99); background: #FAF6EF; }

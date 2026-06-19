@@ -4296,9 +4296,12 @@ body.pos-cart-rail.pos-app-scoped #main-content { padding-bottom: calc(20px + en
 
 /* p1_862 — Tanya AI jadi tab bottom bar dalam app: sorok FAB terapung; panel chat = sheet penuh atas tab bar */
 body.pos-app-scoped #saFab { display: none !important; }
+/* p1_869 — FIX KRITIKAL: #saWidget jangan jadi lapisan penuh skrin yg tangkap semua tekanan.
+   #saPanel dah position:fixed (sangkut viewport sendiri) → #saWidget boleh kekal 0x0 + pointer-events:none. */
+body.pos-app-scoped #saWidget { left: auto !important; right: 0 !important; bottom: 0 !important; top: auto !important; width: 0 !important; height: 0 !important; pointer-events: none !important; }
 /* p1_867 — panel chat = SHEET penuh kawasan kandungan (bawah top bar → atas tab bar), bukan kad terapung */
-body.pos-app-scoped #saWidget { left: 0 !important; right: 0 !important; bottom: 0 !important; top: 0 !important; }
 body.pos-app-scoped #saPanel {
+  pointer-events: auto !important;
   position: fixed !important;
   top: calc(var(--pos-app-header-h, 60px) + 8px) !important;
   bottom: calc(64px + env(safe-area-inset-bottom)) !important;

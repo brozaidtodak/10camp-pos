@@ -3243,7 +3243,7 @@ a:focus-visible {
 /* p1_796 — keep the Tanya AI bubble clear of the Cashier "View Cart" bar + native app bottom bar,
    and hide it while a checkout panel / cart drawer is open so it can't cover the Bayar button. */
 body.pos-mobile-mode #saWidget { bottom: 94px; }
-body.pos-app-scoped #saWidget { bottom: calc(84px + env(safe-area-inset-bottom)); }
+body.pos-app-scoped #saWidget { bottom: calc(140px + env(safe-area-inset-bottom)); }
 body.checkout-panel-open #saWidget { display: none !important; }
 body:has(#posCartDrawer.drawer-open) #saWidget,
 body:has(.cart-section.drawer-open) #saWidget { display: none !important; }

@@ -20163,6 +20163,11 @@ window.renderFifoListing = function() {
  let rows = inventoryBatches.filter(b => (Number(b.qty_remaining) || 0) > 0);
  if(q) rows = rows.filter(b => (b.sku || '').toLowerCase().includes(q) || nameOf(b.sku).toLowerCase().includes(q));
  rows.sort((a, b) => (a.inbound_date || '').localeCompare(b.inbound_date || '')); // lama dahulu = FIFO
+ // p1_882 — nombor batch per SKU ikut tarikh mendarat (paling lama = #1, dijual dulu)
+ const __seqBySku = {}; const __batchSeq = new Map();
+ inventoryBatches.filter(b => (Number(b.qty_remaining) || 0) > 0)
+   .slice().sort((a, b) => (String(a.sku||'')).localeCompare(String(b.sku||'')) || (a.inbound_date || '').localeCompare(b.inbound_date || '') || ((a.id||0) - (b.id||0)))
+   .forEach(b => { __seqBySku[b.sku] = (__seqBySku[b.sku] || 0) + 1; __batchSeq.set(b.id, __seqBySku[b.sku]); });
  const totalUnits = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0), 0);
  const totalValue = rows.reduce((s, b) => s + (Number(b.qty_remaining) || 0) * (Number(b.cost_price || b.landed_cost) || 0), 0);
  const aging = rows.filter(b => ageDays(b.inbound_date) >= 180).length;
@@ -20173,7 +20178,7 @@ window.renderFifoListing = function() {
  <div class="stat-card" style="border-left-color:#B23A2E;" title="Batch lebih 180 hari — patut diutamakan jual / clearance"><div class="stat-card__label"><i data-lucide="alert-triangle" style="width:13px;height:13px; color:#B23A2E;"></i> Batch Lama (>180h)</div><div class="stat-card__value">${aging.toLocaleString()}</div></div>
  `;
  if(!rows.length) {
- tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#999; padding:32px;">Tiada batch stok aktif' + (q ? ' untuk carian ni' : '') + '.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#999; padding:32px;">Tiada batch stok aktif' + (q ? ' untuk carian ni' : '') + '.</td></tr>';
  document.getElementById('fifoSummaryLine').textContent = '';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  return;
@@ -20184,7 +20189,9 @@ window.renderFifoListing = function() {
  const dt = b.inbound_date ? new Date(b.inbound_date).toLocaleDateString('en-MY', {day:'2-digit', month:'short', year:'numeric'}) : '-';
  const cost = Number(b.cost_price || b.landed_cost) || 0;
  const poSup = [b.po_number, b.supplier_name].filter(Boolean).join(' · ');
+ const seqNo = __batchSeq.get(b.id) || '';
  return `<tr>
+ <td style="padding:10px; text-align:center; font-weight:800; color:#7A5410;">${seqNo ? '#' + seqNo : '—'}</td>
  <td style="padding:10px; white-space:nowrap;">${esc(dt)}</td>
  <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(b.sku || '-')}</td>
  <td style="padding:10px;">${esc(nameOf(b.sku).slice(0, 45) || '-')}</td>
@@ -20197,6 +20204,82 @@ window.renderFifoListing = function() {
  }).join('');
  document.getElementById('fifoSummaryLine').innerHTML = `${rows.length.toLocaleString()} batch aktif${rows.length > 500 ? ' (papar 500 teratas)' : ''}. Disusun lama dahulu (FIFO).`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+
+// =============================================================
+// p1_882 — Terima Stok (Receive): cipta batch ikut TARIKH MENDARAT (FIFO).
+// Ringkas: pilih SKU → qty + kos (auto dari product_landed_cost) + tarikh mendarat → batch.
+// =============================================================
+window.__receiveOpen = function(){
+ const m = document.getElementById('receiveStockModal'); if(!m) return;
+ const dl = document.getElementById('receiveSkuList');
+ if(dl && typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)){
+  dl.innerHTML = masterProducts.slice(0, 2500).map(p => '<option value="' + String(p.sku||'').replace(/"/g,'&quot;') + '">' + String(p.name||'').replace(/"/g,'&quot;').slice(0,52) + '</option>').join('');
+ }
+ ['receiveSku','receiveQty','receiveCost','receiveSupplier','receiveRef'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+ const d = document.getElementById('receiveDate'); if(d) d.value = new Date().toISOString().split('T')[0];
+ const info = document.getElementById('receiveSkuInfo'); if(info) info.textContent = '';
+ const ch = document.getElementById('receiveCostHint'); if(ch) ch.textContent = '';
+ m.style.display = 'flex';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__receiveClose = function(){ const m = document.getElementById('receiveStockModal'); if(m) m.style.display = 'none'; };
+window.__receiveSkuPick = async function(){
+ const sku = (document.getElementById('receiveSku').value || '').trim();
+ const info = document.getElementById('receiveSkuInfo');
+ const costHint = document.getElementById('receiveCostHint');
+ if(!info) return;
+ if(!sku){ info.textContent = ''; return; }
+ const prod = (typeof masterProducts !== 'undefined') ? masterProducts.find(p => p.sku === sku) : null;
+ if(!prod){ info.innerHTML = '<span style="color:#B23A2E;">SKU tak wujud dalam Master Produk.</span>'; return; }
+ const date = (document.getElementById('receiveDate').value || '').trim();
+ const batches = (typeof inventoryBatches !== 'undefined' ? inventoryBatches : []).filter(b => b.sku === sku);
+ const liveQty = batches.filter(b => (Number(b.qty_remaining)||0) > 0).reduce((s,b) => s + (Number(b.qty_remaining)||0), 0);
+ // nombor batch ikut tarikh mendarat: berapa batch SKU ni yang mendarat SEBELUM/SAMA tarikh dipilih, +1
+ const rankByDate = date ? (batches.filter(b => (b.inbound_date||'') <= date).length + 1) : (batches.length + 1);
+ info.innerHTML = '<strong>' + String(prod.name||'').slice(0,46) + '</strong> · stok kini ' + liveQty + ' · akan jadi <strong style="color:#7A5410;">Batch #' + rankByDate + '</strong> (ikut tarikh)';
+ // auto-isi kos sekali (kalau belum diisi) — dari product_landed_cost, fallback master cost
+ const costEl = document.getElementById('receiveCost');
+ if(costEl && !costEl.value && typeof db !== 'undefined' && db){
+  try {
+   const { data } = await db.from('product_landed_cost').select('cost_rm').eq('sku', sku).maybeSingle();
+   if(data && data.cost_rm){ costEl.value = Number(data.cost_rm).toFixed(2); if(costHint) costHint.textContent = 'Kos auto dari rekod landed cost (boleh ubah).'; }
+   else { const fb = Number(prod.cost_price || 0); if(fb > 0){ costEl.value = fb.toFixed(2); if(costHint) costHint.textContent = 'Kos auto dari Master Produk (boleh ubah).'; } else if(costHint) costHint.textContent = 'Tiada kos tersimpan — sila isi manual.'; }
+  } catch(e){}
+ }
+};
+window.__receiveSave = async function(){
+ const sku = (document.getElementById('receiveSku').value || '').trim();
+ const qty = parseInt(document.getElementById('receiveQty').value) || 0;
+ const cost = parseFloat(document.getElementById('receiveCost').value);
+ const date = (document.getElementById('receiveDate').value || '').trim();
+ const supplier = (document.getElementById('receiveSupplier').value || '').trim();
+ const ref = (document.getElementById('receiveRef').value || '').trim();
+ if(!sku || qty <= 0) return showToast('SKU & kuantiti wajib.', 'warn');
+ if(!date) return showToast('Tarikh mendarat wajib (tentukan urutan batch).', 'warn');
+ const prod = (typeof masterProducts !== 'undefined') ? masterProducts.find(p => p.sku === sku) : null;
+ if(!prod) return showToast('SKU tak wujud dalam Master Produk.', 'warn');
+ if(typeof db === 'undefined' || !db) return showToast('Tiada sambungan.', 'error');
+ const btn = document.getElementById('receiveSaveBtn'); if(btn){ btn.disabled = true; btn.textContent = '…'; }
+ try {
+  const payload = { sku, qty_received: qty, qty_remaining: qty, inbound_date: date, batch_year: parseInt(date.slice(0,4)) || null };
+  if(!isNaN(cost) && cost > 0){ payload.cost_price = cost; payload.landed_cost = cost; }
+  if(supplier) payload.supplier_name = supplier;
+  if(ref){ payload.notes = ref; payload.delivery_order_ref = ref; }
+  const { data, error } = await db.from('inventory_batches').insert([payload]).select();
+  if(error) throw error;
+  // kemaskini global supaya stok + FIFO + Cashier update tanpa reload penuh
+  if(Array.isArray(data) && data[0] && typeof inventoryBatches !== 'undefined' && Array.isArray(inventoryBatches)) inventoryBatches.push(data[0]);
+  try {
+   await db.from('inventory_transactions').insert([{ sku, transaction_type: 'IN', qty, reason: 'Terima Stok' + (supplier ? ' from ' + supplier : '') + (ref ? ' (' + ref + ')' : '') + (cost ? ' @ RM' + cost.toFixed(2) : '') + ' · landed ' + date, staff_name: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.name : 'System', created_at: new Date().toISOString() }]);
+  } catch(e){}
+  showToast('+' + qty + ' ' + sku + ' diterima — batch ' + date + (cost ? ' @ RM' + cost.toFixed(2) : ''), 'success');
+  window.__receiveClose();
+  if(typeof renderFifoListing === 'function') renderFifoListing();
+  try { if(typeof renderStockLevels === 'function') renderStockLevels(); } catch(e){}
+  try { if(typeof renderPOS === 'function') renderPOS((document.getElementById('searchInput')||{}).value || ''); } catch(e){}
+ } catch(e){ showToast('Ralat Terima Stok: ' + e.message, 'error'); }
+ finally { if(btn){ btn.disabled = false; btn.innerHTML = '<i data-lucide="check" style="width:15px;height:15px;vertical-align:-2px;"></i> Terima &amp; Cipta Batch'; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} } }
 };
 
 // p1_274 — Stock Transfer stub (build flow later)

@@ -1180,9 +1180,36 @@ window.__saToggle = function(){
   if(!window.__saHistory.length){ window.__saHistory.push({ role:'assistant', content:'Hai! Aku pembantu AI staf 10 CAMP. Tanya aku cara guna POS atau SOP — cth "macam mana buat refund?", "macam mana check stok?", "SOP cuti macam mana?". Nota: aku tak boleh tengok data live lagi (cth stok sebenar) — tu check sendiri atau tanya Bos/Aliff.' }); }
   window.__saRender();
   setTimeout(()=>{ const i = document.getElementById('saInput'); if(i) i.focus(); }, 60);
+  if(typeof window.__saViewportSync === 'function') window.__saViewportSync();
+ } else {
+  // tutup → reset offset keyboard
+  try { document.documentElement.style.setProperty('--sa-kb', '0px'); } catch(e){}
  }
  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
 };
+// p1_873 — gaya WhatsApp: bila keyboard buka, angkat panel chat ATAS keyboard (input+mesej kekal nampak),
+// bukan tersorok bawah keyboard. Guna visualViewport (tinggi sebenar selepas keyboard).
+window.__saViewportSync = function(){
+ const p = document.getElementById('saPanel');
+ if(!p || p.hidden) return;
+ if(!(document.body && document.body.classList.contains('pos-app-scoped'))) return;
+ const vv = window.visualViewport;
+ const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
+ try { document.documentElement.style.setProperty('--sa-kb', kb + 'px'); } catch(e){}
+ // scroll mesej ke bawah supaya latest nampak
+ const box = document.getElementById('saMessages'); if(box) box.scrollTop = box.scrollHeight;
+};
+(function __initSaViewport(){
+ try {
+  if(window.visualViewport){
+   window.visualViewport.addEventListener('resize', function(){ window.__saViewportSync(); });
+   window.visualViewport.addEventListener('scroll', function(){ window.__saViewportSync(); });
+  }
+  // bila input fokus/blur pun sync (jaga-jaga)
+  document.addEventListener('focusin', function(e){ if(e.target && e.target.id === 'saInput') setTimeout(window.__saViewportSync, 100); });
+  document.addEventListener('focusout', function(e){ if(e.target && e.target.id === 'saInput') setTimeout(function(){ try{ document.documentElement.style.setProperty('--sa-kb','0px'); }catch(_){}}, 100); });
+ } catch(e){}
+})();
 window.__saRender = function(){
  const box = document.getElementById('saMessages'); if(!box) return;
  const esc = (typeof hesc === 'function') ? hesc : (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

@@ -4331,11 +4331,14 @@ body.pos-app-scoped #saPanel {
   pointer-events: auto !important;
   position: fixed !important;
   top: var(--pos-app-header-h, 60px) !important;
-  bottom: 0 !important;
+  bottom: var(--sa-kb, 0px) !important; /* p1_873 — JS set tinggi keyboard (visualViewport) → input+mesej kekal atas keyboard, gaya WhatsApp */
   left: 0 !important; right: 0 !important;
   width: auto !important; max-width: none !important;
   height: auto !important; max-height: none !important;
   border-radius: 16px 16px 0 0 !important;
 }
+/* mesej = kawasan scroll yg mengecut bila keyboard buka (latest mesej kekal nampak) */
+body.pos-app-scoped #saPanel .sa-msgs { flex: 1 1 auto !important; overflow-y: auto !important; min-height: 0 !important; }
+body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(220px + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }

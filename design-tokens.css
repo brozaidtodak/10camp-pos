@@ -4338,8 +4338,11 @@ body.pos-app-scoped #saPanel {
   border-radius: 16px 16px 0 0 !important;
 }
 /* mesej = kawasan scroll yg mengecut bila keyboard buka (latest mesej kekal nampak) */
-body.pos-app-scoped #saPanel .sa-msgs { flex: 1 1 auto !important; overflow-y: auto !important; min-height: 0 !important; }
-body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; }
+body.pos-app-scoped #saPanel .sa-msgs { flex: 1 1 auto !important; overflow-y: auto !important; min-height: 0 !important; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+body.pos-app-scoped #saPanel .sa-form { flex: 0 0 auto !important; padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; }
+/* p1_876 — kunci scroll halaman bawah masa panel Tanya AI buka → position:fixed kekal stabil di iOS
+   (elak WKWebView auto-scroll halaman yg buatkan kira-kira keyboard tersilap). */
+body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(220px + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
 /* p1_874/p1_875 — sorok bar troli terapung "Lihat Troli" bila panel Tanya AI dibuka (cart bar z-4999

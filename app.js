@@ -33622,6 +33622,116 @@ window.saveOpeningFloat = async function(){
  finally { if(btn){ btn.disabled = false; btn.textContent = 'Simpan Float'; } }
 };
 
+// p1_860 — OFFLINE mode (SELAMAT by design): laluan checkout ONLINE tak diubah. Bila takde
+// internet, jualan disimpan ke barisan tempatan (localStorage) supaya TAK HILANG, pastu
+// auto-sync (guarded — cashier idle) bila online. Replay guna processNewCheckout sebenar
+// dengan client_txn_id UNIK per jualan offline (elak salah-dedupe jualan serupa).
+window.__OFFLINE_Q_KEY = 'posOfflineQueue_v1';
+window.__getOfflineQueue = function(){ try { return JSON.parse(localStorage.getItem(window.__OFFLINE_Q_KEY) || '[]'); } catch(e){ return []; } };
+window.__setOfflineQueue = function(q){ try { localStorage.setItem(window.__OFFLINE_Q_KEY, JSON.stringify(q || [])); } catch(e){} };
+window.__isOnline = function(){ return (typeof navigator !== 'undefined') ? (navigator.onLine !== false) : true; };
+window.__cashierIdle = function(){
+ const hasCart = (typeof cart !== 'undefined' && Array.isArray(cart) && cart.length > 0);
+ const panel = document.getElementById('checkoutPanel');
+ return !hasCart && !(panel && panel.classList.contains('is-open'));
+};
+window.__saveSaleOffline = function(){
+ try {
+ if(typeof cart === 'undefined' || !cart.length) return false;
+ const g = id => ((document.getElementById(id) || {}).value || '');
+ const items = cart.map(c => ({ sku:c.sku, name:c.name, price:c.price, quantity:c.quantity, isCustom: !!c.isCustom }));
+ const sig = items.map(c => (c.sku || '') + ':' + (c.quantity || 0) + ':' + (c.price || 0)).join('|');
+ const sale = {
+ txnId: 'OFF-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+ sig: sig, ts: new Date().toISOString(), items: items,
+ customerName: g('customerName') || 'Walk-In', customerPhone: g('customerPhone'), customerEmail: g('customerEmail'), buyerTin: g('customerBuyerTin'),
+ channel: g('checkoutChannel') || 'POS Cashier', status: g('checkoutStatus') || 'Completed',
+ paymentMethod: g('paymentMethod') || 'Cash', ewalletProvider: g('ewalletProvider'), ewalletRef: g('ewalletRef'),
+ discType: g('checkoutDiscType'), discAmt: g('checkoutDiscAmt'), discReason: g('checkoutDiscReason'),
+ cashPayment: window.__cpCashPayment || null, split: window.__cpSplit || null,
+ total: parseFloat((document.getElementById('cpTotalDisplay') || {}).textContent) || 0,
+ staff: (typeof currentUser !== 'undefined' && currentUser && currentUser.name) ? currentUser.name : 'Unknown'
+ };
+ const q = window.__getOfflineQueue(); q.push(sale); window.__setOfflineQueue(q);
+ if(typeof clearCart === 'function') clearCart(); else { cart = []; if(typeof renderCart === 'function') renderCart(); }
+ window.__cpCashPayment = null; window.__cpSplit = null;
+ window.__renderOfflineUI();
+ if(typeof showToast === 'function') showToast('Jualan disimpan OFFLINE (RM ' + sale.total.toFixed(2) + '). Hantar bila online.', 'warn');
+ return true;
+ } catch(e){ console.error('saveSaleOffline', e); if(typeof showToast === 'function') showToast('Gagal simpan offline: ' + e.message, 'error'); return false; }
+};
+window.__replayOfflineSale = async function(s){
+ const savedCart = (typeof cart !== 'undefined' && Array.isArray(cart)) ? cart.slice() : [];
+ const origShow = window.showReceiptModal;
+ try {
+ cart = s.items.map(it => ({ sku:it.sku, name:it.name, price:it.price, quantity:it.quantity, isCustom: !!it.isCustom }));
+ const setV = (id, v) => { const e = document.getElementById(id); if(e) e.value = (v == null ? '' : v); };
+ setV('customerName', s.customerName); setV('customerPhone', s.customerPhone); setV('customerEmail', s.customerEmail); setV('customerBuyerTin', s.buyerTin);
+ setV('checkoutChannel', s.channel); setV('checkoutStatus', s.status); setV('paymentMethod', s.paymentMethod);
+ setV('ewalletProvider', s.ewalletProvider); setV('ewalletRef', s.ewalletRef);
+ setV('checkoutDiscType', s.discType); setV('checkoutDiscAmt', s.discAmt); setV('checkoutDiscReason', s.discReason);
+ window.__cpCashPayment = s.cashPayment || null; window.__cpSplit = s.split || null;
+ // Paksa client_txn_id unik (elak salah-dedupe jualan offline serupa)
+ window.__currentTxnId = s.txnId; window.__txnSig = s.sig || '__offline__';
+ window.showReceiptModal = function(){}; // jangan buka modal resit masa sync
+ const ok = await window.processNewCheckout();
+ if(!ok) throw new Error('checkout gagal');
+ return true;
+ } finally {
+ window.showReceiptModal = origShow;
+ window.__currentTxnId = null; window.__txnSig = null;
+ cart = savedCart; if(typeof renderCart === 'function') renderCart();
+ }
+};
+window.__syncing = false;
+window.__syncOfflineSales = async function(opts){
+ opts = opts || {};
+ if(window.__syncing) return;
+ if(!window.__isOnline()){ window.__renderOfflineUI(); return; }
+ const q = window.__getOfflineQueue();
+ if(!q.length){ window.__renderOfflineUI(); return; }
+ if(typeof db === 'undefined' || !db) return;
+ if(opts.auto && !window.__cashierIdle()){ window.__renderOfflineUI(); return; } // jangan ganggu sale aktif
+ window.__syncing = true;
+ if(typeof showToast === 'function') showToast('Menghantar ' + q.length + ' jualan offline…', 'info');
+ let done = 0, fail = 0; const remaining = [];
+ for(let i = 0; i < q.length; i++){
+ try { await window.__replayOfflineSale(q[i]); done++; }
+ catch(e){ console.error('replay fail', e); fail++; remaining.push(q[i]); }
+ }
+ window.__setOfflineQueue(remaining);
+ window.__syncing = false;
+ window.__renderOfflineUI();
+ if(typeof showToast === 'function'){
+ if(fail === 0) showToast(done + ' jualan offline berjaya dihantar.', 'success');
+ else showToast(done + ' dihantar, ' + fail + ' gagal (kekal dalam barisan).', 'warn');
+ }
+ try { if(typeof window.__renderCashierKPI === 'function') window.__renderCashierKPI(); } catch(e){}
+};
+window.__renderOfflineUI = function(){
+ const q = window.__getOfflineQueue();
+ const offline = !window.__isOnline();
+ let b = document.getElementById('posOfflineBanner');
+ if(offline || q.length){
+ if(!b){ b = document.createElement('div'); b.id = 'posOfflineBanner'; (document.body || document.documentElement).appendChild(b); }
+ b.style.display = 'flex';
+ b.className = 'pos-offline-banner ' + (offline ? 'is-offline' : 'is-pending');
+ if(offline){
+ b.innerHTML = '<i data-lucide="wifi-off" style="width:15px;height:15px;flex:0 0 auto;"></i><span>OFFLINE — jualan disimpan, dihantar bila internet kembali' + (q.length ? ' (' + q.length + ' menunggu)' : '') + '</span>';
+ } else {
+ b.innerHTML = '<i data-lucide="cloud-upload" style="width:15px;height:15px;flex:0 0 auto;"></i><span>' + q.length + ' jualan offline menunggu</span><button onclick="window.__syncOfflineSales()" class="pos-offline-banner__btn">Hantar sekarang</button>';
+ }
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ } else if(b){ b.style.display = 'none'; }
+};
+(function __initOffline(){
+ try {
+ window.addEventListener('online', function(){ window.__renderOfflineUI(); setTimeout(function(){ window.__syncOfflineSales({ auto:true }); }, 1500); });
+ window.addEventListener('offline', function(){ window.__renderOfflineUI(); });
+ setTimeout(function(){ window.__renderOfflineUI(); if(window.__isOnline() && window.__getOfflineQueue().length) window.__syncOfflineSales({ auto:true }); }, 2500);
+ } catch(e){}
+})();
+
 // p1_33 — Walk-in quick toggle: skip customer info for fast counter sales
 window.cpToggleWalkin = function() {
     const btn = document.getElementById('cpWalkinBtn');
@@ -33872,6 +33982,26 @@ window.cpConfirmSale = async function() {
  window.__cpCashPayment = { received: recv, change: round2(recv - tot) };
  } else {
  window.__cpCashPayment = null;
+ }
+
+ // p1_860 — OFFLINE: takde internet → simpan jualan ke barisan + tunjuk success "offline".
+ // Laluan online di bawah TAK disentuh. Auto-sync bila internet kembali.
+ if(typeof window.__isOnline === 'function' && !window.__isOnline()){
+ const ft0 = parseFloat((document.getElementById('cpTotalDisplay') || {}).textContent) || 0;
+ const saved = (typeof window.__saveSaleOffline === 'function') ? window.__saveSaleOffline() : false;
+ if(saved){
+ try {
+ document.getElementById('cpFormView').classList.add('is-hidden');
+ document.getElementById('cpSuccessView').classList.remove('is-hidden');
+ document.getElementById('cpFooter').classList.add('is-hidden');
+ document.getElementById('cpSuccessAmount').textContent = ft0.toFixed(2);
+ const sub = document.getElementById('cpSuccessSub'); if(sub) sub.innerHTML = '<strong>Disimpan OFFLINE</strong> — akan dihantar automatik bila internet kembali.';
+ if(typeof lucide !== 'undefined') lucide.createIcons();
+ } catch(e){}
+ } else {
+ showToast('Gagal simpan jualan offline.', 'error');
+ }
+ return;
  }
 
  // Disable button while processing

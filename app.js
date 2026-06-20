@@ -96,6 +96,7 @@ window.__POS_APP_TABS = [
  { key:'orders',     icon:'receipt',        label:'Orders',  sections:['allOrdersSection'],     title:'All Orders',    render:'renderAllOrders' },
  { key:'commission', icon:'coins',          label:'Komisen', sections:['commissionSection'],     title:'My Commission', render:'renderPersonalCommission' },
  { key:'stock',      icon:'clipboard-check',label:'Stok',    sections:['checkSessionsSection'], title:'Stock Take',    render:'renderCheckSessions' },
+ { key:'notify',     icon:'package-check',  label:'Notify',  sections:['notifyInvSection'],     title:'Notify Inventory', render:'renderNotifyInventory' },
  // p1_862 — Tanya AI jadi tab bottom bar (Zaid: ganti bubble terapung). special='ai' → buka chat, bukan tukar section.
  { key:'ai',         icon:'sparkles',       label:'Tanya AI', special:'ai',                     title:'Tanya AI' }
 ];
@@ -15571,6 +15572,7 @@ function loginAs(user, opts) {
  window.__confUnlockedMem = false;
  currentUser = user;
  window.currentUser = user; // expose for helpers (e.g. hasManagementAccess)
+ try { if(typeof window.__notifyInvStartPoll === 'function') window.__notifyInvStartPoll(); } catch(e){} // p1_896 — mula poll badge Notify Inventory
  // p1_648 — reload data now that we're logged in (boot load is gated to public-safe tables only).
  // Covers email/PIN/restore paths; boot initApp skips when already logged in (no double-load).
  try { if(typeof initApp === 'function') initApp(); } catch(e){}
@@ -41517,3 +41519,207 @@ window.__rcvSaveDamage = async function(poId){
     if(window.renderReceiving) window.renderReceiving();
   } catch(e){ window.showToast&&showToast('Simpan gagal: '+(e.message||e),'error'); console.error('rcv save dmg:',e); }
 };
+
+// ===================================================================
+// p1_896 — NOTIFY INVENTORY + STOCK LOCATIONS
+// Seller (Cashier) "Maklum Inventori" → hantar senarai barang ke staf inventory
+// (table inventory_notifications). Inventory tengok page (app + back-office),
+// nampak lokasi tiap SKU (table stock_locations, multi-lokasi + qty manual),
+// tekan "Selesai" bila dah ambil (tiada status — terus padam).
+// ===================================================================
+(function(){
+ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const _toast = (m,t) => { try { if(typeof showToast === 'function') showToast(m,t); else if(typeof toast === 'function') toast(m,t); } catch(e){} };
+
+ // ---- Stock Locations (cache + load) ----
+ window.__stockLocCache = window.__stockLocCache || {};
+ window.__loadStockLocs = async function(skus){
+  const need = (skus||[]).filter(Boolean);
+  if(!need.length) return;
+  try {
+   const { data } = await db.from('stock_locations').select('*').in('sku', need);
+   need.forEach(s => { window.__stockLocCache[s] = []; });
+   (data||[]).forEach(r => { (window.__stockLocCache[r.sku] = window.__stockLocCache[r.sku] || []).push(r); });
+  } catch(e){ /* senyap */ }
+ };
+ window.__skuLocModal = async function(sku, name){
+  if(!sku){ _toast('Barang custom — tiada SKU untuk set lokasi.', 'warn'); return; }
+  const old = document.getElementById('skuLocOverlay'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'skuLocOverlay';
+  ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9800; display:flex; align-items:center; justify-content:center; padding:16px;';
+  ov.onclick = (e)=>{ if(e.target === ov) ov.remove(); };
+  ov.innerHTML = '<div style="background:#fff; border-radius:16px; max-width:440px; width:100%; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.35);"><div id="skuLocBody" style="text-align:center; color:#9CA3AF;">Memuatkan…</div></div>';
+  document.body.appendChild(ov);
+  await window.__loadStockLocs([sku]);
+  window.__skuLocCur = (window.__stockLocCache[sku]||[]).map(r => ({ location:r.location, qty:r.qty, note:r.note||'' }));
+  window.__skuLocSku = sku; window.__skuLocName = name || sku;
+  window.__skuLocRender();
+ };
+ window.__skuLocRender = function(){
+  const body = document.getElementById('skuLocBody'); if(!body) return;
+  const rows = (window.__skuLocCur||[]).map((r,i)=>`<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <input value="${esc(r.location)}" oninput="window.__skuLocCur[${i}].location=this.value" placeholder="Lokasi (cth Gudang B · Rak 3)" style="flex:1; min-width:0; padding:9px; border:1px solid #E5E7EB; border-radius:9px; font-size:13px;">
+    <input type="number" value="${r.qty}" min="0" oninput="window.__skuLocCur[${i}].qty=parseInt(this.value)||0" title="Kuantiti di lokasi ni" style="width:64px; padding:9px; border:1px solid #E5E7EB; border-radius:9px; text-align:center; font-size:13px;">
+    <button onclick="window.__skuLocCur.splice(${i},1); window.__skuLocRender();" title="Buang" style="background:#FDECEA; border:1px solid #F5C6C0; color:#B23A2E; width:34px; height:34px; border-radius:9px; cursor:pointer; font-weight:800; flex:0 0 auto;">×</button>
+  </div>`).join('');
+  body.style.textAlign = 'left'; body.style.color = '';
+  body.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><strong style="font-size:15px; color:#101010;"><i data-lucide="map-pin" style="width:15px;height:15px;vertical-align:-2px;"></i> Lokasi Stok</strong><button onclick="document.getElementById('skuLocOverlay').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; line-height:1;">×</button></div>
+   <div style="font-size:12px; color:#9CA3AF; margin-bottom:14px;">${esc(window.__skuLocName)} · ${esc(window.__skuLocSku)}</div>
+   ${rows || '<div style="font-size:12.5px; color:#9CA3AF; margin-bottom:10px;">Belum ada lokasi. Tambah di bawah.</div>'}
+   <button onclick="window.__skuLocCur.push({location:'',qty:0,note:''}); window.__skuLocRender();" style="background:#FAF1E6; border:1px dashed #CD7C32; color:#7A5410; padding:9px; border-radius:9px; width:100%; font-weight:700; cursor:pointer; margin:4px 0 14px;">+ Tambah Lokasi</button>
+   <button onclick="window.__skuLocSave()" style="background:#CD7C32; color:#fff; border:none; padding:13px; border-radius:11px; width:100%; font-weight:800; font-size:14px; cursor:pointer;">Simpan</button>`;
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__skuLocSave = async function(){
+  const sku = window.__skuLocSku;
+  const rows = (window.__skuLocCur||[]).filter(r => (r.location||'').trim());
+  try {
+   await db.from('stock_locations').delete().eq('sku', sku);
+   if(rows.length) await db.from('stock_locations').insert(rows.map(r => ({ sku, location:r.location.trim(), qty:r.qty||0, note:r.note||null })));
+   window.__stockLocCache[sku] = rows.map(r => ({ sku, location:r.location.trim(), qty:r.qty||0 }));
+   _toast('Lokasi disimpan.', 'success');
+   const ov = document.getElementById('skuLocOverlay'); if(ov) ov.remove();
+   const sec = document.getElementById('notifyInvSection');
+   if(sec && sec.style.display !== 'none' && typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
+  } catch(e){ _toast('Gagal simpan: ' + e.message, 'error'); }
+ };
+
+ // ---- Seller side: Maklum Inventori (dari Cashier cart) ----
+ window.__notifyInvOpen = function(){
+  if(!Array.isArray(cart) || cart.length === 0){ _toast('Troli kosong — tiada barang nak dimaklumkan.', 'warn'); return; }
+  const old = document.getElementById('niSendOverlay'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'niSendOverlay';
+  ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9700; display:flex; align-items:center; justify-content:center; padding:16px;';
+  ov.onclick = (e)=>{ if(e.target === ov) ov.remove(); };
+  const rows = cart.map((c)=>{
+   const sku = c.sku||''; const name = c.name||'(tanpa nama)'; const qty = c.quantity||c.qty||1;
+   return `<div class="ni-item" data-sku="${esc(sku)}" data-name="${esc(name)}" style="display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid #F0EDE6;">
+     <input type="checkbox" class="ni-chk" checked style="width:18px; height:18px; accent-color:#CD7C32; flex:0 0 auto;">
+     <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#101010; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(name)}</div><div style="font-size:11px; color:#9CA3AF;">${esc(sku||'—')}</div></div>
+     <input type="number" class="ni-qty" value="${qty}" min="1" style="width:58px; padding:7px; border:1px solid #E5E7EB; border-radius:8px; text-align:center; font-weight:700; flex:0 0 auto;">
+   </div>`;
+  }).join('');
+  ov.innerHTML = `<div style="background:#fff; border-radius:16px; max-width:460px; width:100%; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.35);">
+    <div style="padding:18px 20px 12px; border-bottom:1px solid #F0EDE6; display:flex; justify-content:space-between; align-items:center;">
+     <strong style="font-size:16px; color:#101010;"><i data-lucide="package-check" style="width:18px;height:18px;vertical-align:-3px;"></i> Maklum Inventori</strong>
+     <button onclick="document.getElementById('niSendOverlay').remove()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+    </div>
+    <div style="padding:6px 16px; overflow-y:auto; flex:1;">${rows}</div>
+    <div style="padding:12px 16px 4px;"><textarea id="niNote" placeholder="Nota untuk inventory (optional)…" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #E5E7EB; border-radius:10px; font-family:inherit; font-size:13px; resize:vertical; min-height:46px;"></textarea></div>
+    <div style="padding:6px 16px 18px;"><button onclick="window.__notifyInvSend(this)" style="width:100%; background:#CD7C32; color:#fff; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="send" style="width:16px;height:16px;"></i> Hantar ke Inventory</button></div>
+   </div>`;
+  document.body.appendChild(ov);
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__notifyInvSend = async function(btn){
+  const items = [];
+  document.querySelectorAll('#niSendOverlay .ni-item').forEach(r => {
+   const cb = r.querySelector('.ni-chk'); if(!cb || !cb.checked) return;
+   const sku = r.getAttribute('data-sku') || '';
+   const name = r.getAttribute('data-name') || '';
+   const qty = parseInt((r.querySelector('.ni-qty')||{}).value) || 1;
+   items.push({ sku, name, qty });
+  });
+  if(!items.length){ _toast('Pilih sekurang-kurangnya 1 barang.', 'warn'); return; }
+  const note = ((document.getElementById('niNote')||{}).value || '').trim();
+  const staff_id = (typeof currentUser !== 'undefined' && currentUser && currentUser.staff_id) ? currentUser.staff_id : '';
+  const staff_name = (typeof currentUser !== 'undefined' && currentUser && currentUser.name) ? currentUser.name : 'Staff';
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+  try {
+   // satu permintaan aktif per staf — kalau dah ada, UPDATE (seller boleh notify banyak kali / edit)
+   let existId = null;
+   if(staff_id){
+    const { data: ex } = await db.from('inventory_notifications').select('id').eq('staff_id', staff_id).order('updated_at', { ascending:false }).limit(1);
+    if(ex && ex.length) existId = ex[0].id;
+   }
+   if(existId){
+    await db.from('inventory_notifications').update({ items, note, staff_name, updated_at: new Date().toISOString() }).eq('id', existId);
+   } else {
+    await db.from('inventory_notifications').insert({ staff_id, staff_name, items, note });
+   }
+   _toast('Inventory dah dimaklumkan (' + items.length + ' barang).', 'success');
+   const ov = document.getElementById('niSendOverlay'); if(ov) ov.remove();
+   window.__notifyInvPoll();
+  } catch(e){ _toast('Gagal hantar: ' + e.message, 'error'); if(btn){ btn.disabled = false; btn.style.opacity = ''; } }
+ };
+
+ // ---- Inventory side: page senarai permintaan ----
+ window.renderNotifyInventory = async function(){
+  const wrap = document.getElementById('notifyInvList'); if(!wrap) return;
+  if(!window.__notifyInvData) wrap.innerHTML = '<div style="text-align:center; color:#9CA3AF; padding:30px;">Memuatkan…</div>';
+  try {
+   const { data, error } = await db.from('inventory_notifications').select('*').order('updated_at', { ascending:false });
+   if(error) throw error;
+   window.__notifyInvData = data || [];
+  } catch(e){ wrap.innerHTML = '<div style="color:#B23A2E; padding:20px;">Gagal muat: ' + esc(e.message) + '</div>'; return; }
+  const list = window.__notifyInvData;
+  const skus = [];
+  list.forEach(n => (n.items||[]).forEach(it => { if(it.sku && skus.indexOf(it.sku) < 0) skus.push(it.sku); }));
+  await window.__loadStockLocs(skus);
+  if(!list.length){
+   wrap.innerHTML = '<div style="text-align:center; color:#9CA3AF; padding:50px 20px;"><i data-lucide="package-check" style="width:46px;height:46px;opacity:.3;"></i><p style="margin-top:12px; font-weight:600;">Tiada permintaan inventory.</p><p style="font-size:12.5px;">Bila seller tekan "Maklum Inventori" di Cashier, ia muncul di sini.</p></div>';
+   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+   return;
+  }
+  wrap.innerHTML = list.map(n => {
+   const items = n.items || [];
+   const itemsHtml = items.map(it => {
+    const locs = window.__stockLocCache[it.sku] || [];
+    const locHtml = locs.length
+     ? locs.map(l => `<span style="display:inline-flex; align-items:center; gap:4px; background:#FAF1E6; border:1px solid #E7C66A; color:#7A5410; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; margin:2px 4px 2px 0;"><i data-lucide="map-pin" style="width:11px;height:11px;"></i> ${esc(l.location)} · ${l.qty}</span>`).join('')
+     : '<span style="font-size:11px; color:#B23A2E; font-weight:600;">Tiada lokasi</span>';
+    return `<div style="padding:8px 0; border-top:1px dashed #F0EDE6;">
+      <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;"><div style="font-weight:700; font-size:13.5px; color:#101010;">${esc(it.name||'')}</div><div style="font-weight:800; color:#CD7C32; white-space:nowrap;">×${it.qty||1}</div></div>
+      <div style="font-size:11px; color:#9CA3AF; margin:1px 0 4px;">${esc(it.sku||'—')}</div>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:2px;">${locHtml} <button onclick="window.__skuLocModal('${esc(String(it.sku||'')).replace(/'/g,'')}', '${esc(String(it.name||'')).replace(/'/g,'')}')" style="background:none; border:none; color:#CD7C32; font-size:11px; font-weight:700; cursor:pointer; text-decoration:underline; margin-left:4px;">edit lokasi</button></div>
+    </div>`;
+   }).join('');
+   let when = '';
+   try { when = new Date(n.updated_at).toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short' }); } catch(e){}
+   return `<div style="background:#fff; border:1px solid #EAE6DE; border-radius:14px; padding:14px 16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.04);">
+     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+      <div><div style="font-weight:800; color:#101010; font-size:14px;"><i data-lucide="user" style="width:13px;height:13px;vertical-align:-1px;"></i> ${esc(n.staff_name||'Staff')}</div><div style="font-size:11px; color:#9CA3AF;">${when} · ${items.length} barang</div></div>
+      <button onclick="window.__notifyInvDone(${n.id})" style="background:#101010; color:#fff; border:none; padding:8px 14px; border-radius:9px; font-weight:700; font-size:12.5px; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;"><i data-lucide="check" style="width:14px;height:14px;"></i> Selesai</button>
+     </div>
+     <div style="margin-top:6px;">${itemsHtml}</div>
+     ${n.note ? `<div style="margin-top:10px; background:#FFF8F0; border:1px solid #FCE3C0; border-radius:8px; padding:8px 10px; font-size:12px; color:#7A5410;"><strong>Nota:</strong> ${esc(n.note)}</div>` : ''}
+   </div>`;
+  }).join('');
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__notifyInvDone = async function(id){
+  if(!confirm('Tandakan permintaan ni SELESAI? Ia akan dibuang dari senarai.')) return;
+  try {
+   await db.from('inventory_notifications').delete().eq('id', id);
+   _toast('Selesai — dibuang dari senarai.', 'success');
+   if(typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
+   window.__notifyInvPoll();
+  } catch(e){ _toast('Gagal: ' + e.message, 'error'); }
+ };
+
+ // ---- Badge + poll ----
+ window.__notifyInvCount = 0;
+ window.__notifyInvPoll = async function(){
+  try {
+   const { count } = await db.from('inventory_notifications').select('id', { count:'exact', head:true });
+   const n = count || 0; window.__notifyInvCount = n;
+   const sb = document.getElementById('notifyInvBadgeSidebar');
+   if(sb){ sb.textContent = n ? String(n) : ''; sb.style.display = n ? 'inline-flex' : 'none'; }
+   const tab = document.querySelector('#posAppTabBar .posAppTab[data-key="notify"]');
+   if(tab){
+    let b = tab.querySelector('.ni-tab-badge');
+    if(n){ if(!b){ b = document.createElement('span'); b.className = 'ni-tab-badge'; tab.appendChild(b); } b.textContent = n > 9 ? '9+' : String(n); b.style.display = 'flex'; }
+    else if(b){ b.style.display = 'none'; }
+   }
+  } catch(e){ /* senyap */ }
+ };
+ window.__notifyInvStartPoll = function(){
+  if(window.__notifyInvPollTimer) return;
+  window.__notifyInvPoll();
+  window.__notifyInvPollTimer = setInterval(function(){
+   window.__notifyInvPoll();
+   const sec = document.getElementById('notifyInvSection');
+   if(sec && sec.style.display !== 'none' && typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
+  }, 15000);
+ };
+})();

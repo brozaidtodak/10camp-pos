@@ -4397,6 +4397,11 @@ body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(var(--pos-sidebar-w, 220px) + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
 
+/* p1_896 — Notify Inventory badge (sidebar + app tab) */
+.ni-badge { background:#B23A2E; color:#fff; font-size:10px; font-weight:800; min-width:16px; height:16px; padding:0 4px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; margin-left:6px; line-height:1; }
+#posAppTabBar .posAppTab { position: relative; }
+.ni-tab-badge { position:absolute; top:5px; left:50%; transform:translateX(6px); background:#B23A2E; color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; padding:0 3px; border-radius:8px; display:flex; align-items:center; justify-content:center; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+
 /* p1_881 — Image Zoom Lightbox (full-page) untuk gambar Cashier */
 #imgZoomOverlay { display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(16,16,16,.94); align-items: center; justify-content: center; }
 .imgZoom__stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }

@@ -37,7 +37,7 @@
  <link rel="stylesheet" href="style.css?v=61">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
- <link rel="stylesheet" href="design-tokens.css?v=149">
+ <link rel="stylesheet" href="design-tokens.css?v=150">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -1953,6 +1953,9 @@
  <div class="menu-item" data-tab="nav_bins" onclick="event.stopPropagation(); switchHub(['binsSection'], 'Locations & Bins', this); if(typeof renderBinsLocations==='function') renderBinsLocations();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="map-pin" style="width:15px; height:15px;"></i> <span>Locations &amp; Bins</span>
  </div>
+ <div class="menu-item" data-tab="nav_notify_inv" onclick="event.stopPropagation(); switchHub(['notifyInvSection'], 'Notify Inventory', this); if(typeof renderNotifyInventory==='function') renderNotifyInventory();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="package-check" style="width:15px; height:15px;"></i> <span>Notify Inventory</span> <span id="notifyInvBadgeSidebar" class="ni-badge" style="display:none;"></span>
+ </div>
  </div>
  <!-- p1_816 — PURCHASING group (stok masuk) -->
  <div class="menu-item nav-parent" data-nav-parent="purchasing" onclick="window.toggleNavGroup('purchasing', event)">
@@ -3168,6 +3171,8 @@
  <div id="cartProofRow" style="margin-bottom:12px;"></div>
  <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:#101010; font-size:16px; padding:18px; margin:0; border-radius:12px; box-shadow:0 4px 15px rgba(16, 16, 16,0.3); transition:0.2s;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9">BAYAR SEKARANG</button>
  <button onclick="window.posConfirmClearCart()" class="login-btn" style="background:#fff; color:#6F6F6F; border:1px solid #E2E2E2; margin-top:10px; box-shadow:none; padding:12px; border-radius:12px;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
+ <!-- p1_896 — Maklum Inventori: hantar senarai barang dalam troli ke staf inventory (picking list) -->
+ <button onclick="window.__notifyInvOpen()" class="login-btn" style="background:#FAF1E6; color:#7A5410; border:1px solid #CD7C32; margin-top:10px; box-shadow:none; padding:12px; border-radius:12px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;" title="Maklum inventory untuk sediakan barang"><i data-lucide="package-check" style="width:16px;height:16px;"></i> Maklum Inventori</button>
  <!-- p1_131 — Keyboard shortcut hints visible -->
  <div style="display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:10px; color:#9CA3AF;">
  <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F9</kbd> Bayar</span>
@@ -5013,6 +5018,19 @@
  <div id="cycleCountSection" class="tab-section" style="display:none;"><div id="cycleCountBody"></div></div>
  <!-- p1_848 — WMS Fasa 4: Locations & Bins -->
  <div id="binsSection" class="tab-section" style="display:none;"><div id="binsBody"></div></div>
+ <!-- p1_896 — Notify Inventory: senarai picking dari seller → staf inventory -->
+ <div id="notifyInvSection" class="tab-section" style="display:none;">
+  <div style="max-width:900px; margin:0 auto;">
+   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+    <div>
+     <h2 style="margin:0; font-size:20px; font-weight:800; color:#101010;">Notify Inventory</h2>
+     <p style="margin:4px 0 0; font-size:13px; color:#6B7280;">Barang yang seller minta inventory sediakan. Tekan "Selesai" bila dah ambil.</p>
+    </div>
+    <button onclick="window.renderNotifyInventory()" style="background:#fff; border:1px solid #E2E2E2; color:#374151; padding:9px 16px; border-radius:9px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Refresh</button>
+   </div>
+   <div id="notifyInvList"></div>
+  </div>
+ </div>
  <!-- p1_849 — Tools: Backfill Order (sementara) -->
  <div id="backfillOrderSection" class="tab-section" style="display:none;"><div id="backfillOrderBody"></div></div>
 
@@ -8778,6 +8796,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_896', label:'NOTIFY INVENTORY + STOCK LOCATIONS (idea Zaid). Seller di Cashier tekan "Maklum Inventori" → modal pilih barang dlm troli (checkbox + qty edit + nota) → hantar senarai ke staf inventory (table inventory_notifications, satu permintaan aktif per staf, boleh notify byk kali = UPDATE/edit). Page "Notify Inventory" (app tab ke-6 "Notify" + sidebar back-office, badge bilangan live poll 15s): inventory nampak senarai picking, tiap SKU tunjuk LOKASI (table stock_locations, multi-lokasi + qty manual) sbg chip, ada "edit lokasi" inline (__skuLocModal: tambah/buang lokasi+qty). Tiada status — tekan "Selesai" terus padam. RLS anon CRUD. CAVEAT: qty lokasi manual, tak auto-tolak bila jual (phase lain). app.js v846->847, design-tokens v149->150.', d:'done' },
  { id:'p1_895', label:'FIX staf tak dapat upload resit di tablet (iPad back office). PUNCA: file <input> dicipta via createElement + .click() tapi TAK di-append ke DOM — di iPad/WKWebView, input detached buka picker senyap je (desktop OK, jadi nampak macam "tak boleh upload" di tablet sahaja). FIX: helper __iosSafeFilePick — append input off-screen ke DOM dulu, click, auto-buang lepas pilih/batal. Apply ke 3 path upload proof: __ppAddProof (resit order, max 3), __dpAddProof (gambar hantar, max 4), __ppUploadFor (resit single legacy). app.js v845->846.', d:'done' },
  { id:'p1_894', label:'Products (back-office): tambah pilihan "Semua / All" dalam dropdown per-page (#pdPerPage) + jadikan ia DEFAULT (Zack minta — sebelum ni default 48/page). value=99999 → render semua produk dalam 1 page (totalPages=1, pager auto-hilang, summary papar 1-N dari N). Selamat dari lag sebab gambar grid guna loading="lazy" (cuma thumbnail nampak yang load). index.html sahaja.', d:'done' },
  { id:'p1_893', label:'Tanya AI (phone): input bar terlalu rapat tepi bawah skrin (kawasan home indicator iPhone). FIX: .sa-form padding-bottom 10px -> calc(12px + env(safe-area-inset-bottom)) supaya input ada jarak selamat dari home indicator. design-tokens v148->149.', d:'done' },
@@ -14135,7 +14154,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=846"></script>
+ <script src="app.js?v=847"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

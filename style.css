@@ -178,7 +178,9 @@ h4, .h4 { font-family: 'Poppins', sans-serif; font-weight: 600; }
 .product-card__badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
 .product-card__title { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.35; margin: 0 0 6px; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; letter-spacing: -0.1px; cursor: pointer; transition: color 0.15s; }
 .product-card__title:hover { color: var(--primary); }
-.product-card .price { font-size: 17px; color: var(--primary); font-weight: 800; margin: 0 0 4px; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+/* p1_903 — harga biasa dulu bronze #CD7C32 (kontras ~2.7:1 atas putih, pudar). Gelapkan ke
+   bronze tua #A05F22 (kontras ~4.0:1) — kekal keluarga brand, lebih jelas dibaca (pilihan Zaid). */
+.product-card .price { font-size: 17px; color: var(--primary-700, #A05F22); font-weight: 800; margin: 0 0 4px; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
 /* p1_151 — Shopee-style cut price (Cashier — mirror landing page p1_149) */
 .product-card .price--has-sale { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 /* p1_166 — Editorial pricing psychology: dark premium price + green savings (positive psychology) */
@@ -188,8 +190,11 @@ h4, .h4 { font-family: 'Poppins', sans-serif; font-weight: 600; }
 .product-card .price__off::before { content: ''; } /* p1_408 — "Save/Jimat" kini dari JS (i18n) */
 .product-card__stock { font-size: 11px; color: #6B7280; margin: 0 0 10px; font-weight: 500; }
 .product-card .stock { font-size: 12px; background: var(--bg-color); padding: 4px; margin-bottom: 10px; border-radius: 4px;}
-.product-card button { background: var(--primary); color: white; border: none; padding: 10px 14px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: 0.2px; margin-top: auto; transition: 0.15s; }
+/* p1_903 — touch target: butang Add to Cart dulu ~38px (padding 10px) di bawah min 44px Apple HIG.
+   Naik ke min-height 44px + maklum-balas tekan :active (selaras seluruh app). */
+.product-card button { background: var(--primary); color: white; border: none; padding: 12px 14px; min-height: 44px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: 0.2px; margin-top: auto; transition: background 0.15s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
 .product-card button:hover { background: var(--primary-700, #A05F22); transform: translateY(-1px); }
+.product-card button:active { transform: scale(0.97); }
 .product-card button:disabled { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; transform: none; }
 
 input, select, textarea { width: 100%; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #FAFAFA; color: var(--text-main); font-size: 14px; margin-bottom:10px; transition: 0.2s;}

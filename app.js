@@ -25602,7 +25602,7 @@ window.renderPoSection = function() {
  if(!tbody) return;
  
  if(!purchaseOrders || purchaseOrders.length === 0) {
- tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Tiada Purchase Order dijumpai.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Tiada Purchase Order dijumpai.</td></tr>';
  return;
  }
  
@@ -27104,7 +27104,7 @@ window.renderPoSection = function() {
  const tbody = document.getElementById('poListTbody');
  if(!tbody) return;
  if(!purchaseOrdersV2 || !purchaseOrdersV2.length) {
- tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">Tiada Purchase Order. Cipta PO baru di atas.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#999;">Tiada Purchase Order. Cipta PO baru di atas.</td></tr>';
  return;
  }
  tbody.innerHTML = purchaseOrdersV2.map(po => {
@@ -27120,17 +27120,32 @@ window.renderPoSection = function() {
  const action = (po.status === 'Pending' || po.status === 'Partial')
  ? `<button class="btn-success" style="font-size:10px; padding:4px 8px; margin:0;" onclick="window.openReceivePOModal(${po.id})">Terima Stok</button>`
  : '-';
+ // p1_902 — kolum DO: link setiap PO ke DO berkaitan (delivery_refs). >1 DO = papar bilangan + senarai link
+ const doRefs = String(po.delivery_refs || '').split(',').map(s => s.trim()).filter(Boolean);
+ const doCell = doRefs.length
+ ? (doRefs.length > 1 ? `<span style="font-size:9.5px; color:#7A5410; font-weight:800;">${doRefs.length} DO &middot;</span> ` : '')
+   + doRefs.map(r => `<a onclick="window.__poGotoDO('${r}')" title="Lihat ${r}" style="color:#CD7C32; cursor:pointer; text-decoration:underline; font-size:10.5px; white-space:nowrap;">${r}</a>`).join(', ')
+ : '<span style="color:#B23A2E; font-size:10px; font-weight:700;">tiada DO</span>';
  return `
  <tr>
  <td style="font-weight:bold; font-family:monospace;">${po.po_number}</td>
  <td>${po.supplier_name || '-'}</td>
  <td>${po.eta_date || '-'}</td>
  <td><span style="background:${statusColor.bg}; color:${statusColor.fg}; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px;">${po.status}</span></td>
+ <td style="line-height:1.7;">${doCell}</td>
  <td style="font-size:11px;">${skus}${items.length> 3 ? '...' : ''}</td>
  <td>${action}</td>
  </tr>
  `;
  }).join('');
+};
+// p1_902 — dari kolum DO di Purchase Orders → buka Procurement view DO + highlight kad DO
+window.__poGotoDO = async function(ref){
+ try {
+  if(typeof switchHub === 'function') switchHub(['procurementSection'], 'Procurement', null);
+  if(typeof renderProcurement === 'function') await renderProcurement();
+  setTimeout(function(){ if(typeof window.__procGotoDO === 'function') window.__procGotoDO(ref); }, 150);
+ } catch(e){ console.warn('poGotoDO', e); }
 };
 
 window.openReceivePOModal = async function(poId) {

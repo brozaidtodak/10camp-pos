@@ -24788,7 +24788,11 @@ window.__mergeCoverPool = function(currentImages, pool) {
  const cur = Array.isArray(currentImages) ? currentImages.filter(Boolean) : [];
  const p = Array.isArray(pool) ? pool.filter(Boolean) : [];
  const cover = cur[0];
- if(cover && p.includes(cover)) return [cover, ...p.filter(u => u !== cover)];
+ // p1_890 (Zack bug fix): SENTIASA kekalkan cover variant sendiri di hadapan (images[0]),
+ // walaupun cover tu tiada dalam pool media dikongsi. Dulu fallback ke pool.slice() buat
+ // SEMUA variant ikut cover produk bila cover variant tak ada dalam pool. Cover produk
+ // (metadata.cover_image) berasingan — tukar cover TAK patut ubah gambar variant.
+ if(cover) return [cover, ...p.filter(u => u !== cover)];
  return p.slice();
 };
 
@@ -25181,11 +25185,12 @@ window.savePdpData = async function() {
  };
 
  let imgStr = document.getElementById('pdpMediaUrls').value;
- // p1_749/p1_753 — pool media dikongsi. Untuk variant SEMASA: order gallery = pilihan
- // cover (images[0]); guna __pool terus supaya "Set cover" benar2 tersimpan. Sibling
- // kekalkan cover sendiri via __mergeCoverPool (di bawah).
+ // p1_749/p1_753/p1_890 — pool media dikongsi. Variant SEMASA pun KEKALKAN cover sendiri
+ // (images[0]) via __mergeCoverPool — sama macam sibling. Dulu guna __pool terus → variant
+ // semasa ambil pool[0] (cover produk) bila Save → gambar variant berubah ikut cover (bug Zack).
+ // Cover produk muka-depan = metadata.cover_image (berasingan, disimpan di bawah).
  const __pool = imgStr ? imgStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
- updatePayload.images = __pool.length ? __pool.slice() : [];
+ updatePayload.images = __pool.length ? window.__mergeCoverPool(prevProd.images, __pool) : [];
 
  try {
  let { error } = await db.from('products_master').update(updatePayload).eq('sku', sku);

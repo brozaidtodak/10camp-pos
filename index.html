@@ -37,7 +37,7 @@
  <link rel="stylesheet" href="style.css?v=61">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
- <link rel="stylesheet" href="design-tokens.css?v=150">
+ <link rel="stylesheet" href="design-tokens.css?v=151">
  <!-- Supabase Core -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <!-- Chart.js -->
@@ -6891,6 +6891,9 @@
  </p>
  </div>
  <div class="pdb-header__actions">
+ <button class="pdb-btn pdb-btn--ghost" onclick="window.__pdbRefresh(this)" title="Muat semula produk dari server">
+ <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> <span>Refresh</span>
+ </button>
  <button class="pdb-btn pdb-btn--ghost" onclick="switchHub(['bulkOpsSection'], 'Bulk Product Edit', null); if(typeof renderBulkOps==='function') renderBulkOps();" title="Bulk edit harga / cost / publish (spreadsheet)">
  <i data-lucide="table-2" style="width:14px; height:14px;"></i> <span>Bulk Edit</span>
  </button>
@@ -8796,6 +8799,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_897', label:'Master Produk: butang "Refresh" di header (sebelah Bulk Edit) — __pdbRefresh muat semula products_master + inventory_batches dari server & re-render (ikon berputar masa loading + toast). Zaid minta. Juga: 646 SKU lokasi diimport dari products_master.location_bin ke stock_locations (pecah multi-lokasi /,+; qty lokasi utama = on-hand snapshot) untuk page Notify Inventory. app.js v847->848, design-tokens v150->151.', d:'done' },
  { id:'p1_896', label:'NOTIFY INVENTORY + STOCK LOCATIONS (idea Zaid). Seller di Cashier tekan "Maklum Inventori" → modal pilih barang dlm troli (checkbox + qty edit + nota) → hantar senarai ke staf inventory (table inventory_notifications, satu permintaan aktif per staf, boleh notify byk kali = UPDATE/edit). Page "Notify Inventory" (app tab ke-6 "Notify" + sidebar back-office, badge bilangan live poll 15s): inventory nampak senarai picking, tiap SKU tunjuk LOKASI (table stock_locations, multi-lokasi + qty manual) sbg chip, ada "edit lokasi" inline (__skuLocModal: tambah/buang lokasi+qty). Tiada status — tekan "Selesai" terus padam. RLS anon CRUD. CAVEAT: qty lokasi manual, tak auto-tolak bila jual (phase lain). app.js v846->847, design-tokens v149->150.', d:'done' },
  { id:'p1_895', label:'FIX staf tak dapat upload resit di tablet (iPad back office). PUNCA: file <input> dicipta via createElement + .click() tapi TAK di-append ke DOM — di iPad/WKWebView, input detached buka picker senyap je (desktop OK, jadi nampak macam "tak boleh upload" di tablet sahaja). FIX: helper __iosSafeFilePick — append input off-screen ke DOM dulu, click, auto-buang lepas pilih/batal. Apply ke 3 path upload proof: __ppAddProof (resit order, max 3), __dpAddProof (gambar hantar, max 4), __ppUploadFor (resit single legacy). app.js v845->846.', d:'done' },
  { id:'p1_894', label:'Products (back-office): tambah pilihan "Semua / All" dalam dropdown per-page (#pdPerPage) + jadikan ia DEFAULT (Zack minta — sebelum ni default 48/page). value=99999 → render semua produk dalam 1 page (totalPages=1, pager auto-hilang, summary papar 1-N dari N). Selamat dari lag sebab gambar grid guna loading="lazy" (cuma thumbnail nampak yang load). index.html sahaja.', d:'done' },
@@ -14154,7 +14158,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=847"></script>
+ <script src="app.js?v=848"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

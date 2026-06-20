@@ -41723,3 +41723,19 @@ window.__rcvSaveDamage = async function(poId){
   }, 15000);
  };
 })();
+
+// p1_897 — butang Refresh di header Master Produk: muat semula produk + batch dari server, re-render
+window.__pdbRefresh = async function(btn){
+ if(btn){ btn.disabled = true; btn.classList.add('is-loading'); }
+ try {
+  if(window.currentUser){
+   const { data: master } = await db.from('products_master').select('*').limit(100000);
+   if(master) masterProducts = master;
+   const { data: batches } = await db.from('inventory_batches').select('*').order('inbound_date', { ascending:true }).limit(100000);
+   if(batches) inventoryBatches = batches;
+  }
+  if(typeof renderProductDatabase === 'function') renderProductDatabase();
+  if(typeof showToast === 'function') showToast('Produk dimuat semula (' + (masterProducts ? masterProducts.length : 0) + ').', 'success');
+ } catch(e){ if(typeof showToast === 'function') showToast('Refresh gagal: ' + (e.message || e), 'error'); }
+ finally { if(btn){ btn.disabled = false; btn.classList.remove('is-loading'); } }
+};

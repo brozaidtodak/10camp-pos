@@ -4397,6 +4397,10 @@ body.sa-panel-open { overflow: hidden !important; }
 /* tablet: chat sheet di kawasan kandungan kanan sidebar (takde bottom tab bar) */
 body.pos-tablet-pane #saPanel { left: calc(var(--pos-sidebar-w, 220px) + 12px) !important; right: 12px !important; bottom: 14px !important; top: calc(var(--pos-app-header-h, 60px) + 12px) !important; }
 
+/* p1_897 — butang Refresh berputar masa loading */
+@keyframes pdbSpin { to { transform: rotate(360deg); } }
+.pdb-btn.is-loading i { animation: pdbSpin .8s linear infinite; }
+
 /* p1_896 — Notify Inventory badge (sidebar + app tab) */
 .ni-badge { background:#B23A2E; color:#fff; font-size:10px; font-weight:800; min-width:16px; height:16px; padding:0 4px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; margin-left:6px; line-height:1; }
 #posAppTabBar .posAppTab { position: relative; }

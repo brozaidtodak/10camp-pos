@@ -37028,6 +37028,7 @@ window.I18N = {
  // p1_50 — Public storefront (lp_*)
  lp_nav_shop: { bm: 'Kedai', en: 'Shop' },
  lp_nav_brands: { bm: 'Jenama', en: 'Brands' },
+ lp_nav_panduan: { bm: 'Panduan', en: 'Guides' },
  lp_nav_about: { bm: 'Tentang', en: 'About' },
  lp_nav_contact: { bm: 'Hubungi', en: 'Contact' },
  lp_aria_search: { bm: 'Cari produk', en: 'Search products' },

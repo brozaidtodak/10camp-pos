@@ -4952,7 +4952,7 @@ window.__scBosAck = async function(id) {
 // p1_922 — Calculator gabungan: satu menu "Calculator", dua view (Harga & Tier / Kos Shipment).
 // Tukar view = tukar section yang switchHub papar (no DOM restructure). Sidebar item kekal highlight.
 window.__calcShow = function(view, menuEl){
- if(['kos','harga','log'].indexOf(view) === -1) view = 'harga';
+ if(['kos','harga','log','status'].indexOf(view) === -1) view = 'harga';
  const menu = menuEl || document.querySelector('.menu-item[data-tab="nav_sys_calc"]');
  if(view === 'kos'){
  switchHub(['shipmentCalcSection'], 'Calculator', menu);
@@ -4960,6 +4960,9 @@ window.__calcShow = function(view, menuEl){
  } else if(view === 'log'){
  switchHub(['calcLogSection'], 'Calculator', menu);
  if(typeof window.renderCalcLog === 'function') try{ window.renderCalcLog(); }catch(e){}
+ } else if(view === 'status'){
+ switchHub(['calcStatusSection'], 'Calculator', menu);
+ if(typeof window.renderCalcStatus === 'function') try{ window.renderCalcStatus(); }catch(e){}
  } else {
  switchHub(['floorPriceSection'], 'Calculator', menu);
  if(typeof renderFloorPrice === 'function') try{ renderFloorPrice(); }catch(e){}
@@ -5109,6 +5112,141 @@ window.__calcLogToggle = function(id){
  const open=(dr.style.display==='none'||dr.style.display==='');
  dr.style.display = open ? 'table-row' : 'none';
  if(caret) caret.innerHTML = open ? '&#9662;' : '&#9656;';
+};
+
+// p1_924 — STATUS ORDER + dashboard "tersangkut".
+// Tiap cost_shipment = satu order procurement. Jejak peringkat ikut flow Zaid:
+// Katalog → PO → PI → SF 5% → Invoice Shipment → Transit → Sampai → Kos → Boleh Jual.
+window.CALC_STAGES = [
+ { key:'katalog',         label:'Katalog' },
+ { key:'po_draft',        label:'PO Draf' },
+ { key:'po_final',        label:'PO Final' },
+ { key:'pi',              label:'Proforma Invoice' },
+ { key:'sf_fee',          label:'SF Charge 5%' },
+ { key:'ship_invoice',    label:'Invoice Shipment' },
+ { key:'transit',         label:'Transit' },
+ { key:'arrived_partial', label:'Sampai Sebahagian' },
+ { key:'arrived',         label:'Sampai Penuh' },
+ { key:'costed',          label:'Kos Siap' },
+ { key:'on_sale',         label:'Boleh Jual' }
+];
+window.__calcStageIdx = function(key){ const i = window.CALC_STAGES.findIndex(s=>s.key===key); return i<0 ? 1 : i; };
+window.__calcStageLabel = function(key){ const s = window.CALC_STAGES.find(x=>x.key===key); return s ? s.label : (key||'—'); };
+
+// Tentukan sama ada order tersangkut + sebab.
+window.__calcOrderStatus = function(o){
+ const stage = o.stage || 'po_draft';
+ const idx = window.__calcStageIdx(stage);
+ const arrivedPartialIdx = window.__calcStageIdx('arrived_partial');
+ const now = Date.now();
+ const su = o.stage_updated_at ? new Date(o.stage_updated_at).getTime() : null;
+ const daysInStage = su ? Math.floor((now - su)/86400000) : null;
+ if(stage==='on_sale') return { level:'done', reasons:['Dah boleh jual'], daysInStage, idx };
+ let level='ok'; const reasons=[];
+ if(stage==='arrived' || stage==='arrived_partial'){ level='critical'; reasons.push('Barang dah sampai tapi belum boleh jual — kira kos + set harga'); }
+ else if(stage==='costed'){ level='warn'; reasons.push('Kos dah siap tapi belum publish/jual'); }
+ if(o.eta_date){ const eta = new Date(o.eta_date+'T00:00:00').getTime(); if(eta < now && idx < arrivedPartialIdx){ if(level==='ok') level='warn'; reasons.push('Lewat dari ETA ('+o.eta_date+')'); } }
+ if(daysInStage!=null && daysInStage>=14){ if(level==='ok') level='warn'; reasons.push('Tersekat '+daysInStage+' hari di peringkat ni'); }
+ if(level==='ok') reasons.push('Bergerak lancar');
+ return { level, reasons, daysInStage, idx };
+};
+
+window.__calcOrders = [];
+window.renderCalcStatus = async function(){
+ const host = document.getElementById('calcStatusBody'); if(!host) return;
+ if(typeof db==='undefined'||!db){ host.innerHTML='<div style="padding:20px; color:#B23A2E;">DB tak available.</div>'; return; }
+ host.innerHTML='<div style="padding:20px; color:#9CA3AF;">Memuatkan…</div>';
+ try {
+ const { data, error } = await db.from('cost_shipments').select('id,label,supplier,po_ref,order_date,eta_date,stage,stage_updated_at,stage_updated_by,updated_at').order('order_date',{ascending:false, nullsFirst:false}).order('updated_at',{ascending:false}).limit(500);
+ if(error) throw error;
+ window.__calcOrders = (data||[]).map(o=> Object.assign({}, o, { _st: window.__calcOrderStatus(o) }));
+ window.__calcStatusRender();
+ } catch(e){ host.innerHTML='<div style="padding:20px; color:#B23A2E;">Error: '+hesc(e.message||String(e))+'</div>'; }
+};
+
+window.__calcStatusRender = function(){
+ const host = document.getElementById('calcStatusBody'); if(!host) return;
+ const orders = window.__calcOrders || [];
+ if(!orders.length){ host.innerHTML='<div style="padding:24px; text-align:center; color:#9CA3AF;">Tiada order lagi. Buat satu di tab "Kos Shipment".</div>'; return; }
+ const stageSel = (o)=> `<select onchange="window.__calcStageUpdate(${o.id}, this.value)" style="padding:5px 8px; border:1px solid #E5E7EB; border-radius:6px; font-size:11.5px; background:#fff; max-width:150px;">`
+ + window.CALC_STAGES.map(s=> `<option value="${s.key}" ${o.stage===s.key?'selected':''}>${hesc(s.label)}</option>`).join('') + '</select>';
+ const badge = (lvl)=>{
+ if(lvl==='critical') return '<span style="font-size:10px; font-weight:800; background:#F6E2DE; color:#B23A2E; padding:3px 9px; border-radius:20px;">TERSANGKUT</span>';
+ if(lvl==='warn') return '<span style="font-size:10px; font-weight:800; background:#FBEFD6; color:#9A6B12; padding:3px 9px; border-radius:20px;">PERLU TINDAKAN</span>';
+ if(lvl==='done') return '<span style="font-size:10px; font-weight:800; background:#E2EFE0; color:#3C6438; padding:3px 9px; border-radius:20px;">SELESAI</span>';
+ return '<span style="font-size:10px; font-weight:800; background:#EEF1F4; color:#5B6573; padding:3px 9px; border-radius:20px;">LANCAR</span>';
+ };
+ // ----- Panel TERSANGKUT (kritikal + warn) -----
+ const stuck = orders.filter(o=> o._st.level==='critical' || o._st.level==='warn')
+ .sort((a,b)=> (a._st.level==='critical'?0:1) - (b._st.level==='critical'?0:1));
+ const crit = orders.filter(o=>o._st.level==='critical').length;
+ const warn = orders.filter(o=>o._st.level==='warn').length;
+ let stuckHtml='';
+ if(stuck.length){
+ stuckHtml = `<div style="border:1px solid #E7C77A; border-left:4px solid #CE9420; background:#FEF9EF; border-radius:12px; padding:14px 16px; margin-bottom:16px;">
+ <div style="font-weight:800; font-size:13px; color:#7A5E12; margin-bottom:10px; display:flex; align-items:center; gap:7px;"><i data-lucide="alert-triangle" style="width:15px;height:15px;"></i> Tersangkut — perlu tindakan (${crit} kritikal · ${warn} amaran)</div>
+ ${stuck.map(o=>{
+ const c = o._st.level==='critical';
+ return `<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 0; border-top:1px solid #F0E6CF;">
+ <span style="width:8px; height:8px; border-radius:50%; background:${c?'#B23A2E':'#C68A1A'}; flex:none;"></span>
+ <strong style="font-size:13px; color:#101010;">${hesc(o.label||('Order #'+o.id))}</strong>
+ <span style="font-size:11px; color:#6B7280;">${hesc(o.supplier||'—')}</span>
+ <span style="font-size:11px; color:#7A4A1E; background:#F3EEE7; padding:2px 8px; border-radius:12px;">${hesc(window.__calcStageLabel(o.stage))}</span>
+ <span style="font-size:11.5px; color:${c?'#B23A2E':'#9A6B12'}; flex:1; min-width:180px;">${hesc(o._st.reasons[0]||'')}</span>
+ <button onclick="window.scOpenArchived(${o.id})" style="padding:5px 12px; font-size:11px; font-weight:700; background:#CD7C32; color:#fff; border:none; border-radius:7px; cursor:pointer;">Buka kira kos</button>
+ </div>`;
+ }).join('')}
+ </div>`;
+ } else {
+ stuckHtml = `<div style="border:1px solid #CDE3C8; border-left:4px solid #4E7C4A; background:#F3F8F2; border-radius:12px; padding:14px 16px; margin-bottom:16px; font-size:13px; color:#3C6438; font-weight:700; display:flex; align-items:center; gap:8px;"><i data-lucide="check-circle-2" style="width:16px;height:16px;"></i> Tiada order tersangkut. Semua bergerak lancar.</div>`;
+ }
+ // ----- Pipeline chips (kiraan per peringkat) -----
+ const counts = {}; orders.forEach(o=>{ counts[o.stage]=(counts[o.stage]||0)+1; });
+ const pipeline = `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">`
+ + window.CALC_STAGES.map(s=>{ const n=counts[s.key]||0; const on=n>0;
+ return `<span style="font-size:11px; font-weight:600; padding:5px 10px; border-radius:20px; border:1px solid ${on?'#CD7C32':'#E5E7EB'}; background:${on?'#FFF1E2':'#FAFAFA'}; color:${on?'#7A4A1E':'#9CA3AF'};">${hesc(s.label)} <strong>${n}</strong></span>`;
+ }).join('') + '</div>';
+ // ----- Jadual semua order -----
+ const fmtDt = (d)=> d ? d : '—';
+ const rows = orders.map((o,i)=>{
+ const st=o._st; const stripe=(i%2===0)?'#FFFFFF':'#FBF7F1';
+ const dStage = st.daysInStage!=null ? st.daysInStage+'h' : '—';
+ const dColor = (st.daysInStage!=null && st.daysInStage>=14) ? '#B23A2E' : '#6B7280';
+ return `<tr style="background:${stripe};">
+ <td><strong style="font-size:12.5px;">${hesc(o.label||('Order #'+o.id))}</strong>${o.po_ref?'<div style="font-size:10px; color:#9CA3AF;">'+hesc(o.po_ref)+'</div>':''}</td>
+ <td style="font-size:12px;">${hesc(o.supplier||'—')}</td>
+ <td style="font-size:11.5px; color:#6B7280; white-space:nowrap;">${hesc(fmtDt(o.order_date))}</td>
+ <td><input type="date" value="${hesc(o.eta_date||'')}" onchange="window.__calcEtaUpdate(${o.id}, this.value)" style="padding:4px 6px; border:1px solid #E5E7EB; border-radius:6px; font-size:11px;"></td>
+ <td>${stageSel(o)}</td>
+ <td style="text-align:center; font-size:11.5px; color:${dColor}; font-weight:600;">${dStage}</td>
+ <td style="text-align:center;">${badge(st.level)}</td>
+ <td style="text-align:center;"><button onclick="window.scOpenArchived(${o.id})" style="padding:4px 10px; font-size:11px; font-weight:600; background:#FFF1E2; color:#A05F22; border:1px solid #CD7C32; border-radius:6px; cursor:pointer;">Buka</button></td>
+ </tr>`;
+ }).join('');
+ host.innerHTML = stuckHtml + pipeline + `<div class="admin-card" style="padding:0; overflow:hidden;"><div class="table-responsive"><table class="data-table sc-arch" style="font-size:12px;">
+ <thead><tr><th>Order / PO</th><th>Supplier</th><th>Tarikh Order</th><th>ETA</th><th>Peringkat</th><th style="text-align:center;">Umur</th><th style="text-align:center;">Status</th><th></th></tr></thead>
+ <tbody>${rows}</tbody></table></div></div>`;
+ const c=document.getElementById('calcStatusCount'); if(c) c.textContent = `${orders.length} order · ${crit} tersangkut · ${warn} perlu tindakan`;
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+
+window.__calcStageUpdate = async function(id, stage){
+ try {
+ if(typeof db==='undefined'||!db) return;
+ const u = window.currentUser||{};
+ const { error } = await db.from('cost_shipments').update({ stage, stage_updated_at:new Date().toISOString(), stage_updated_by:(u.name||'System') }).eq('id', id);
+ if(error) throw error;
+ if(typeof showToast==='function') showToast('Peringkat dikemaskini → '+window.__calcStageLabel(stage),'success');
+ window.renderCalcStatus();
+ } catch(e){ if(typeof showToast==='function') showToast('Gagal: '+e.message,'error'); }
+};
+window.__calcEtaUpdate = async function(id, val){
+ try {
+ if(typeof db==='undefined'||!db) return;
+ const { error } = await db.from('cost_shipments').update({ eta_date: val||null }).eq('id', id);
+ if(error) throw error;
+ window.renderCalcStatus();
+ } catch(e){ if(typeof showToast==='function') showToast('Gagal set ETA: '+e.message,'error'); }
 };
 
 // p1_391 — Cost Calculator (Shipment landed-cost).

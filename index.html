@@ -3831,6 +3831,7 @@
  <div class="calc-subnav">
  <button class="calc-subtab" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
  <button class="calc-subtab calc-subtab--active" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ <button class="calc-subtab" data-calc-view="status" onclick="window.__calcShow('status')"><i data-lucide="route" style="width:14px;height:14px;"></i> Status Order</button>
  <button class="calc-subtab" data-calc-view="log" onclick="window.__calcShow('log')"><i data-lucide="history" style="width:14px;height:14px;"></i> Log Formula</button>
  </div>
  <div class="rp-header"><div>
@@ -3955,6 +3956,28 @@
  </div>
  </div>
 
+ <!-- p1_924 — STATUS ORDER + dashboard tersangkut -->
+ <!-- ============================================== -->
+ <div id="calcStatusSection" class="tab-section" data-skip-title-sync style="display:none;">
+ <div class="rp-wrap">
+ <div class="calc-subnav">
+ <button class="calc-subtab" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
+ <button class="calc-subtab" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ <button class="calc-subtab calc-subtab--active" data-calc-view="status" onclick="window.__calcShow('status')"><i data-lucide="route" style="width:14px;height:14px;"></i> Status Order</button>
+ <button class="calc-subtab" data-calc-view="log" onclick="window.__calcShow('log')"><i data-lucide="history" style="width:14px;height:14px;"></i> Log Formula</button>
+ </div>
+ <div class="rp-header"><div>
+ <h2 class="rp-title" data-skip-title-sync><i data-lucide="route" style="width:22px; height:22px; color:var(--primary);"></i> Status Order</h2>
+ <p class="rp-subtitle">Jejak tiap order ikut peringkat — Katalog → PO → PI → SF 5% → Invoice Shipment → Transit → Sampai → Kos → Boleh Jual. Order yang dah sampai tapi belum boleh jual ditanda "Tersangkut" di atas.</p>
+ </div></div>
+ <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+ <button onclick="window.renderCalcStatus()" style="padding:7px 12px; font-size:12px; font-weight:600; background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; border-radius:7px; cursor:pointer;"><i data-lucide="refresh-cw" style="width:13px;height:13px;vertical-align:-2px;"></i> Segarkan</button>
+ <span id="calcStatusCount" style="font-size:12px; color:#6B7280;"></span>
+ </div>
+ <div id="calcStatusBody"><div style="padding:20px; color:#9CA3AF;">Memuatkan…</div></div>
+ </div>
+ </div>
+
  <!-- p1_923 — FORMULA LOG (rekod kekal tiap pengiraan Calculator) -->
  <!-- ============================================== -->
  <div id="calcLogSection" class="tab-section" data-skip-title-sync style="display:none;">
@@ -3962,6 +3985,7 @@
  <div class="calc-subnav">
  <button class="calc-subtab" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
  <button class="calc-subtab" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ <button class="calc-subtab" data-calc-view="status" onclick="window.__calcShow('status')"><i data-lucide="route" style="width:14px;height:14px;"></i> Status Order</button>
  <button class="calc-subtab calc-subtab--active" data-calc-view="log" onclick="window.__calcShow('log')"><i data-lucide="history" style="width:14px;height:14px;"></i> Log Formula</button>
  </div>
  <div class="rp-header"><div>
@@ -3998,6 +4022,7 @@
  <div class="calc-subnav">
  <button class="calc-subtab calc-subtab--active" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
  <button class="calc-subtab" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ <button class="calc-subtab" data-calc-view="status" onclick="window.__calcShow('status')"><i data-lucide="route" style="width:14px;height:14px;"></i> Status Order</button>
  <button class="calc-subtab" data-calc-view="log" onclick="window.__calcShow('log')"><i data-lucide="history" style="width:14px;height:14px;"></i> Log Formula</button>
  </div>
  <div class="rp-header">
@@ -8861,6 +8886,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_924', label:'STATUS ORDER + dashboard "tersangkut" dalam Calculator (Zaid: "sambung status order + dashboard tersangkut" — selesai punca utama: barang sampai tapi tak boleh jual sebab kos/qty/harga belum siap). Sub-tab ke-4 "Status Order" (calcStatusSection). Tiap cost_shipment = satu order procurement; ALTER cost_shipments + stage/stage_updated_at/stage_updated_by/eta_date (default po_draft). 11 peringkat ikut flow Zaid (CALC_STAGES): Katalog→PO Draf→PO Final→Proforma Invoice→SF Charge 5%→Invoice Shipment→Transit→Sampai Sebahagian→Sampai Penuh→Kos Siap→Boleh Jual. __calcOrderStatus kira tahap tersangkut: KRITIKAL=dah sampai (arrived/partial) tapi belum on_sale; AMARAN=kos siap belum publish, ATAU lewat ETA, ATAU tersekat >=14 hari di satu peringkat; SELESAI=on_sale. renderCalcStatus papar (1) panel TERSANGKUT atas (kritikal+amaran, butang "Buka kira kos"→scOpenArchived), (2) pipeline chips kiraan per peringkat, (3) jadual semua order: dropdown tukar peringkat inline (__calcStageUpdate), input ETA inline (__calcEtaUpdate), umur di peringkat (merah kalau >=14h), badge status. __calcShow handle view ke-4 (harga/kos/status/log). Warna status guna pengecualian fungsi (merah/amber/hijau) selaras brand-lock. app.js v869->870.', d:'done' },
  { id:'p1_923', label:'LOG FORMULA dalam Calculator (Zaid: "bila buat pengiraan kita create formula tu, aku nak ada formula log beserta tarikh" — rekod WAJIB ada). Sub-tab ke-3 "Log Formula" dalam Calculator (calcLogSection). DB table baru public.calc_formula_log (APPEND-ONLY: RLS select+insert sahaja, tiada update/delete = audit tak boleh diusik) — simpan calc_type/action/formula_version(definisi penuh)/ref_label/supplier/source_docs/inputs(jsonb)/results(jsonb)/summary/created_by/staff_id/created_at. AUTO-LOG tiap commit: scApplyCostPrice→apply_cost, scApplyBatch→apply_batch, __psApplySelected→apply_price; + butang manual "Simpan ke Log Formula" (window.__calcLogLanded(manual)) dalam blok Inventory Cost Recorded. Formula dikunci dalam tiap rekod (__CALC_FORMULA_LANDED v1 = Barang(RMB×ex)+SF%ikutNilai+ShippingIkutNilai+Part-timerIkutQty; __CALC_FORMULA_PRICE v1 = CostBersih=(RMB×ex)+Ship+Hand% · RRP+30%/Kedai+60%−20%/Marketplace+80%/Proposal+35%) supaya boleh audit walau formula berubah satu hari. source_docs catat asal angka (Barang←PI · SF←PI · Shipping←Invoice Shipment · Part-timer←terima) selaras flow procurement Zaid. View: renderCalcLog (fetch 500 terkini desc) + carian + tapis Semua/Landed/Harga + baris boleh expand tunjuk formula+input+breakdown per-SKU. __calcShow handle view ke-3 (harga/kos/log). app.js v868->869.', d:'done' },
  { id:'p1_922', label:'GABUNG Price Calculator + Cost Calculator (Shipment) jadi SATU menu "Calculator" (Zaid: "gabungkan price calculator dan shipment calculator = calculator"). Dulu 2 item sidebar berasingan dalam group Tools (nav_sys_pricecalc→floorPriceSection, nav_sys_costcalc→shipmentCalcSection). Sekarang 1 item "Calculator" (data-tab=nav_sys_calc) + sub-tab bar dalam KEDUA-DUA section: "Harga & Tier" | "Kos Shipment (Landed)". window.__calcShow(view) tukar view = switchHub papar section berkaitan + render (no DOM restructure, sifar risiko div-balance). Sidebar item kekal highlight (pass menu el ke switchHub). h2 tiap view kekal sendiri (data-skip-title-sync) tapi breadcrumb/pageTitle = "Calculator". Repoint 4 rujukan Pusat Amaran [data-tab=nav_sys_pricecalc]→nav_sys_calc. i18n nav_sys_pricecalc+nav_sys_costcalc → satu nav_sys_calc (Kalkulator/Calculator). Semua logik sedia ada (scCompute/__psComputeAll/tier/apply/arkib) tak disentuh. app.js v867->868.', d:'done' },
  { id:'p1_921', label:'FIX customer-display (Zaid Safari iPad): (1) GAMBAR BERKELIP — setInterval(render,500) rebuild listEl.innerHTML tiap 0.5s → <img> dicipta semula → kelip. FIX: __cdLastSig guard, skip render kalau raw payload SAMA (cuma render bila cart betul berubah). (2) PAGE TAK FIT/footer terpotong — .layout height:100vh; Safari iPad toolbar ambil ruang → footer Jumlah Bayar keluar skrin. FIX: height:100dvh (+ max-height:100dvh, fallback 100vh). customer-display.html sahaja, tiada app.js.', d:'done' },
@@ -14246,7 +14272,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=869"></script>
+ <script src="app.js?v=870"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

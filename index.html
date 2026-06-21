@@ -1249,18 +1249,8 @@
  <span class="lp-eyebrow" data-i18n="lp_coll_eyebrow">Curated for You</span>
  <h2 class="lp-h2" data-i18n="lp_coll_h2">Featured Collections</h2>
  </div>
- <div class="lp-collections__grid">
- <a href="#shop" class="lp-collection lp-collection--lg" data-filter-brand="" hidden>
- <div class="lp-collection__bg" style="background-image:url('assets/brand/products/jersey-unity-v3-front.png');"></div>
- <div class="lp-collection__overlay"></div>
- <div class="lp-collection__content">
- <span class="lp-collection__tag" data-i18n="lp_coll_apparel">Apparel</span>
- <h3>10 CAMPERS UNITY</h3>
- <p data-i18n="lp_coll_unity_sub">Official jersey collection</p>
- <span data-i18n="lp_coll_notsale" style="display:inline-block; margin-top:7px; font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); padding:2px 9px; border-radius:20px;">Not for sale</span>
- </div>
- </a>
- <a href="#shop" class="lp-collection" data-filter-brand="Naturehike">
+ <div class="lp-collections__grid lp-collections__grid--2col">
+ <a href="#shop" class="lp-collection lp-collection--lg" data-filter-brand="Naturehike">
  <div class="lp-collection__bg" style="background:linear-gradient(145deg,#1E3A28,#3A6045);"></div>
  <div class="lp-collection__overlay"></div>
  <div class="lp-collection__content">
@@ -8971,6 +8961,7 @@
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
  { id:'p1_936', label:'Landing page: baki audit fixes (Zaid: "sambung fix lepas audit siap"). (1) Nav "Panduan" hardcoded BM → tambah data-i18n="lp_nav_panduan" + dict entry {bm:"Panduan", en:"Guides"} — consistent dengan nav links lain yang semua ada i18n. (2) Naturehike collection card pakai hero-hikers-1500x600.png yang sama dengan hero background (nampak macam placeholder) → tukar ke gradient linear-gradient(145deg,#1E3A28,#3A6045) (forest green, outdoorsy, intentional). app.js v880→881.', d:'done' },
  { id:'p1_937', label:'Security: memo staf bocor ke public landing (Zaid: "bukak browser lain tak auto login tapi nampak memo Aliff"). PUNCA 2 laluan: (1) memoHydrateFromRemote timout 4500ms tiada guard currentUser — boleh fetch+render data memo walaupun belum login (anon client, RLS block tapi localStorage cache lama masih ada). (2) Pinned memo toast dalam loginAs (p1_19) tembak walaupun opts.silent=true (session restore senyap) — toast position:fixed z-index:9999 visible atas apa-apa layout. FIX: (1) tambah if(!window.currentUser) return; awal memoHydrateFromRemote. (2) tambah !opts.silent guard pada showToast memo pinned supaya toast hanya keluar bila login aktif (PIN), bukan restore senyap. Badge refresh + sidebar refresh masih jalan pada restore. app.js v881→882.', d:'done' },
+ { id:'p1_938', label:'Landing page audit fixes (Zaid: "sambung kritik website"). (1) Unity collection card — CSS .lp-collection{display:block} override HTML hidden attr → kad Unity masih nampak dengan badge "BUKAN UNTUK JUAL" atas page awam. FIX: delete Unity card HTML terus, tukar grid 3-col→2-col dengan class --2col (Naturehike jadi featured card kiri besar, Voucher kanan). design-tokens.css tambah .lp-collections__grid--2col{grid-template-columns:2fr 1fr}. (2) Nama produk kotor — "BLACKDOG CBD2450ZM014 _ Carrot Atmosphere" tidak kena bersih oleh lpParseProductName (brand ada spasi "BLACK DOG" ≠ "BLACKDOG" dalam nama). FIX: tambah separator " _ " pattern: kalau prefix sebelum " _ " semua UPPERCASE → strip, ambil bahagian selepas. Juga strip leading lone underscore "_ Inflatable Bed..." → "Inflatable Bed...". app.js v882→883, design-tokens.css.', d:'done' },
 { id:'p1_935', label:'Landing page: 3 kritik fixes (Zaid: "sambung kritik website"). (1) Hero eyebrow "By TODAK · Established 2024" → "Kelengkapan Camping & Outdoor · Malaysia" (BM) / "Camping & Outdoor Gear · Malaysia" (EN) — supaya visitor terus tahu apa kau jual. i18n lp_hero_eyebrow diupdate, HTML fallback diupdate. (2) Unity jersey "Not for sale" collection card disembunyikan (hidden attribute) — confusing visitors sebab boleh klik tapi takde apa. (3) Sticky mobile CTA bar (#lpStickyBar) — fixed bottom bar (mobile only ≤768px) dengan butang Shopee + TikTok Shop. Muncul bila hero scroll keluar viewport (IntersectionObserver), hilang bila scroll balik. CSS dalam design-tokens.css. app.js v879→880.', d:'done' },
 { id:'p1_934', label:'Landing page: fix harga kat grid produk (Zaid: "fix harga kat grid produk dulu"). 2 isu: (1) price=0 tunjuk "RM 0" — ganti dengan "Semak harga →" (grey); (2) multi-variant groups tunjuk harga lead sahaja — kira _minP/_maxP merentas semua variant, kalau beza tunjuk "Mulai dari RM X". lpSelectVariant juga dikemas: price=0 tunjuk "Semak harga →". Tiada perubahan DB. app.js v878→879.', d:'done' },
 { id:'p1_933', label:'Buang "PRICE PUSH FAILED" dari Amaran Integrasi Marketplace (Zaid: "sambung ke shopee ni kan memang tak boleh so keluarkan je dari amaran, shopee memang akan update sendiri ke seller centre"). push_failures status=dead = Shopee rate-limit sementara, bukan error sebenar — Shopee akan sync sendiri. Buang dari: issueCount, chip header, rendered block, early-exit check. Connections health page ("Push Harga — Auto-Retry" card) KEKAL sebagai info sahaja. app.js v877→878.', d:'done' },
@@ -14368,7 +14359,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=882"></script>
+ <script src="app.js?v=883"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

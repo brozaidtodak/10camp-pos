@@ -17229,6 +17229,15 @@ window.lpParseProductName = function(p) {
         title = title.replace(brandRe, '').trim();
     }
     title = title.replace(/^[A-Z0-9-]{4,}\s*_\s*/, '').trim();
+    // p1_938 — strip " _ " separator pattern used by Chinese marketplace names
+    // e.g. "BLACKDOG CBD2450ZM014 _ Carrot Atmosphere..." → "Carrot Atmosphere..."
+    const sepIdx = title.indexOf(' _ ');
+    if(sepIdx > 0) {
+      const prefix = title.slice(0, sepIdx).trim();
+      if(/^[A-Z0-9\s\-\.]+$/.test(prefix)) title = title.slice(sepIdx + 3).trim();
+    }
+    // strip lone leading underscore (e.g. "_ Inflatable Bed..." → "Inflatable Bed...")
+    title = title.replace(/^\s*_+\s*/, '').trim();
     if (variantName) {
         variantName = variantName.replace(/^[A-Z]{1,4}\d+([-\d]+)?\s+/, '').trim();
     }

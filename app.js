@@ -11030,8 +11030,10 @@ window.__scsToggleSkuList = async function(sessionId) {
  const scsLocHtml = scsLocs.length
   ? scsLocs.map(l => __locChip(escHtml(l.location) + (l.qty ? ' · ' + l.qty : ''))).join('')
   : (i.location_bin ? __locChip(escHtml(i.location_bin)) : '<span style="color:#D1D5DB;">—</span>');
- const thumbHtml = i.image_url
- ? `<img src="${escHtml(i.image_url)}" alt="${escHtml(i.sku || '')}" onclick="event.stopPropagation(); window.open('${escHtml(i.image_url).replace(/'/g, "\\'")}', '_blank')" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #E5E7EB; cursor:zoom-in; display:block;" loading="lazy" onerror="this.style.display='none'">`
+ // p1_915 — gambar: fallback ke masterProducts.images[0] bila item sesi tiada image_url
+ const scsImg = i.image_url || (__scsBcProd && __scsBcProd.images && __scsBcProd.images[0]) || '';
+ const thumbHtml = scsImg
+ ? `<img src="${escHtml(scsImg)}" alt="${escHtml(i.sku || '')}" onclick="event.stopPropagation(); window.open('${escHtml(scsImg).replace(/'/g, "\\'")}', '_blank')" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #E5E7EB; cursor:zoom-in; display:block;" loading="lazy" onerror="this.style.display='none'">`
  : `<div style="width:40px; height:40px; border-radius:4px; background:#F3F4F6; border:1px solid #E5E7EB; display:flex; align-items:center; justify-content:center;"><i data-lucide="image-off" style="width:14px;height:14px; color:#9CA3AF;"></i></div>`;
  const dikiraCell = isChecked
  ? `<span style="font-weight:700; color:#111;">${i.counted_qty}</span>`

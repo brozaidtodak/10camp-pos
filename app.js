@@ -41661,6 +41661,87 @@ window.__rcvSaveDamage = async function(poId){
   } catch(e){ _toast('Gagal hantar: ' + e.message, 'error'); if(btn){ btn.disabled = false; btn.style.opacity = ''; } }
  };
 
+ // ---- Seller side: EDIT permintaan yg dah dihantar (p1_905) ----
+ // Buka permintaan aktif seller (bukan dari troli) → tukar qty / buang / tambah dari troli → simpan.
+ // Tindih halus (bukan full overwrite macam Maklum Inventori), kekalkan flag picker (it.done).
+ window.__notifyInvEditMine = async function(){
+  const staff_id = (typeof currentUser !== 'undefined' && currentUser && currentUser.staff_id) ? currentUser.staff_id : '';
+  if(!staff_id){ _toast('Sila login dulu.', 'warn'); return; }
+  let row = null;
+  try {
+   const { data } = await db.from('inventory_notifications').select('*').eq('staff_id', staff_id).order('updated_at', { ascending:false }).limit(1);
+   if(data && data.length) row = data[0];
+  } catch(e){ _toast('Gagal muat: ' + e.message, 'error'); return; }
+  if(!row){ _toast('Tiada permintaan aktif. Guna "Maklum Inventori" dari troli untuk hantar baru.', 'warn'); return; }
+  window.__niEditRow = row;
+  window.__niEditItems = (row.items || []).map(it => ({ sku: it.sku || '', name: it.name || '', qty: it.qty || 1, done: !!it.done }));
+  window.__niEditNote = row.note || '';
+  const old = document.getElementById('niEditOverlay'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'niEditOverlay';
+  ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9700; display:flex; align-items:center; justify-content:center; padding:16px;';
+  ov.onclick = (e)=>{ if(e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div style="background:#fff; border-radius:16px; max-width:460px; width:100%; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.35);">
+    <div style="padding:18px 20px 12px; border-bottom:1px solid #F0EDE6; display:flex; justify-content:space-between; align-items:center;">
+     <strong style="font-size:16px; color:#101010;"><i data-lucide="pencil" style="width:17px;height:17px;vertical-align:-3px;"></i> Edit Permintaan Saya</strong>
+     <button onclick="document.getElementById('niEditOverlay').remove()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+    </div>
+    <div id="niEditBody" style="padding:6px 16px; overflow-y:auto; flex:1;"></div>
+    <div style="padding:6px 16px 0;"><button onclick="window.__niEditAddFromCart()" style="width:100%; background:#FAF1E6; border:1px dashed #CD7C32; color:#7A5410; padding:9px; border-radius:10px; font-weight:700; cursor:pointer;">+ Tambah dari Troli</button></div>
+    <div style="padding:10px 16px 4px;"><textarea id="niEditNote" placeholder="Nota untuk inventory (optional)…" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #E5E7EB; border-radius:10px; font-family:inherit; font-size:13px; resize:vertical; min-height:46px;">${esc(window.__niEditNote)}</textarea></div>
+    <div style="padding:6px 16px 18px;"><button onclick="window.__niEditSave(this)" style="width:100%; background:#CD7C32; color:#fff; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="save" style="width:16px;height:16px;"></i> Simpan Perubahan</button></div>
+   </div>`;
+  document.body.appendChild(ov);
+  window.__niEditRender();
+ };
+ window.__niEditRender = function(){
+  const body = document.getElementById('niEditBody'); if(!body) return;
+  const items = window.__niEditItems || [];
+  if(!items.length){
+   body.innerHTML = '<div style="text-align:center; color:#9CA3AF; padding:24px 10px; font-size:12.5px;">Senarai kosong. Tambah dari troli, atau simpan untuk batalkan permintaan.</div>';
+   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+   return;
+  }
+  body.innerHTML = items.map((it, i)=>`<div style="display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid #F0EDE6; ${it.done ? 'opacity:.55;' : ''}">
+     <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#101010; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(it.name)}${it.done ? ' <span style="color:#2E6B2E; font-size:10.5px; font-weight:700;">· dah diambil</span>' : ''}</div><div style="font-size:11px; color:#9CA3AF;">${esc(it.sku||'—')}</div></div>
+     <input type="number" value="${it.qty}" min="1" onchange="window.__niEditItems[${i}].qty=parseInt(this.value)||1" style="width:58px; padding:7px; border:1px solid #E5E7EB; border-radius:8px; text-align:center; font-weight:700; flex:0 0 auto;">
+     <button onclick="window.__niEditItems.splice(${i},1); window.__niEditRender();" title="Buang dari permintaan" style="background:#FDECEA; border:1px solid #F5C6C0; color:#B23A2E; width:34px; height:34px; border-radius:9px; cursor:pointer; font-weight:800; flex:0 0 auto;">×</button>
+   </div>`).join('');
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__niEditAddFromCart = function(){
+  if(!Array.isArray(cart) || cart.length === 0){ _toast('Troli kosong — tiada barang nak ditambah.', 'warn'); return; }
+  const items = window.__niEditItems = window.__niEditItems || [];
+  let added = 0, bumped = 0;
+  cart.forEach(c => {
+   const sku = c.sku || ''; const name = c.name || '(tanpa nama)'; const qty = c.quantity || c.qty || 1;
+   const ex = sku ? items.find(it => it.sku === sku) : null;
+   if(ex){ ex.qty = (ex.qty || 0) + qty; bumped++; }
+   else { items.push({ sku, name, qty, done:false }); added++; }
+  });
+  window.__niEditRender();
+  _toast((added ? added + ' ditambah. ' : '') + (bumped ? bumped + ' qty dikemas kini.' : ''), 'success');
+ };
+ window.__niEditSave = async function(btn){
+  const row = window.__niEditRow; if(!row){ return; }
+  const items = (window.__niEditItems || []).filter(it => (it.name || it.sku));
+  const note = ((document.getElementById('niEditNote')||{}).value || '').trim();
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+  try {
+   if(!items.length){
+    if(!confirm('Senarai kosong — BATALKAN permintaan ini sepenuhnya?')){ if(btn){ btn.disabled = false; btn.style.opacity = ''; } return; }
+    await db.from('inventory_notifications').delete().eq('id', row.id);
+    _toast('Permintaan dibatalkan.', 'success');
+   } else {
+    await db.from('inventory_notifications').update({ items, note, updated_at: new Date().toISOString() }).eq('id', row.id);
+    _toast('Permintaan dikemas kini (' + items.length + ' barang).', 'success');
+   }
+   const ov = document.getElementById('niEditOverlay'); if(ov) ov.remove();
+   window.__notifyInvPoll();
+   const sec = document.getElementById('notifyInvSection');
+   if(sec && sec.style.display !== 'none' && typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
+  } catch(e){ _toast('Gagal simpan: ' + e.message, 'error'); if(btn){ btn.disabled = false; btn.style.opacity = ''; } }
+ };
+
  // ---- Inventory side: page senarai permintaan ----
  window.renderNotifyInventory = async function(useCache){
   const wrap = document.getElementById('notifyInvList'); if(!wrap) return;

@@ -41647,6 +41647,7 @@ window.__rcvSaveDamage = async function(poId){
     </div>
     <div style="padding:6px 16px; overflow-y:auto; flex:1;">${rows}</div>
     <div style="padding:12px 16px 4px;"><textarea id="niNote" placeholder="Nota untuk inventory (optional)…" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #E5E7EB; border-radius:10px; font-family:inherit; font-size:13px; resize:vertical; min-height:46px;"></textarea></div>
+    <div style="padding:2px 16px 0; font-size:11.5px; color:#8A5A12; display:flex; align-items:center; gap:6px;"><i data-lucide="info" style="width:13px;height:13px; flex:0 0 auto;"></i> Selepas hantar, jualan ini DITAHAN & cart dikosongkan. Sambung di "Jualan Ditahan" bila barang sedia.</div>
     <div style="padding:6px 16px 18px;"><button onclick="window.__notifyInvSend(this)" style="width:100%; background:#CD7C32; color:#fff; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="send" style="width:16px;height:16px;"></i> Hantar ke Inventory</button></div>
    </div>`;
   document.body.appendChild(ov);
@@ -41668,20 +41669,37 @@ window.__rcvSaveDamage = async function(poId){
   if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
   try {
    // satu permintaan aktif per staf — kalau dah ada, UPDATE (seller boleh notify banyak kali / edit)
-   let existId = null;
+   let notifyId = null;
    if(staff_id){
     const { data: ex } = await db.from('inventory_notifications').select('id').eq('staff_id', staff_id).order('updated_at', { ascending:false }).limit(1);
-    if(ex && ex.length) existId = ex[0].id;
+    if(ex && ex.length) notifyId = ex[0].id;
    }
-   if(existId){
-    await db.from('inventory_notifications').update({ items, note, staff_name, updated_at: new Date().toISOString() }).eq('id', existId);
+   if(notifyId){
+    await db.from('inventory_notifications').update({ items, note, staff_name, updated_at: new Date().toISOString() }).eq('id', notifyId);
    } else {
-    await db.from('inventory_notifications').insert({ staff_id, staff_name, items, note });
+    const { data: ins } = await db.from('inventory_notifications').insert({ staff_id, staff_name, items, note }).select('id').limit(1);
+    if(ins && ins.length) notifyId = ins[0].id;
    }
-   _toast('Inventory dah dimaklumkan (' + items.length + ' barang).', 'success');
+   // p1_911 — TAHAN JUALAN: simpan cart customer ke held_sales (selamat, recoverable), pautkan notify, kosongkan cart
+   const held = await window.__notifyParkSale(notifyId, staff_id, staff_name);
+   _toast(held ? ('Inventory dimaklumkan + jualan DITAHAN. Sambung di "Jualan Ditahan" bila barang sedia.') : ('Inventory dah dimaklumkan (' + items.length + ' barang).'), 'success');
    const ov = document.getElementById('niSendOverlay'); if(ov) ov.remove();
    window.__notifyInvPoll();
+   if(typeof window.__heldPoll === 'function') window.__heldPoll();
   } catch(e){ _toast('Gagal hantar: ' + e.message, 'error'); if(btn){ btn.disabled = false; btn.style.opacity = ''; } }
+ };
+ // p1_911 — tahan cart customer ke held_sales + kosongkan cart (return true kalau berjaya tahan)
+ window.__notifyParkSale = async function(notifyId, staff_id, staff_name){
+  try {
+   if(!Array.isArray(cart) || !cart.length) return false; // tiada cart → tiada apa nak ditahan
+   const hitems = cart.map(c => ({ sku: c.sku || '', name: c.name || '', price: Number(c.price) || 0, quantity: Number(c.quantity || c.qty || 1) || 1, isCustom: !!c.isCustom }));
+   const total = hitems.reduce((s, it) => s + it.price * it.quantity, 0);
+   const g = (id) => { const e = document.getElementById(id); return e ? (e.value || '').trim() : ''; };
+   const customer = { name: g('customerName'), phone: g('customerPhone'), email: g('customerEmail') };
+   await db.from('held_sales').insert({ staff_id, staff_name, items: hitems, customer, notify_id: notifyId || null, status: 'waiting', total });
+   if(typeof window.clearCart === 'function') window.clearCart(); else { cart = []; if(typeof renderCart === 'function') renderCart(); }
+   return true;
+  } catch(e){ _toast('Jualan tak dapat ditahan (' + e.message + ') — cart dikekalkan.', 'warn'); return false; }
  };
 
  // ---- Seller side: EDIT permintaan yg dah dihantar (p1_905) ----
@@ -41865,11 +41883,16 @@ window.__rcvSaveDamage = async function(poId){
   window.renderNotifyInventory(true); // optimistic, guna cache
   try {
    await db.from('inventory_notifications').update({ items: note.items }).eq('id', id);
+   // p1_911 — semua barang dah diambil → jualan ditahan jadi "sedia", seller dapat alert
+   const allDone = note.items.length > 0 && note.items.every(it => it.done);
+   if(allDone){ try { await db.from('held_sales').update({ status: 'ready', updated_at: new Date().toISOString() }).eq('notify_id', id).eq('status', 'waiting'); } catch(e){} }
   } catch(e){ note.items[idx].done = !checked; window.renderNotifyInventory(true); _toast('Gagal kemaskini: ' + e.message, 'error'); }
  };
  window.__notifyInvDone = async function(id){
   if(!confirm('Tandakan permintaan ni SELESAI? Ia akan dibuang dari senarai.')) return;
   try {
+   // p1_911 — inventory selesai sediakan → jualan ditahan berkaitan jadi "sedia" (seller dapat alert)
+   try { await db.from('held_sales').update({ status: 'ready', updated_at: new Date().toISOString() }).eq('notify_id', id).eq('status', 'waiting'); } catch(e){}
    await db.from('inventory_notifications').delete().eq('id', id);
    _toast('Selesai — dibuang dari senarai.', 'success');
    if(typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
@@ -41896,11 +41919,112 @@ window.__rcvSaveDamage = async function(poId){
  window.__notifyInvStartPoll = function(){
   if(window.__notifyInvPollTimer) return;
   window.__notifyInvPoll();
+  if(typeof window.__heldPoll === 'function') window.__heldPoll(); // p1_911
   window.__notifyInvPollTimer = setInterval(function(){
    window.__notifyInvPoll();
+   if(typeof window.__heldPoll === 'function') window.__heldPoll(); // p1_911 — alert seller bila jualan ditahan sedia
    const sec = document.getElementById('notifyInvSection');
    if(sec && sec.style.display !== 'none' && typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
   }, 15000);
+ };
+
+ // ============================================================
+ // p1_911 — TAHAN JUALAN (held sales) sisi seller. Cart customer disimpan ke
+ // server bila Maklum Inventori dihantar; bila inventory selesai sediakan,
+ // status → 'ready' & seller dapat alert proaktif + boleh sambung checkout.
+ // Berguna terutamanya di APP phone/tablet yg TIADA multi-cart.
+ // ============================================================
+ window.__heldData = [];
+ window.__heldSeenReady = window.__heldSeenReady || {};
+ window.__heldFmtWhen = function(ts){ try { return new Date(ts).toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short' }); } catch(e){ return ''; } };
+ window.__heldPoll = async function(){
+  const staff_id = (typeof currentUser !== 'undefined' && currentUser && currentUser.staff_id) ? currentUser.staff_id : '';
+  if(!staff_id) return;
+  try {
+   const { data } = await db.from('held_sales').select('*').eq('staff_id', staff_id).order('updated_at', { ascending:false });
+   window.__heldData = data || [];
+  } catch(e){ return; }
+  const list = window.__heldData;
+  const readyCount = list.filter(h => h.status === 'ready').length;
+  const badge = document.getElementById('heldSaleBadge');
+  if(badge){ const n = list.length; badge.textContent = n ? String(n) : ''; badge.style.display = n ? 'inline-flex' : 'none'; badge.style.background = readyCount ? '#2E6B2E' : '#9CA3AF'; }
+  // alert proaktif untuk jualan yg BARU jadi 'ready'
+  list.filter(h => h.status === 'ready').forEach(h => {
+   if(!window.__heldSeenReady[h.id]){
+    window.__heldSeenReady[h.id] = true;
+    const cust = (h.customer && h.customer.name) ? h.customer.name : 'Pesanan';
+    _toast(cust + ' — barang dah sedia. Buka "Jualan Ditahan" untuk sambung.', 'success');
+   }
+  });
+  const ov = document.getElementById('heldOverlay');
+  if(ov && typeof window.__heldRenderList === 'function') window.__heldRenderList();
+ };
+ window.__heldOpen = function(){
+  const old = document.getElementById('heldOverlay'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'heldOverlay';
+  ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9750; display:flex; align-items:center; justify-content:center; padding:16px;';
+  ov.onclick = (e)=>{ if(e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div style="background:#fff; border-radius:16px; max-width:460px; width:100%; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.35);">
+    <div style="padding:18px 20px 12px; border-bottom:1px solid #F0EDE6; display:flex; justify-content:space-between; align-items:center;">
+     <strong style="font-size:16px; color:#101010;"><i data-lucide="pause" style="width:17px;height:17px;vertical-align:-3px;"></i> Jualan Ditahan</strong>
+     <button onclick="document.getElementById('heldOverlay').remove()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999; line-height:1;">×</button>
+    </div>
+    <div id="heldList" style="padding:10px 16px; overflow-y:auto; flex:1;"></div>
+   </div>`;
+  document.body.appendChild(ov);
+  window.__heldRenderList();
+  window.__heldPoll();
+ };
+ window.__heldRenderList = function(){
+  const wrap = document.getElementById('heldList'); if(!wrap) return;
+  const list = window.__heldData || [];
+  if(!list.length){ wrap.innerHTML = '<div style="text-align:center; color:#9CA3AF; padding:40px 12px;"><i data-lucide="pause-circle" style="width:42px;height:42px;opacity:.3;"></i><p style="margin-top:10px; font-weight:600;">Tiada jualan ditahan.</p><p style="font-size:12px;">Bila tekan "Maklum Inventori", jualan customer ditahan di sini sampai barang sedia.</p></div>'; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} return; }
+  wrap.innerHTML = list.map(h => {
+   const ready = h.status === 'ready';
+   const items = h.items || [];
+   const cust = (h.customer && h.customer.name) ? h.customer.name : '(tiada nama)';
+   const statusChip = ready
+    ? '<span style="background:#EEF6EE; border:1px solid #BFE0BF; color:#2E6B2E; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap;">Sedia — sambung</span>'
+    : '<span style="background:#FFF3E0; border:1px solid #F0C98A; color:#8A5A12; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap;">Menunggu inventory</span>';
+   const itemsHtml = items.slice(0,6).map(it => `<div style="font-size:12px; color:#6B6B6B; display:flex; justify-content:space-between; gap:8px;"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(it.name || it.sku || '')}</span><span style="font-weight:700; flex:0 0 auto;">×${it.quantity || 1}</span></div>`).join('') + (items.length > 6 ? `<div style="font-size:11px; color:#9CA3AF;">+${items.length - 6} lagi…</div>` : '');
+   return `<div style="border:1px solid ${ready ? '#BFE0BF' : '#EAE6DE'}; border-radius:14px; padding:12px 14px; margin-bottom:10px; background:${ready ? '#FCFEFC' : '#fff'};">
+     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+      <div style="min-width:0;"><div style="font-weight:800; color:#101010; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(cust)}</div><div style="font-size:11px; color:#9CA3AF;">${window.__heldFmtWhen(h.updated_at)} · ${items.length} barang · RM ${(Number(h.total)||0).toFixed(2)}</div></div>
+      ${statusChip}
+     </div>
+     <div style="margin:8px 0;">${itemsHtml}</div>
+     <div style="display:flex; gap:8px;">
+      <button onclick="window.__heldResume(${h.id})" style="flex:1; background:${ready ? '#2E6B2E' : '#CD7C32'}; color:#fff; border:none; padding:11px; border-radius:10px; font-weight:800; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="play" style="width:14px;height:14px;"></i> Sambung jualan</button>
+      <button onclick="window.__heldDiscard(${h.id})" title="Buang jualan ditahan" style="background:#FDECEA; border:1px solid #F5C6C0; color:#B23A2E; padding:11px 13px; border-radius:10px; font-weight:800; cursor:pointer;">Buang</button>
+     </div>
+   </div>`;
+  }).join('');
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__heldResume = async function(id){
+  const h = (window.__heldData || []).find(x => x.id === id);
+  if(!h){ _toast('Tak jumpa jualan ditahan.', 'warn'); return; }
+  if(Array.isArray(cart) && cart.length && !confirm('Cart semasa ada barang — ia akan diganti dengan jualan ditahan ni. Teruskan?')) return;
+  cart = (h.items || []).map(it => ({ sku: it.sku, name: it.name, price: Number(it.price) || 0, quantity: Number(it.quantity) || 1, isCustom: !!it.isCustom }));
+  const setV = (eid, v) => { const e = document.getElementById(eid); if(e) e.value = (v == null ? '' : v); };
+  if(h.customer){ setV('customerName', h.customer.name); setV('customerPhone', h.customer.phone); setV('customerEmail', h.customer.email); }
+  if(typeof renderCart === 'function') renderCart();
+  try { await db.from('held_sales').delete().eq('id', id); } catch(e){}
+  if(h.notify_id){ try { await db.from('inventory_notifications').delete().eq('id', h.notify_id); } catch(e){} }
+  delete window.__heldSeenReady[id];
+  const ov = document.getElementById('heldOverlay'); if(ov) ov.remove();
+  _toast('Jualan disambung — sedia untuk checkout.', 'success');
+  window.__heldPoll(); window.__notifyInvPoll();
+ };
+ window.__heldDiscard = async function(id){
+  if(!confirm('Buang jualan ditahan ni? Tak boleh undo.')) return;
+  const h = (window.__heldData || []).find(x => x.id === id);
+  try { await db.from('held_sales').delete().eq('id', id); } catch(e){ _toast('Gagal: ' + e.message, 'error'); return; }
+  if(h && h.notify_id){ try { await db.from('inventory_notifications').delete().eq('id', h.notify_id); } catch(e){} }
+  delete window.__heldSeenReady[id];
+  _toast('Jualan ditahan dibuang.', 'success');
+  window.__heldPoll(); window.__notifyInvPoll();
+  if(typeof window.renderNotifyInventory === 'function'){ const sec = document.getElementById('notifyInvSection'); if(sec && sec.style.display !== 'none') window.renderNotifyInventory(); }
  };
 })();
 

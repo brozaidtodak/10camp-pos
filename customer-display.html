@@ -93,8 +93,31 @@
     .cart-list { display: flex; flex-direction: column; gap: 10px; }
     .cart-item {
         background: #FFF; border: 1px solid var(--border); border-radius: 10px;
-        padding: 14px 18px; display: grid; grid-template-columns: 1fr auto auto auto;
+        padding: 14px 18px; display: grid; grid-template-columns: auto 1fr auto auto auto;
         gap: 16px; align-items: center;
+    }
+    /* p1_919 — gambar produk dlm customer display + tap zoom */
+    .cart-item .cd-thumb {
+        width: 72px; height: 72px; object-fit: cover; border-radius: 10px;
+        border: 1px solid var(--border); background: #F3F4F6; cursor: zoom-in; display: block;
+    }
+    .cart-item .cd-thumb-ph {
+        width: 72px; height: 72px; border-radius: 10px; border: 1px solid var(--border);
+        background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: #C7C7C7; font-size: 11px;
+    }
+    .cd-zoom-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none;
+        align-items: center; justify-content: center; z-index: 99999; cursor: zoom-out; padding: 24px;
+    }
+    .cd-zoom-overlay img {
+        max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 10px;
+        transition: transform 0.18s ease; transform-origin: center center;
+    }
+    .cd-zoom-overlay.zoomed { overflow: auto; cursor: zoom-out; }
+    .cd-zoom-overlay.zoomed img { max-width: none; max-height: none; transform: scale(2); cursor: zoom-out; }
+    .cd-zoom-hint {
+        position: fixed; bottom: 22px; left: 0; right: 0; text-align: center;
+        color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 600; pointer-events: none;
     }
     .cart-item .name { font-size: 16px; font-weight: 600; }
     .cart-item .sku { font-size: 11px; color: var(--muted); font-family: monospace; }
@@ -270,8 +293,13 @@ function render() {
         const discTag = (disc > 0)
             ? `<span class="disc-tag">Diskaun −RM ${fmt(disc)}/unit${it.discount_reason ? ' · ' + String(it.discount_reason).slice(0, 30) : ''}</span>`
             : '';
+        const img = it.image || '';
+        const thumbCell = img
+            ? `<img class="cd-thumb" src="${esc(img)}" loading="lazy" onclick="cdZoom(this.src)" onerror="this.outerHTML='<div class=&quot;cd-thumb-ph&quot;>No img</div>'" alt="">`
+            : `<div class="cd-thumb-ph">No img</div>`;
         return `
             <div class="cart-item">
+                ${thumbCell}
                 <div>
                     <div class="name">${(it.name || '').slice(0, 60)}</div>
                     <div class="sku">${it.sku || '-'}</div>
@@ -362,6 +390,34 @@ function hydrateBrand() {
 }
 hydrateBrand();
 setInterval(hydrateBrand, 5000);
+</script>
+
+<!-- p1_919 — overlay zoom gambar produk (customer display) -->
+<div id="cdZoomOverlay" class="cd-zoom-overlay" onclick="cdZoomClose()">
+    <img id="cdZoomImg" src="" alt="" onclick="cdZoomToggle(event)">
+    <div class="cd-zoom-hint">Tekan gambar untuk besar/kecil &middot; tekan luar untuk tutup</div>
+</div>
+
+<script>
+// p1_919 — lightbox zoom gambar produk (customer tap thumbnail → besar; tap lagi → 2x)
+function cdZoom(src) {
+    if (!src) return;
+    const ov = document.getElementById('cdZoomOverlay');
+    const im = document.getElementById('cdZoomImg');
+    if (!ov || !im) return;
+    im.src = src;
+    ov.classList.remove('zoomed');
+    ov.style.display = 'flex';
+}
+function cdZoomClose() {
+    const ov = document.getElementById('cdZoomOverlay');
+    if (ov) { ov.style.display = 'none'; ov.classList.remove('zoomed'); }
+}
+function cdZoomToggle(e) {
+    e.stopPropagation();
+    const ov = document.getElementById('cdZoomOverlay');
+    if (ov) ov.classList.toggle('zoomed');
+}
 </script>
 </body>
 </html>

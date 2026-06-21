@@ -13884,8 +13884,16 @@ function renderCart() {
 window.writeCustomerDisplayCart = function() {
  try {
  const __c = window.posCustomer || null;
+ // p1_919 — perkaya item dgn URL gambar (customer display tunjuk gambar + zoom)
+ const __imgMap = {};
+ try {
+ if(typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+ masterProducts.forEach(p => { const s = (p.sku || '').toUpperCase(); if(!s) return; let im = ''; if(Array.isArray(p.images) && p.images[0]) im = p.images[0]; else if(typeof p.images === 'string' && p.images) im = p.images; if(im) __imgMap[s] = im; });
+ }
+ } catch(e){}
+ const __items = (Array.isArray(cart) ? cart : []).map(it => Object.assign({}, it, { image: __imgMap[(it.sku || '').toUpperCase()] || '' }));
  const payload = {
- items: cart,
+ items: __items,
  // p1_402 — nama customer untuk greeting skrin pelanggan (sense of belonging)
  customer: __c ? { name: __c.name || null, is_member: !!__c.is_member, tier: __c.tier || __c.member_tier || null } : null,
  vip: window.__currentCheckoutVip || null,

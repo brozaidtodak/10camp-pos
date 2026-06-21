@@ -47,7 +47,7 @@ const todayLocal = () => new Date(new Date().getTime() - new Date().getTimezoneO
 
 // ---- TOOLS (read-only, safety-scoped) ----
 const TOOLS = [
-    { type: 'function', function: { name: 'lookup_product', description: 'Cari produk ikut SKU atau nama. Pulang nama, SKU, harga jual, stok semasa, status terbit. TIADA kos.', parameters: { type: 'object', properties: { query: { type: 'string', description: 'SKU atau sebahagian nama produk' } }, required: ['query'] } } },
+    { type: 'function', function: { name: 'lookup_product', description: 'Cari produk ikut SKU atau nama. Pulang nama, SKU, BARCODE, harga jual, stok semasa, LOKASI STOK (di mana barang disimpan dalam kedai/gudang), status terbit. TIADA kos.', parameters: { type: 'object', properties: { query: { type: 'string', description: 'SKU atau sebahagian nama produk' } }, required: ['query'] } } },
     { type: 'function', function: { name: 'my_sales', description: 'Jualan staf yang sedang bertanya SENDIRI (tak boleh orang lain). Pulang bilangan order + jumlah RM + anggaran komisen 5%.', parameters: { type: 'object', properties: { period: { type: 'string', enum: ['today', 'month'], description: 'today = hari ni, month = bulan ni' } }, required: ['period'] } } },
     { type: 'function', function: { name: 'low_stock', description: 'Senarai produk yang stok rendah/habis (untuk inventory).', parameters: { type: 'object', properties: { threshold: { type: 'integer', description: 'paras stok (default 5)' } } } } },
     { type: 'function', function: { name: 'store_sales_today', description: 'Jumlah jualan + bilangan order SELURUH kedai hari ni (semua channel, semua staf). Tiada pecahan kos/untung.', parameters: { type: 'object', properties: {} } } }
@@ -60,16 +60,21 @@ async function runTool(name, args, caller) {
             const q = String((args && args.query) || '').replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 40);
             if (!q) return { error: 'query kosong / tak sah' };
             const qe = encodeURIComponent(q);
-            // match by sku OR name; NO cost columns selected
-            const rows = await sb('GET', `/products_master?select=sku,name,price,is_published&or=(sku.ilike.*${qe}*,name.ilike.*${qe}*)&limit=8`);
+            // match by sku OR name; NO cost columns selected. + barcode (erp_barcode/barcode) utk staf padan sticker
+            const rows = await sb('GET', `/products_master?select=sku,name,price,is_published,erp_barcode&or=(sku.ilike.*${qe}*,name.ilike.*${qe}*)&limit=8`);
             if (!rows || !rows.length) return { found: 0, note: 'Tiada produk padan.' };
             const skus = rows.map(r => r.sku).filter(Boolean);
             const stockMap = {};
+            const locMap = {};
             if (skus.length) {
-                const batches = await sb('GET', `/inventory_batches?select=sku,qty_remaining&sku=in.(${skus.map(esc).join(',')})`);
+                const inList = skus.map(esc).join(',');
+                const batches = await sb('GET', `/inventory_batches?select=sku,qty_remaining&sku=in.(${inList})`);
                 (batches || []).forEach(b => { stockMap[b.sku] = (stockMap[b.sku] || 0) + (Number(b.qty_remaining) || 0); });
+                // lokasi stok (di mana barang disimpan) — table stock_locations, multi-lokasi
+                const locs = await sb('GET', `/stock_locations?select=sku,location,qty&sku=in.(${inList})`);
+                (locs || []).forEach(l => { if (l.location) (locMap[l.sku] = locMap[l.sku] || []).push({ location: l.location, qty: Number(l.qty) || 0 }); });
             }
-            return { found: rows.length, products: rows.map(r => ({ sku: r.sku, name: r.name, price_rm: Number(r.price) || 0, stock: stockMap[r.sku] || 0, published: !!r.is_published })) };
+            return { found: rows.length, products: rows.map(r => ({ sku: r.sku, name: r.name, barcode: (r.erp_barcode || null), price_rm: Number(r.price) || 0, stock: stockMap[r.sku] || 0, locations: locMap[r.sku] || [], published: !!r.is_published })) };
         }
         if (name === 'my_sales') {
             if (!caller) return { error: 'Tak dapat sahkan siapa anda — cuba log keluar/masuk.' };
@@ -104,7 +109,7 @@ async function runTool(name, args, caller) {
 const KB = `Kau ialah pembantu AI dalaman untuk staf kedai 10 CAMP (gear camping/outdoor, Cyberjaya) yang guna sistem POS web sendiri. Jawab soalan CARA GUNA sistem + SOP, DAN soalan data sebenar guna alat (tools) yang disediakan. Bahasa: ikut soalan (BM/Manglish/English), ringkas, mesra, TIADA emoji.
 
 GUNA TOOLS untuk data sebenar:
-- lookup_product → stok/harga/nama produk (cth "stok BD103?", "harga TG009?", "cari tent")
+- lookup_product → stok/harga/nama/BARCODE/LOKASI STOK produk (cth "stok BD103?", "harga TG009?", "lokasi BD005?", "barcode TG009?", "cari tent"). PENTING: bila jawab pasal produk, SENTIASA sertakan Barcode + Lokasi Stok kalau ada (kalau tiada, tulis "Barcode: —" / "Lokasi: belum ditetapkan"). Lokasi = di mana barang fizikal disimpan supaya staf senang ambil.
 - my_sales → jualan + anggaran komisen PENANYA SENDIRI (cth "jualan aku bulan ni?", "komisen aku?")
 - low_stock → barang nak habis
 - store_sales_today → jumlah jualan kedai hari ni

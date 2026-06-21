@@ -13806,19 +13806,47 @@ function renderCart() {
  const skuU = (item.sku || '').toUpperCase();
  const floor = floorMap[skuU];
  const belowFloor = floor && item.price < floor;
+ const lineTotal = round2(item.price * item.quantity); // p1_917 — jumlah per-baris jelas utk customer double-check
+ const realImg = __cartImg[skuU] || ''; // p1_918 — gambar sebenar (bukan placeholder) → boleh zoom
+ const __img = realImg || window.__cartNoImg;
+ const imgJs = realImg ? hesc(realImg).replace(/'/g, "\\'") : '';
+ const thumb = `<div style="position:relative; flex-shrink:0; width:68px; height:68px;">
+ <img src="${__img}" loading="lazy" onerror="this.onerror=null;this.src=window.__cartNoImg;" ${realImg ? `onclick="window.__ppOpenImg('${imgJs}')"` : ''} style="width:68px; height:68px; object-fit:cover; border-radius:10px; border:1px solid #E5E7EB;${realImg ? ' cursor:zoom-in;' : ''}" alt="">
+ ${realImg ? `<div onclick="window.__ppOpenImg('${imgJs}')" title="Zoom gambar" style="position:absolute; bottom:3px; right:3px; background:rgba(16,16,16,.72); color:#fff; width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:zoom-in;"><i data-lucide="zoom-in" style="width:12px;height:12px;"></i></div>` : ''}
+ </div>`;
  const floorBadge = belowFloor
- ? `<span style="display:inline-block; margin-top:2px; padding:1px 6px; background:#F4E4DF; color:#7C2A20; border-radius:50px; font-size:9px; font-weight:700; letter-spacing:0.3px;">BAWAH FLOOR (RM ${floor.toFixed(2)})</span>`
+ ? `<span style="display:inline-block; padding:2px 7px; background:#F4E4DF; color:#7C2A20; border-radius:50px; font-size:9.5px; font-weight:700; letter-spacing:0.3px;">BAWAH FLOOR (RM ${floor.toFixed(2)})</span>`
  : '';
- const __img = __cartImg[skuU] || window.__cartNoImg;
+ const discBadge = (item.discount_amount && item.discount_amount > 0)
+ ? `<span style="display:inline-block; padding:2px 7px; background:#F8EFD7; color:#7A5410; border-radius:50px; font-size:10px; font-weight:700;" title="${item.discount_reason || 'Diskaun manual'}">−RM ${item.discount_amount.toFixed(2)}</span>`
+ : '';
+ const unitLine = (item.discount_amount && item.original_price)
+ ? `<s style="color:#B6B0A6;">RM${item.original_price.toFixed(2)}</s> RM${item.price.toFixed(2)} × ${item.quantity}`
+ : `RM${item.price.toFixed(2)} × ${item.quantity}`;
  return `
- <div class="cart-item" style="${belowFloor ? 'border-left:3px solid #B23A2E; background:rgba(254,226,226,.15);' : ''}">
- <img src="${__img}" loading="lazy" onerror="this.onerror=null;this.src=window.__cartNoImg;" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; flex-shrink:0; margin-right:10px;" alt="">
- <div style="flex:1; min-width:0;"><strong style="font-size:13px; color:#111;">[${hesc(item.sku)}] ${hesc(item.name)}</strong><br><small style="color:#666;">${(item.discount_amount && item.original_price) ? `<s style="color:#9CA3AF;">RM${item.original_price.toFixed(2)}</s> ` : ''}RM${item.price.toFixed(2)} x ${item.quantity}</small> ${(item.discount_amount && item.discount_amount > 0) ? `<span style="display:inline-block; margin-left:5px; padding:1px 6px; background:#F8EFD7; color:#7A5410; border-radius:50px; font-size:10px; font-weight:700;" title="${item.discount_reason || 'Diskaun manual'}">-RM ${item.discount_amount.toFixed(2)}</span>` : ''} ${floorBadge}<div style="margin-top:5px;"><button onclick="openCartItemDiscount('${item.sku}')" title="Diskaun untuk item ni" style="width:auto !important; height:auto !important; display:inline-block; white-space:nowrap; background:${(item.discount_amount > 0) ? '#ECD9A4' : '#F3F4F6'}; color:#7A5410; border:1px solid ${(item.discount_amount > 0) ? '#CE9420' : '#E5E7EB'}; padding:4px 12px; border-radius:6px; font-weight:600; font-size:10.5px; line-height:1.4; cursor:pointer;">${(item.discount_amount > 0) ? 'Edit discount' : '+ Apply discount on item'}</button></div></div>
- <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
- <button onclick="decreaseQuantity('${item.sku}')" aria-label="Kurang kuantiti" style="background:#eee; border:none; width:40px; height:40px; border-radius:8px; font-weight:bold; font-size:18px; line-height:1; cursor:pointer;">-</button>
- <span style="font-weight:bold; min-width:18px; text-align:center; font-variant-numeric:tabular-nums;">${item.quantity}</span>
- <button onclick="addToCart('${item.sku}')" aria-label="Tambah kuantiti" style="background:#eee; border:none; width:40px; height:40px; border-radius:8px; font-weight:bold; font-size:18px; line-height:1; cursor:pointer;">+</button>
- <button onclick="removeFromCart('${item.sku}')" aria-label="Buang dari troli" style="color:#B23A2E; background:#F4E4DF; border:none; width:40px; height:40px; border-radius:8px; font-weight:bold; font-size:15px; line-height:1; cursor:pointer; margin-left:14px;">X</button>
+ <div class="cart-item" style="flex-direction:column; align-items:stretch; gap:9px; padding:12px 4px; ${belowFloor ? 'border-left:3px solid #B23A2E; background:rgba(254,226,226,.15); padding-left:9px;' : ''}">
+ <div style="display:flex; gap:11px; align-items:flex-start;">
+ ${thumb}
+ <div style="flex:1; min-width:0;">
+ <div style="font-size:14px; font-weight:700; color:#101010; line-height:1.32; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${hesc(item.name)}</div>
+ <div style="font-size:11px; color:#9CA3AF; font-family:'SF Mono',Menlo,monospace; margin-top:2px;">${hesc(item.sku)}</div>
+ ${(discBadge || floorBadge) ? `<div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">${discBadge}${floorBadge}</div>` : ''}
+ </div>
+ <div style="text-align:right; flex-shrink:0; min-width:76px;">
+ <div style="font-size:16px; font-weight:800; color:#101010; font-variant-numeric:tabular-nums; letter-spacing:-0.2px;">RM ${lineTotal.toFixed(2)}</div>
+ <div style="font-size:11px; color:#6B7280; font-variant-numeric:tabular-nums; margin-top:1px;">${unitLine}</div>
+ </div>
+ </div>
+ <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+ <div style="display:flex; align-items:center; gap:6px; background:#FAF6EF; border:1px solid #EEE; border-radius:10px; padding:3px;">
+ <button onclick="decreaseQuantity('${item.sku}')" aria-label="Kurang kuantiti" style="background:#fff; border:1px solid #EAE6DE; width:38px; height:38px; border-radius:8px; font-weight:800; font-size:20px; line-height:1; cursor:pointer; color:#101010;">−</button>
+ <span style="font-weight:800; min-width:32px; text-align:center; font-variant-numeric:tabular-nums; font-size:15px; color:#101010;">${item.quantity}</span>
+ <button onclick="addToCart('${item.sku}')" aria-label="Tambah kuantiti" style="background:#fff; border:1px solid #EAE6DE; width:38px; height:38px; border-radius:8px; font-weight:800; font-size:20px; line-height:1; cursor:pointer; color:#101010;">+</button>
+ </div>
+ <div style="display:flex; align-items:center; gap:8px;">
+ <button onclick="openCartItemDiscount('${item.sku}')" title="Diskaun untuk item ni" style="width:auto !important; height:auto !important; white-space:nowrap; background:${(item.discount_amount > 0) ? '#ECD9A4' : '#F3F4F6'}; color:#7A5410; border:1px solid ${(item.discount_amount > 0) ? '#CE9420' : '#E5E7EB'}; padding:9px 12px; border-radius:8px; font-weight:700; font-size:11.5px; line-height:1; cursor:pointer; min-height:38px;">${(item.discount_amount > 0) ? 'Edit diskaun' : '+ Diskaun'}</button>
+ <button onclick="removeFromCart('${item.sku}')" aria-label="Buang dari troli" title="Buang dari troli" style="color:#B23A2E; background:#F4E4DF; border:1px solid #F1C7BD; width:38px; height:38px; border-radius:8px; font-weight:800; font-size:16px; line-height:1; cursor:pointer;">×</button>
+ </div>
  </div>
  </div>`;
  }).join('');

@@ -32626,8 +32626,8 @@ window.__renderIntegrationAlert = async function(){
   const belowFloorReal = belowFloor.filter(x=> !__campG(x));
   const belowFloorCampN = belowFloor.length - belowFloorReal.length;
   const campList = Object.values(__camps).sort((a,b)=>b.count-a.count);
-  const issueCount = below.length + belowFloorReal.length + drift.length + tokBad.length + pushDead.length + cfgFail.length + settleUnpaid.length + settleRugi.length;
-  if(!below.length && !belowFloorReal.length && !drift.length && !tokBad.length && !pushDead.length && !cfgFail.length && !campList.length && !settleUnpaid.length && !settleRugi.length){ __setAim(0, false); box.innerHTML=''; return; }
+  const issueCount = below.length + belowFloorReal.length + drift.length + tokBad.length + cfgFail.length + settleUnpaid.length + settleRugi.length;
+  if(!below.length && !belowFloorReal.length && !drift.length && !tokBad.length && !cfgFail.length && !campList.length && !settleUnpaid.length && !settleRugi.length){ __setAim(0, false); box.innerHTML=''; return; }
   // p1_800 — bell notification untuk jual BAWAH KOS (rugi tiap jualan) → klik bawa ke Bulk Edit.
   // Guard sekali per page-load (elak re-add tiap realtime re-render); dedupe notify handle selebihnya.
   try { if(below.length && !window.__belowCostNotified && window.notify && window.notify.add){ window.__belowCostNotified = true; window.notify.add({ title: 'Amaran: jual bawah kos', body: below.length + ' produk jual BAWAH KOS di marketplace — rugi tiap jualan. Betulkan harga di Bulk Edit / Seller Centre.', type: 'warning', action: 'bulkedit' }); } } catch(e){}
@@ -32687,7 +32687,6 @@ window.__renderIntegrationAlert = async function(){
      <strong style="color:#7C2A20;">Amaran Integrasi Marketplace</strong>
      ${cfgFail.length?chip('#5E2018', cfgFail.length+' CONFIG ROSAK'):''}
      ${tokBad.length?chip('#5E2018', 'SAMBUNGAN '+tokBad.map(t=>String(t.platform).toUpperCase()).join('+')+' NAK PUTUS'):''}
-     ${pushDead.length?chip('#5E2018', pushDead.length+' PUSH GAGAL'):''}
      ${below.length?chip('#B23A2E', below.length+' BAWAH KOS'):''}
      ${belowFloorReal.length?chip('#C68A1A', belowFloorReal.length+' BAWAH FLOOR 35%'):''}
      ${drift.length?chip('#9E7016', drift.length+' DRIFT harga'):''}
@@ -32699,7 +32698,6 @@ window.__renderIntegrationAlert = async function(){
     </div>
     ${cfgFail.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Konfigurasi / creds rosak</div>${aimBtn('Buka Apps','layout-grid','window.__aimOpenApps()','Buka Apps untuk semak status integrasi',true)}</div>${cfgFail.slice(0,5).map(c=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(c.check_key)}</b> — ${esc((c.detail||'').slice(0,80))}</div>`).join('')}</div>`:''}
     ${tokBad.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Token marketplace</div>${aimBtn('Authorize semula','plug-zap','window.__aimOpenConnections()','Buka Connections untuk authorize semula token',true)}</div>${tokBad.map(t=>`<div style="font-size:12px;color:#5E2018;padding:2px 0;"><b>${esc(t.platform)}</b> — ${esc(t.message)}</div>`).join('')}</div>`:''}
-    ${pushDead.length?`<div style="margin-bottom:8px;padding:8px 10px;background:#F4E4DF;border-radius:6px;"><div style="font-size:11px;font-weight:800;color:#5E2018;text-transform:uppercase;">Push harga gagal (dah cuba ${5}×)</div>${pushDead.slice(0,5).map(p=>`<div style="font-size:12px;color:#5E2018;padding:3px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span>${skuLink(p.sku)} <span style="color:#9ca3af;">${esc(p.channel)}</span> — ${esc((p.error_message||'').slice(0,70))}</span><span style="margin-left:auto;">${aimActions(p.sku,p.channel)}</span></div>`).join('')}${pushDead.length>5?`<div style="font-size:11px;color:#9ca3af;">+${pushDead.length-5} lagi</div>`:''}</div>`:''}
     ${belowTable}
     ${campHtml}
     ${belowFloorTable}

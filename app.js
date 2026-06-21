@@ -39996,6 +39996,8 @@ window.SEED_Q1_ALIFF_FLAG = 'q1AliffSeeded_v1';
 
 window.seedQ1Aliff = async function(opts) {
  opts = opts || {};
+ // p1_939 — jangan seed dekat public page (toast bocor ke customer); tunggu login dulu
+ if(!window.currentUser && !opts.force) return { skipped: true };
  if(!opts.force && localStorage.getItem(window.SEED_Q1_ALIFF_FLAG)) {
  console.log('[seedQ1Aliff] Already seeded. Pass {force:true} to re-run.');
  return { skipped: true };
@@ -40139,6 +40141,7 @@ document.addEventListener('DOMContentLoaded', () => {
  const FLAG = 'memoRayaAidiladha2026_seeded_v1';
  const MEMO_ID = 'm-raya-aidiladha-2026';
  try {
+ if(!window.currentUser) return; // p1_939 — jangan inject memo dekat public page
  if(localStorage.getItem(FLAG)) return;
  const memos = (typeof window.memoLoad === 'function') ? window.memoLoad() : [];
  if(!memos.some(m => m.id === MEMO_ID)) {

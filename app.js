@@ -5288,8 +5288,17 @@ window.scCatalogPick = function(input){
  if(parsed.length < 2){ if(typeof showToast==='function') showToast('Fail kosong atau tiada data.','warn'); input.value=''; return; }
  const headers = parsed[0].map(h=> String(h).trim());
  const rows = parsed.slice(1);
- window.__scCatalog = { headers, rows };
+ const det = window.__scAutoDetect(headers, rows);
+ window.__scCatalog = { headers, rows, det };
+ if(det.confident){
+ // Auto: terus import, tak payah pilih lajur
+ const mapped = window.__scCatalogMapWith(det.sku, det.name, det.rmb, det.qty);
+ window.__scCatalogImportRows(mapped, true);
+ } else {
+ // Tak yakin (jarang) → buka modal biar staf betulkan
+ if(typeof showToast==='function') showToast('Tak pasti lajur mana — pilih sekejap.','warn');
  window.scCatalogOpen();
+ }
  } catch(err){ if(typeof showToast==='function') showToast('Gagal baca CSV: '+(err.message||err),'error'); }
  input.value='';
  };
@@ -5297,38 +5306,86 @@ window.scCatalogPick = function(input){
  reader.readAsText(file);
 };
 
-window.__scGuessCol = function(headers, keys){
- const low = headers.map(h=> h.toLowerCase());
- for(const k of keys){ const i = low.findIndex(h=> h.includes(k)); if(i>=0) return i; }
+window.__scGuessCol = function(headers, keys, exclude){
+ const ex = exclude||[];
+ const low = headers.map(h=> String(h).toLowerCase());
+ for(const k of keys){ const i = low.findIndex((h,idx)=> ex.indexOf(idx)<0 && h.includes(k)); if(i>=0) return i; }
  return -1;
 };
+window.__scColNum = function(v){ const n = parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?'':n; };
+
+// Auto-detect lajur SKU/Nama/Kos/Qty — header dulu (ikut turutan, elak lajur yg dah diambil),
+// kalau gagal guna corak DATA. Qty header-sahaja (pilihan; staf isi sendiri kalau tiada).
+window.__scAutoDetect = function(headers, rows){
+ let sku=-1, name=-1, rmb=-1, qty=-1;
+ const ex = ()=> [sku,name,rmb,qty].filter(x=>x>=0);
+ sku = window.__scGuessCol(headers, ['sku','item code','itemno','item no','art no','kod','code','article','model','barcode'], ex());
+ name = window.__scGuessCol(headers, ['product name','description','name','nama','product','desc','keterangan','barang','title','item'], ex());
+ rmb = window.__scGuessCol(headers, ['unit price','rmb','cny','¥','元','fob','cost','kos','price','harga','u/price'], ex());
+ qty = window.__scGuessCol(headers, ['order qty','quantity','q\'ty','qty','kuantiti','pcs','bilangan'], ex());
+ // Statistik kandungan (sampel 60 baris) untuk isi sku/name/rmb yang header tak jumpa
+ const n = headers.length; const sample = (rows||[]).slice(0,60); const st=[];
+ for(let c=0;c<n;c++){
+ let total=0, numCount=0, sumLen=0, skuLike=0, sumVal=0;
+ for(const r of sample){ let v=String(r[c]==null?'':r[c]).trim(); if(v==='') continue; total++; sumLen+=v.length;
+ const num = window.__scColNum(v); const isNum = num!=='' && /^[\sRM$¥元rm]*[\d.,\-]+[\s%]*$/i.test(v);
+ if(isNum){ numCount++; sumVal+=num; }
+ if(/^[A-Za-z]{1,6}[-_ ]?\d{2,}/.test(v) || /^\d{5,}$/.test(v)) skuLike++;
+ }
+ st.push({ c, total, pctNum: total?numCount/total:0, avgLen: total?sumLen/total:0, pctSku: total?skuLike/total:0, avgVal: numCount?sumVal/numCount:0 });
+ }
+ if(sku<0){ let b=-1,bs=0.45; st.forEach(s=>{ if(ex().indexOf(s.c)<0 && s.pctSku>bs){ bs=s.pctSku; b=s.c; }}); sku=b; }
+ if(rmb<0){ let b=-1,bv=-1; st.forEach(s=>{ if(ex().indexOf(s.c)<0 && s.pctNum>=0.6 && s.avgVal>bv){ bv=s.avgVal; b=s.c; }}); rmb=b; }
+ if(name<0){ let b=-1,bl=2; st.forEach(s=>{ if(ex().indexOf(s.c)<0 && s.pctNum<0.4 && s.avgLen>bl){ bl=s.avgLen; b=s.c; }}); name=b; }
+ const confident = (sku>=0 || name>=0) && rmb>=0;
+ return { sku, name, rmb, qty, confident };
+};
+
 window.scCatalogOpen = function(){
- const { headers } = window.__scCatalog;
+ const { headers, det } = window.__scCatalog;
  const opts = (sel)=> '<option value="-1">— tiada —</option>' + headers.map((h,i)=>`<option value="${i}"${i===sel?' selected':''}>${hesc(h||('Lajur '+(i+1)))}</option>`).join('');
- const gSku = window.__scGuessCol(headers, ['sku','code','kod','item no','article','model']);
- const gName = window.__scGuessCol(headers, ['name','nama','product','description','desc','item','barang']);
- const gRmb = window.__scGuessCol(headers, ['rmb','cny','¥','cost','kos','price','harga','unit price']);
- const gQty = window.__scGuessCol(headers, ['qty','quantity','kuantiti','pcs','unit','bilangan']);
+ const d = det || window.__scAutoDetect(headers, window.__scCatalog.rows||[]);
  const set=(id,html,sel)=>{ const el=document.getElementById(id); if(el){ el.innerHTML=html; el.value=String(sel); } };
- set('scMapSku', opts(gSku), gSku); set('scMapName', opts(gName), gName);
- set('scMapRmb', opts(gRmb), gRmb); set('scMapQty', opts(gQty), gQty);
+ set('scMapSku', opts(d.sku), d.sku); set('scMapName', opts(d.name), d.name);
+ set('scMapRmb', opts(d.rmb), d.rmb); set('scMapQty', opts(d.qty), d.qty);
  const modal=document.getElementById('scCatalogModal'); if(modal) modal.style.display='flex';
  window.scCatalogPreview();
  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
 };
 window.scCatalogClose = function(){ const m=document.getElementById('scCatalogModal'); if(m) m.style.display='none'; };
 
-window.__scCatalogMapped = function(){
- const { rows } = window.__scCatalog;
- const ci = (id)=> parseInt((document.getElementById(id)||{}).value, 10);
- const si=ci('scMapSku'), ni=ci('scMapName'), ri=ci('scMapRmb'), qi=ci('scMapQty');
- const num = (v)=>{ const n = parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?'':n; };
+// Peta rows ikut index lajur (dipakai auto + modal).
+window.__scCatalogMapWith = function(si,ni,ri,qi){
+ const { rows } = window.__scCatalog; const num = window.__scColNum;
  return (rows||[]).map(r=>({
  sku: si>=0 ? String(r[si]==null?'':r[si]).trim() : '',
  name: ni>=0 ? String(r[ni]==null?'':r[ni]).trim() : '',
  rmb: ri>=0 ? num(r[ri]) : '',
  qty: qi>=0 ? (num(r[qi])===''?'':parseInt(num(r[qi]),10)) : ''
  })).filter(x=> x.sku || x.name || x.rmb!=='');
+};
+window.__scCatalogMapped = function(){
+ const ci = (id)=> parseInt((document.getElementById(id)||{}).value, 10);
+ return window.__scCatalogMapWith(ci('scMapSku'), ci('scMapName'), ci('scMapRmb'), ci('scMapQty'));
+};
+// Import sebenar (auto=true tunjuk pesan auto + offer betulkan).
+window.__scCatalogImportRows = function(mapped, auto){
+ if(!mapped || !mapped.length){ if(typeof showToast==='function') showToast('Tiada baris untuk import.','warn'); return; }
+ const newRows = mapped.map(r=>({ sku:r.sku||'', name:r.name||'', rmb:r.rmb!==''?r.rmb:'', qty:r.qty!==''?r.qty:'', received:'' }));
+ const cur = (window.__scRows||[]).filter(r=> (r.sku||'').trim() || (r.name||'').trim() || r.rmb || r.qty);
+ window.__scRows = cur.length ? cur.concat(newRows) : newRows;   // ada data → tambah; kosong → ganti
+ if(typeof scRenderItems==='function') scRenderItems();
+ if(typeof scCompute==='function') scCompute();
+ const note = document.getElementById('scCatalogNote');
+ if(auto){
+ const d = (window.__scCatalog||{}).det||{}; const h = (window.__scCatalog||{}).headers||[];
+ const lbl = (i)=> i>=0 ? hesc(h[i]||('Lajur '+(i+1))) : '—';
+ if(note) note.innerHTML = `<span style="color:#3C6438;">Auto-import: SKU=<strong>${lbl(d.sku)}</strong> · Nama=<strong>${lbl(d.name)}</strong> · Kos=<strong>${lbl(d.rmb)}</strong></span> · <button onclick="window.scCatalogOpen()" style="background:none; border:none; color:#7A4A1E; text-decoration:underline; cursor:pointer; font-size:11px; padding:0;">lajur silap? betulkan</button>`;
+ if(typeof showToast==='function') showToast(`${newRows.length} produk diimport auto dari katalog. Semak kos + isi qty.`,'success');
+ } else {
+ if(note) note.innerHTML='';
+ if(typeof showToast==='function') showToast(`${newRows.length} produk diimport dari katalog.`,'success');
+ }
 };
 window.scCatalogPreview = function(){
  const mapped = window.__scCatalogMapped();
@@ -5348,6 +5405,7 @@ window.scCatalogImport = function(mode){
  window.__scRows = cur.concat(newRows);
  }
  window.scCatalogClose();
+ const note=document.getElementById('scCatalogNote'); if(note) note.innerHTML='';
  scRenderItems(); scCompute();
  if(typeof showToast==='function') showToast(`${newRows.length} produk diimport dari katalog${mode==='replace'?' (ganti)':''}. Semak kos + isi qty.`,'success');
 };

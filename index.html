@@ -1982,11 +1982,8 @@
  <i data-lucide="chevron-right" class="nav-chevron" style="width:14px; height:14px;"></i>
  </div>
  <div class="nav-children" data-nav-children="tools">
- <div class="menu-item" data-tab="nav_sys_pricecalc" onclick="event.stopPropagation(); switchHub(['floorPriceSection'], 'Price Calculator', this); if(typeof renderFloorPrice==='function') renderFloorPrice();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="calculator" style="width:15px; height:15px;"></i> <span>Price Calculator</span>
- </div>
- <div class="menu-item" data-tab="nav_sys_costcalc" onclick="event.stopPropagation(); switchHub(['shipmentCalcSection'], 'Cost Calculator', this); if(typeof renderShipmentCalc==='function') renderShipmentCalc();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="container" style="width:15px; height:15px;"></i> <span>Cost Calculator (Shipment)</span>
+ <div class="menu-item" data-tab="nav_sys_calc" onclick="event.stopPropagation(); window.__calcShow('harga', this);" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="calculator" style="width:15px; height:15px;"></i> <span>Calculator</span>
  </div>
  <div class="menu-item" data-tab="nav_sys_pricehistory" onclick="event.stopPropagation(); switchHub(['priceHistorySection'], 'Price History', this); if(typeof renderPriceHistory==='function') renderPriceHistory();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="line-chart" style="width:15px; height:15px;"></i> <span>Price History</span>
@@ -3822,10 +3819,21 @@
  <!-- ============================================== -->
  <!-- p1_391 — COST CALCULATOR (Shipment landed-cost) -->
  <!-- ============================================== -->
- <div id="shipmentCalcSection" class="tab-section" style="display:none;">
+ <style>
+ /* p1_922 — Calculator sub-nav (gabung Harga + Kos Shipment) */
+ .calc-subnav{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border-color);}
+ .calc-subtab{display:inline-flex; align-items:center; gap:7px; font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#6B7280; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:10px; padding:9px 16px; cursor:pointer; transition:background .12s, color .12s, box-shadow .12s;}
+ .calc-subtab:hover{background:#EFE7DC; color:#7A4A1E;}
+ .calc-subtab--active{background:#CD7C32; color:#fff; border-color:#CD7C32; box-shadow:0 2px 6px -1px rgba(205,124,50,.45);}
+ </style>
+ <div id="shipmentCalcSection" class="tab-section" data-skip-title-sync style="display:none;">
  <div class="rp-wrap">
+ <div class="calc-subnav">
+ <button class="calc-subtab" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
+ <button class="calc-subtab calc-subtab--active" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ </div>
  <div class="rp-header"><div>
- <h2 class="rp-title"><i data-lucide="container" style="width:22px; height:22px; color:var(--primary);"></i> Cost Calculator (Shipment)</h2>
+ <h2 class="rp-title" data-skip-title-sync><i data-lucide="container" style="width:22px; height:22px; color:var(--primary);"></i> Cost Calculator (Shipment)</h2>
  <p class="rp-subtitle">Landed cost sebenar tiap unit = Barang (RMB×ex) + SF % (ikut nilai) + Shipping (ikut kuantiti) + Part-timer (ikut kuantiti). Simpan & buka semula ikut shipment.</p>
  </div></div>
 
@@ -3946,11 +3954,15 @@
 
  <!-- p1_109 — FLOOR PRICE CALCULATOR (Zack workflow) -->
  <!-- ============================================== -->
- <div id="floorPriceSection" class="tab-section" style="display:none;">
+ <div id="floorPriceSection" class="tab-section" data-skip-title-sync style="display:none;">
  <div class="rp-wrap">
+ <div class="calc-subnav">
+ <button class="calc-subtab calc-subtab--active" data-calc-view="harga" onclick="window.__calcShow('harga')"><i data-lucide="tag" style="width:14px;height:14px;"></i> Harga &amp; Tier</button>
+ <button class="calc-subtab" data-calc-view="kos" onclick="window.__calcShow('kos')"><i data-lucide="container" style="width:14px;height:14px;"></i> Kos Shipment (Landed)</button>
+ </div>
  <div class="rp-header">
  <div>
- <h2 class="rp-title"><i data-lucide="calculator" style="width:22px; height:22px; color:var(--primary);"></i> Price Calculator</h2>
+ <h2 class="rp-title" data-skip-title-sync><i data-lucide="calculator" style="width:22px; height:22px; color:var(--primary);"></i> Price Calculator</h2>
  <p class="rp-subtitle">Kira cost RMB → exchange + shipping + handling → 4 tier prices (Kedai / Marketplace / RRP / Z's Proposal) → Apply ke products_master.</p>
  </div>
  </div>
@@ -8809,6 +8821,7 @@
  { id:'p1_629', label:'Sambungan terjemahan i18n (Zaid: "teruskan") — 33 entri lagi: nama feature sidebar (Product Master→Master Produk, Stock Check Sessions/History/Reports→Semakan Stok, Price Calculator→Kalkulator Harga, Reorder Suggest→Cadangan Restock, Channel Profitability→Keuntungan Saluran, Brand/Supplier Performance→Prestasi Jenama/Pembekal, Returns/Damage→Pulangan/Rosak, Marketing Data→Data Pemasaran) + label (Refresh→Muat Semula, Export CSV→Eksport CSV, Brand→Jenama, Publish/Unpublish→Terbit/Nyahterbit, Clock In/Out→Daftar Masuk/Keluar, Scan→Imbas, Apply→Guna, Custom→Tersuai, Reset→Set Semula, Progress→Kemajuan, DANGER ZONE→ZON BAHAYA, Velocity Analysis→Analisis Kelajuan). KEKAL: SKU/Status/RM/VIP/Walk-in/Online/Admin/HR/Edit/Subtotal/Deposit/HQ/B2B + teks brand landing + template vars. app.js v635->v636.', d:'done' },
  { id:'p1_630', label:'Auto-translate CONTENT memo bila UI=EN (Zaid: "bypass content memo direct translate je" — content data staf tulis BM tak ikut toggle bahasa). netlify/functions/translate.js (OpenAI gpt-4o-mini, server pegang OPENAI_API_KEY — kena set scope functions: builds/functions/post-processing/runtime) → POST /api/translate {texts[],target}. Client: window.__memoTx/__txEnsure/__txCache — translate title+body memo bila I18N.lang=en, cache localStorage (txCache_en_v1, hash djb2, translate sekali je per teks), re-render bila siap. Data BM asal TAK diubah (display-only). Wired: renderMemoBoard + __renderDashOverviewMemo + setLang re-render. Fallback selamat: kalau translate gagal, papar BM asal. app.js v636->v637.', d:'done' },
  { id:'p1_743', label:'FIX prestasi cashier (Ariff complain: refresh muat data lama, checkout processing lama, gambar lambat). PUNCA #3: startup tarik SEMUA 5,102 sales (~5MB items+metadata jsonb) tiap refresh. FIX: startup muat 1000 sales TERKINI je (laju), sejarah penuh dimuat di LATAR (setTimeout 4s, non-blocking, merge + re-render All Orders/Commission bila siap). FIX #2 checkout: deduct_stock_fifo per item dulu bersiri (for-await) → tukar SERENTAK (Promise.all) supaya troli banyak item tak beku atas wifi lambat. FIX #1 gambar: grid cashier render 300→200px (jana lebih laju). app.js v726->727.', d:'done' },
+ { id:'p1_922', label:'GABUNG Price Calculator + Cost Calculator (Shipment) jadi SATU menu "Calculator" (Zaid: "gabungkan price calculator dan shipment calculator = calculator"). Dulu 2 item sidebar berasingan dalam group Tools (nav_sys_pricecalc→floorPriceSection, nav_sys_costcalc→shipmentCalcSection). Sekarang 1 item "Calculator" (data-tab=nav_sys_calc) + sub-tab bar dalam KEDUA-DUA section: "Harga & Tier" | "Kos Shipment (Landed)". window.__calcShow(view) tukar view = switchHub papar section berkaitan + render (no DOM restructure, sifar risiko div-balance). Sidebar item kekal highlight (pass menu el ke switchHub). h2 tiap view kekal sendiri (data-skip-title-sync) tapi breadcrumb/pageTitle = "Calculator". Repoint 4 rujukan Pusat Amaran [data-tab=nav_sys_pricecalc]→nav_sys_calc. i18n nav_sys_pricecalc+nav_sys_costcalc → satu nav_sys_calc (Kalkulator/Calculator). Semua logik sedia ada (scCompute/__psComputeAll/tier/apply/arkib) tak disentuh. app.js v867->868.', d:'done' },
  { id:'p1_921', label:'FIX customer-display (Zaid Safari iPad): (1) GAMBAR BERKELIP — setInterval(render,500) rebuild listEl.innerHTML tiap 0.5s → <img> dicipta semula → kelip. FIX: __cdLastSig guard, skip render kalau raw payload SAMA (cuma render bila cart betul berubah). (2) PAGE TAK FIT/footer terpotong — .layout height:100vh; Safari iPad toolbar ambil ruang → footer Jumlah Bayar keluar skrin. FIX: height:100dvh (+ max-height:100dvh, fallback 100vh). customer-display.html sahaja, tiada app.js.', d:'done' },
  { id:'p1_920', label:'FIX checkout "Processing…" lambat (Ariff complain berulang; screenshot resit 3020KB). PUNCA: resit di-upload MENTAH (3MB) + AWAIT (timeout 20s) SEBELUM sale insert → wifi kedai = Processing tergantung 10-20s. FIX 2-lapis jangka panjang: (1) KOMPRES gambar masa snap — window.__compressImageFile (canvas resize maxDim 1600 + JPEG 0.72; skip PDF/HEIC; fallback asal kalau gagal/lebih besar) dipanggil dlm __proofPickFile → 3MB jadi ~300KB utk SEMUA checkout. (2) BACKGROUND upload — processNewCheckout tangkap __proofFileRef, sale commit SERTA-MERTA (tak await upload), resit upload async + UPDATE row via __proofUploadAttach (guna saleId sebenar; gagal=toast suruh re-upload Reports). __proofUploadToStorage terima param file. Buang await withTimeout upload (block lama). app.js v866->867.', d:'done' },
  { id:'p1_919', label:'Paparan Pelanggan (customer display skrin ke-2): TAMBAH GAMBAR produk + TAP ZOOM (Zaid: pertingkat utk customer). Dulu customer-display TIADA gambar (p1_571). (1) app.js writeCustomerDisplayCart perkaya tiap item dgn URL gambar (lookup masterProducts.images[0]) dlm payload localStorage customerDisplayCart_v1. (2) customer-display.html: grid cart-item tambah kolum thumbnail 72px (fallback "No img"); tap → overlay lightbox #cdZoomOverlay (cdZoom: buka besar contain; tap gambar toggle 2x scale; tap luar tutup). CSS .cd-thumb + .cd-zoom-overlay. app.js v865->866.', d:'done' },
@@ -14192,7 +14205,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=867"></script>
+ <script src="app.js?v=868"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

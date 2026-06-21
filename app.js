@@ -4949,6 +4949,23 @@ window.__scBosAck = async function(id) {
 };
 
 // p1_109 — Floor Price Calculator handlers
+// p1_922 — Calculator gabungan: satu menu "Calculator", dua view (Harga & Tier / Kos Shipment).
+// Tukar view = tukar section yang switchHub papar (no DOM restructure). Sidebar item kekal highlight.
+window.__calcShow = function(view, menuEl){
+ view = (view === 'kos') ? 'kos' : 'harga';
+ const menu = menuEl || document.querySelector('.menu-item[data-tab="nav_sys_calc"]');
+ if(view === 'kos'){
+ switchHub(['shipmentCalcSection'], 'Calculator', menu);
+ if(typeof renderShipmentCalc === 'function') try{ renderShipmentCalc(); }catch(e){}
+ } else {
+ switchHub(['floorPriceSection'], 'Calculator', menu);
+ if(typeof renderFloorPrice === 'function') try{ renderFloorPrice(); }catch(e){}
+ }
+ // Selaras butang sub-tab (kedua-dua salinan dalam dua section)
+ document.querySelectorAll('.calc-subtab').forEach(b => b.classList.toggle('calc-subtab--active', b.dataset.calcView === view));
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+
 // p1_391 — Cost Calculator (Shipment landed-cost).
 // Landed/unit = goods(RMB*ex) + SF(RMB*sf%*ex, by value) + shipping(RM/qty) + part-timer(RM/qty).
 window.__scRows = [];
@@ -31624,13 +31641,13 @@ window.__computeDeptAlerts = function(){
  if(belowCost.length) out.push({ key:'below_cost_cat', dept:['sales','pricing'], sev:'critical', icon:'trending-down',
   title:'Harga walk-in bawah kos (rugi)', desc:'Harga jual kedai lebih rendah dari kos — setiap jualan rugi. Naikkan harga.',
   count:belowCost.length, rows:belowCost.slice(0,12).map(p=>({a:p.sku, b:'RM'+(Number(p.price)||0).toFixed(2)+' < kos RM'+(Number(p.cost_price)||0).toFixed(2)})),
-  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
  // D) Margin bawah lantai (sales + pricing, warn) — count + sampel
  const belowFloor = MP.filter(p=>{ const pr=Number(p.price)||0, c=Number(p.cost_price)||0; if(!(pr>0 && c>0 && pr>=c)) return false; const fm=(p.floor_margin_pct!=null && p.floor_margin_pct!=='')?Number(p.floor_margin_pct):floorDefault; return ((pr-c)/pr*100) < fm; });
  if(belowFloor.length) out.push({ key:'below_floor_cat', dept:['sales','pricing'], sev:'warn', icon:'percent',
   title:'Margin bawah lantai ('+floorDefault+'%)', desc:'Dijual atas kos tapi margin bawah sasaran minimum. Semak harga di Kalkulator.',
   count:belowFloor.length, rows:belowFloor.slice(0,8).map(p=>{ const pr=Number(p.price)||0,c=Number(p.cost_price)||0; return {a:p.sku, b:Math.round((pr-c)/pr*100)+'% margin'}; }),
-  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
  // E) Walk-in tanpa staf bulan ini (sales, warn)
  const now = new Date(); const ymLocal = new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,7);
  const walkNoStaff = SH.filter(o=>{ if((o.created_at||'').slice(0,7)!==ymLocal) return false; const ch=(o.channel||'').toLowerCase(); const isWalk=ch.indexOf('cashier')!==-1||ch.indexOf('walk')!==-1; const noStaff=!o.staff_name||!String(o.staff_name).trim(); const st=(o.status||'').toLowerCase(); const ok=!(st.indexOf('cancel')!==-1||st.indexOf('void')!==-1); return isWalk&&noStaff&&ok; });
@@ -31643,13 +31660,13 @@ window.__computeDeptAlerts = function(){
  if(noCost.length) out.push({ key:'no_cost', dept:['inventory','sales'], sev:'warn', icon:'help-circle',
   title:'Produk tiada kos (cost_price kosong)', desc:'Ada harga jual tapi takde kos — margin & komisen tak tepat.',
   count:noCost.length, rows:noCost.slice(0,8).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
-  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
  // G) Produk belum set harga (sales + inventory, warn)
  const noPrice = MP.filter(p=> !((Number(p.price)||0) > 0));
  if(noPrice.length) out.push({ key:'no_price', dept:['sales','inventory'], sev:'warn', icon:'tag',
   title:'Produk belum set harga jual', desc:'price = 0 — produk tak boleh dijual dengan betul.',
   count:noPrice.length, rows:noPrice.slice(0,8).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
-  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_pricecalc]')?.click()"} });
+  action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
  return out;
 };
 window.__renderDeptAlerts = function(){
@@ -36575,8 +36592,7 @@ window.__SIDEBAR_I18N = {
   nav_sys_invhistory:{bm:'Sejarah Stok',en:'Inventory History'},
   nav_purchase_orders:{bm:'Pesanan Belian',en:'Purchase Orders'},
   nav_delivery_orders:{bm:'Pesanan Penghantaran',en:'Delivery Orders'},
-  nav_sys_pricecalc:{bm:'Kalkulator Harga',en:'Price Calculator'},
-  nav_sys_costcalc:{bm:'Kalkulator Kos (Shipment)',en:'Cost Calculator (Shipment)'},
+  nav_sys_calc:{bm:'Kalkulator',en:'Calculator'},
   nav_sys_pricehistory:{bm:'Sejarah Harga',en:'Price History'},
   nav_sys_barcode:{bm:'Penjana Barcode',en:'Barcode Generator'},
   nav_chat_inbox:{bm:'Peti Chat',en:'Chat Inbox'},

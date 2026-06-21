@@ -16697,10 +16697,11 @@ function loginAs(user, opts) {
  setTimeout(() => showToast(` PENGUMUMAN: ${globalMemo.text}`, 'warn'), 800);
  }
  // p1_19: Pinned approved memo from Memo Board → toast on login
+ // p1_937 — skip toast on silent session restore (only show when user actively logs in via PIN)
  setTimeout(() => {
  try {
  const pinned = (typeof window.memoGetPinnedActive === 'function') ? window.memoGetPinnedActive() : null;
- if(pinned && typeof showToast === 'function') {
+ if(pinned && typeof showToast === 'function' && !opts.silent) {
  showToast(' ' + pinned.title + ': ' + pinned.body.slice(0, 120) + (pinned.body.length>120?'...':''), 'warn');
  }
  } catch(e){}
@@ -20129,6 +20130,8 @@ window.memoDeleteRemote = async function(id) {
 window.memoHydrateFromRemote = async function() {
  // On boot: pull latest 200 memos from Supabase, merge into localStorage cache.
  // If Supabase has memos newer than local OR not in local, take them.
+ // p1_937 — jangan fetch bila belum login (elak memo staff bocor ke public page)
+ if(!window.currentUser) return;
  try {
  if(typeof db === 'undefined' || !db) return;
  const { data, error } = await db.from('memos').select('*').order('posted_at', { ascending: false }).limit(200);

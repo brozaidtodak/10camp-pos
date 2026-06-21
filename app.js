@@ -17994,6 +17994,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // Also fire on load (covers Safari quirks where DOMContentLoaded races assets)
 window.addEventListener('load', () => window.__autoAttachPwdToggles());
 
+// p1_935 — Sticky mobile CTA bar: tunjuk bila hero dah scroll keluar viewport (mobile only via CSS).
+window.__lpStickyBarInit = function(){
+ const bar = document.getElementById('lpStickyBar');
+ const hero = document.getElementById('hero');
+ if(!bar) return;
+ if(!hero || !('IntersectionObserver' in window)){ bar.classList.add('is-visible'); return; }
+ const obs = new IntersectionObserver(entries=>{
+  bar.classList.toggle('is-visible', !entries[0].isIntersecting);
+  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(bar); }catch(e){}
+ }, { threshold:0 });
+ obs.observe(hero);
+};
+window.addEventListener('load', window.__lpStickyBarInit);
+
 let publicCart = [];
 
 window.togglePublicCart = function() {
@@ -37022,7 +37036,7 @@ window.I18N = {
  lp_aria_lang: { bm: 'Tukar bahasa', en: 'Switch language' },
  lp_btn_staff_login: { bm: 'Log Masuk Staf', en: 'Staff Login' },
 
- lp_hero_eyebrow: { bm: 'Oleh TODAK · Sejak 2024', en: 'By TODAK · Established 2024' },
+ lp_hero_eyebrow: { bm: 'Kelengkapan Camping & Outdoor · Malaysia', en: 'Camping & Outdoor Gear · Malaysia' },
  lp_hero_title_pre: { bm: 'Healing in style with', en: 'Healing in style with' },
  lp_hero_sub: { bm: 'Gear camping & outdoor premium, terus dari 11 jenama pilihan.', en: 'Premium camping & outdoor gear, supplied directly from 11 trusted brands.' },
  lp_hero_cta_activity: { bm: 'Pilih Aktiviti Kau', en: 'Pick Your Activity' },

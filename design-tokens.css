@@ -4438,3 +4438,12 @@ body.img-zoom-open { overflow: hidden !important; }
    Guna body.sa-panel-open (di-toggle dlm __saToggle/__saShow, kukuh dlm WebView) + :has sbg sokongan. */
 body.sa-panel-open #mobileCartFloatingBar,
 body:has(#saPanel:not([hidden])) #mobileCartFloatingBar { display: none !important; }
+
+/* p1_935 — Landing sticky mobile CTA bar (Shopee + TikTok Shop, mobile only) */
+.lp-sticky-bar { display:none; position:fixed; bottom:0; left:0; right:0; z-index:8000; background:#101010; padding:10px 16px 12px; gap:10px; align-items:center; justify-content:center; border-top:2px solid #CD7C32; box-shadow:0 -4px 20px rgba(0,0,0,.35); }
+.lp-sticky-bar.is-visible { display:flex; }
+@media (min-width:769px){ .lp-sticky-bar { display:none !important; } }
+.lp-sticky-bar__label { font-size:11px; font-weight:700; color:#9CA3AF; white-space:nowrap; }
+.lp-sticky-bar__btn { display:inline-flex; align-items:center; gap:6px; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none; flex:1; max-width:170px; justify-content:center; }
+.lp-sticky-bar__btn--shopee { background:#EE4D2D; color:#fff; }
+.lp-sticky-bar__btn--tiktok { background:#FAF6EF; color:#101010; }

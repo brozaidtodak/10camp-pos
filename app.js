@@ -5315,6 +5315,7 @@ window.scCompute = function(){
  }).join('');
  }
  if(typeof window.scRenderProvisional==='function') window.scRenderProvisional();
+ if(typeof window.scRenderReceiving==='function') window.scRenderReceiving();
 };
 
 // p1_925 — KIRA AWAL (provisional cost): kira kos hampir penuh sebelum carton sampai.
@@ -5398,6 +5399,108 @@ window.scApplyProvisional = async function(){
  if(typeof showToast==='function') showToast(`Kos sementara di-apply: ${ok}${errs.length?'. Ralat: '+errs[0]:''}. Set harga awal di tab Harga & Tier.`, errs.length?'warn':'success');
 };
 
+// p1_926 — TERIMA CARTON + reconcile + lampu hijau jual.
+// Rekod qty SEBENAR sampai, banding vs qty order; per-SKU gate: kos + qty + harga lengkap → boleh publish.
+window.scSetReceived = function(i, val){ if(window.__scRows && window.__scRows[i]){ window.__scRows[i].received = (val===''?'':(parseInt(val,10)||0)); if(typeof window.scRenderReceiving==='function') window.scRenderReceiving(); } };
+
+window.__scReadiness = function(row){
+ const sku = (row.sku||'').trim();
+ const p = sku ? (masterProducts||[]).find(x=> (x.sku||'').toUpperCase()===sku.toUpperCase()) : null;
+ const cost = p ? (Number(p.cost_price)||0) : 0;
+ const price = p ? (Number(p.price)||0) : 0;
+ const published = p ? !!(p.is_published) : false;
+ const recv = (row.received===''||row.received==null) ? null : (parseInt(row.received,10)||0);
+ const okCost = cost>0, okPrice = price>0, qtyOk = recv!=null;
+ return { p, sku, cost, price, published, recv, qtyOk, okCost, okPrice, ready:(okCost&&okPrice&&qtyOk) };
+};
+
+window.scRenderReceiving = function(){
+ const host = document.getElementById('scReceivingBody'); if(!host) return;
+ const rows = (window.__scRows||[]).filter(r=> (r.sku||'').trim());
+ if(!rows.length){ host.innerHTML='<div style="font-size:12px; color:#9CA3AF;">Masuk produk dengan SKU dulu.</div>'; return; }
+ const dot=(ok)=> `<span title="${ok?'OK':'Belum'}" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:${ok?'#4E7C4A':'#E5E7EB'};vertical-align:middle;"></span>`;
+ let readyCount=0;
+ const body = rows.map((r)=>{
+ const i = window.__scRows.indexOf(r);
+ const rd = window.__scReadiness(r); if(rd.ready) readyCount++;
+ const ordered = parseInt(r.qty,10)||0;
+ const v = rd.recv==null ? null : (rd.recv - ordered);
+ let vBadge='<span style="color:#9CA3AF; font-size:11px;">—</span>';
+ if(v!=null){ if(v===0) vBadge='<span style="font-size:10px; font-weight:700; background:#E2EFE0; color:#3C6438; padding:2px 7px; border-radius:12px;">PADAN</span>';
+ else if(v<0) vBadge='<span style="font-size:10px; font-weight:700; background:#FBEFD6; color:#9A6B12; padding:2px 7px; border-radius:12px;">KURANG '+Math.abs(v)+'</span>';
+ else vBadge='<span style="font-size:10px; font-weight:700; background:#E2ECF5; color:#2E5A86; padding:2px 7px; border-radius:12px;">LEBIH '+v+'</span>'; }
+ let action;
+ if(rd.published) action='<span style="font-size:10px; font-weight:800; background:#E2EFE0; color:#3C6438; padding:3px 9px; border-radius:20px;">LIVE</span>';
+ else if(rd.ready) action=`<button onclick="window.scPublishSku('${hesc(rd.sku)}')" style="padding:4px 12px; font-size:11px; font-weight:700; background:#4E7C4A; color:#fff; border:none; border-radius:7px; cursor:pointer;">Publish</button>`;
+ else action='<span style="font-size:10.5px; color:#9A6B12;">'+( !rd.okCost?'kos':(!rd.qtyOk?'qty':'harga') )+' belum</span>';
+ return `<tr>
+ <td style="font-family:monospace; font-size:11px;">${hesc(r.sku||'-')}</td>
+ <td style="text-align:right;">${ordered}</td>
+ <td style="text-align:center;"><input type="number" min="0" value="${rd.recv!=null?rd.recv:''}" onchange="window.scSetReceived(${i}, this.value)" style="width:64px; padding:4px 6px; border:1px solid #E5E7EB; border-radius:5px; font-size:12px; text-align:right;"></td>
+ <td style="text-align:center;">${vBadge}</td>
+ <td style="text-align:center; white-space:nowrap;">${dot(rd.okCost)} <span style="font-size:10px; color:#9CA3AF;">kos</span> &nbsp; ${dot(rd.qtyOk)} <span style="font-size:10px; color:#9CA3AF;">qty</span> &nbsp; ${dot(rd.okPrice)} <span style="font-size:10px; color:#9CA3AF;">harga</span></td>
+ <td style="text-align:center;">${action}</td>
+ </tr>`;
+ }).join('');
+ host.innerHTML = `<div style="font-size:12px; color:#374151; margin-bottom:8px;"><strong style="color:${readyCount===rows.length?'#3C6438':'#101010'};">${readyCount}/${rows.length}</strong> SKU dah boleh jual (kos + qty terima + harga lengkap).</div>
+ <div class="table-responsive"><table class="data-table" style="font-size:12px;">
+ <thead style="background:#FAFAFA;"><tr><th>SKU</th><th style="text-align:right;">Qty Order</th><th style="text-align:center;">Qty Terima</th><th style="text-align:center;">Beza</th><th style="text-align:center;">Lampu Hijau Jual</th><th style="text-align:center;">Tindakan</th></tr></thead>
+ <tbody>${body}</tbody></table></div>
+ <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+ <button onclick="window.scSaveShipment()" style="padding:8px 14px; font-size:12px; font-weight:700; background:#F3EEE7; color:#7A4A1E; border:1px solid #CD7C32; border-radius:7px; cursor:pointer;"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Simpan Qty Terima</button>
+ <button onclick="window.scApplyBatchReceived()" style="padding:8px 14px; font-size:12px; font-weight:700; background:#101010; color:#fff; border:none; border-radius:7px; cursor:pointer;"><i data-lucide="package-plus" style="width:13px;height:13px;vertical-align:-2px;"></i> Stock-in ikut Qty Terima</button>
+ <button onclick="window.scPublishAllReady()" style="padding:8px 14px; font-size:12px; font-weight:700; background:#4E7C4A; color:#fff; border:none; border-radius:7px; cursor:pointer;"><i data-lucide="check-circle-2" style="width:13px;height:13px;vertical-align:-2px;"></i> Publish semua yang hijau</button>
+ </div>
+ <p style="font-size:11px; color:#9CA3AF; margin:8px 0 0;">Masuk qty sebenar yang sampai → sistem banding dengan qty order (PADAN / KURANG / LEBIH). Bila kos + qty + harga lengkap, SKU jadi hijau dan boleh Publish (is_published). "Stock-in ikut Qty Terima" tambah stok guna qty sebenar, bukan qty order.</p>`;
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+
+window.scPublishSku = async function(sku){
+ if(typeof db==='undefined'||!db) return;
+ try {
+ const { error } = await db.from('products_master').update({ is_published:true }).eq('sku', sku);
+ if(error) throw error;
+ const p=(masterProducts||[]).find(x=> (x.sku||'').toUpperCase()===String(sku).toUpperCase()); if(p) p.is_published=true;
+ if(typeof showToast==='function') showToast(sku+' dah LIVE — boleh jual.','success');
+ window.scRenderReceiving();
+ } catch(e){ if(typeof showToast==='function') showToast('Publish gagal: '+e.message,'error'); }
+};
+
+window.scPublishAllReady = async function(){
+ if(typeof db==='undefined'||!db) return;
+ const rows=(window.__scRows||[]).filter(r=> (r.sku||'').trim());
+ const ready = rows.map(r=> window.__scReadiness(r)).filter(rd=> rd.ready && !rd.published);
+ if(!ready.length){ if(typeof showToast==='function') showToast('Tiada SKU baru yang lengkap kos+qty+harga.','warn'); return; }
+ if(!confirm(`Publish ${ready.length} SKU yang dah lengkap (boleh jual)?`)) return;
+ const uN=(window.currentUser||{}).name||'System';
+ let ok=0; const errs=[];
+ for(const rd of ready){ try{ const { error } = await db.from('products_master').update({ is_published:true }).eq('sku', rd.sku); if(error) throw error; if(rd.p) rd.p.is_published=true; ok++; }catch(e){ errs.push(rd.sku+': '+e.message); } }
+ // Kalau SEMUA SKU dalam order ni dah ready+published → order jadi "Boleh Jual"
+ const allReady = rows.every(r=>{ const rd=window.__scReadiness(r); return rd.ready && rd.published; });
+ if(allReady && window.__scId){ try{ await db.from('cost_shipments').update({ stage:'on_sale', cost_status:'final', stage_updated_at:new Date().toISOString(), stage_updated_by:uN }).eq('id', window.__scId); }catch(e){} }
+ if(typeof showToast==='function') showToast(`${ok} SKU dah LIVE${allReady?' · order ditanda Boleh Jual':''}${errs.length?'. Ralat: '+errs[0]:''}.`, errs.length?'warn':'success');
+ window.scRenderReceiving();
+};
+
+window.scApplyBatchReceived = async function(){
+ if(typeof db==='undefined'||!db) return;
+ const landed = window.__scLanded();
+ const rows = (window.__scRows||[]).map((r,idx)=>{
+ const rd = window.__scReadiness(r); const l = landed[idx]||{};
+ const recv = rd.recv!=null ? rd.recv : (parseInt(r.qty,10)||0);
+ return { sku:(r.sku||'').trim(), qty:recv, landed:l.landed||0 };
+ }).filter(x=> x.sku && x.qty>0 && x.landed>0);
+ if(!rows.length){ if(typeof showToast==='function') showToast('Tiada SKU dengan qty terima + landed.','warn'); return; }
+ if(!confirm(`Stock-in ${rows.length} produk ikut QTY TERIMA (bukan qty order)? Ini TAMBAH stok.`)) return;
+ const uName=(window.currentUser||{}).name||'System'; const label=(document.getElementById('scLabel').value||'').trim();
+ let ok=0; const errs=[];
+ for(const r of rows){ try{ const { error } = await db.from('inventory_batches').insert([{ sku:r.sku, qty_received:r.qty, qty_remaining:r.qty, cost_price:r.landed, inbound_date:new Date().toISOString(), notes:'Terima carton'+(label?' ('+label+')':'')+' by '+uName }]); if(error) throw error; ok++; }catch(e){ errs.push(r.sku+': '+e.message); } }
+ try { const { data } = await db.from('inventory_batches').select('*').limit(100000); if(data) inventoryBatches = data; } catch(e){}
+ if(ok>0 && window.__scId){ const uN=uName; try{ await db.from('cost_shipments').update({ stage:'arrived', stage_updated_at:new Date().toISOString(), stage_updated_by:uN }).eq('id', window.__scId); }catch(e){} }
+ if(ok>0 && typeof window.__calcLogLanded==='function') window.__calcLogLanded('apply_batch');
+ if(typeof showToast==='function') showToast(`Stock-in ikut terima: ${ok}${errs.length?'. Ralat: '+errs[0]:''}.`, errs.length?'warn':'success');
+};
+
 window.__scLanded = function(){
  const P = window.__scParams();
  return P.rows.map(r=>{
@@ -5441,7 +5544,7 @@ window.scLoadSelected = async function(){
  document.getElementById('scSfPct').value = s.sf_pct!=null?s.sf_pct:5;
  document.getElementById('scShipping').value = s.shipping_cost_rm!=null?s.shipping_cost_rm:'';
  document.getElementById('scParttimer').value = s.parttimer_cost_rm!=null?s.parttimer_cost_rm:'';
- window.__scRows = (items||[]).map(it=>({ sku:it.sku||'', name:it.product_name||'', rmb:it.cost_rmb!=null?it.cost_rmb:'', qty:it.qty!=null?it.qty:'' }));
+ window.__scRows = (items||[]).map(it=>({ sku:it.sku||'', name:it.product_name||'', rmb:it.cost_rmb!=null?it.cost_rmb:'', qty:it.qty!=null?it.qty:'', received:it.qty_received!=null?it.qty_received:'' }));
  if(!window.__scRows.length) window.__scRows = [{sku:'',name:'',rmb:'',qty:''}];
  scRenderItems(); scCompute();
  } catch(e){ if(typeof showToast==='function') showToast('Load gagal: '+e.message,'error'); }
@@ -5467,7 +5570,7 @@ window.scSaveShipment = async function(){
  await db.from('cost_shipment_items').delete().eq('shipment_id', id);
  const rows = (window.__scRows||[]).filter(r=> (r.sku||'').trim() || (r.name||'').trim() || r.rmb || r.qty);
  if(rows.length){
- const ins = rows.map((r,idx)=>({ shipment_id:id, sku:(r.sku||'').trim()||null, product_name:(r.name||'').trim()||null, cost_rmb:parseFloat(r.rmb)||0, qty:parseInt(r.qty,10)||0, sort_idx:idx }));
+ const ins = rows.map((r,idx)=>({ shipment_id:id, sku:(r.sku||'').trim()||null, product_name:(r.name||'').trim()||null, cost_rmb:parseFloat(r.rmb)||0, qty:parseInt(r.qty,10)||0, qty_received:(r.received===''||r.received==null)?null:(parseInt(r.received,10)||0), sort_idx:idx }));
  const { error } = await db.from('cost_shipment_items').insert(ins); if(error) throw error;
  }
  if(typeof showToast==='function') showToast('Shipment disimpan.','success');
@@ -5498,6 +5601,8 @@ window.scApplyCostPrice = async function(){
  } catch(e){ errs.push(r.sku+': '+e.message); }
  }
  if(ok>0 && typeof window.__calcLogLanded==='function') window.__calcLogLanded('apply_cost');
+ // p1_926 — apply muktamad: tanda kos FINAL + maju peringkat ke "Kos Siap"
+ if(ok>0 && window.__scId){ const uN=(window.currentUser||{}).name||'System'; try{ await db.from('cost_shipments').update({ cost_status:'final', cost_status_at:new Date().toISOString(), cost_status_by:uN, stage:'costed', stage_updated_at:new Date().toISOString(), stage_updated_by:uN }).eq('id', window.__scId); }catch(e){} }
  if(typeof showToast==='function') showToast(`cost_price dikemaskini: ${ok}${errs.length?'. Ralat: '+errs[0]:''}.`, errs.length?'warn':'success');
 };
 

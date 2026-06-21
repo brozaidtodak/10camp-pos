@@ -14010,6 +14010,39 @@ window.setPaymentMethod = function(method, btnElement) {
 // p1_180 — Payment proof file upload state
 window.__proofState = { file: null, dataUrl: null };
 
+// p1_920 — KOMPRES gambar resit sebelum upload (3MB foto kamera → ~300KB). Root-cause checkout lambat.
+// Resize ke maxDim + JPEG quality; skip PDF/HEIC (canvas tak boleh decode HEIC) — fallback fail asal.
+window.__compressImageFile = function(file, maxDim, quality) {
+ return new Promise((resolve) => {
+  try {
+   const t = (file && file.type) || '';
+   if(!file || t.indexOf('image/') !== 0 || t === 'image/heic' || t === 'image/heif') { resolve(file); return; }
+   maxDim = maxDim || 1600; quality = quality || 0.72;
+   const url = URL.createObjectURL(file);
+   const img = new Image();
+   img.onload = function() {
+    try {
+     const w = img.naturalWidth, h = img.naturalHeight;
+     if(!w || !h) { URL.revokeObjectURL(url); resolve(file); return; }
+     const scale = Math.min(1, maxDim / Math.max(w, h));
+     const nw = Math.max(1, Math.round(w * scale)), nh = Math.max(1, Math.round(h * scale));
+     const canvas = document.createElement('canvas');
+     canvas.width = nw; canvas.height = nh;
+     const ctx = canvas.getContext('2d');
+     ctx.drawImage(img, 0, 0, nw, nh);
+     URL.revokeObjectURL(url);
+     canvas.toBlob(function(blob) {
+      if(!blob || blob.size >= file.size) { resolve(file); return; } // jangan guna kalau jadi lebih besar
+      resolve(new File([blob], (file.name || 'resit').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+     }, 'image/jpeg', quality);
+    } catch(e) { try { URL.revokeObjectURL(url); } catch(_){} resolve(file); }
+   };
+   img.onerror = function() { try { URL.revokeObjectURL(url); } catch(_){} resolve(file); };
+   img.src = url;
+  } catch(e) { resolve(file); }
+ });
+};
+
 window.__proofPickFile = function(inputEl) {
  // p1_230 — accept input element argument; default to proofFileInput (file picker)
  // Camera input (#proofCameraInput) passes its own ref via onchange="window.__proofPickFile(this)"
@@ -14022,13 +14055,15 @@ window.__proofPickFile = function(inputEl) {
  window.__proofState = { file: null, dataUrl: null };
  return;
  }
- const f = input.files[0];
- // p1_374 — naikkan had 5MB→10MB (foto iPad/iPhone resolusi tinggi selalu 5-8MB)
- if(f.size > 10 * 1024 * 1024) {
+ const raw = input.files[0];
+ // p1_374 — had 10MB (foto iPad/iPhone resolusi tinggi selalu 5-8MB) — semak SEBELUM kompres
+ if(raw.size > 10 * 1024 * 1024) {
  if(typeof showToast === 'function') showToast('Saiz fail lebih 10MB. Compress dulu.', 'warn');
  input.value = '';
  return;
  }
+ // p1_920 — kompres gambar dulu (3MB → ~300KB) supaya upload checkout laju; PDF/HEIC kekal asal
+ const __finish = (f) => {
  const isPdf = (f.type === 'application/pdf');
  window.__proofState.file = f;
  const reader = new FileReader();
@@ -14046,12 +14081,14 @@ window.__proofPickFile = function(inputEl) {
  preview.style.display = 'block';
  if(window.lucide && lucide.createIcons) lucide.createIcons();
  }
- // p1_230 — sync cpFormView badge + toast feedback
  if(typeof window.cpRefreshProofBadge === 'function') window.cpRefreshProofBadge();
  if(typeof window.__cartProofRefresh === 'function') window.__cartProofRefresh(); // p1_383 cart-screen row
  if(typeof showToast === 'function') showToast(`Resit ditangkap: ${f.name} (${(f.size / 1024).toFixed(0)} KB)`, 'success');
  };
  reader.readAsDataURL(f);
+ };
+ if(raw.type === 'application/pdf' || typeof window.__compressImageFile !== 'function') { __finish(raw); }
+ else { window.__compressImageFile(raw).then(__finish).catch(() => __finish(raw)); }
 };
 
 window.__proofClearFile = function() {
@@ -14092,8 +14129,8 @@ window.__cartProofRefresh = function() {
 };
 
 // Upload to Supabase Storage payment-proofs bucket. Returns public URL or null.
-window.__proofUploadToStorage = async function(saleId) {
- const f = window.__proofState && window.__proofState.file;
+window.__proofUploadToStorage = async function(saleId, fileArg) {
+ const f = fileArg || (window.__proofState && window.__proofState.file); // p1_920 — boleh terima fail eksplisit (background)
  if(!f) return null;
  if(typeof db === 'undefined' || !db) return null;
  try {
@@ -14116,6 +14153,26 @@ window.__proofUploadToStorage = async function(saleId) {
  if(typeof showToast === 'function') showToast('Upload resit gagal: ' + e.message, 'warn');
  return null;
  }
+};
+
+// p1_920 — Upload resit di BACKGROUND lepas sale commit, kemudian UPDATE row sale.
+// Checkout "Processing…" TAK tunggu upload (laju walau wifi teruk). Gagal = staff upload semula dari Reports.
+window.__proofUploadAttach = async function(saleId, file) {
+ if(!saleId || !file || typeof db === 'undefined' || !db) return;
+ try {
+  const url = await window.__proofUploadToStorage(saleId, file);
+  if(!url) { if(typeof showToast === 'function') showToast('Resit lambat/gagal upload — upload manual dari Reports → Payment Proofs.', 'warn'); return; }
+  await db.from('sales_history').update({
+   payment_proof_url: url,
+   payment_proof_uploaded_at: new Date().toISOString(),
+   payment_proof_uploaded_by: (currentUser && currentUser.name) ? currentUser.name : 'Unknown'
+  }).eq('id', saleId);
+  // kemas-kini in-memori supaya Orders/Reports cermin
+  try { if(Array.isArray(salesHistory)) { const r = salesHistory.find(s => s && s.id === saleId); if(r) r.payment_proof_url = url; } } catch(e){}
+  if(typeof window.__triggerHeicConvertIfNeeded === 'function') window.__triggerHeicConvertIfNeeded(saleId, url);
+  try { if(typeof window.renderPaymentProofs === 'function' && document.getElementById('paymentProofsSection') && document.getElementById('paymentProofsSection').style.display !== 'none') window.renderPaymentProofs(); } catch(e){}
+  if(typeof showToast === 'function') showToast('Resit dah dilampirkan ke jualan.', 'success');
+ } catch(e) { if(typeof showToast === 'function') showToast('Resit gagal lampir: ' + (e.message || e), 'warn'); }
 };
 
 // p1_257 — Auto-trigger HEIC conversion lepas upload (fire-and-forget).
@@ -14732,22 +14789,11 @@ window.processNewCheckout = async function() {
  // p1_185 — surface upload failure to user (was silent — staff may not realize
  // resit dah hilang). Sale still inserts; staff can re-upload from Reports.
  // p1_372 — Zaid: snap resit dibenarkan untuk SEMUA method termasuk Cash. Buang gate pm!=='Cash'.
+ // p1_920 — JANGAN block "Processing…" untuk upload resit (punca utama checkout lambat — wifi kedai + foto 3MB).
+ // Tangkap rujukan fail dulu; sale commit serta-merta; resit di-upload di BACKGROUND + attach ke row (__proofUploadAttach).
  let proofUrl = null, proofUploadedAt = null, proofUploadedBy = null;
  const hasFile = !!(window.__proofState && window.__proofState.file);
- if(hasFile && typeof window.__proofUploadToStorage === 'function') {
- // p1_716 — bungkus dgn timeout: upload resit yg hang (wifi kedai) JANGAN freeze butang "Processing…" selamanya.
- // Gagal/timeout = NON-fatal: sale tetap simpan tanpa resit, staff upload semula dari Reports.
- let url = null;
- try { url = await withTimeout(window.__proofUploadToStorage(null), 20000, 'upload resit'); }
- catch(upErr) { url = null; console.warn('proof upload timeout/gagal (non-fatal):', upErr && upErr.message); }
- if(url) {
- proofUrl = url;
- proofUploadedAt = new Date().toISOString();
- proofUploadedBy = (currentUser && currentUser.name) ? currentUser.name : 'Unknown';
- } else {
- if(typeof showToast === 'function') showToast('Resit pembayaran gagal/lambat upload — sale tetap simpan. Upload manual dari Reports → Payment Proofs.', 'warn');
- }
- }
+ const __proofFileRef = hasFile ? window.__proofState.file : null;
 
  // p1_199 — capture customerEmail early so we can save with the sale row
  const earlyEmail = (document.getElementById("customerEmail").value || '').trim();
@@ -14774,7 +14820,11 @@ window.processNewCheckout = async function() {
  salesHistory.unshift({ id: insertedSaleId, total: finalTotal, total_amount: finalTotal, status: cst, channel: cn, payment_method: pm, created_at: new Date().toISOString(), items: cart.map(c => Object.assign({}, c)), customer_name: custNameText, customer_phone: custPhoneText, staff_name: currentUser ? currentUser.name : 'Unknown', metadata: Object.keys(saleMeta).length ? saleMeta : null });
  }
  } catch(e){ console.warn('append salesHistory in-memori gagal:', e); }
- // p1_257 — auto-trigger HEIC conversion bila proof uploaded as HEIC dari iPhone
+ // p1_920 — upload resit di BACKGROUND lepas sale commit (checkout "Processing…" dah habis; resit attach async + UPDATE row)
+ if(__proofFileRef && insertedSaleId && typeof window.__proofUploadAttach === 'function') {
+ window.__proofUploadAttach(insertedSaleId, __proofFileRef);
+ }
+ // p1_257 — auto-trigger HEIC conversion bila proof uploaded as HEIC dari iPhone (background path uruskan; sync no-op bila proofUrl null)
  if(insertedSaleId && proofUrl && typeof window.__triggerHeicConvertIfNeeded === 'function') {
  window.__triggerHeicConvertIfNeeded(insertedSaleId, proofUrl);
  }

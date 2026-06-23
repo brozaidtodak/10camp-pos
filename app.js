@@ -14760,12 +14760,18 @@ function renderCart() {
  const unitLine = (item.discount_amount && item.original_price)
  ? `<s style="color:#B6B0A6;">RM${item.original_price.toFixed(2)}</s> RM${item.price.toFixed(2)} × ${item.quantity}`
  : `RM${item.price.toFixed(2)} × ${item.quantity}`;
+ // strip leading "SKU | " prefix from product name for cleaner cart display
+ const i = item.name.indexOf(' | ');
+ const displayName = hesc((i >= 0 ? item.name.slice(i + 3) : item.name).replace(/ _ /g, ' ').trim());
+ const discBtn = (item.discount_amount > 0)
+   ? `<button onclick="openCartItemDiscount('${item.sku}')" title="Edit diskaun -RM${item.discount_amount.toFixed(2)}" style="background:#FBF3E2; color:#7A5410; border:1px solid #E8C97A; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;"><i data-lucide="tag" style="width:15px;height:15px;pointer-events:none;"></i><span style="position:absolute; bottom:-2px; right:-2px; background:#CE9420; color:#fff; font-size:9px; font-weight:800; border-radius:8px; padding:1px 4px; line-height:1.4; pointer-events:none;">-${item.discount_amount.toFixed(0)}</span></button>`
+   : `<button onclick="openCartItemDiscount('${item.sku}')" title="Tambah diskaun" style="background:#F5F5F5; color:#9CA3AF; border:1px solid #E0DCDC; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="tag" style="width:15px;height:15px;pointer-events:none;"></i></button>`;
  return `
  <div class="cart-item" style="flex-direction:column; align-items:stretch; gap:10px; padding:12px; margin-bottom:8px; border-radius:14px; background:${belowFloor ? 'rgba(254,226,226,.25)' : '#FAFAF8'}; border:1.5px solid ${belowFloor ? '#F1C7BD' : '#EEE9E0'};">
  <div style="display:flex; gap:10px; align-items:flex-start;">
  ${thumb}
  <div style="flex:1; min-width:0;">
- <div style="font-size:13.5px; font-weight:700; color:#101010; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${hesc(item.name)}</div>
+ <div style="font-size:13.5px; font-weight:700; color:#101010; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</div>
  <div style="font-size:10.5px; color:#B0A898; font-family:'SF Mono',Menlo,monospace; margin-top:2px;">${hesc(item.sku)}</div>
  ${(discBadge || floorBadge) ? `<div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">${discBadge}${floorBadge}</div>` : ''}
  </div>
@@ -14781,12 +14787,13 @@ function renderCart() {
  <button onclick="addToCart('${item.sku}')" aria-label="Tambah kuantiti" style="background:#fff; border:none; width:44px; height:44px; border-radius:10px; font-weight:800; font-size:22px; line-height:1; cursor:pointer; color:#101010; box-shadow:0 1px 3px rgba(0,0,0,.08);">+</button>
  </div>
  <div style="display:flex; align-items:center; gap:6px;">
- <button onclick="openCartItemDiscount('${item.sku}')" title="Diskaun untuk item ni" style="white-space:nowrap; background:${(item.discount_amount > 0) ? '#FBF3E2' : '#F5F5F5'}; color:${(item.discount_amount > 0) ? '#7A5410' : '#6B7280'}; border:1px solid ${(item.discount_amount > 0) ? '#E8C97A' : '#E0DCDC'}; padding:0 14px; height:44px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer;">${(item.discount_amount > 0) ? 'Edit diskaun' : '+ Diskaun'}</button>
+ ${discBtn}
  <button onclick="removeFromCart('${item.sku}')" aria-label="Buang dari troli" title="Buang dari troli" style="color:#B23A2E; background:#FDF0EE; border:1px solid #F5C9C3; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="trash-2" style="width:16px;height:16px;pointer-events:none;"></i></button>
  </div>
  </div>
  </div>`;
  }).join('');
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  if(subLabel) subLabel.textContent = total.toFixed(2);
 
  // p1_79 fix #3: apply VIP discount preview if posCustomer is a member
@@ -14809,6 +14816,8 @@ function renderCart() {
  } catch(e) { discount = 0; }
  }
  if(discount === 0 && discLine) discLine.style.display = 'none';
+ const subtotalRow = document.getElementById('cartSubtotalRow');
+ if(subtotalRow) subtotalRow.style.display = discount > 0 ? 'flex' : 'none';
  const finalTotal = round2(total - discount);
  label.textContent = finalTotal.toFixed(2);
  if(btnPay) btnPay.disabled = false;
@@ -15056,11 +15065,12 @@ window.__cartProofRefresh = function() {
  <button type="button" onclick="window.__proofClearFile()" title="${T('cs_remove_receipt')}" style="background:none; border:none; color:#7C2A20; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
  </div>`;
  } else {
- row.innerHTML = `<button type="button" onclick="document.getElementById('proofCameraInput').click()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:#fff8f0; border:1px dashed #fdba74; color:#7c4a1a; padding:11px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;">
- <i data-lucide="camera" style="width:16px;height:16px;"></i> ${T('cs_snap_receipt')}
- <span style="font-weight:500; opacity:0.7; font-size:11px;">· ${T('cs_optional')}</span>
+ row.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+ <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#fff8f0; border:1px dashed #fdba74; color:#7c4a1a; padding:8px 12px; border-radius:10px; cursor:pointer; font-size:12px; font-weight:600;">
+ <i data-lucide="camera" style="width:14px;height:14px;flex-shrink:0;"></i> ${T('cs_snap_receipt')} <span style="opacity:0.6; font-weight:400; font-size:10.5px;">· ${T('cs_optional')}</span>
  </button>
- <div style="text-align:center; margin-top:5px;"><button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:none; color:#6B7280; cursor:pointer; font-size:11px; text-decoration:underline;">${T('cs_or_pick_file')}</button></div>`;
+ <button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:1px solid #E5E7EB; color:#9CA3AF; padding:8px 10px; border-radius:10px; cursor:pointer; font-size:10.5px; white-space:nowrap;">${T('cs_or_pick_file')}</button>
+ </div>`;
  }
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };

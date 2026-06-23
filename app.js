@@ -67,7 +67,9 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
  // p1_553 — kalau floating cart bar (pos-mobile-mode) muncul, angkat ia ATAS bar tab supaya tak bertindih.
  'body.pos-app-scoped #mobileCartFloatingBar{bottom:calc(70px + env(safe-area-inset-bottom))!important;}',
  // Pill MODE PREVIEW turun bawah top bar dalam app scope
- 'body.pos-app-scoped #__posAppPreviewBanner{top:calc(env(safe-area-inset-top) + 64px)!important;}'
+ 'body.pos-app-scoped #__posAppPreviewBanner{top:calc(env(safe-area-inset-top) + 64px)!important;}',
+ // Sorok keyboard shortcut hints (F9/F10) dalam mobile app
+ 'body.pos-app-scoped .pos-desktop-kbd-hints{display:none!important;}'
  ].join('');
  const add = () => {
  if(document.getElementById('__posAppScopeCss')) return;

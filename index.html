@@ -3188,16 +3188,16 @@
  </div>
  <!-- p1_383 — Snap Resit SIAP-SIAP sebelum checkout (Zaid: bila ingat, snap dulu). Reuse proofCameraInput global + __proofState. -->
  <div id="cartProofRow" style="margin-bottom:12px;"></div>
- <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:#101010; font-size:16px; padding:18px; margin:0; border-radius:12px; box-shadow:0 4px 15px rgba(16, 16, 16,0.3); transition:0.2s;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9">BAYAR SEKARANG</button>
- <button onclick="window.posConfirmClearCart()" class="login-btn" style="background:#fff; color:#6F6F6F; border:1px solid #E2E2E2; margin-top:10px; box-shadow:none; padding:12px; border-radius:12px;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
+ <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:var(--primary); font-size:16px; padding:18px; margin:0; border-radius:12px; box-shadow:0 4px 18px rgba(205,124,50,0.35); transition:0.2s;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9">BAYAR SEKARANG</button>
+ <button onclick="window.posConfirmClearCart()" class="login-btn" style="background:none; color:#9CA3AF; border:none; box-shadow:none; padding:8px; margin-top:2px; font-size:12px; font-weight:500; text-decoration:underline; text-decoration-color:#D1D5DB;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
  <!-- p1_896 — Maklum Inventori: hantar senarai barang dalam troli ke staf inventory (picking list) -->
  <button onclick="window.__notifyInvOpen()" class="login-btn" style="background:#FAF1E6; color:#7A5410; border:1px solid #CD7C32; margin-top:10px; box-shadow:none; padding:12px; border-radius:12px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;" title="Maklum inventory untuk sediakan barang"><i data-lucide="package-check" style="width:16px;height:16px;"></i> Maklum Inventori</button>
  <!-- p1_905 — Edit permintaan inventory yg seller dah hantar (tambah/tukar qty/buang) tanpa tindih penuh -->
  <button onclick="window.__notifyInvEditMine()" class="login-btn" style="background:none; color:#7A5410; border:none; box-shadow:none; padding:6px; margin-top:4px; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; gap:6px;" title="Buka & ubah permintaan inventory yang anda dah hantar"><i data-lucide="pencil" style="width:13px;height:13px;"></i> Edit Permintaan Saya</button>
  <!-- p1_911 — Jualan Ditahan: pesanan customer yg diparkir menunggu inventory bawakan barang (badge hijau bila sedia) -->
  <button onclick="window.__heldOpen()" class="login-btn" style="background:#fff; color:#101010; border:1px solid #E2E2E2; margin-top:8px; box-shadow:none; padding:11px; border-radius:12px; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; gap:8px;" title="Jualan customer yang ditahan menunggu inventory"><i data-lucide="pause-circle" style="width:15px;height:15px;"></i> Jualan Ditahan <span id="heldSaleBadge" style="display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#9CA3AF; color:#fff; font-size:11px; font-weight:800;"></span></button>
- <!-- p1_131 — Keyboard shortcut hints visible -->
- <div style="display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:10px; color:#9CA3AF;">
+ <!-- p1_131 — Keyboard shortcut hints visible (hidden in mobile app) -->
+ <div class="pos-desktop-kbd-hints" style="display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:10px; color:#9CA3AF;">
  <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F9</kbd> Bayar</span>
  <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F10</kbd> Clear</span>
  <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">/</kbd> Search</span>
@@ -14374,7 +14374,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=945"></script>
+ <script src="app.js?v=946"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

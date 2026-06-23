@@ -14039,6 +14039,20 @@ function renderPOS(searchTerm = "") {
  }
  }
  }
+ // p1_942 — Size-grid: if input matches a parent_sku with multiple published variants → open grid
+ if(searchTerm && typeof window.__szGridOpen === 'function') {
+ const ps2 = searchTerm.trim().toUpperCase();
+ if(ps2.length >= 2) {
+ const sibCount = masterProducts.filter(p => isPublished(p) && (p.parent_sku||'').toUpperCase() === ps2).length;
+ if(sibCount > 1) {
+ window.__szGridOpen(ps2);
+ const inp = document.getElementById('searchInput');
+ if(inp) inp.value = '';
+ setTimeout(() => renderPOS(''), 50);
+ return;
+ }
+ }
+ }
 
  const term = searchTerm.toLowerCase();
  let filtered = masterProducts.filter(p => {
@@ -14079,6 +14093,11 @@ function renderPOS(searchTerm = "") {
  const b = inventoryBatches[i];
  if(b.qty_remaining > 0) __stockBySku.set(b.sku, (__stockBySku.get(b.sku) || 0) + b.qty_remaining);
  }
+ // p1_942 — precompute parent_skus dengan >1 variant supaya grid-button boleh ditunjuk pada kad
+ const __multiParents = new Set();
+ const __pskuTmp = new Map();
+ for(const p of masterProducts) { if(!isPublished(p)||!p.parent_sku) continue; __pskuTmp.set(p.parent_sku,(__pskuTmp.get(p.parent_sku)||0)+1); }
+ __pskuTmp.forEach((cnt,psku)=>{ if(cnt>1) __multiParents.add(psku); });
 
  sliced.forEach(p => {
 
@@ -14133,6 +14152,7 @@ function renderPOS(searchTerm = "") {
  ${priceHtml}
  <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : (totalStock <= (window.__POS_LOW_STOCK || 3) ? ' style="color:#B45309; font-weight:700;"' : '')}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
  <button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? `style="background:#FED7AA; color:#9A3412; border:1px solid #FB923C;" title="${(window.t?window.t('cs_oos_hint'):'Out of stock — backorder')}"` : ''}>${(window.t?window.t('cs_add_to_cart'):'Add to Cart')}</button>
+ ${p.parent_sku && __multiParents.has(p.parent_sku) ? `<button class="sz-grid-btn" onclick="event.stopPropagation(); window.__szGridOpen('${String(p.parent_sku).replace(/'/g,"\\'")}')" title="Buka grid saiz/warna ${p.parent_sku}"><i data-lucide="grid-2x2" style="width:11px;height:11px;"></i> Grid</button>` : ''}
  </div>
  `;
  });
@@ -14604,6 +14624,97 @@ window.decreaseQuantity = function(sku) {
  if(c) { if(c.quantity> 1) c.quantity--; else cart = cart.filter(x => x.sku !== sku); }
  renderCart();
 }
+
+// p1_942 — Size-grid: scan parent SKU → popup grid saiz×warna → tap cell → addToCart
+window.__szGridOpen = function(parentSku) {
+ if(!parentSku || !masterProducts) return;
+ const ps = String(parentSku).toUpperCase().trim();
+ let variants = masterProducts.filter(p => isPublished(p) && (p.parent_sku || '').toUpperCase() === ps);
+ if(!variants.length) variants = masterProducts.filter(p => isPublished(p) && (p.sku || '').toUpperCase() === ps);
+ if(!variants.length) { if(typeof showToast==='function') showToast('Tiada variant untuk '+ps,'warn'); return; }
+
+ const lead = variants[0];
+ const rawName = lead.name || ps;
+ let cleanName = rawName.replace(/^[A-Z0-9-]+\s*[|_]\s*/i,'').trim();
+ if(/\s\|\s/.test(cleanName)) cleanName = cleanName.split(/\s*\|\s*/)[0].trim();
+ cleanName = cleanName.replace(/\s*_\s*/g,' — ').replace(/\s{2,}/g,' ').trim();
+ const img = lead.images && lead.images[0] ? lead.images[0] : '';
+
+ const SIZE_ORDER = ['XXXS','XXS','XS','S','M','L','XL','XXL','2XL','3XL','XXXL','4XL','5XL','ONE SIZE','FREE SIZE'];
+ const rawSizes = [...new Set(variants.map(v => v.variant_size).filter(Boolean))];
+ const rawColors = [...new Set(variants.map(v => v.variant_color).filter(Boolean))];
+ const sizes = rawSizes.sort((a,b)=>{
+  const ai=SIZE_ORDER.indexOf(a.toUpperCase()),bi=SIZE_ORDER.indexOf(b.toUpperCase());
+  if(ai>=0&&bi>=0) return ai-bi; if(ai>=0) return -1; if(bi>=0) return 1; return a.localeCompare(b);
+ });
+ const colors = rawColors.sort();
+
+ const __stk = new Map();
+ for(const b of inventoryBatches) if(b.qty_remaining>0) __stk.set(b.sku,(__stk.get(b.sku)||0)+b.qty_remaining);
+
+ function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+ function safeJ(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+ function cleanColor(c){ return String(c||'').replace(/^[A-Z]{1,5}\d{2,}[A-Z]?\s+/i,'').trim(); }
+
+ let gridHtml = '';
+ const hasSizes = sizes.length>0, hasColors = colors.length>0;
+
+ if(hasSizes && hasColors) {
+  gridHtml += '<div style="overflow-x:auto;"><table class="sz-grid-table"><thead><tr><th class="sz-th-corner"></th>';
+  colors.forEach(c=>{ gridHtml+=`<th class="sz-th-color">${esc2(cleanColor(c))}</th>`; });
+  gridHtml += '</tr></thead><tbody>';
+  sizes.forEach(sz=>{
+   gridHtml += `<tr><th class="sz-th-size">${esc2(sz)}</th>`;
+   colors.forEach(c=>{
+    const v=variants.find(x=>(x.variant_size||'').toUpperCase()===sz.toUpperCase()&&(x.variant_color||'').toUpperCase()===c.toUpperCase());
+    if(v){ const stk=__stk.get(v.sku)||0,oos=stk<=0,low=!oos&&stk<=3;
+     gridHtml+=`<td class="sz-cell${oos?' sz-oos':''}${low?' sz-low':''}" ${!oos?`onclick="window.__szGridPick('${safeJ(v.sku)}')"`:''} title="${oos?'Stok habis':stk+' unit'}"><span class="sz-stock">${oos?'Habis':stk}</span></td>`;
+    } else { gridHtml+='<td class="sz-cell sz-na" title="Tiada variant ini">—</td>'; }
+   });
+   gridHtml += '</tr>';
+  });
+  gridHtml += '</tbody></table></div>';
+ } else {
+  const list = hasSizes ? sizes.map(sz=>variants.find(x=>(x.variant_size||'').toUpperCase()===sz.toUpperCase())).filter(Boolean)
+                        : (hasColors ? colors.map(c=>variants.find(x=>(x.variant_color||'').toUpperCase()===c.toUpperCase())).filter(Boolean)
+                                     : variants);
+  gridHtml += '<div class="sz-chips">';
+  list.forEach(v=>{
+   const stk=__stk.get(v.sku)||0,oos=stk<=0,low=!oos&&stk<=3;
+   const lbl=hasColors?cleanColor(v.variant_color||v.sku):(hasSizes?(v.variant_size||v.sku):v.sku);
+   gridHtml+=`<button class="sz-chip${oos?' sz-chip--oos':''}${low?' sz-chip--low':''}" ${!oos?`onclick="window.__szGridPick('${safeJ(v.sku)}')"`:''}>
+    <span class="sz-chip-label">${esc2(lbl)}</span>
+    <span class="sz-chip-stock">${oos?'Stok habis':stk+' unit'}</span>
+   </button>`;
+  });
+  gridHtml += '</div>';
+ }
+
+ const totalStk=variants.reduce((s,v)=>s+(__stk.get(v.sku)||0),0);
+ const inStock=variants.filter(v=>(__stk.get(v.sku)||0)>0).length;
+
+ const modal=document.getElementById('szGridModal');
+ if(!modal) return;
+ document.getElementById('szGridName').textContent=cleanName;
+ document.getElementById('szGridSku').textContent=ps;
+ document.getElementById('szGridSummary').textContent=`${inStock}/${variants.length} ada stok · ${totalStk} unit`;
+ const imgEl=document.getElementById('szGridImg');
+ if(imgEl){ imgEl.src=img?window.__thumbUrl(img,120):''; imgEl.style.display=img?'':'none'; }
+ document.getElementById('szGridBody').innerHTML=gridHtml;
+ modal.style.display='flex';
+ if(window.lucide&&lucide.createIcons) lucide.createIcons({attrs:{'stroke-width':'2'}});
+};
+
+window.__szGridPick = function(sku) {
+ window.addToCart(sku);
+ if(typeof showToast==='function') showToast('Ditambah: '+sku,'success');
+ window.__szGridClose();
+};
+
+window.__szGridClose = function() {
+ const m=document.getElementById('szGridModal');
+ if(m) m.style.display='none';
+};
 window.removeFromCart = function(sku) { cart = cart.filter(c => c.sku !== sku); renderCart(); }
 
 function renderCart() {

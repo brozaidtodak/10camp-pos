@@ -1320,9 +1320,31 @@
  </div>
  </div>
  <div class="lp-about__media">
- <img src="assets/brand/signboards/storefront-photo-512.png" alt="10 CAMP storefront in Cyberjaya" loading="lazy">
+ <img src="assets/brand/expo/expo-about.jpg" alt="10 CAMP booth at The Great Outdoor Expo" loading="lazy">
  </div>
  </div>
+ </section>
+
+ <!-- p1_941 — EXPO PHOTO GALLERY -->
+ <section class="lp-gallery">
+  <div class="lp-section__head">
+   <span class="lp-eyebrow">Di Luar Sana Bersama Anda</span>
+   <h2 class="lp-h2">Kami Hadir, Mereka Suka</h2>
+  </div>
+  <div class="lp-gallery__grid">
+   <div class="lp-gallery__item lp-gallery__item--tall">
+    <img src="assets/brand/expo/expo-g1.jpg" alt="Pasukan 10 CAMP di The Great Outdoor Expo" loading="lazy">
+   </div>
+   <div class="lp-gallery__item">
+    <img src="assets/brand/expo/expo-g2.jpg" alt="Staff membantu pelanggan memilih gear" loading="lazy">
+   </div>
+   <div class="lp-gallery__item">
+    <img src="assets/brand/expo/expo-g3.jpg" alt="Pelanggan melayari produk 10 CAMP" loading="lazy">
+   </div>
+   <div class="lp-gallery__item" style="grid-column:span 2;">
+    <img src="assets/brand/expo/expo-g4.jpg" alt="Staff 10 CAMP menunjukkan produk kepada pelanggan" loading="lazy">
+   </div>
+  </div>
  </section>
 
  <!-- REVIEWS / SOCIAL PROOF (real metrics + marketplace review links, no fake quotes) -->
@@ -8964,6 +8986,7 @@
  { id:'p1_939', label:'Security: toast "Q1 Aliff Report Imported" bocor ke public landing (Zaid: "sambung kritik"). PUNCA: seedQ1Aliff() + memoRayaAidiladha2026 seed dua-duanya tembak pada DOMContentLoaded tanpa guard currentUser — mana-mana browser baru (Puppeteer/incognito/pelanggan) akan jalankan seed dan tunjuk toast staff. FIX: (1) guard awal dalam seedQ1Aliff: if(!window.currentUser && !opts.force) return — seed hanya jalan selepas login, flag belum set = cuba lagi bila login. (2) Guard dalam Raya seed DOMContentLoaded: if(!window.currentUser) return sebelum cek FLAG. Toast & data selamat. app.js v883→884.', d:'done' },
  { id:'p1_938', label:'Landing page audit fixes (Zaid: "sambung kritik website"). (1) Unity collection card — CSS .lp-collection{display:block} override HTML hidden attr → kad Unity masih nampak dengan badge "BUKAN UNTUK JUAL" atas page awam. FIX: delete Unity card HTML terus, tukar grid 3-col→2-col dengan class --2col (Naturehike jadi featured card kiri besar, Voucher kanan). design-tokens.css tambah .lp-collections__grid--2col{grid-template-columns:2fr 1fr}. (2) Nama produk kotor — "BLACKDOG CBD2450ZM014 _ Carrot Atmosphere" tidak kena bersih oleh lpParseProductName (brand ada spasi "BLACK DOG" ≠ "BLACKDOG" dalam nama). FIX: tambah separator " _ " pattern: kalau prefix sebelum " _ " semua UPPERCASE → strip, ambil bahagian selepas. Juga strip leading lone underscore "_ Inflatable Bed..." → "Inflatable Bed...". app.js v882→883, design-tokens.css.', d:'done' },
  { id:'p1_940', label:'Landing page audit — warna butang sosial off-brand (Zaid: "sambung kritik"). Ikuti Kami section + footer social icons guna warna platform (Instagram #C13584 pink, Facebook #1877F2 biru, TikTok #111827) yang melanggar brand lock. FIX: Instagram → #CD7C32 (Sunset Bronze, utama), TikTok+Facebook → #101010 (Tropical Black). Sama untuk 3 footer icons. Kini seragam dengan palet brand. index.html sahaja, v884→885.', d:'done' },
+ { id:'p1_941', label:'Landing page: guna asset Drive — gambar expo sebenar + gallery section (Zaid: "jom try buat semua"). (1) Ganti gambar bangunan luaran dalam About section dengan gambar booth expo DSLR sebenar (DSC02988, 900px). (2) Tambah section gallery baru (dark #101010 bg) antara About dan Reviews — grid 4 foto: expo-g1 tall-left (pasukan), expo-g2+g3 kanan atas (staff-customer interaction), expo-g4 span-2 bawah (staff berseragam). Foto diambil dari Drive folder Great Outdoor Expo, diproses dengan sips 720-900px → assets/brand/expo/. CSS: .lp-gallery + grid + hover scale. design-tokens.css + index.html, v885→886.', d:'done' },
 { id:'p1_935', label:'Landing page: 3 kritik fixes (Zaid: "sambung kritik website"). (1) Hero eyebrow "By TODAK · Established 2024" → "Kelengkapan Camping & Outdoor · Malaysia" (BM) / "Camping & Outdoor Gear · Malaysia" (EN) — supaya visitor terus tahu apa kau jual. i18n lp_hero_eyebrow diupdate, HTML fallback diupdate. (2) Unity jersey "Not for sale" collection card disembunyikan (hidden attribute) — confusing visitors sebab boleh klik tapi takde apa. (3) Sticky mobile CTA bar (#lpStickyBar) — fixed bottom bar (mobile only ≤768px) dengan butang Shopee + TikTok Shop. Muncul bila hero scroll keluar viewport (IntersectionObserver), hilang bila scroll balik. CSS dalam design-tokens.css. app.js v879→880.', d:'done' },
 { id:'p1_934', label:'Landing page: fix harga kat grid produk (Zaid: "fix harga kat grid produk dulu"). 2 isu: (1) price=0 tunjuk "RM 0" — ganti dengan "Semak harga →" (grey); (2) multi-variant groups tunjuk harga lead sahaja — kira _minP/_maxP merentas semua variant, kalau beza tunjuk "Mulai dari RM X". lpSelectVariant juga dikemas: price=0 tunjuk "Semak harga →". Tiada perubahan DB. app.js v878→879.', d:'done' },
 { id:'p1_933', label:'Buang "PRICE PUSH FAILED" dari Amaran Integrasi Marketplace (Zaid: "sambung ke shopee ni kan memang tak boleh so keluarkan je dari amaran, shopee memang akan update sendiri ke seller centre"). push_failures status=dead = Shopee rate-limit sementara, bukan error sebenar — Shopee akan sync sendiri. Buang dari: issueCount, chip header, rendered block, early-exit check. Connections health page ("Push Harga — Auto-Retry" card) KEKAL sebagai info sahaja. app.js v877→878.', d:'done' },
@@ -9849,7 +9872,7 @@
  { id:'p5_2', label:'Variant matrix (size/colour/style) — SIAP (disahkan 2026-06-11). Group by parent_sku, satu product page papar semua variant: __invRenderGrid() kumpul ikut parent_sku (app.js ~8859) + product detail modal papar pills variant_color/variant_size (app.js ~12206). Nota: UNITY jersey cuma mockup landing page, bukan produk sebenar.', d:'done' },
  { id:'p5_3', label:'Bundle / kit / composite SKU — Builder SIAP (p1_599, 2026-06-11). Section Products > Bundles: templat di mana staff PILIH barang sedia ada + qty, nama pakej, set harga (auto-pra-isi = jumlah harga asal, staff boleh turun = diskaun). Stok pakej dikira live = min(floor(stok_anak/qty)). Simpan table product_bundles (items jsonb). Create/edit/on-off/delete + papar jimat & berapa set boleh dibuat. TINGGAL: sambung jualan di Cashier (auto-tolak stok anak FIFO bila pakej dijual). Zaid: "kau sediakan templat sahaja, staff boleh pilih barang".', d:'progress' },
  { id:'p5_4', label:'Batch tracking ikut Delivery Order (Zaid 2026-06-11: "batch perlu, detect ikut delivery order"). BESAR SIAP (p1_601): rekonstruksi sejarah procurement 2024-2026 dari SF Intl + Calculator 10camp.xlsx. Cipta 4 table: supplier_orders (26 order), delivery_orders (22 shipment 2024), delivery_order_items (422), product_landed_cost (510 SKU kos landed). BACKFILL kos inventory_batches RM0 -> nilai stok RM407,618 jadi RM1,223,719 (tinggal 2 SKU manual: ST101, MH064). UI Delivery Orders SIAP (p1_602, gate PIN sulit). Ikat batch->shipment SIAP (p1_603): 184 batch terikat (po_number=DO ref + brand), FIFO listing PO/Supplier dah terisi. Borang key-in DO 2025/26 SIAP (p1_604). TINGGAL: Zaid key-in DO 2025/26 manual + 2 SKU RM0 (ST101/MH064); lepas key-in boleh re-link 228 batch. EXPIRY DIBUANG.', d:'progress' },
- { id:'p5_5', label:'Size-grid module — apparel-specific UI: scan parent SKU, grid pops up with sizes × colours, click to add specific variant. Faster than scrolling variants list. Replaces generic KDS/booking concept since vertical is retail', d:'todo' }
+ { id:'p5_5', label:'Size-grid Cashier (p1_942): scan/taip parent SKU → grid popup saiz×warna muncul automatik. Tiap cell tunjuk stok; tap cell → addToCart SKU spesifik + tutup grid. Juga: butang "Grid" pada tiap kad variant dalam Cashier sell grid supaya boleh buka grid tanpa scan. CSS .sz-* dalam index.html; JS __szGridOpen/__szGridPick/__szGridClose dalam app.js; scan intercept + __multiParents precompute dalam renderPOS. Sokongan 3 mod: size×color matrix, color-chip-only, size-chip-only. v886→887.', d:'done' }
 ]},
  { id:'p7', num:'PHASE 7', name:'Growth & Loyalty', status:'done', goal:'CRM automation & repeat-purchase engine', eta:'Q2 2026 · Shipped (10/10)',
  desc:'CRM automation lengkap: Loyalty Tier (Bronze/Silver/Gold), Promo engine, Festival templates (Raya/CNY/Deepavali/Merdeka), RFM segmentation, re-engage campaign untuk dormant customers, VIP auto-discount, Shopify migration (22mo data). Ready untuk drive repeat purchases.',
@@ -11843,6 +11866,29 @@
 .sm-icon-btn.danger:hover { color:var(--danger); border-color:var(--danger); background:rgba(192, 57, 43,.06); }
 
  /* Modal */
+/* p1_942 — Size-grid */
+.sz-grid-table { width:100%; border-collapse:collapse; }
+.sz-th-corner,.sz-th-color,.sz-th-size { font-size:11px; font-weight:700; padding:6px 8px; background:#F9FAFB; border:1px solid #E5E7EB; text-align:center; }
+.sz-th-size { text-align:left; }
+.sz-cell { border:1px solid #E5E7EB; text-align:center; padding:10px 6px; cursor:pointer; transition:background .12s; }
+.sz-cell:not(.sz-oos):not(.sz-na):hover { background:#FEF3E2; border-color:#CD7C32; }
+.sz-stock { font-size:12px; font-weight:700; display:block; }
+.sz-cell.sz-oos { background:#F9FAFB; color:#9CA3AF; cursor:not-allowed; }
+.sz-cell.sz-low .sz-stock { color:#B45309; }
+.sz-cell.sz-na { color:#D1D5DB; cursor:default; }
+.sz-chips { display:flex; flex-wrap:wrap; gap:8px; padding:4px 0; }
+.sz-chip { display:flex; flex-direction:column; align-items:center; border:1.5px solid #D1D5DB; background:#FFF; border-radius:10px; padding:10px 16px; cursor:pointer; min-width:72px; transition:border-color .12s, background .12s; }
+.sz-chip:not(.sz-chip--oos):hover { border-color:#CD7C32; background:#FEF3E2; }
+.sz-chip-label { font-size:13px; font-weight:700; }
+.sz-chip-stock { font-size:10px; color:#6B7280; margin-top:3px; }
+.sz-chip--oos { opacity:.5; cursor:not-allowed; }
+.sz-chip--low .sz-chip-stock { color:#B45309; font-weight:700; }
+.sz-grid-btn { background:none; border:1px solid var(--primary); color:var(--primary); padding:3px 7px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px; margin-top:4px; }
+.sz-grid-btn:hover { background:var(--primary); color:#FFF; }
+[data-theme="dark"] .sz-th-corner,[data-theme="dark"] .sz-th-color,[data-theme="dark"] .sz-th-size { background:#1F2937; border-color:#374151; color:#E5E7EB; }
+[data-theme="dark"] .sz-cell { border-color:#374151; }
+[data-theme="dark"] .sz-cell.sz-oos { background:#111827; }
+[data-theme="dark"] .sz-chip { background:#1F2937; border-color:#374151; }
 .sm-modal-overlay {
  display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
  z-index:5000; align-items:center; justify-content:center; padding:20px;
@@ -14361,7 +14407,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=885"></script>
+ <script src="app.js?v=886"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -14663,6 +14709,28 @@
 
 
  <!-- p1_379 — ppImgModal dialih KELUAR dari #paymentProofsSection (yg display:none) ke paras body supaya boleh muncul dari mana-mana (All Orders dll). -->
+ <!-- p1_942 — Size-grid modal -->
+ <div id="szGridModal" class="fin-modal-overlay" style="display:none; z-index:10050;" onclick="if(event.target===this) window.__szGridClose()">
+  <div class="fin-modal" style="max-width:540px; width:100%; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
+   <div class="fin-modal__head" style="gap:10px; flex-shrink:0;">
+    <img id="szGridImg" style="width:52px; height:52px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; flex-shrink:0;" src="" onerror="this.style.display='none'" alt="">
+    <div style="flex:1; min-width:0;">
+     <div id="szGridName" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+     <div style="display:flex; gap:6px; align-items:center; margin-top:3px; flex-wrap:wrap;">
+      <code id="szGridSku" style="font-size:11px; background:#F3F4F6; padding:2px 6px; border-radius:4px; font-family:'SF Mono',Menlo,monospace; color:#4B5563;"></code>
+      <span id="szGridSummary" style="font-size:11px; color:#6B7280;"></span>
+     </div>
+    </div>
+    <button onclick="window.__szGridClose()" style="flex-shrink:0; background:none; border:none; font-size:24px; cursor:pointer; color:#6B7280; padding:0 4px; line-height:1; font-weight:300;">×</button>
+   </div>
+   <div id="szGridBody" class="fin-modal__body" style="overflow-y:auto; flex:1;"></div>
+   <div class="fin-modal__foot" style="justify-content:space-between; align-items:center;">
+    <span style="font-size:11px; color:#9CA3AF; display:flex; align-items:center; gap:4px;"><i data-lucide="info" style="width:12px;height:12px;"></i> Tap variant untuk tambah ke cart</span>
+    <button class="fin-btn fin-btn--ghost" onclick="window.__szGridClose()">Tutup</button>
+   </div>
+  </div>
+ </div>
+
  <div id="ppImgModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:10120; flex-direction:column; padding:0;" onclick="if(event.target===this) document.getElementById('ppImgModal').style.display='none'">
  <!-- Toolbar -->
  <div style="flex-shrink:0; padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top)); display:flex; justify-content:space-between; align-items:center; gap:8px; background:rgba(0,0,0,0.5);">

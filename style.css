@@ -196,6 +196,10 @@ h4, .h4 { font-family: 'Poppins', sans-serif; font-weight: 600; }
 .product-card button:hover { background: var(--primary-700, #A05F22); transform: translateY(-1px); }
 .product-card button:active { transform: scale(0.97); }
 .product-card button:disabled { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; transform: none; }
+/* p1_942 — Grid button: override product-card button blanket rule → outline secondary */
+.product-card .sz-grid-btn { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); margin-top: 6px; font-size: 12px; letter-spacing: 0; }
+.product-card .sz-grid-btn:hover { background: var(--primary); color: #FFF; transform: translateY(-1px); }
+.product-card .sz-grid-btn:active { transform: scale(0.97); }
 
 input, select, textarea { width: 100%; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #FAFAFA; color: var(--text-main); font-size: 14px; margin-bottom:10px; transition: 0.2s;}
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: #FFFFFF;}

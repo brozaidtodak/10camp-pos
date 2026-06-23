@@ -6472,7 +6472,7 @@
  <div class="set-card" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_sync]')?.click()">
  <div class="set-card__icon"><i data-lucide="git-merge" style="width:18px; height:18px;"></i></div>
  <div class="set-card__title" data-i18n="set_card_sync_title">Sync (Advanced)</div>
- <div class="set-card__sub" data-i18n="set_card_sync_sub">EasyStore, TikTok Shop, Shopee — sync stock and external orders.</div>
+ <div class="set-card__sub" data-i18n="set_card_sync_sub">TikTok Shop, Shopee — sync stok dan pesanan luar.</div>
  </div>
 
  <div class="set-card boss-only" onclick="document.querySelector('#sidebarMain .menu-item[data-tab=admin_test_guide]')?.click()">
@@ -8986,6 +8986,7 @@
  { id:'p1_939', label:'Security: toast "Q1 Aliff Report Imported" bocor ke public landing (Zaid: "sambung kritik"). PUNCA: seedQ1Aliff() + memoRayaAidiladha2026 seed dua-duanya tembak pada DOMContentLoaded tanpa guard currentUser — mana-mana browser baru (Puppeteer/incognito/pelanggan) akan jalankan seed dan tunjuk toast staff. FIX: (1) guard awal dalam seedQ1Aliff: if(!window.currentUser && !opts.force) return — seed hanya jalan selepas login, flag belum set = cuba lagi bila login. (2) Guard dalam Raya seed DOMContentLoaded: if(!window.currentUser) return sebelum cek FLAG. Toast & data selamat. app.js v883→884.', d:'done' },
  { id:'p1_938', label:'Landing page audit fixes (Zaid: "sambung kritik website"). (1) Unity collection card — CSS .lp-collection{display:block} override HTML hidden attr → kad Unity masih nampak dengan badge "BUKAN UNTUK JUAL" atas page awam. FIX: delete Unity card HTML terus, tukar grid 3-col→2-col dengan class --2col (Naturehike jadi featured card kiri besar, Voucher kanan). design-tokens.css tambah .lp-collections__grid--2col{grid-template-columns:2fr 1fr}. (2) Nama produk kotor — "BLACKDOG CBD2450ZM014 _ Carrot Atmosphere" tidak kena bersih oleh lpParseProductName (brand ada spasi "BLACK DOG" ≠ "BLACKDOG" dalam nama). FIX: tambah separator " _ " pattern: kalau prefix sebelum " _ " semua UPPERCASE → strip, ambil bahagian selepas. Juga strip leading lone underscore "_ Inflatable Bed..." → "Inflatable Bed...". app.js v882→883, design-tokens.css.', d:'done' },
  { id:'p1_940', label:'Landing page audit — warna butang sosial off-brand (Zaid: "sambung kritik"). Ikuti Kami section + footer social icons guna warna platform (Instagram #C13584 pink, Facebook #1877F2 biru, TikTok #111827) yang melanggar brand lock. FIX: Instagram → #CD7C32 (Sunset Bronze, utama), TikTok+Facebook → #101010 (Tropical Black). Sama untuk 3 footer icons. Kini seragam dengan palet brand. index.html sahaja, v884→885.', d:'done' },
+ { id:'p1_943', label:'Buang EasyStore sepenuhnya (Zaid: "buang integration easystore"). DELETED: 3 netlify functions (easystore-push/webhook/image-import), 1 GH Actions workflow (easystore-sync.yml), 3 Python scripts (sync/probe/webhook_register). REMOVED from app.js: easystorePushSale function + 2 call sites (checkout + return-at-cashier), importPdpMediaFromEasyStore, __mpSyncEasyStore stub, esSyncRefresh + timer, mapStats.easystore counter, EasyStore platform entry dari renderMarketplaces. REMOVED from index.html: EasyStore Sync Health card, Import EasyStore button dalam PDP modal, return-at-cashier EasyStore push, stale copy "tanpa lalui EasyStore". KEPT: channel option "Web EasyStore" (historical orders), [EASYSTORE-ID] regex cleaners (~500 product descriptions), easystore_order_number reads (historical order display), channel-type checks (online/walkin classification). v887→888.', d:'done' },
  { id:'p1_941', label:'Landing page: guna asset Drive — gambar expo sebenar + gallery section (Zaid: "jom try buat semua"). (1) Ganti gambar bangunan luaran dalam About section dengan gambar booth expo DSLR sebenar (DSC02988, 900px). (2) Tambah section gallery baru (dark #101010 bg) antara About dan Reviews — grid 4 foto: expo-g1 tall-left (pasukan), expo-g2+g3 kanan atas (staff-customer interaction), expo-g4 span-2 bawah (staff berseragam). Foto diambil dari Drive folder Great Outdoor Expo, diproses dengan sips 720-900px → assets/brand/expo/. CSS: .lp-gallery + grid + hover scale. design-tokens.css + index.html, v885→886.', d:'done' },
 { id:'p1_935', label:'Landing page: 3 kritik fixes (Zaid: "sambung kritik website"). (1) Hero eyebrow "By TODAK · Established 2024" → "Kelengkapan Camping & Outdoor · Malaysia" (BM) / "Camping & Outdoor Gear · Malaysia" (EN) — supaya visitor terus tahu apa kau jual. i18n lp_hero_eyebrow diupdate, HTML fallback diupdate. (2) Unity jersey "Not for sale" collection card disembunyikan (hidden attribute) — confusing visitors sebab boleh klik tapi takde apa. (3) Sticky mobile CTA bar (#lpStickyBar) — fixed bottom bar (mobile only ≤768px) dengan butang Shopee + TikTok Shop. Muncul bila hero scroll keluar viewport (IntersectionObserver), hilang bila scroll balik. CSS dalam design-tokens.css. app.js v879→880.', d:'done' },
 { id:'p1_934', label:'Landing page: fix harga kat grid produk (Zaid: "fix harga kat grid produk dulu"). 2 isu: (1) price=0 tunjuk "RM 0" — ganti dengan "Semak harga →" (grey); (2) multi-variant groups tunjuk harga lead sahaja — kira _minP/_maxP merentas semua variant, kalau beza tunjuk "Mulai dari RM X". lpSelectVariant juga dikemas: price=0 tunjuk "Semak harga →". Tiada perubahan DB. app.js v878→879.', d:'done' },
@@ -10283,40 +10284,12 @@
  <span class="sy-status-pill armed" id="syStatusPill"><span class="dot"></span>SyncGuard Loaded</span>
  </div>
 
- <!-- p1_50 — EasyStore sync health badge (cron + webhook status) -->
- <div class="sy-card" id="esSyncHealthCard" style="border-left:4px solid var(--success);">
- <h3 style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
- <span><i data-lucide="rss" style="width:18px;height:18px;vertical-align:-3px;"></i> EasyStore → POS Sync Health</span>
- <span id="esSyncBadge" class="sy-status-pill armed" style="font-size:12px;"><span class="dot"></span><span id="esSyncBadgeText">Loading…</span></span>
- </h3>
- <p class="sub" style="margin-bottom:14px;">Two-layer protection: real-time webhook + 15-minute backup cron. Kalau webhook diam, cron tetap tarik order dalam 15 minit max.</p>
- <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-bottom:14px;">
- <div style="padding:12px 14px; background:var(--bg-color); border-radius:10px;">
- <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Last Cron Sync</div>
- <div id="esSyncLastRun" style="font-size:14px; font-weight:700; margin-top:4px;">—</div>
- </div>
- <div style="padding:12px 14px; background:var(--bg-color); border-radius:10px;">
- <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Webhook Status</div>
- <div id="esSyncWebhookStatus" style="font-size:14px; font-weight:700; margin-top:4px;">—</div>
- </div>
- <div style="padding:12px 14px; background:var(--bg-color); border-radius:10px;">
- <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">EasyStore Orders (POS)</div>
- <div id="esSyncOrderCount" style="font-size:14px; font-weight:700; margin-top:4px;">—</div>
- </div>
- </div>
- <div style="display:flex; gap:8px; flex-wrap:wrap;">
- <button class="sy-btn secondary" onclick="window.esSyncRefresh()"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Refresh Now</button>
- <a class="sy-btn secondary" href="https://github.com/brozaidtodak/Pos-System-Test/actions/workflows/easystore-sync.yml" target="_blank" rel="noopener" style="text-decoration:none;"><i data-lucide="play-circle" style="width:14px;height:14px;"></i> Trigger GitHub Sync</a>
- <a class="sy-btn secondary" href="https://10camp.easystore.co/admin" target="_blank" rel="noopener" style="text-decoration:none;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> EasyStore Admin</a>
- </div>
- </div>
-
  <!-- p3_1 Shopee Fasa 1 — Marketplace integrations -->
  <div class="sy-card" id="marketplaceConnectCard" style="border-left:4px solid #EE4D2D;">
  <h3 style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
  <span><i data-lucide="link-2" style="width:18px;height:18px;vertical-align:-3px;"></i> Marketplace Direct Connections</span>
  </h3>
- <p class="sub" style="margin-bottom:14px;">Sambung POS terus dengan TikTok Shop &amp; Shopee tanpa perlu lalui EasyStore. Klik butang untuk authorize kedai.</p>
+ <p class="sub" style="margin-bottom:14px;">Sambung POS terus dengan TikTok Shop &amp; Shopee. Klik butang untuk authorize kedai.</p>
  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
  <!-- TikTok -->
  <div style="padding:14px; background:var(--bg-color); border-radius:10px; border:1px solid var(--border-color);">
@@ -10324,7 +10297,7 @@
  <strong style="font-size:13.5px;">TikTok Shop</strong>
  <span id="tiktokConnStatus" class="sy-status-pill" style="font-size:10px; background:rgba(0,0,0,.06); color:var(--text-muted);">Loading…</span>
  </div>
- <p style="font-size:11.5px; color:var(--text-muted); margin:0 0 8px; line-height:1.5;">Direct API integration via TikTok Partner Center. Currently <strong>parked dryrun mode</strong> — orders sync via EasyStore. Activate cutover untuk direct API.</p>
+ <p style="font-size:11.5px; color:var(--text-muted); margin:0 0 8px; line-height:1.5;">Direct API integration via TikTok Partner Center. Pull orders atau preview sync.</p>
  <div style="display:flex; gap:6px; flex-wrap:wrap;">
  <button class="sy-btn secondary" onclick="window.tiktokSyncOrders('dryrun')" title="Preview orders"><i data-lucide="search" style="width:13px;height:13px;"></i> Sync Preview</button>
  <button class="sy-btn secondary" onclick="window.tiktokSyncOrders('import')" title="Pull orders (cutover must be set)"><i data-lucide="download" style="width:13px;height:13px;"></i> Pull Orders</button>
@@ -14250,12 +14223,6 @@
  // 6) B9: Refund receipt
  try { showRefundReceipt(localRec, _selectedTx); } catch(e) { console.warn('[refund] receipt failed:', e); }
 
- // p1_29: Push restock to EasyStore (only if user chose to restock)
- if (restock && typeof window.easystorePushSale === 'function') {
- const pushItems = returnedItems.map(it => ({ sku: it.sku, qty: parseInt(it.quantity) || 0 })).filter(x => x.qty > 0);
- if (pushItems.length) window.easystorePushSale(pushItems, 'add');
- }
-
  // 7) UI feedback
  if (typeof window.showToast === 'function') window.showToast('Refund processed: RM '+refundTotal.toFixed(2)+(restock?' (restocked)':' (written off)'), 'success');
  window.__clearSelectedTx();
@@ -14447,7 +14414,6 @@
  <strong style="color:#202223;">Media <span style="font-size:10px; font-weight:600; color:#CD7C32; background:#FAF6EF; border:1px solid #EADFD0; padding:1px 7px; border-radius:999px; vertical-align:middle;">dikongsi semua variant</span></strong>
  <div style="display:flex; gap:16px; align-items:center;">
  <button id="pdpImportBtn" style="background:none; border:none; color:#EE4D2D; cursor:pointer; font-weight:700;" onclick="window.importPdpMediaFromMarketplace()" title="Tarik gambar dari Shopee/TikTok (produk kena dah di-map)"><i data-lucide="download-cloud" style="width:13px; height:13px; vertical-align:-2px;"></i> Import Shopee/TikTok</button>
- <button id="pdpImportEsBtn" style="background:none; border:none; color:#4E7C4A; cursor:pointer; font-weight:700;" onclick="window.importPdpMediaFromEasyStore()" title="Tarik gambar dari EasyStore (guna easystore_product_id; fallback backup migrasi)"><i data-lucide="download-cloud" style="width:13px; height:13px; vertical-align:-2px;"></i> Import EasyStore</button>
  <button id="pdpUploadBtn" style="background:none; border:none; color:#CD7C32; cursor:pointer; font-weight:700;" onclick="document.getElementById('pdpMediaFile').click()"><i data-lucide="upload" style="width:13px; height:13px; vertical-align:-2px;"></i> Upload Gambar</button>
  <button style="background:none; border:none; color:#2c6ecb; cursor:pointer;" onclick="window.addPdpMedia()">Add URL</button>
  </div>

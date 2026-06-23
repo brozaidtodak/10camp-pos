@@ -369,66 +369,6 @@ window.hideLoading = function() {
  if (el) el.style.display = 'none';
 };
 
-// =============================================================
-// p1_29 — EasyStore push (POS sale → online inventory decrement)
-// Best-effort: queue failed pushes in localStorage, retry on next call
-// =============================================================
-window.EASYSTORE_PUSH_URL = '/api/easystore-push';
-window.EASYSTORE_RETRY_KEY = 'easystorePushQueue_v1';
-
-window.easystorePushSale = async function(items, delta) {
-    delta = delta || 'subtract';
-    if(!Array.isArray(items) || !items.length) return;
-    // Drain retry queue alongside new items
-    let queue = [];
-    try { queue = JSON.parse(localStorage.getItem(window.EASYSTORE_RETRY_KEY) || '[]'); } catch(e){}
-    const allItems = [...queue, ...items.map(i => ({ sku: i.sku, qty: i.qty, delta }))];
-    // Group by delta direction
-    const grouped = { subtract: [], add: [] };
-    allItems.forEach(i => { (grouped[i.delta || 'subtract'] = grouped[i.delta || 'subtract'] || []).push({ sku: i.sku, qty: i.qty }); });
-
-    const failedItems = [];
-    for(const dir of ['subtract', 'add']) {
-        const group = grouped[dir];
-        if(!group || !group.length) continue;
-        try {
-            const r = await fetch(window.EASYSTORE_PUSH_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: group, delta: dir })
-            });
-            if(!r.ok) throw new Error('http_' + r.status);
-            const data = await r.json();
-            // Track per-SKU failures (e.g. no_easystore_mapping → don't retry)
-            (data.results || []).forEach(res => {
-                if(!res.ok && res.reason === 'api_error') {
-                    failedItems.push({ sku: res.sku, qty: group.find(g => g.sku === res.sku)?.qty || 0, delta: dir });
-                }
-            });
-            if(typeof showToast === 'function' && data.succeeded > 0) {
-                console.log('[EasyStore push]', data.succeeded + '/' + data.processed + ' synced');
-            }
-        } catch(e) {
-            console.warn('[EasyStore push] failed, queueing:', e.message);
-            // Network error → retry whole group
-            failedItems.push(...group.map(g => ({ sku: g.sku, qty: g.qty, delta: dir })));
-        }
-    }
-
-    // Persist failures for next attempt
-    try {
-        if(failedItems.length > 0) {
-            localStorage.setItem(window.EASYSTORE_RETRY_KEY, JSON.stringify(failedItems.slice(0, 100)));
-            // Show subtle warning if many fails
-            if(failedItems.length >= 3 && typeof showToast === 'function') {
-                showToast('EasyStore sync delayed — ' + failedItems.length + ' items queued for retry', 'warn');
-            }
-        } else {
-            localStorage.removeItem(window.EASYSTORE_RETRY_KEY);
-        }
-    } catch(e){}
-};
-
 // Toast: non-blocking notification. Replaces alert() for soft messages.
 window.showToast = function(msg, type) {
  type = type || 'info';
@@ -15823,23 +15763,13 @@ window.processNewCheckout = async function() {
  }
  // Use finalTotal downstream
  totalVal = finalTotal;
- // p1_29: Push inventory deduction to EasyStore (best-effort, async, non-blocking)
- if(typeof window.easystorePushSale === 'function') {
-   // p1_229 — skip CUSTOM-* (ad-hoc sales, no EasyStore product mapping)
-   const pushItems = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-'))).map(c => ({ sku: c.sku, qty: parseInt(c.quantity) || 0 })).filter(x => x.qty > 0);
-   if(pushItems.length) window.easystorePushSale(pushItems, 'subtract');
- }
- // p1_285 (Lubang B): push new POS stock for sold SKUs out to TikTok Shop.
- // EasyStore's TikTok channel is disconnected (cutover 2026-05-25), so POS must
- // push directly. Fire-and-forget — never block the receipt on a marketplace call.
+ // p1_285 — push new POS stock for sold SKUs to TikTok + Shopee (fire-and-forget).
  try {
    const soldSkus = cart.filter(c => !c.isCustom && !(typeof c.sku === 'string' && c.sku.startsWith('CUSTOM-')) && (parseInt(c.quantity) || 0) > 0).map(c => c.sku);
    if(soldSkus.length) {
-     // p1_285 — push to TikTok (EasyStore TikTok channel disconnected)
      fetch('/api/tiktok-stock-push', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify({ skus: soldSkus }) })
        .catch(e => console.warn('tiktok-stock-push failed (non-blocking):', e));
-     // p1_291 — push to Shopee direct (Lubang B Shopee). update_stock is absolute,
-     // so safe even while EasyStore also syncs Shopee — both write the same value.
+     // p1_291 — push to Shopee direct (absolute qty, idempotent)
      fetch('/api/shopee-stock-push', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify({ skus: soldSkus }) })
        .catch(e => console.warn('shopee-stock-push failed (non-blocking):', e));
    }
@@ -21652,7 +21582,7 @@ window.renderMarketplaces = async function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 
  // Count product mappings from products_master.metadata
- let mapStats = { easystore: 0, shopee: 0, tiktok: 0, total: 0, lastSync: { easystore: null, shopee: null, tiktok: null } };
+ let mapStats = { shopee: 0, tiktok: 0, total: 0, lastSync: { shopee: null, tiktok: null } };
  try {
  if(typeof db !== 'undefined' && db.from) {
  const { data: products } = await db.from('products_master').select('metadata');
@@ -21660,11 +21590,8 @@ window.renderMarketplaces = async function() {
  mapStats.total = products.length;
  products.forEach(p => {
  const m = p.metadata || {};
- if(m.easystore_product_id || m.easystore_variant_id) mapStats.easystore++;
  if(m.shopee_item_id) mapStats.shopee++;
  if(m.tiktok_product_id) mapStats.tiktok++;
- // Track latest sync timestamp per platform
- if(m.easystore_synced_at && (!mapStats.lastSync.easystore || m.easystore_synced_at > mapStats.lastSync.easystore)) mapStats.lastSync.easystore = m.easystore_synced_at;
  if(m.shopee_synced_at && (!mapStats.lastSync.shopee || m.shopee_synced_at > mapStats.lastSync.shopee)) mapStats.lastSync.shopee = m.shopee_synced_at;
  if(m.tiktok_synced_at && (!mapStats.lastSync.tiktok || m.tiktok_synced_at > mapStats.lastSync.tiktok)) mapStats.lastSync.tiktok = m.tiktok_synced_at;
  });
@@ -21686,23 +21613,6 @@ window.renderMarketplaces = async function() {
  };
 
  const platforms = [
- {
- key: 'easystore',
- name: 'EasyStore',
- desc: 'Online store + product catalog (current platform)',
- storeUrl: 'https://www.10camp.com',
- channelValue: 'Web EasyStore',
- icon: 'store',
- color: '#FF6B35',
- connected: true,
- mapped: mapStats.easystore,
- total: mapStats.total,
- lastSync: mapStats.lastSync.easystore,
- actions: [
- { label: 'Sync Products', icon: 'refresh-cw', onclick: "window.__mpSyncEasyStore && window.__mpSyncEasyStore()" },
- { label: 'View Mappings', icon: 'list', onclick: "switchHub(['databaseSection'], 'Collection', null); if(typeof renderProductDatabase==='function') renderProductDatabase();" }
- ]
- },
  {
  key: 'shopee',
  name: 'Shopee',
@@ -21741,7 +21651,7 @@ window.renderMarketplaces = async function() {
  ];
 
  const connectedCount = platforms.filter(p => p.connected).length;
- const totalMapped = mapStats.easystore + mapStats.shopee + mapStats.tiktok;
+ const totalMapped = mapStats.shopee + mapStats.tiktok;
 
  let html = '';
  // Header
@@ -22002,9 +21912,6 @@ window.__mpMapTiktok = async function() {
  } catch(e) {
  if(typeof showToast === 'function') showToast('TikTok map error: ' + e.message, 'error');
  }
-};
-window.__mpSyncEasyStore = async function() {
- if(typeof showToast === 'function') showToast('EasyStore sync — guna script sync dari Inventory section, atau tunggu auto-cadence', 'info');
 };
 window.renderApps = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
@@ -26126,35 +26033,6 @@ window.importPdpMediaFromMarketplace = async function() {
  showToast(`${added} gambar baru diimport (Shopee ${sp}, TikTok ${tt}). Tekan Save untuk simpan.`, 'success');
  }
  } catch(e){ console.error('import gambar:', e); showToast('Ralat import: ' + e.message, 'error'); }
- if(btn){ btn.disabled = false; btn.innerHTML = orig; }
-};
-
-// p1_489 — import gambar produk dari EASYSTORE (guna easystore_product_id; fallback
-// metadata.easystore_images_backup dari migrasi p1_318). Sama cara macam marketplace
-// import — return senarai URL, client tambah ke gallery, user tekan Save. Read-only.
-window.importPdpMediaFromEasyStore = async function() {
- const sku = (document.getElementById('pdpOriginalSku')?.value || '').trim();
- if(!sku) { showToast('SKU tak dijumpai.', 'warning'); return; }
- const btn = document.getElementById('pdpImportEsBtn');
- const orig = btn ? btn.innerHTML : '';
- if(btn){ btn.disabled = true; btn.innerHTML = 'Mengimport...'; }
- try {
- const r = await fetch('/api/easystore-image-import?sku=' + encodeURIComponent(sku));
- const j = await r.json();
- if(!j.ok || !Array.isArray(j.images) || !j.images.length) {
- showToast(j.note || j.error || 'Tiada gambar dijumpai dari EasyStore untuk produk ni.', 'warning');
- } else {
- const el = document.getElementById('pdpMediaUrls');
- let urls = el.value ? el.value.split(',').map(s => s.trim()).filter(Boolean) : [];
- const before = urls.length;
- for(const u of j.images){ if(!urls.includes(u)) urls.push(u); }
- el.value = urls.join(',');
- renderPdpMediaGallery(urls);
- const added = urls.length - before;
- const src = j.source === 'backup' ? ' (dari backup migrasi)' : '';
- showToast(`${added} gambar baru diimport dari EasyStore${src} (jumpa ${j.count}). Tekan Save untuk simpan.`, 'success');
- }
- } catch(e){ console.error('import gambar easystore:', e); showToast('Ralat import: ' + e.message, 'error'); }
  if(btn){ btn.disabled = false; btn.innerHTML = orig; }
 };
 
@@ -37356,7 +37234,7 @@ window.I18N = {
  set_card_pay_title: { bm: 'Pembayaran', en: 'Payments' },
  set_card_pay_sub: { bm: 'DuitNow QR, FPX, kad kredit, tunai — gateway dan tetapan pembayaran.', en: 'DuitNow QR, FPX, cards, cash — gateways and payment settings.' },
  set_card_sync_title: { bm: 'Sync (Lanjutan)', en: 'Sync (Advanced)' },
- set_card_sync_sub: { bm: 'EasyStore, TikTok Shop, Shopee — sync stok dan pesanan luar.', en: 'EasyStore, TikTok Shop, Shopee — sync stock and external orders.' },
+ set_card_sync_sub: { bm: 'TikTok Shop, Shopee — sync stok dan pesanan luar.', en: 'TikTok Shop, Shopee — sync stock and external orders.' },
  set_card_test_title: { bm: 'Panduan Ujian Sistem', en: 'System Test Guide' },
  set_card_test_sub: { bm: 'Panduan ujian sistem POS untuk Bos verify flow setiap module.', en: 'POS system test guide for the owner to verify each module flow.' },
 
@@ -37567,7 +37445,7 @@ window.RP_ROADMAP_TEMPLATES = {
  { id:'bd_6', label:'Partnership outreach (event/sponsor)' }
  ],
  sysmgmt: [
- { id:'sm_1', label:'Sync troubleshooting (EasyStore / TikTok / Shopee)' },
+ { id:'sm_1', label:'Sync troubleshooting (TikTok / Shopee)' },
  { id:'sm_2', label:'Permission management (Aliff escalation handling)' },
  { id:'sm_3', label:'User onboarding (technical setup)' },
  { id:'sm_4', label:'Backup verification (weekly check)' },
@@ -38407,27 +38285,6 @@ window.TG_TESTS = [
         '5-stat row at top'
       ],
       expected: 'Bersih, scan-friendly. Default filter "All" (bukan Draft). Bin Import + Danger Zone TIADA dalam page ni (moved to Bulk Ops).'
-    },
-    { phase: 'Phase 1: Stabilize', id: 'p1_29-push', title: 'EasyStore push (POS sale → online stock)',
-      steps: [
-        'Login any cashier → POS',
-        'Add cheap item to cart (e.g. CD082 RM 8)',
-        'Open browser DevTools → Network tab',
-        'Checkout dengan Cash payment',
-        'Confirm sale',
-        'Cari POST /api/easystore-push dalam Network'
-      ],
-      expected: 'Response succeeded:1, before/after qty values shown. Login EasyStore admin → variant qty turun -1.'
-    },
-    { phase: 'Phase 1: Stabilize', id: 'p1_29-webhook', title: 'EasyStore webhook (online order → POS)',
-      steps: [
-        'Buka 10camp.com sebagai customer',
-        'Add cheap item to cart, checkout, pay',
-        'Tunggu ~5 saat',
-        'Login Bos → Tanya 10 CAMP AI tab',
-        'Tanya: "Latest order from website?"'
-      ],
-      expected: 'Order baru appear dalam sales_history dengan channel "EasyStore Online" + metadata.migrated_from = "easystore_webhook". Inventory_batches qty turun untuk SKU yang dibeli.'
     },
     { phase: 'Phase 4: Operations', id: 'p4_5', title: 'EOD Close / Z-Report',
       steps: [
@@ -40289,125 +40146,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // =============================================================
 // p1_50 — ESYNC HEALTH BADGE (HQ → Sync section)
 // =============================================================
-// Reads sync_status table (written by GH Actions cron) + counts EasyStore
-// orders in sales_history. Renders status pill + last-run timestamp + manual
-// refresh button. Auto-refreshes every 60s while syncSection is visible.
-window.__esSyncTimer = null;
-
-window.esSyncFmtAge = function(ts) {
- if(!ts) return { text: 'Never', mins: Infinity, color: 'red' };
- const t = new Date(ts).getTime();
- if(isNaN(t)) return { text: 'Unknown', mins: Infinity, color: 'red' };
- const mins = Math.floor((Date.now() - t) / 60000);
- let text, color;
- if(mins < 1) text = 'Just now';
- else if(mins < 60) text = mins + ' min ago';
- else if(mins < 1440) text = Math.floor(mins/60) + ' jam ' + (mins%60) + ' min ago';
- else text = Math.floor(mins/1440) + ' hari ago';
- if(mins < 30) color = 'green';
- else if(mins < 60) color = 'amber';
- else color = 'red';
- return { text, mins, color };
-};
-
-window.esSyncRefresh = async function() {
- const badge = document.getElementById('esSyncBadge');
- const badgeTxt = document.getElementById('esSyncBadgeText');
- const lastRunEl = document.getElementById('esSyncLastRun');
- const webhookEl = document.getElementById('esSyncWebhookStatus');
- const orderCountEl = document.getElementById('esSyncOrderCount');
- const card = document.getElementById('esSyncHealthCard');
- if(!badge || !badgeTxt) return; // section not rendered
-
- if(!db) {
- badgeTxt.textContent = 'DB Offline';
- return;
- }
-
- // 1. Last cron run timestamp
- let lastRunTs = null;
- try {
- const { data } = await db.from('sync_status').select('last_run_at,note').eq('source', 'easystore_cron').maybeSingle();
- if(data && data.last_run_at) lastRunTs = data.last_run_at;
- } catch(e) { /* table may not exist yet — first cron tick creates it */ }
-
- // 2. EasyStore order count + latest order time
- let esOrderCount = 0, latestOrderTs = null;
- try {
- const { count } = await db.from('sales_history').select('id', { count: 'exact', head: true }).ilike('channel', 'EasyStore%');
- esOrderCount = count || 0;
- const { data: latest } = await db.from('sales_history').select('created_at').ilike('channel', 'EasyStore%').order('created_at', { ascending: false }).limit(1).maybeSingle();
- if(latest && latest.created_at) latestOrderTs = latest.created_at;
- } catch(e) {}
-
- // 3. Webhook health (HEAD/GET /api/easystore-webhook returns {ok:true,hmac_configured:true,...})
- let webhookOk = null;
- try {
- const r = await fetch('/api/easystore-webhook', { method: 'GET' });
- if(r.ok) {
- const j = await r.json();
- webhookOk = !!(j.ok && j.hmac_configured && j.supabase_configured);
- } else { webhookOk = false; }
- } catch(e) { webhookOk = false; }
-
- // Render. Status pill reflects WORST of (cron freshness, latest order freshness).
- // If cron has run within 30 min OR a real order arrived within 30 min, healthy.
- const cronAge = window.esSyncFmtAge(lastRunTs);
- const orderAge = window.esSyncFmtAge(latestOrderTs);
- const bestColor = (cronAge.color === 'green' || orderAge.color === 'green') ? 'green'
- : ((cronAge.color === 'amber' || orderAge.color === 'amber') ? 'amber' : 'red');
-
- if(lastRunEl) lastRunEl.textContent = cronAge.text + (lastRunTs ? '' : ' (cron not run yet — first tick within 15 min)');
- if(webhookEl) webhookEl.textContent = webhookOk === null ? 'Checking…' : (webhookOk ? 'Endpoint OK' : 'Endpoint DOWN');
- if(orderCountEl) orderCountEl.textContent = esOrderCount + ' orders · latest ' + orderAge.text;
-
- // Badge styling
- badge.classList.remove('armed', 'unarmed');
- if(card) card.style.borderLeftColor = '';
- if(bestColor === 'green') {
- badge.classList.add('armed');
- badgeTxt.textContent = 'Healthy';
- if(card) card.style.borderLeftColor = 'var(--success)';
- } else if(bestColor === 'amber') {
- badge.classList.add('unarmed');
- badgeTxt.textContent = 'Stale (' + Math.min(cronAge.mins, orderAge.mins) + ' min)';
- if(card) card.style.borderLeftColor = 'var(--warning)';
- } else {
- badge.classList.add('unarmed');
- badge.style.color = '#B23A2E';
- badge.style.background = 'rgba(192, 57, 43,.12)';
- badgeTxt.textContent = 'STALE — check webhook';
- if(card) card.style.borderLeftColor = 'var(--danger)';
- }
-};
-
-// Wrap renderSyncSection so the badge auto-refreshes when section opens + every 60s.
+// Wrap renderSyncSection to auto-load Shopee + TikTok connection status when section opens.
 document.addEventListener('DOMContentLoaded', () => {
- const installEsSyncHook = () => {
+ const installSyncHook = () => {
  const orig = window.renderSyncSection;
- if(typeof orig !== 'function' || orig.__esSyncWrapped) return;
+ if(typeof orig !== 'function' || orig.__syncHooked) return;
  window.renderSyncSection = function() {
  const r = orig.apply(this, arguments);
- setTimeout(() => window.esSyncRefresh(), 50);
  // p1_98 Fasa 3B + p1_104 — auto-load Shopee + TikTok status
  setTimeout(() => {
  if(typeof window.shopeeRefreshCronStatus === 'function') window.shopeeRefreshCronStatus();
  if(typeof window.shopeeRefreshConnInfo === 'function') window.shopeeRefreshConnInfo();
  if(typeof window.__refreshTiktokConnStatus === 'function') window.__refreshTiktokConnStatus();
  }, 100);
- if(window.__esSyncTimer) clearInterval(window.__esSyncTimer);
- window.__esSyncTimer = setInterval(() => {
- const sec = document.getElementById('syncSection');
- if(sec && sec.style.display !== 'none') window.esSyncRefresh();
- else if(window.__esSyncTimer) { clearInterval(window.__esSyncTimer); window.__esSyncTimer = null; }
- }, 60000);
  return r;
  };
- window.renderSyncSection.__esSyncWrapped = true;
+ window.renderSyncSection.__syncHooked = true;
  };
- // renderSyncSection is defined inside an IIFE in index.html — install after DOM ready.
- setTimeout(installEsSyncHook, 1500);
- setTimeout(installEsSyncHook, 4000); // backstop
+ setTimeout(installSyncHook, 1500);
+ setTimeout(installSyncHook, 4000);
 });
 
 // p3_1 Shopee Fasa 1 — Connect button handler

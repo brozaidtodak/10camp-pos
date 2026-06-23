@@ -1262,7 +1262,20 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
 .lp-about__copy h2 { margin-bottom: 18px; }
 .lp-about__copy p { font-size: 15px; line-height: 1.7; color: #4B5563; margin-bottom: 14px; }
 .lp-about__cta { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-.lp-about__media img { width: 100%; height: auto; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.1); }
+.lp-about__media img { width: 100%; height: auto; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.1); object-fit: cover; max-height: 420px; }
+
+/* p1_941 — Expo photo gallery */
+.lp-gallery { background: #101010; padding: 72px 24px; }
+.lp-gallery .lp-section__head { text-align: center; margin-bottom: 36px; }
+.lp-gallery .lp-section__head .lp-eyebrow { color: #CD7C32; }
+.lp-gallery .lp-h2 { color: #FAF6EF; }
+.lp-gallery__grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lp-gallery__item { position: relative; overflow: hidden; border-radius: 10px; aspect-ratio: 3/2; }
+.lp-gallery__item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; display: block; }
+.lp-gallery__item:hover img { transform: scale(1.04); }
+.lp-gallery__item--tall { grid-row: span 2; aspect-ratio: unset; }
+@media (max-width: 900px) { .lp-gallery__grid { grid-template-columns: repeat(2, 1fr); } .lp-gallery__item--tall { grid-row: span 1; aspect-ratio: 3/2; } }
+@media (max-width: 560px) { .lp-gallery__grid { grid-template-columns: 1fr 1fr; gap: 6px; } }
 
 .lp-newsletter { background: linear-gradient(135deg, #1F2937, #111827); color: #FFF; padding: 64px 24px; }
 .lp-newsletter__inner { max-width: 540px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; }

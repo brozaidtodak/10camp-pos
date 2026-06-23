@@ -3182,13 +3182,10 @@
  <span>−RM <span id="cartDiscountAmt">0.00</span></span>
  </div>
  <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
- <div class="cart-total" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
- <h3 style="font-size:20px; font-weight:800; color:#111;" data-i18n="cs_total">TOTAL</h3>
- <h3 style="font-size:26px; font-weight:800; color:var(--primary); margin:0;">RM <span id="totalPrice">0.00</span></h3>
- </div>
+ <span id="totalPrice" style="display:none;">0.00</span>
  <!-- p1_383 — Snap Resit SIAP-SIAP sebelum checkout (Zaid: bila ingat, snap dulu). Reuse proofCameraInput global + __proofState. -->
  <div id="cartProofRow" style="margin-bottom:12px;"></div>
- <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:var(--primary); font-size:16px; padding:18px; margin:0; border-radius:12px; box-shadow:0 4px 18px rgba(205,124,50,0.35); transition:0.2s;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9">BAYAR SEKARANG</button>
+ <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:var(--primary); padding:16px 22px; margin:0; border-radius:50px; box-shadow:0 4px 18px rgba(205,124,50,0.35); transition:0.2s; display:flex; justify-content:space-between; align-items:center; font-size:15px;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9"><span>BAYAR SEKARANG</span><span style="font-size:18px; font-weight:900; letter-spacing:-0.5px;">RM <span id="bayarBtnTotal">0.00</span></span></button>
  <button onclick="window.posConfirmClearCart()" class="login-btn" style="background:none; color:#9CA3AF; border:none; box-shadow:none; padding:8px; margin-top:2px; font-size:12px; font-weight:500; text-decoration:underline; text-decoration-color:#D1D5DB;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
  <!-- p1_896 + p1_911 — secondary actions: side-by-side untuk jimat ruang (mobile-friendly) -->
  <div style="display:flex; gap:8px; margin-top:10px;">
@@ -14375,7 +14372,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=948"></script>
+ <script src="app.js?v=949"></script>
 
 <!-- PRODUCT DETAILS PAGE MODAL (PDP) -->
 <div id="pdpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:9999; overflow-y:auto; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">

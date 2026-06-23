@@ -14079,10 +14079,16 @@ function renderPOS(searchTerm = "") {
  : `<p class="price">${fmtPrice(priceNum)}</p>`;
 
  const isOOS = totalStock <= 0;
+ const __addAction = p.parent_sku && __multiParents.has(p.parent_sku)
+   ? `event.stopPropagation(); window.__szGridOpen('${String(p.parent_sku).replace(/'/g,"\\'")}');`
+   : `addToCart('${skuEsc}');`;
  htmlBuf += `
  <div class="product-card${isOOS ? ' is-oos' : ''}">
  ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : (totalStock <= (window.__POS_LOW_STOCK || 3) ? `<span class="product-card__low"><i data-lucide="alert-triangle" style="width:11px;height:11px;"></i> Stok rendah</span>` : '')}
+ <div style="position:relative; border-radius:12px; overflow:hidden; margin-bottom:8px;">
  <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="window.__imgZoomOpen('${String(thumb).replace(/'/g, "\\'")}','${skuEsc}')" title="Tap untuk zoom gambar penuh" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
+ <button onclick="${__addAction}" title="${isOOS ? (window.t?window.t('cs_oos_hint'):'Out of stock') : (window.t?window.t('cs_add_to_cart'):'Add to cart')}" style="position:absolute; bottom:8px; right:8px; width:36px; height:36px; min-height:0; border-radius:50%; background:${isOOS ? '#FED7AA' : '#CD7C32'}; color:${isOOS ? '#9A3412' : '#FAF6EF'}; border:none; font-size:22px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.28); z-index:2; padding:0; line-height:1;">+</button>
+ </div>
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
  ${p.brand ? `<span class="cat-badge">${p.brand}</span>` : (p.category ? `<span class="cat-badge">${p.category}</span>` : '')}
@@ -14093,10 +14099,6 @@ function renderPOS(searchTerm = "") {
  <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenProductDetail('${skuEsc}')" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
  <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : (totalStock <= (window.__POS_LOW_STOCK || 3) ? ' style="color:#B45309; font-weight:700;"' : '')}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
- ${p.parent_sku && __multiParents.has(p.parent_sku)
-   ? `<button onclick="event.stopPropagation(); window.__szGridOpen('${String(p.parent_sku).replace(/'/g,"\\'")}')" ${totalStock <= 0 ? `style="background:#FED7AA; color:#9A3412; border:1px solid #FB923C;" title="${(window.t?window.t('cs_oos_hint'):'Out of stock — backorder')}"` : ''}>${(window.t?window.t('cs_add_to_cart'):'Add to Cart')}</button>`
-   : `<button onclick="addToCart('${skuEsc}')" ${totalStock <= 0 ? `style="background:#FED7AA; color:#9A3412; border:1px solid #FB923C;" title="${(window.t?window.t('cs_oos_hint'):'Out of stock — backorder')}"` : ''}>${(window.t?window.t('cs_add_to_cart'):'Add to Cart')}</button>`
- }
  </div>
  `;
  });
@@ -14703,6 +14705,7 @@ function renderCart() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  label.textContent = "0.00";
  if(subLabel) subLabel.textContent = "0.00";
+ const __bbt = document.getElementById('bayarBtnTotal'); if(__bbt) __bbt.textContent = '0.00';
  if(btnPay) btnPay.disabled = true;
  updateMobileBar(0, 0);
  return;
@@ -14767,28 +14770,26 @@ function renderCart() {
    ? `<button onclick="openCartItemDiscount('${item.sku}')" title="Edit diskaun -RM${item.discount_amount.toFixed(2)}" style="background:#FBF3E2; color:#7A5410; border:1px solid #E8C97A; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;"><i data-lucide="tag" style="width:15px;height:15px;pointer-events:none;"></i><span style="position:absolute; bottom:-2px; right:-2px; background:#CE9420; color:#fff; font-size:9px; font-weight:800; border-radius:8px; padding:1px 4px; line-height:1.4; pointer-events:none;">-${item.discount_amount.toFixed(0)}</span></button>`
    : `<button onclick="openCartItemDiscount('${item.sku}')" title="Tambah diskaun" style="background:#F5F5F5; color:#9CA3AF; border:1px solid #E0DCDC; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="tag" style="width:15px;height:15px;pointer-events:none;"></i></button>`;
  return `
- <div class="cart-item" style="flex-direction:column; align-items:stretch; gap:10px; padding:12px; margin-bottom:8px; border-radius:14px; background:${belowFloor ? 'rgba(254,226,226,.25)' : '#FAFAF8'}; border:1.5px solid ${belowFloor ? '#F1C7BD' : '#EEE9E0'};">
- <div style="display:flex; gap:10px; align-items:flex-start;">
+ <div class="cart-item" style="flex-direction:row; align-items:flex-start; gap:12px; padding:14px 0; background:none; border:none; border-bottom:1px solid #F0EDE8; border-radius:0; margin:0; ${belowFloor ? 'border-left:3px solid #E87060; padding-left:9px;' : ''}">
  ${thumb}
  <div style="flex:1; min-width:0;">
- <div style="font-size:13.5px; font-weight:700; color:#101010; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</div>
+ <div style="display:flex; align-items:flex-start; gap:8px; justify-content:space-between;">
+ <div style="flex:1; min-width:0;">
+ <div style="font-size:14px; font-weight:700; color:#101010; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</div>
  <div style="font-size:10.5px; color:#B0A898; font-family:'SF Mono',Menlo,monospace; margin-top:2px;">${hesc(item.sku)}</div>
  ${(discBadge || floorBadge) ? `<div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">${discBadge}${floorBadge}</div>` : ''}
  </div>
  <div style="text-align:right; flex-shrink:0;">
- <div style="font-size:17px; font-weight:800; color:#101010; font-variant-numeric:tabular-nums; letter-spacing:-0.3px;">RM ${lineTotal.toFixed(2)}</div>
- <div style="font-size:10.5px; color:#9CA3AF; font-variant-numeric:tabular-nums; margin-top:2px;">${unitLine}</div>
+ <div style="font-size:16px; font-weight:800; color:#101010; font-variant-numeric:tabular-nums; letter-spacing:-0.3px;">RM ${lineTotal.toFixed(2)}</div>
+ <div style="font-size:10px; color:#9CA3AF; font-variant-numeric:tabular-nums; margin-top:2px;">${unitLine}</div>
  </div>
  </div>
- <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
- <div style="display:flex; align-items:center; gap:0; background:#F0EDE8; border-radius:12px; padding:3px;">
- <button onclick="decreaseQuantity('${item.sku}')" aria-label="Kurang kuantiti" style="background:#fff; border:none; width:44px; height:44px; border-radius:10px; font-weight:800; font-size:22px; line-height:1; cursor:pointer; color:#101010; box-shadow:0 1px 3px rgba(0,0,0,.08);">−</button>
- <span style="font-weight:800; min-width:36px; text-align:center; font-variant-numeric:tabular-nums; font-size:16px; color:#101010;">${item.quantity}</span>
- <button onclick="addToCart('${item.sku}')" aria-label="Tambah kuantiti" style="background:#fff; border:none; width:44px; height:44px; border-radius:10px; font-weight:800; font-size:22px; line-height:1; cursor:pointer; color:#101010; box-shadow:0 1px 3px rgba(0,0,0,.08);">+</button>
- </div>
- <div style="display:flex; align-items:center; gap:6px;">
+ <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+ <button onclick="decreaseQuantity('${item.sku}')" aria-label="Kurang kuantiti" style="width:32px; height:32px; min-height:0; border-radius:50%; background:#CD7C32; color:#FAF6EF; border:none; font-size:20px; font-weight:800; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0;">−</button>
+ <span style="font-weight:800; min-width:20px; text-align:center; font-variant-numeric:tabular-nums; font-size:16px; color:#101010;">${item.quantity}</span>
+ <button onclick="addToCart('${item.sku}')" aria-label="Tambah kuantiti" style="width:32px; height:32px; min-height:0; border-radius:50%; background:#CD7C32; color:#FAF6EF; border:none; font-size:20px; font-weight:800; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0;">+</button>
  ${discBtn}
- <button onclick="removeFromCart('${item.sku}')" aria-label="Buang dari troli" title="Buang dari troli" style="color:#B23A2E; background:#FDF0EE; border:1px solid #F5C9C3; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i data-lucide="trash-2" style="width:16px;height:16px;pointer-events:none;"></i></button>
+ <button onclick="removeFromCart('${item.sku}')" aria-label="Buang dari troli" title="Buang dari troli" style="color:#B23A2E; background:none; border:none; min-height:0; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0; margin-left:auto;"><i data-lucide="trash-2" style="width:16px;height:16px;pointer-events:none;"></i></button>
  </div>
  </div>
  </div>`;
@@ -14820,6 +14821,8 @@ function renderCart() {
  if(subtotalRow) subtotalRow.style.display = discount > 0 ? 'flex' : 'none';
  const finalTotal = round2(total - discount);
  label.textContent = finalTotal.toFixed(2);
+ const bayarTotalEl = document.getElementById('bayarBtnTotal');
+ if(bayarTotalEl) bayarTotalEl.textContent = finalTotal.toFixed(2);
  if(btnPay) btnPay.disabled = false;
  updateMobileBar(finalTotal, totalItems);
  // p4_7 Customer-facing display: broadcast cart for second screen

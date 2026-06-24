@@ -451,3 +451,9 @@ body.pos-mobile-mode .pos-prodsearch-row {
 #modeBar {
     display: none !important;
 }
+
+/* p1_956 — sidebar per-item "Salin link" button (shareable section deep-links #nav_xxx) */
+.menu-item .nav-share { margin-left:auto; flex-shrink:0; background:transparent; border:none; color:#9CA3AF; cursor:pointer; padding:3px 5px; border-radius:6px; opacity:.4; transition:opacity .12s, background .12s, color .12s; display:inline-flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; }
+.menu-item:hover .nav-share { opacity:.85; }
+.menu-item .nav-share:hover { opacity:1; color:var(--primary, #CD7C32); background:rgba(205,124,50,.14); }
+.menu-item .nav-share:active { transform:scale(.9); }

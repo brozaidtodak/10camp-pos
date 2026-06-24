@@ -24,9 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
  // Mobile app shell deep-link: when launched at #staff and no active session, open the staff PIN login
  // directly instead of the public catalog. Normal visitors (no #staff hash) are unaffected.
  try {
- if(!restored && !window.currentUser && (location.hash || '').toLowerCase() === '#staff' && typeof handleLogin === 'function') handleLogin();
+ // p1_956 — deep-link: #staff OR any sidebar section hash (#nav_xxx) → open staff login.
+ // After login, initApp → __navGoHash() navigates to the requested section.
+ const __h = (location.hash || '').toLowerCase().replace(/^#/, '');
+ let __isSec = false;
+ try { __isSec = !!(__h && document.querySelector('#appSidebar .menu-item[data-tab="' + (window.CSS && CSS.escape ? CSS.escape(__h) : __h.replace(/"/g,'')) + '"]')); } catch(e){}
+ if(!restored && !window.currentUser && (__h === 'staff' || __isSec) && typeof handleLogin === 'function') handleLogin();
  } catch(e){}
  })();
+ // p1_956 — paste a section link while already logged in → navigate live.
+ window.addEventListener('hashchange', function(){ try { if(window.currentUser && typeof window.__navGoHash === 'function') window.__navGoHash(); } catch(e){} });
 });
 
 // p1_440: Mobile app (Cashier-only) scope. The native shell appends "TenCampPOSApp"
@@ -8964,6 +8971,8 @@ function switchHub(sectionIds, title, btnElement) {
  pos.style.display = 'block';
  if(previewBanner) previewBanner.style.display = 'none';
  }
+ // p1_956 — reflect active section in URL hash so staff can copy/share the link.
+ try { if(btnElement && btnElement.getAttribute && btnElement.getAttribute('data-tab')){ const __t = btnElement.getAttribute('data-tab'); if((location.hash||'').replace(/^#/,'') !== __t) history.replaceState(null, '', '#' + __t); } } catch(e){}
  // Hide all sections first
  document.querySelectorAll('.tab-section').forEach(s => s.style.display = 'none');
  
@@ -9180,6 +9189,57 @@ window.__panicShow = function(sectionId, title) {
  } catch(e) { /* silent */ }
 };
 window.switchHub = switchHub;
+
+// p1_956 — Shareable section links: tiap item sidebar ada link sendiri (#<data-tab>).
+// Staff boleh salin & hantar; buka link → (login kalau perlu) → terus mendarat di section tu.
+window.__navLinkFor = function(tab){ return (location.origin || 'https://www.10camp.com') + '/#' + tab; };
+window.__copyNavLink = function(tab){
+ const url = window.__navLinkFor(tab);
+ const ok = function(){ if(typeof showToast==='function') showToast('Link disalin — boleh hantar ke staff: ' + url, 'success'); };
+ const fb = function(){
+  try { const t=document.createElement('textarea'); t.value=url; t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t); t.focus(); t.select(); document.execCommand('copy'); document.body.removeChild(t); ok(); }
+  catch(e){ if(typeof showToast==='function') showToast('Salin manual: ' + url, 'warn'); }
+ };
+ try { if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fb); else fb(); }
+ catch(e){ fb(); }
+};
+// Suntik butang "salin link" kecil pada setiap item sidebar (sekali sahaja, idempotent).
+window.__injectNavShareLinks = function(){
+ try {
+  const items = document.querySelectorAll('#appSidebar .nav-children .menu-item[data-tab]');
+  items.forEach(function(el){
+   if(el.querySelector('.nav-share')) return;
+   const tab = el.getAttribute('data-tab');
+   const b = document.createElement('button');
+   b.type='button'; b.className='nav-share'; b.title='Salin link halaman ni'; b.setAttribute('aria-label','Salin link');
+   b.innerHTML='<i data-lucide="link" style="width:13px;height:13px;pointer-events:none;"></i>';
+   b.addEventListener('click', function(e){ e.stopPropagation(); e.preventDefault(); window.__copyNavLink(tab); });
+   el.appendChild(b);
+  });
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ } catch(e){}
+};
+// Buka section ikut hash (#<data-tab>) — expand group induk + klik item (guna logik nav sedia ada).
+window.__navGoHash = function(){
+ try {
+  if(!window.currentUser) return false;
+  const h = (location.hash || '').replace(/^#/, '').trim();
+  if(!h || h.toLowerCase() === 'staff') return false;
+  const sel = '#appSidebar .menu-item[data-tab="' + (window.CSS && CSS.escape ? CSS.escape(h) : h.replace(/"/g,'')) + '"]';
+  const el = document.querySelector(sel);
+  if(!el) return false;
+  const kids = el.closest('.nav-children');
+  if(kids){
+   const name = kids.getAttribute('data-nav-children');
+   const par = document.querySelector('.nav-parent[data-nav-parent="' + name + '"]');
+   if(par) par.classList.add('is-expanded');
+   try { window.navGroupState = window.navGroupState || {}; window.navGroupState[name] = true; } catch(e){}
+  }
+  el.click();
+  try { el.scrollIntoView({block:'center'}); } catch(e){}
+  return true;
+ } catch(e){ return false; }
+};
 
 
 
@@ -9399,6 +9459,9 @@ async function initApp() {
  if (typeof showToast === 'function') showToast('Server Error: ' + e.message, 'error'); else alert('Server Error: ' + e.message);
  } finally {
  if (isFirstLoad && typeof hideLoading === 'function') hideLoading();
+ // p1_956 — suntik butang salin-link pada sidebar + buka section ikut hash (#nav_xxx) selepas login.
+ try { if(typeof window.__injectNavShareLinks === 'function') window.__injectNavShareLinks(); } catch(e){}
+ try { if(window.currentUser && typeof window.__navGoHash === 'function') setTimeout(window.__navGoHash, 80); } catch(e){}
  }
 }
 

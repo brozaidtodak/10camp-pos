@@ -263,6 +263,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .cart-title { font-size: 18px; margin-bottom: 20px; font-weight: 700; border-bottom: 2px solid var(--primary); padding-bottom: 10px; display: inline-block;}
 .checkout-btn { background: var(--primary); color: white; padding: 16px; width: 100%; font-weight: 700; border:none; border-radius: var(--radius-pill); cursor:pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; margin-top:20px;}
 .checkout-btn:hover { background: #222222; }
+/* p1_949 — primary BAYAR CTA was hover-only; add tactile press (scale .98, matches btn-brand-primary) so the most-tapped button in the cashier responds to touch like cart rows/keypad */
+.checkout-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.checkout-btn:active { transform: scale(.98); filter: brightness(.94); }
+/* p1_949 — cashier secondary row-actions (Maklum Inventori / Jualan Ditahan): 44px touch min + matching press feedback */
+.cart-action-btn { min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform .08s ease, filter .12s ease; }
+.cart-action-btn:active { transform: scale(.98); filter: brightness(.95); }
 
 .history-card { background: var(--card-bg); padding: 20px; border-left: 4px solid var(--primary); margin-bottom:15px; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
 .badge-status { padding: 4px 10px; border-radius: var(--radius-pill); font-size: 10px; font-weight: 700; color:white; text-transform: uppercase; letter-spacing: 0.5px;}

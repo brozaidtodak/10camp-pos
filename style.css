@@ -257,6 +257,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 
 .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:15px;}
 .cart-item button { width: 28px; height: 28px; border-radius: 14px; border: 1px solid var(--border-color); background: #FFF; cursor: pointer; font-weight: bold;}
+/* p1_948 — cart row tactile feedback: press = scale down, no tap-highlight flash (matches keypad/product-card) */
+.cart-tactile { transition: transform .07s ease, filter .12s ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.cart-tactile:active { transform: scale(.9); filter: brightness(.94); }
 .cart-title { font-size: 18px; margin-bottom: 20px; font-weight: 700; border-bottom: 2px solid var(--primary); padding-bottom: 10px; display: inline-block;}
 .checkout-btn { background: var(--primary); color: white; padding: 16px; width: 100%; font-weight: 700; border:none; border-radius: var(--radius-pill); cursor:pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; margin-top:20px;}
 .checkout-btn:hover { background: #222222; }

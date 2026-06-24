@@ -41396,14 +41396,16 @@ window.__evRenderDetail = function(sec){
  const dlOpts=prods.slice(0,3000).map(p=>'<option value="'+E(p.sku)+'">'+E((p.name||'').slice(0,50))+'</option>').join('');
  const cc=window.__evCudCur();
  let nTopup=0, nOrder=0, nOk=0;
+ if(!window.__evNoImg) window.__evNoImg="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 48 48'><rect width='48' height='48' rx='8' fill='%23F3F4F6'/><path d='M14 30l6-7 4 5 4-5 6 7z' fill='%23D1D5DB'/><circle cx='18' cy='17' r='3' fill='%23D1D5DB'/></svg>";
  const rows = items.length ? items.map(it=>{
   const p=window.__bundleProd(it.sku); const nm=p?(p.name||it.sku):it.sku;
+  const __im=(p && ((window.__coverOf&&window.__coverOf(p))||(p.images&&p.images[0])))||window.__evNoImg;
   const c=window.__evCompute(it, cc);
   if(c.status==='ok') nOk++; else if(c.status==='topup') nTopup++; else nOrder++;
   const stt=window.__EV_STAT[c.status];
   const shortTxt = c.shortfall>0 ? ('<span style="font-weight:800; color:'+stt.c+';">'+c.shortfall+'</span>') : '<span style="color:#4E7C4A; font-weight:700;">0</span>';
   return '<tr style="border-bottom:1px solid #EEE;">'
-   +'<td style="padding:8px 10px;">'+E(nm.slice(0,46))+'<div style="color:#9CA3AF; font-size:11px;">'+E(it.sku)+'</div></td>'
+   +'<td style="padding:8px 10px;"><div style="display:flex; align-items:center; gap:10px;"><img src="'+E(__im)+'" loading="lazy" onerror="this.onerror=null;this.src=window.__evNoImg;" style="width:40px; height:40px; object-fit:cover; border-radius:8px; border:1px solid #E5E7EB; flex-shrink:0;" alt=""><div style="min-width:0;">'+E(nm.slice(0,46))+'<div style="color:#9CA3AF; font-size:11px;">'+E(it.sku)+'</div></div></div></td>'
    +'<td style="padding:8px 6px;"><input type="number" min="1" value="'+(Number(it.qty_needed)||1)+'" onchange="window.__evItemQty(\''+it.id+'\',\''+ev.id+'\',this.value)" style="width:64px; padding:6px; border:1px solid #D1D5DB; border-radius:7px; text-align:center;"></td>'
    +'<td style="padding:8px 6px; text-align:center; color:#374151;" title="Display (CUD)">'+c.cud+'</td>'
    +'<td style="padding:8px 6px; text-align:center; color:#374151;" title="Rental (CUR)">'+c.cur+'</td>'

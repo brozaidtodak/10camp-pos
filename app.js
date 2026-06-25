@@ -14151,6 +14151,7 @@ function renderPOS(searchTerm = "") {
  <div style="position:relative; border-radius:12px; overflow:hidden; margin-bottom:8px;">
  <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="event.stopPropagation(); window.posOpenMedia('${skuEsc}')" title="Tap untuk lihat gambar & video" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  ${__hasVideo ? `<span style="position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; background:rgba(16,16,16,.62); color:#FAF6EF; display:flex; align-items:center; justify-content:center; z-index:2; pointer-events:none;" title="Ada video"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M8 5v14l11-7z"/></svg></span>` : ''}
+ <button type="button" class="posDescBtn" onclick="event.stopPropagation(); window.posOpenDesc('${skuEsc}')" title="Lihat description produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.5" r="0.5" fill="currentColor"/></svg> Desc</button>
  </div>
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
@@ -14459,6 +14460,57 @@ function renderPOS(searchTerm = "") {
   if(mg&&mg.classList.contains('show')){ closeMG(); return; }
   if(vv&&vv.classList.contains('show')){ closeVV(); }
  });
+})();
+
+// =============================================================
+// p1_960 — Butang "Desc" pada kad produk cashier: papar description produk (popup).
+// =============================================================
+(function(){
+ if(!document.getElementById('posDescCss')){
+  const st=document.createElement('style'); st.id='posDescCss';
+  st.textContent=''
+   +'.posDescBtn{position:absolute;bottom:8px;right:8px;height:30px;padding:0 12px;border-radius:15px;border:none;background:rgba(16,16,16,.62);color:#FAF6EF;font-family:Poppins,system-ui,sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.3)}'
+   +'.posDescBtn:active{transform:scale(.94)}'
+   +'.posDescBtn svg{width:13px;height:13px}'
+   +'.posDescSc{position:fixed;inset:0;z-index:10250;background:rgba(16,16,16,.55);display:none;align-items:center;justify-content:center;padding:18px;font-family:Poppins,system-ui,sans-serif}'
+   +'.posDescSc.show{display:flex}'
+   +'.posDescCard{background:#FAF6EF;width:100%;max-width:460px;max-height:82vh;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 44px rgba(0,0,0,.3)}'
+   +'.posDescHead{display:flex;align-items:flex-start;gap:12px;padding:18px 18px 12px;border-bottom:1px solid #EADFD0}'
+   +'.posDescHead h3{font-size:16px;font-weight:700;color:#101010;line-height:1.3;flex:1;margin:0}'
+   +'.posDescHead small{display:block;font-size:11px;font-weight:600;color:#9b8b76;margin-top:3px}'
+   +'.posDescX{width:34px;height:34px;border-radius:50%;border:none;background:#fff;color:#101010;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.1)}'
+   +'.posDescBody{padding:16px 18px 20px;overflow-y:auto;font-size:14px;line-height:1.6;color:#3a342c;white-space:pre-wrap;word-break:break-word}'
+   +'.posDescBody.empty{color:#9b8b76;font-style:italic}';
+  document.head.appendChild(st);
+ }
+ let dsc=null;
+ function buildDsc(){
+  const el=document.createElement('div'); el.id='posDescSc'; el.className='posDescSc';
+  el.innerHTML='<div class="posDescCard"><div class="posDescHead"><div style="flex:1;min-width:0;"><h3 id="posDescTtl"></h3><small id="posDescSub"></small></div><button class="posDescX" id="posDescX" aria-label="Tutup">&times;</button></div><div class="posDescBody" id="posDescBody"></div></div>';
+  document.body.appendChild(el);
+  el.addEventListener('click',e=>{ if(e.target===el) closeDsc(); });
+  el.querySelector('#posDescX').addEventListener('click',closeDsc);
+  return el;
+ }
+ function closeDsc(){ if(dsc) dsc.classList.remove('show'); }
+ window.posOpenDesc=function(sku){
+  const p=(typeof masterProducts!=='undefined'?masterProducts:[]).find(x=>x.sku===sku);
+  if(!p){ if(window.showToast) showToast('Produk tak dijumpai','warn'); return; }
+  let nm=(p.metadata&&p.metadata.product_name)||(p.name||'Untitled');
+  nm=nm.replace(/^[A-Z0-9-]+\s*[|_]\s*/i,'').trim();
+  if(/\s\|\s/.test(nm)) nm=nm.split(/\s*\|\s*/)[0].trim();
+  nm=nm.replace(/\s*[_]\s*/g,' — ').replace(/\s{2,}/g,' ').trim();
+  let d=(p.description||'').toString();
+  d=d.replace(/\[EASYSTORE-ID:[^\]]+\]\s*/g,'').replace(/\[STOK BELUM DISAHKAN[^\]]*\]\s*/g,'').replace(/^Product name:\s*[^\n]*\n/i,'').replace(/\n{3,}/g,'\n\n').trim();
+  if(!dsc) dsc=buildDsc();
+  document.getElementById('posDescTtl').textContent=nm||p.name||'Produk';
+  document.getElementById('posDescSub').textContent='SKU '+(p.sku||'—');
+  const body=document.getElementById('posDescBody');
+  if(d){ body.textContent=d; body.classList.remove('empty'); }
+  else { body.textContent='Tiada description untuk produk ini. Tambah di editor produk (back office).'; body.classList.add('empty'); }
+  dsc.classList.add('show');
+ };
+ document.addEventListener('keydown',function(e){ if(e.key==='Escape' && dsc && dsc.classList.contains('show')) closeDsc(); });
 })();
 
 // =============================================================

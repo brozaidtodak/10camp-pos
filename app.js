@@ -13791,6 +13791,7 @@ window.__bpRenderBrandPills = function() {
  const tally = {};
  masterProducts.forEach(p => {
  if(!isPublished(p)) return;
+ if(window.__isDiscontinued(p)) return;  // p1_963 — discontinued tak dikira dalam brand pills
  const b = (p.brand || '').trim();
  if(!b) return;
  tally[b] = (tally[b] || 0) + 1;
@@ -17598,7 +17599,7 @@ document.addEventListener('click', function(e) {
 // with live numbers from masterProducts + customersData. Runs after data load.
 window.lpUpdateTrustStats = function() {
     if (typeof masterProducts === 'undefined' || !Array.isArray(masterProducts)) return;
-    const eligible = masterProducts.filter(p => isPublished(p) && !window.lpIsEventSku(p));
+    const eligible = masterProducts.filter(p => isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p));  // p1_963
     const productCount = eligible.length;
     const brandSet = new Set();
     eligible.forEach(p => { if (p.brand && String(p.brand).trim()) brandSet.add(String(p.brand).trim().toLowerCase()); });
@@ -17619,7 +17620,7 @@ window.lpUpdateTrustStats = function() {
 window.lpRenderActivityTiles = function() {
     const wrap = document.getElementById('lpActivityGrid');
     if(!wrap || typeof masterProducts === 'undefined') return;
-    const products = masterProducts.filter(p => isPublished && isPublished(p) && !window.lpIsEventSku(p));
+    const products = masterProducts.filter(p => isPublished && isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p));  // p1_963
     let html = '';
     Object.entries(window.LP_ACTIVITY_GROUPS).forEach(([key, g]) => {
         // p1_48: count uses lpRealCategory so brand-named cats remap to real cats first
@@ -17652,7 +17653,7 @@ window.lpRenderCategoryPills = function() {
     const activity = window.lpActiveActivity && window.LP_ACTIVITY_GROUPS && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity];
     const allowedCats = activity ? new Set(activity.cats) : null;
     const cats = {};
-    masterProducts.filter(p => isPublished && isPublished(p) && !window.lpIsEventSku(p)).forEach(p => {
+    masterProducts.filter(p => isPublished && isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p)).forEach(p => {  // p1_963
         // p1_48: use cleaned category (brand-named cats remapped via heuristic)
         const c = window.lpRealCategory(p) || 'Uncat';
         // p1_48: never expose brand-named cats as a pill (BLACKDOG, NATUREHIKE, etc.)
@@ -17901,8 +17902,9 @@ window.lpOpenProductDetail = function(sku) {
     if (!sku || typeof masterProducts === 'undefined') return;
     const lead = masterProducts.find(p => p.sku === sku);
     if (!lead) return;
+    if (window.__isDiscontinued && window.__isDiscontinued(lead)) return;  // p1_963 — discontinued tak boleh dibuka di landing (deep-link guard)
     const parentSku = lead.parent_sku || lead.sku;
-    const variants = masterProducts.filter(p => (p.parent_sku || p.sku) === parentSku);
+    const variants = masterProducts.filter(p => (p.parent_sku || p.sku) === parentSku && !window.__isDiscontinued(p));  // p1_963 — sorok variant discontinued di PDP landing
     if (!variants.length) return;
     window.lpPdpState = { variants, currentSku: sku, qty: 1, imgIdx: 0 };
     window.lpRenderPdp();
@@ -18210,7 +18212,7 @@ function renderPublicStorefront() {
         return;
     }
 
-    let filtered = masterProducts.filter(p => isPublished(p) && !window.lpIsEventSku(p));
+    let filtered = masterProducts.filter(p => isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p));  // p1_963 — sorok discontinued dari landing
     if(window.lpSearchTerm) {
         const q = window.lpSearchTerm;
         filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
@@ -18420,6 +18422,7 @@ window.renderPopularSoldOut = function() {
     // Pick published products with zero remaining stock.
     const soldOut = masterProducts.filter(p => {
         if(!isPublished(p)) return false;
+        if(window.__isDiscontinued(p)) return false;  // p1_963 — discontinued tak masuk showcase Sold Out landing
         const stock = inventoryBatches
             .filter(b => b.sku === p.sku && b.qty_remaining > 0)
             .reduce((s, b) => s + b.qty_remaining, 0);
@@ -24014,7 +24017,7 @@ window.renderQuotePOS = function(searchTerm = "") {
  list.innerHTML = "";
  
  // Filter published products
- let activeProducts = masterProducts.filter(p => isPublished(p));
+ let activeProducts = masterProducts.filter(p => isPublished(p) && !window.__isDiscontinued(p));  // p1_963 — discontinued tak boleh masuk sebut harga
  
  if(searchTerm) {
  let q = searchTerm.toLowerCase();

@@ -14101,11 +14101,8 @@ function renderPOS(searchTerm = "") {
  const b = inventoryBatches[i];
  if(b.qty_remaining > 0) __stockBySku.set(b.sku, (__stockBySku.get(b.sku) || 0) + b.qty_remaining);
  }
- // p1_942 — precompute parent_skus dengan >1 variant supaya grid-button boleh ditunjuk pada kad
- const __multiParents = new Set();
- const __pskuTmp = new Map();
- for(const p of masterProducts) { if(!isPublished(p)||!p.parent_sku) continue; __pskuTmp.set(p.parent_sku,(__pskuTmp.get(p.parent_sku)||0)+1); }
- __pskuTmp.forEach((cnt,psku)=>{ if(cnt>1) __multiParents.add(psku); });
+ // p1_959 — __multiParents (p1_942 grid-button) dibuang sebab butang (+) dah tiada;
+ // pemilihan variant kini dikendali sepenuhnya oleh posOpenVariants (tap kad).
 
  sliced.forEach(p => {
 
@@ -14146,16 +14143,14 @@ function renderPOS(searchTerm = "") {
 
  const isOOS = totalStock <= 0;
  const __hasVideo = !!(p.metadata && typeof p.metadata === 'object' && p.metadata.video);  // p1_958
- const __addAction = p.parent_sku && __multiParents.has(p.parent_sku)
-   ? `event.stopPropagation(); window.__szGridOpen('${String(p.parent_sku).replace(/'/g,"\\'")}');`
-   : `addToCart('${skuEsc}');`;
+ // p1_959 — butang (+) dibuang (Zaid): seluruh kad boleh-tekan. Tekan GAMBAR -> media,
+ // tekan mana-mana lagi -> posOpenVariants (1 variant = terus masuk troli, banyak = skrin pilih).
  htmlBuf += `
- <div class="product-card${isOOS ? ' is-oos' : ''}">
+ <div class="product-card${isOOS ? ' is-oos' : ''}" onclick="window.posOpenVariants('${skuEsc}')" style="cursor:pointer;" title="Tap untuk pilih variant / masuk troli">
  ${isOOS ? `<span class="product-card__oos"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> STOK HABIS</span>` : (totalStock <= (window.__POS_LOW_STOCK || 3) ? `<span class="product-card__low"><i data-lucide="alert-triangle" style="width:11px;height:11px;"></i> Stok rendah</span>` : '')}
  <div style="position:relative; border-radius:12px; overflow:hidden; margin-bottom:8px;">
- <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="window.posOpenMedia('${skuEsc}')" title="Tap untuk lihat gambar & video" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
+ <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="event.stopPropagation(); window.posOpenMedia('${skuEsc}')" title="Tap untuk lihat gambar & video" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  ${__hasVideo ? `<span style="position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; background:rgba(16,16,16,.62); color:#FAF6EF; display:flex; align-items:center; justify-content:center; z-index:2; pointer-events:none;" title="Ada video"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M8 5v14l11-7z"/></svg></span>` : ''}
- <button onclick="${__addAction}" title="${isOOS ? (window.t?window.t('cs_oos_hint'):'Out of stock') : (window.t?window.t('cs_add_to_cart'):'Add to cart')}" style="position:absolute; bottom:8px; right:8px; width:36px; height:36px; min-height:0; border-radius:50%; background:${isOOS ? '#FED7AA' : '#CD7C32'}; color:${isOOS ? '#9A3412' : '#FAF6EF'}; border:none; font-size:22px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.28); z-index:2; padding:0; line-height:1;">+</button>
  </div>
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
@@ -14164,7 +14159,7 @@ function renderPOS(searchTerm = "") {
  ${isOnSale ? `<span class="cat-badge" style="background:#0F172A; color:#FFFFFF;">-${offPct}%</span>` : ''}
  ${p.location_bin ? `<span class="cat-badge" style="background:#F8EFD7; color:#7A5410; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;" title="Lokasi gudang">${p.location_bin}</span>` : ''}
  </div>
- <h3 class="product-card__title pos-detail-trigger" onclick="window.posOpenVariants('${skuEsc}')" title="Tap untuk lihat variant & media — ${safeName}">${cleanName}</h3>
+ <h3 class="product-card__title" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
  <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : (totalStock <= (window.__POS_LOW_STOCK || 3) ? ' style="color:#B45309; font-weight:700;"' : '')}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
  </div>
@@ -14447,6 +14442,8 @@ function renderPOS(searchTerm = "") {
  window.posOpenVariants=function(sku){
   const p=findProd(sku); if(!p){ if(window.showToast) showToast('Produk tak dijumpai','warn'); return; }
   vvVariants=variantsOf(p);
+  // p1_959 — produk satu-variant (takde pilihan) -> terus masuk troli, tak payah buka sheet kosong
+  if(vvVariants.length<=1){ if(typeof addToCart==='function'){ addToCart(p.sku); if(window.showToast) showToast('Ditambah ke troli','success'); } return; }
   if(!vv) vv=buildVV();
   const ttl=document.getElementById('posVVTtl');
   const pname=(p.metadata&&p.metadata.product_name)||cleanNm(p);

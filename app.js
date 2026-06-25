@@ -981,6 +981,8 @@ let purchaseOrders = [];
 let poDraftItems = [];
 
 let customersData = [];
+// 2026-06-25 — B2B per-company negotiated prices (loaded for staff in bootstrap Promise.all)
+window.__b2bPriceList = window.__b2bPriceList || [];
 
 let financeRecords = [];
 let financeChartInstance = null;
@@ -9343,13 +9345,15 @@ async function initApp() {
  // →finance berturut-turut = ~8 round-trip bersiri (lambat atas wifi kedai). Sekarang serentak.
  // Dedup sales (p1_673) + pagination (__aoFetchAllSales/__fetchAllRows) kekal sama.
  if(window.currentUser){
- const [quotesRes, sales, custs, finRes] = await Promise.all([
+ const [quotesRes, sales, custs, finRes, b2bplRes] = await Promise.all([
  db.from('quotations_log').select('*').order('created_at', {ascending: false}).then(r=>r).catch(()=>({data:null})),
  db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000).then(r=>r.data||[]).catch(()=>[]),  // p1_743 — startup: 1000 sales TERKINI sahaja (laju ~1MB); sejarah penuh dimuat di latar (bawah)
  window.__fetchAllRows('customers', 'id', true).catch(async ()=>{ try { const r = await db.from('customers').select('*'); return r.data || []; } catch(_){ return []; } }),
- db.from('finance_records').select('*').order('year', {ascending: false}).then(r=>r).catch(()=>({data:null}))
+ db.from('finance_records').select('*').order('year', {ascending: false}).then(r=>r).catch(()=>({data:null})),
+			db.from('b2b_price_list').select('*').then(r=>r).catch(()=>({data:null}))
  ]);
  if(quotesRes && quotesRes.data) quoteHistoryLogs = quotesRes.data;
+		if(b2bplRes && b2bplRes.data) window.__b2bPriceList = b2bplRes.data;
  // p1_673 — GANTI senarai (dedupe ikut id); kekalkan jualan in-memori yang belum ada dalam hasil DB.
  if(sales && sales.length){
  const dbIds = new Set(sales.map(s => s && s.id).filter(x => x != null));
@@ -14602,6 +14606,59 @@ window.removeCartItemDiscount = function(){
  if(typeof renderCart==='function') renderCart();
 };
 
+// 2026-06-25 — B2B per-company pricing helpers.
+// __b2bPriceFor: harga rundingan utk (customer, sku) bila qty cukup min_qty; null = guna retail.
+window.__b2bPriceFor = function(customerId, sku, qty) {
+	if(!customerId || !sku) return null;
+	const list = window.__b2bPriceList;
+	if(!Array.isArray(list) || !list.length) return null;
+	const skuU = String(sku).toUpperCase();
+	const q = Number(qty) || 1;
+	const rows = list.filter(r => String(r.customer_id) === String(customerId)
+		&& String(r.sku || '').toUpperCase() === skuU
+		&& (Number(r.min_qty) || 1) <= q);
+	if(!rows.length) return null;
+	let best = null;
+	rows.forEach(r => { const up = Number(r.unit_price); if(up >= 0 && (best == null || up < best)) best = up; });
+	return best;
+};
+// __posUnitPrice: harga seunit ikut customer aktif (B2B → harga khas; selainnya retail).
+window.__posUnitPrice = function(product, qty) {
+	const retail = parseFloat(product && product.price) || 0;
+	const pc = window.posCustomer;
+	if(pc && pc.is_b2b) {
+		const np = window.__b2bPriceFor(pc.id, product && product.sku, qty || 1);
+		if(np != null) return Number(np);
+	}
+	return retail;
+};
+// __repriceCartForCustomer: bila customer attach/detach/tukar, set semula harga setiap baris cart.
+// Simpan retail asal dlm item.retail_price supaya boleh pulih bila detach. Skip item Custom Sale.
+window.__repriceCartForCustomer = function() {
+	if(typeof cart === 'undefined' || !Array.isArray(cart)) return 0;
+	const pc = window.posCustomer;
+	let changed = 0;
+	cart.forEach(item => {
+		if(!item || item.isCustom || (typeof item.sku === 'string' && item.sku.startsWith('CUSTOM-'))) return;
+		const p = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts.find(x => x.sku === item.sku) : null;
+		const retail = p ? (parseFloat(p.price) || 0) : (item.retail_price != null ? Number(item.retail_price) : Number(item.price) || 0);
+		let np = null;
+		if(pc && pc.is_b2b) np = window.__b2bPriceFor(pc.id, item.sku, item.quantity);
+		if(np != null) {
+			if(item.retail_price == null) item.retail_price = retail;
+			if(Number(item.price) !== Number(np)) changed++;
+			item.price = Number(np);
+			item.b2b_priced = true;
+		} else if(item.b2b_priced) {
+			if(Number(item.price) !== retail) changed++;
+			item.price = retail;
+			item.b2b_priced = false;
+			delete item.retail_price;
+		}
+	});
+	return changed;
+};
+
 window.addToCart = function(sku) {
  const p = masterProducts.find(x => x.sku === sku);
  if(!p) {
@@ -14619,7 +14676,12 @@ window.addToCart = function(sku) {
  if(typeof showToast === 'function') showToast(`AMARAN: ${sku} stok sistem ${totalAvail}, dah jual ${cartItem.quantity} unit. Backorder.`, 'warn');
  }
  } else {
- cart.push({ sku, name: p.name, price: parseFloat(p.price) || 0, quantity: 1 });
+ // 2026-06-25 — guna harga B2B khas kalau customer B2B attached, selainnya retail
+		const __retail = parseFloat(p.price) || 0;
+		const __unit = (typeof window.__posUnitPrice === 'function') ? window.__posUnitPrice(p, 1) : __retail;
+		const __item = { sku, name: p.name, price: __unit, quantity: 1 };
+		if(__unit !== __retail) { __item.b2b_priced = true; __item.retail_price = __retail; }
+		cart.push(__item);
  if(totalAvail <= 0) {
  if(typeof showToast === 'function') showToast(`AMARAN: ${sku} stok sistem = 0. Jual sebagai backorder.`, 'warn');
  }
@@ -14819,12 +14881,19 @@ function renderCart() {
  const floorBadge = belowFloor
  ? `<span style="display:inline-block; padding:2px 7px; background:#F4E4DF; color:#7C2A20; border-radius:50px; font-size:9.5px; font-weight:700; letter-spacing:0.3px;">BAWAH FLOOR (RM ${floor.toFixed(2)})</span>`
  : '';
+ // 2026-06-25 — B2B: tanda harga rundingan + retail dicoret
+ const __b2bPriced = !!item.b2b_priced && item.retail_price != null && Number(item.retail_price) > Number(item.price);
+ const b2bBadge = __b2bPriced
+ ? `<span style="display:inline-block; padding:2px 7px; background:#EEF3EC; color:#34522F; border-radius:50px; font-size:9.5px; font-weight:700; letter-spacing:0.3px;" title="Harga rundingan B2B">HARGA B2B</span>`
+ : '';
  const discBadge = (item.discount_amount && item.discount_amount > 0)
  ? `<span style="display:inline-block; padding:2px 7px; background:#F8EFD7; color:#7A5410; border-radius:50px; font-size:10px; font-weight:700;" title="${item.discount_reason || 'Diskaun manual'}">−RM ${item.discount_amount.toFixed(2)}</span>`
  : '';
  const unitLine = (item.discount_amount && item.original_price)
  ? `<s style="color:#B6B0A6;">RM${item.original_price.toFixed(2)}</s> RM${item.price.toFixed(2)} × ${item.quantity}`
- : `RM${item.price.toFixed(2)} × ${item.quantity}`;
+ : (__b2bPriced
+ ? `<s style="color:#B6B0A6;">RM${Number(item.retail_price).toFixed(2)}</s> RM${item.price.toFixed(2)} × ${item.quantity}`
+ : `RM${item.price.toFixed(2)} × ${item.quantity}`);
  // strip leading "SKU | " prefix from product name for cleaner cart display
  const i = item.name.indexOf(' | ');
  const displayName = hesc((i >= 0 ? item.name.slice(i + 3) : item.name).replace(/ _ /g, ' ').trim());
@@ -14839,7 +14908,7 @@ function renderCart() {
  <div style="flex:1; min-width:0;">
  <div style="font-size:14px; font-weight:700; color:#101010; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</div>
  <div style="font-size:10.5px; color:#B0A898; font-family:'SF Mono',Menlo,monospace; margin-top:2px;">${hesc(item.sku)}</div>
- ${(discBadge || floorBadge) ? `<div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">${discBadge}${floorBadge}</div>` : ''}
+ ${(discBadge || floorBadge || b2bBadge) ? `<div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">${discBadge}${floorBadge}${b2bBadge}</div>` : ''}
  </div>
  <div style="text-align:right; flex-shrink:0;">
  <div style="font-size:16px; font-weight:800; color:#101010; font-variant-numeric:tabular-nums; letter-spacing:-0.3px;">RM ${lineTotal.toFixed(2)}</div>
@@ -15246,6 +15315,17 @@ window.posCustomer = null;
 
 window.posSetCustomer = function(c) {
  window.posCustomer = c || null;
+ // 2026-06-25 — B2B: set semula harga cart ikut harga rundingan customer (atau pulih retail bila detach)
+ try {
+  if(typeof window.__repriceCartForCustomer === 'function') {
+   const __n = window.__repriceCartForCustomer();
+   if(__n > 0 && typeof showToast === 'function') {
+    showToast((c && c.is_b2b)
+     ? ('Harga B2B ' + (c.company_name || c.name || '') + ' digunakan untuk ' + __n + ' item')
+     : ('Harga retail dipulihkan untuk ' + __n + ' item'), 'info');
+   }
+  }
+ } catch(e){ console.warn('reprice B2B gagal:', e); }
  // p1_79 fix #3: recompute cart so VIP discount preview updates immediately
  try { if(typeof renderCart === 'function') renderCart(); } catch(e){}
  const widget = document.getElementById('posCustomerWidget');
@@ -15339,8 +15419,9 @@ window.cpkFilterCustomers = function(q) {
  // Elak "aliff irfan" gagal padan "Irfan Aliff"; phone 0123/60123/012-345 semua padan.
  const tokens = query.split(/\s+/).filter(Boolean);
  const custMatch = (c) => {
- const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
- const phoneDigits = (c.phone || '').replace(/\D/g, '');
+ // 2026-06-25 — masuk company_name + pic_phone supaya B2B boleh dicari ikut nama syarikat di cashier
+ const hay = ((c.name || '') + ' ' + (c.company_name || '') + ' ' + (c.phone || '') + ' ' + (c.pic_phone || '') + ' ' + (c.email || '')).toLowerCase();
+ const phoneDigits = ((c.phone || '') + (c.pic_phone || '')).replace(/\D/g, '');
  return tokens.every(t => {
   if(hay.includes(t)) return true;
   const td = t.replace(/\D/g, '');
@@ -15355,11 +15436,11 @@ window.cpkFilterCustomers = function(q) {
  if(!matches.length && !past.length) { res.innerHTML = `<p style="color:#B23A2E; font-size:13px; padding:12px; text-align:center; margin:0;">Tiada match untuk "${query}". Daftar baru di bawah.</p>`; return; }
  const crmHtml = matches.map(c => {
  const pts = parseInt(c.points || 0);
- const badge = (typeof window.__tierBadgeHtml === 'function' ? window.__tierBadgeHtml(c) : '') + (c.is_member ? '<span style="background:#F8EFD7; color:#7A5410; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-left:6px;">VIP</span>' : '');
+ const badge = (typeof window.__tierBadgeHtml === 'function' ? window.__tierBadgeHtml(c) : '') + (c.is_member ? '<span style="background:#F8EFD7; color:#7A5410; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-left:6px;">VIP</span>' : '') + (c.is_b2b ? '<span style="background:#EEF3EC; color:#34522F; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-left:6px;">B2B</span>' : '');
  return `<div onclick="window.cpkPickCustomer(${c.id})" style="padding:10px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background=''">
  <div>
- <div style="font-size:13.5px; font-weight:700; color:#111;">${escHtml(c.name || '(no name)')}${badge}</div>
- <div style="font-size:11.5px; color:#6B7280; margin-top:2px;">${escHtml(c.phone || '-')} · ${pts} pts · RM ${Number(c.total_spent || 0).toFixed(2)} spent</div>
+ <div style="font-size:13.5px; font-weight:700; color:#111;">${escHtml(c.is_b2b ? (c.company_name || c.name || '(no name)') : (c.name || '(no name)'))}${badge}</div>
+ <div style="font-size:11.5px; color:#6B7280; margin-top:2px;">${escHtml((c.is_b2b ? (c.pic_phone || c.phone) : c.phone) || '-')} · ${pts} pts · RM ${Number(c.total_spent || 0).toFixed(2)} spent</div>
  </div>
  <i data-lucide="chevron-right" style="width:14px; height:14px; color:#9CA3AF;"></i>
  </div>`;
@@ -15779,6 +15860,18 @@ window.processNewCheckout = async function() {
  saleMeta.backorder = true;
  saleMeta.backorder_items = window.__lastBackorderItems;
  window.__lastBackorderItems = null;
+ }
+ // 2026-06-25 — rekod konteks B2B (audit + reporting): customer, item harga rundingan, jimat vs retail
+ if(window.posCustomer && window.posCustomer.is_b2b) {
+  const __pc = window.posCustomer;
+  let __b2bSaved = 0, __b2bN = 0;
+  cart.forEach(it => { if(it && it.b2b_priced && it.retail_price != null) { __b2bSaved += (Number(it.retail_price) - Number(it.price)) * (Number(it.quantity) || 0); __b2bN++; } });
+  saleMeta.b2b_sale = true;
+  saleMeta.b2b_customer_id = __pc.id;
+  saleMeta.b2b_company = __pc.company_name || __pc.name || null;
+  saleMeta.b2b_payment_terms = __pc.payment_terms || null;
+  saleMeta.b2b_priced_items = __b2bN;
+  saleMeta.b2b_savings_vs_retail = Math.round(__b2bSaved * 100) / 100;
  }
  // p1_236 — Custom Sale items flag (ad-hoc sales bukan dari Master)
  const customItems = cart.filter(it => it.isCustom || (typeof it.sku === 'string' && it.sku.startsWith('CUSTOM-')));
@@ -29602,10 +29695,48 @@ window.__invSetThreshold = function(v){ window.__invRestockThreshold = parseInt(
 window.__invSetLead = function(v){ window.__invLeadDays = Math.max(1, parseInt(v) || 35); window.renderInventoryAnalytics(); };
 window.__invSubTab = function(z, el){
   window.__invZone = z;
-  ['ringkasan','tindakan','analisa'].forEach(k => { const d=document.getElementById('invZone_'+k); if(d) d.style.display = (k===z) ? '' : 'none'; });
+  ['ringkasan','tindakan','analisa','deadstock'].forEach(k => { const d=document.getElementById('invZone_'+k); if(d) d.style.display = (k===z) ? '' : 'none'; });
   document.querySelectorAll('#invSubTabs .inv-subtab').forEach(x => x.classList.remove('active'));
   if(el) el.classList.add('active');
   if(z === 'ringkasan') setTimeout(() => { try { window.__invDrawTrend && window.__invDrawTrend(); } catch(e){} }, 50); // p1_807 — lukis graf trend bila zon dibuka
+};
+// 2026-06-25 — Dead Stock (visual): ruangan khas tunjuk gambar + SKU + unit untuk barang tak laku
+window.__invDeadSort = window.__invDeadSort || 'units';
+window.__invDeadSearch = window.__invDeadSearch || '';
+window.__invDeadPh = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><rect width='120' height='120' fill='%23F3F4F6'/><path d='M35 78l16-19 11 13 11-13 16 19z' fill='%23D1D5DB'/><circle cx='46' cy='44' r='8' fill='%23D1D5DB'/></svg>";
+window.__invSetDeadSort = function(v){ window.__invDeadSort = v || 'units'; window.__invRenderDeadGrid(); };
+window.__invDeadFilter = function(){ const el=document.getElementById('invDeadSearch'); window.__invDeadSearch = el ? el.value : ''; window.__invRenderDeadGrid(); };
+window.__invRenderDeadGrid = function(){
+  const grid = document.getElementById('invDeadGrid'); if(!grid) return;
+  const list = Array.isArray(window.__invDeadList) ? window.__invDeadList.slice() : [];
+  const q = (window.__invDeadSearch || '').trim().toLowerCase();
+  const sort = window.__invDeadSort || 'units';
+  let rows = q ? list.filter(x => ((x.sku||'') + ' ' + (x.name||'')).toLowerCase().includes(q)) : list;
+  rows.sort((a,b) => sort==='units' ? (b.stock-a.stock) : (sort==='umur' ? ((b.ageDays||0)-(a.ageDays||0)) : (b.tied-a.tied)));
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const fmtRM2 = n => 'RM ' + Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const ph = window.__invDeadPh;
+  const cap = 200;
+  const shown = rows.slice(0, cap);
+  if(!shown.length){ grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#4E7C4A; padding:30px; font-size:13px;">Tiada dead stock padan — semua barang ada jualan dalam 90 hari.</div>'; return; }
+  grid.innerHTML = shown.map(x => {
+    const ageCol = (x.ageDays!=null && x.ageDays>=180) ? '#B23A2E' : '#9E7016';
+    return `<div style="border:1px solid var(--border-color); border-radius:12px; overflow:hidden; background:var(--card-bg); display:flex; flex-direction:column;">
+      <div style="position:relative; aspect-ratio:1/1; background:#F3F4F6;">
+        <img src="${esc(x.img||ph)}" loading="lazy" onerror="this.onerror=null;this.src=window.__invDeadPh;" style="width:100%; height:100%; object-fit:cover;" alt="">
+        <span style="position:absolute; top:6px; right:6px; background:rgba(17,17,17,.82); color:#fff; font-weight:800; font-size:12px; padding:3px 9px; border-radius:50px;">${x.stock} unit</span>
+        ${x.disc?'<span style="position:absolute; top:6px; left:6px; background:#6B7280; color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px;">DISC</span>':''}
+      </div>
+      <div style="padding:9px 10px; display:flex; flex-direction:column; gap:3px;">
+        <div style="font-family:'SF Mono',Menlo,monospace; font-size:10.5px; color:#9CA3AF;">${esc(x.sku)}</div>
+        <div style="font-size:12px; font-weight:600; line-height:1.3; color:var(--text-main); min-height:31px;">${esc((x.name||'').slice(0,46))}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px; font-size:11px;">
+          <span style="color:#6B7280;">Modal: <b style="color:var(--text-main);">${fmtRM2(x.tied)}</b></span>
+          <span style="color:${ageCol}; font-weight:700;" title="Umur batch tertua">${x.ageDays!=null?x.ageDays+'h':'—'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + (rows.length>cap ? `<div style="grid-column:1/-1; text-align:center; padding:10px; font-size:11px; color:var(--text-muted);">Menunjukkan ${cap} daripada ${rows.length}. Guna carian untuk tapis.</div>` : '');
 };
 window.__invToggleRow = function(skuid){
   const r = document.getElementById('invDtl_'+skuid); if(!r) return;
@@ -29832,6 +29963,10 @@ window.renderInventoryAnalytics = async function() {
  });
  slow.sort((a, b) => b.tied - a.tied);
  const slowTied = slow.reduce((s, x) => s + x.tied, 0);
+
+ // 2026-06-25 — Dead Stock (visual): slow movers (ada stok, 0 jualan 90h) + gambar produk
+ const prodImgMap = new Map(products.map(p => [p.sku, (p.images && p.images[0]) ? p.images[0] : null]));
+ window.__invDeadList = slow.map(x => ({ sku:x.sku, name:x.name, stock:x.stock, tied:x.tied, ageDays:x.ageDays, disc:x.disc, img: prodImgMap.get(x.sku) || window.__invDeadPh }));
 
  const topCats = Object.keys(catVal).map(c => ({ cat:c, ...catVal[c] })).sort((a,b)=>b.cost-a.cost).slice(0, 8);
 
@@ -30084,6 +30219,25 @@ window.renderInventoryAnalytics = async function() {
  );
  zAnal = stockCard + zAnal;
 
+ // ============ ZONE: DEAD STOCK (visual, bergambar) ============
+ const deadCount = (window.__invDeadList||[]).length;
+ const deadUnits = (window.__invDeadList||[]).reduce((s,x)=>s+(x.stock||0),0);
+ const deadTied = (window.__invDeadList||[]).reduce((s,x)=>s+(x.tied||0),0);
+ const dsSort = window.__invDeadSort || 'units';
+ const zDead = card(
+   cardHead(`<i data-lucide="package-x" style="width:14px;height:14px;vertical-align:-2px; color:#B23A2E;"></i> Dead Stock <span style="font-weight:500; color:var(--text-muted); font-size:11.5px;">— ada stok tapi 0 jualan 90 hari · ${deadCount} SKU · ${deadUnits.toLocaleString()} unit · modal tersangkut ${fmtRM0(deadTied)}</span>`)
+   + `<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--border-color);">
+       <div style="display:flex; gap:6px; align-items:center; font-size:12px;">Susun: <select onchange="window.__invSetDeadSort(this.value)" style="font-size:12px; padding:4px 8px; border:1px solid var(--border-color); border-radius:6px;">
+         <option value="units" ${dsSort==='units'?'selected':''}>Unit terbanyak</option>
+         <option value="modal" ${dsSort==='modal'?'selected':''}>Modal tersangkut</option>
+         <option value="umur" ${dsSort==='umur'?'selected':''}>Paling lama</option>
+       </select></div>
+       <input id="invDeadSearch" oninput="window.__invDeadFilter()" value="${esc(window.__invDeadSearch||'')}" placeholder="Cari SKU / nama…" style="margin-left:auto; font-size:12px; padding:6px 10px; border:1px solid var(--border-color); border-radius:8px; min-width:180px;">
+     </div>`
+   + `<div id="invDeadGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; padding:14px;"></div>`
+   + '<div style="padding:8px 14px; font-size:11px; color:var(--text-muted); line-height:1.5;">Dead Stock = barang ADA stok tapi TIADA jualan langsung dalam 90 hari. Unit = baki stok semasa. Modal tersangkut = baki × landed cost. Calon clearance / bundle / promosi.</div>'
+ );
+
  // ============ ASSEMBLE 3 SUB-TAB ============
  const styleB = '<style>'
    + '#anInvBody .inv-subtab{font-size:12.5px;font-weight:700;padding:9px 16px;border:none;border-bottom:2.5px solid transparent;background:none;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}'
@@ -30093,13 +30247,15 @@ window.renderInventoryAnalytics = async function() {
    + '</style>';
  const subtab = (k, icon, label) => `<span class="inv-subtab ${Z===k?'active':''}" onclick="window.__invSubTab('${k}', this)"><i data-lucide="${icon}" style="width:14px;height:14px;"></i> ${label}</span>`;
  body.innerHTML = styleB
-   + `<div id="invSubTabs" style="display:flex; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:16px; flex-wrap:wrap;">${subtab('ringkasan','layout-dashboard','Ringkasan')}${subtab('tindakan','clipboard-check','Tindakan')}${subtab('analisa','bar-chart-3','Analisa')}</div>`
+   + `<div id="invSubTabs" style="display:flex; gap:2px; border-bottom:1px solid var(--border-color); margin-bottom:16px; flex-wrap:wrap;">${subtab('ringkasan','layout-dashboard','Ringkasan')}${subtab('tindakan','clipboard-check','Tindakan')}${subtab('analisa','bar-chart-3','Analisa')}${subtab('deadstock','package-x','Dead Stock')}</div>`
    + `<div id="invZone_ringkasan" style="display:${Z==='ringkasan'?'':'none'}">${zRing}</div>`
    + `<div id="invZone_tindakan" style="display:${Z==='tindakan'?'':'none'}">${zTind}</div>`
-   + `<div id="invZone_analisa" style="display:${Z==='analisa'?'':'none'}">${zAnal}</div>`;
+   + `<div id="invZone_analisa" style="display:${Z==='analisa'?'':'none'}">${zAnal}</div>`
+   + `<div id="invZone_deadstock" style="display:${Z==='deadstock'?'':'none'}">${zDead}</div>`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  window.__invFilterRows();
  if(Z === 'ringkasan') setTimeout(() => { try { window.__invDrawTrend(); } catch(e){} }, 60); // p1_807 — lukis graf trend
+ window.__invRenderDeadGrid();
 };
 
 // p1_500 — Export Analytics: pilih bahagian → satu CSV berbilang seksyen
@@ -34684,6 +34840,8 @@ window.openCheckoutPanel = function() {
  }
  const chEl = document.getElementById('cpChannel'); if(chEl) chEl.value = 'POS Cashier';
  const stEl = document.getElementById('cpStatus'); if(stEl) stEl.value = 'Completed';
+ // 2026-06-25 — B2B: prefill TIN + papar banner harga rundingan / terma bayaran
+ try { if(typeof window.__cpApplyB2B === 'function') window.__cpApplyB2B(pc); } catch(e){ console.warn('B2B checkout banner gagal:', e); }
  // p1_383 — JANGAN reset resit state di sini lagi (dulu p1_372): staff boleh snap
  // resit SIAP-SIAP di skrin cart sebelum checkout; reset hanya bila cart clear /
  // lepas sale siap (clearCart + post-checkout cleanup). Badge panel baca __proofState.
@@ -36274,7 +36432,8 @@ window.renderB2BCustomers = function() {
  <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="text-align:right; font-weight:bold; color:${spentNum > 1000 ? 'var(--success)' : 'var(--text-main)'};">RM ${spentNum.toFixed(2)}</td>
  <td onclick="window.openB2BDetail('${escAttr(c.id)}')" style="text-align:right;">${orders}</td>
  <td>
- <button class="btn btn--secondary btn--sm" onclick="event.stopPropagation(); window.openB2BEditModal('${escAttr(c.id)}')">Edit</button>
+ <button class="btn btn--secondary btn--sm" onclick="event.stopPropagation(); window.openB2BPriceList('${escAttr(c.id)}')" title="Set harga rundingan per produk">Harga</button>
+        <button class="btn btn--secondary btn--sm" onclick="event.stopPropagation(); window.openB2BEditModal('${escAttr(c.id)}')">Edit</button>
  <!-- p1_139 — Delete action added (was missing; staff had to use Supabase directly) -->
  <button class="btn btn--secondary btn--sm" style="color:#7C2A20;" onclick="event.stopPropagation(); window.deleteB2BCustomer('${escAttr(c.id)}', '${escAttr(company)}')" title="Padam B2B"><i data-lucide="trash-2" style="width:11px; height:11px;"></i></button>
  </td>
@@ -36503,6 +36662,173 @@ window.saveB2BCustomer = async function() {
  console.error(e);
  if(typeof showToast==='function') showToast('Save failed: ' + (e.message||'').slice(0,80), 'error');
  }
+};
+
+// =============================================================
+// 2026-06-25 — B2B per-company price list management (JS-injected modal, no index.html edit)
+// =============================================================
+// 2026-06-25 — papar ringkasan B2B dalam checkout panel (TIN prefill + terma + jimat)
+window.__cpApplyB2B = function(pc) {
+ const isB2B = !!(pc && pc.is_b2b);
+ if(isB2B && pc.buyer_tin) { const t = document.getElementById('cpBuyerTin'); if(t && !t.value) t.value = pc.buyer_tin; }
+ const vipBanner = document.getElementById('cpVipBanner');
+ let b = document.getElementById('cpB2BBanner');
+ if(!isB2B) { if(b) { b.style.display = 'none'; b.innerHTML = ''; } return; }
+ if(!b) {
+  b = document.createElement('div');
+  b.id = 'cpB2BBanner';
+  b.style.cssText = 'margin:8px 0; padding:10px 12px; border-radius:8px; background:#EEF3EC; border:1px solid #CFE0CC; font-size:12px; color:#2F4A2B; line-height:1.5;';
+  if(vipBanner && vipBanner.parentElement) vipBanner.parentElement.insertBefore(b, vipBanner);
+  else { const host = document.getElementById('checkoutPanel'); if(host) host.insertBefore(b, host.firstChild); }
+ }
+ b.style.display = 'block';
+ let saved = 0, b2bItems = 0;
+ if(typeof cart !== 'undefined' && Array.isArray(cart)) {
+  cart.forEach(it => { if(it && it.b2b_priced && it.retail_price != null) { saved += (Number(it.retail_price) - Number(it.price)) * (Number(it.quantity) || 0); b2bItems++; } });
+ }
+ const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+ const terms = pc.payment_terms ? esc(pc.payment_terms) : 'Tunai / segera';
+ const cl = pc.credit_limit ? ('RM ' + Number(pc.credit_limit).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-';
+ b.innerHTML = `<div style="font-weight:700; margin-bottom:2px;">Akaun B2B — ${esc(pc.company_name || pc.name || '')}</div>`
+  + `<div>Terma bayaran: <strong>${terms}</strong> &middot; Had kredit: <strong>${cl}</strong></div>`
+  + (b2bItems > 0
+    ? `<div>${b2bItems} item harga rundingan &middot; jimat <strong>RM ${saved.toFixed(2)}</strong> vs retail</div>`
+    : `<div style="color:#7A5410;">Tiada harga khas utk item dlm cart — guna retail. Set di B2B &gt; Harga.</div>`);
+};
+window.__ensureB2BPriceModal = function() {
+ let m = document.getElementById('b2bPriceModal');
+ if(m) return m;
+ m = document.createElement('div');
+ m.id = 'b2bPriceModal';
+ m.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10000; align-items:center; justify-content:center; padding:16px;';
+ m.innerHTML = `<div style="background:#fff; border-radius:12px; max-width:580px; width:100%; max-height:90vh; overflow:auto; padding:20px; box-shadow:0 20px 50px rgba(0,0,0,.3);">
+   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+     <h3 style="margin:0; font-size:16px; color:#111;">Harga Khas B2B</h3>
+     <button onclick="document.getElementById('b2bPriceModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#888; line-height:1;">&times;</button>
+   </div>
+   <div id="b2bPriceCompany" style="font-size:12px; color:#666; margin-bottom:12px;"></div>
+   <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:12px; margin-bottom:14px;">
+     <div style="font-size:11px; font-weight:700; color:#374151; margin-bottom:8px; letter-spacing:.3px;">+ TAMBAH / KEMASKINI HARGA</div>
+     <input id="b2bPriceSkuInput" list="b2bPriceSkuList" placeholder="Cari SKU atau nama produk" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #D1D5DB; border-radius:6px; margin-bottom:8px; font-size:13px;">
+     <datalist id="b2bPriceSkuList"></datalist>
+     <div style="display:flex; gap:8px; align-items:center;">
+       <input id="b2bPriceUnit" type="number" step="0.01" min="0" placeholder="Harga seunit (RM)" style="flex:1; box-sizing:border-box; padding:8px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px;">
+       <input id="b2bPriceMinQty" type="number" step="1" min="1" value="1" title="Kuantiti minimum sebelum harga ni apply" style="width:84px; box-sizing:border-box; padding:8px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px;">
+       <button onclick="window.saveB2BPriceRow()" class="btn btn--primary btn--sm" style="white-space:nowrap;">Simpan</button>
+     </div>
+     <div id="b2bPriceHint" style="font-size:11px; color:#9CA3AF; margin-top:6px;">Min qty = harga khas hanya apply bila beli &ge; jumlah ni. Letak 1 untuk sentiasa.</div>
+   </div>
+   <table class="data-table" style="width:100%; font-size:12px;">
+     <thead><tr><th>SKU</th><th>Produk</th><th style="text-align:right;">Retail</th><th style="text-align:right;">Harga B2B</th><th style="text-align:right;">Min</th><th></th></tr></thead>
+     <tbody id="b2bPriceTbody"></tbody>
+   </table>
+ </div>`;
+ document.body.appendChild(m);
+ return m;
+};
+window.openB2BPriceList = function(customerId) {
+ const c = (customersData || []).find(x => String(x.id) === String(customerId));
+ if(!c) { if(typeof showToast === 'function') showToast('Customer tak jumpa', 'error'); return; }
+ window.__b2bPriceCustId = customerId;
+ const m = window.__ensureB2BPriceModal();
+ document.getElementById('b2bPriceCompany').textContent = (c.company_name || c.name || '') + ' — harga rundingan per produk';
+ const dl = document.getElementById('b2bPriceSkuList');
+ if(dl && typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) {
+  const esc = s => String(s == null ? '' : s).replace(/"/g, '&quot;');
+  // setiap variant = SKU sendiri; tunjuk label variant (L Khaki / XL Black) supaya senang beza
+  dl.innerHTML = masterProducts.slice(0, 5000).map(p => {
+   const vlabel = p.variant_size || p.variant_color || '';
+   const txt = (p.name || '') + (vlabel ? (' [' + vlabel + ']') : '');
+   return `<option value="${esc(p.sku)}">${esc(txt)}</option>`;
+  }).join('');
+ }
+ document.getElementById('b2bPriceSkuInput').value = '';
+ document.getElementById('b2bPriceUnit').value = '';
+ document.getElementById('b2bPriceMinQty').value = '1';
+ window.__renderB2BPriceRows();
+ m.style.display = 'flex';
+};
+window.__renderB2BPriceRows = function() {
+ const tb = document.getElementById('b2bPriceTbody');
+ if(!tb) return;
+ const cid = window.__b2bPriceCustId;
+ const rows = (window.__b2bPriceList || []).filter(r => String(r.customer_id) === String(cid));
+ if(!rows.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9CA3AF; padding:18px;">Belum ada harga khas. Tambah di atas.</td></tr>'; return; }
+ const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+ tb.innerHTML = rows.map(r => {
+  const p = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts.find(x => (x.sku || '').toUpperCase() === (r.sku || '').toUpperCase()) : null;
+  const retail = p ? (parseFloat(p.price) || 0) : null;
+  const vlabel = p ? (p.variant_size || p.variant_color || '') : '';
+  const name = p ? ((p.name || '') + (vlabel ? (' [' + vlabel + ']') : '')) : '—';
+  return `<tr>
+    <td style="font-family:monospace;">${esc(r.sku)}</td>
+    <td>${esc(name)}</td>
+    <td style="text-align:right; color:#9CA3AF;">${retail != null ? ('RM ' + retail.toFixed(2)) : '-'}</td>
+    <td style="text-align:right; font-weight:700; color:#34522F;">RM ${Number(r.unit_price).toFixed(2)}</td>
+    <td style="text-align:right;">${Number(r.min_qty) || 1}</td>
+    <td style="text-align:right; white-space:nowrap;"><button onclick="window.editB2BPriceRow('${esc(r.sku)}')" class="btn btn--secondary btn--sm">Edit</button> <button onclick="window.deleteB2BPriceRow('${esc(r.sku)}')" class="btn btn--secondary btn--sm" style="color:#7C2A20;">Padam</button></td>
+  </tr>`;
+ }).join('');
+};
+window.editB2BPriceRow = function(sku) {
+ const cid = window.__b2bPriceCustId;
+ const r = (window.__b2bPriceList || []).find(x => String(x.customer_id) === String(cid) && (x.sku || '').toUpperCase() === (sku || '').toUpperCase());
+ if(!r) return;
+ document.getElementById('b2bPriceSkuInput').value = r.sku;
+ document.getElementById('b2bPriceUnit').value = r.unit_price;
+ document.getElementById('b2bPriceMinQty').value = r.min_qty || 1;
+ document.getElementById('b2bPriceHint').textContent = 'Edit harga sedia ada untuk ' + r.sku;
+ try { document.getElementById('b2bPriceUnit').focus(); } catch(e){}
+};
+window.saveB2BPriceRow = async function() {
+ const cid = window.__b2bPriceCustId;
+ if(!cid) return;
+ const skuRaw = (document.getElementById('b2bPriceSkuInput').value || '').trim();
+ const unit = parseFloat(document.getElementById('b2bPriceUnit').value);
+ const minQty = parseInt(document.getElementById('b2bPriceMinQty').value) || 1;
+ if(!skuRaw) { if(typeof showToast === 'function') showToast('Pilih SKU dulu', 'error'); return; }
+ if(!(unit >= 0)) { if(typeof showToast === 'function') showToast('Harga tak sah', 'error'); return; }
+ // input boleh jadi SKU atau nama produk — selaraskan ke SKU kanonik
+ let sku = skuRaw;
+ const mp = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const bySku = mp.find(x => (x.sku || '').toUpperCase() === skuRaw.toUpperCase());
+ const byName = bySku ? null : mp.find(x => (x.name || '').toLowerCase() === skuRaw.toLowerCase());
+ if(bySku) sku = bySku.sku; else if(byName) sku = byName.sku;
+ const payload = { customer_id: cid, sku, unit_price: Math.round(unit * 100) / 100, min_qty: minQty, set_by: (typeof currentUser !== 'undefined' && currentUser && currentUser.name) ? currentUser.name : null, updated_at: new Date().toISOString() };
+ try {
+  const { data, error } = await db.from('b2b_price_list').upsert([payload], { onConflict: 'customer_id,sku' }).select();
+  if(error) throw error;
+  if(!Array.isArray(window.__b2bPriceList)) window.__b2bPriceList = [];
+  const saved = (data && data[0]) ? data[0] : payload;
+  const idx = window.__b2bPriceList.findIndex(r => String(r.customer_id) === String(cid) && (r.sku || '').toUpperCase() === sku.toUpperCase());
+  if(idx >= 0) window.__b2bPriceList[idx] = saved; else window.__b2bPriceList.push(saved);
+  if(typeof showToast === 'function') showToast('Harga B2B disimpan untuk ' + sku, 'success');
+  document.getElementById('b2bPriceSkuInput').value = '';
+  document.getElementById('b2bPriceUnit').value = '';
+  document.getElementById('b2bPriceMinQty').value = '1';
+  window.__renderB2BPriceRows();
+  // kalau customer ni tengah attached di cashier → reprice cart serta-merta
+  if(window.posCustomer && String(window.posCustomer.id) === String(cid) && typeof window.__repriceCartForCustomer === 'function') {
+   window.__repriceCartForCustomer();
+   if(typeof renderCart === 'function') renderCart();
+  }
+ } catch(e) { console.error(e); if(typeof showToast === 'function') showToast('Simpan gagal: ' + (e.message || '').slice(0, 80), 'error'); }
+};
+window.deleteB2BPriceRow = async function(sku) {
+ const cid = window.__b2bPriceCustId;
+ if(!cid) return;
+ if(!confirm('Padam harga khas untuk ' + sku + '?')) return;
+ try {
+  const { error } = await db.from('b2b_price_list').delete().eq('customer_id', cid).eq('sku', sku);
+  if(error) throw error;
+  window.__b2bPriceList = (window.__b2bPriceList || []).filter(r => !(String(r.customer_id) === String(cid) && (r.sku || '').toUpperCase() === (sku || '').toUpperCase()));
+  if(typeof showToast === 'function') showToast('Harga khas dipadam', 'success');
+  window.__renderB2BPriceRows();
+  if(window.posCustomer && String(window.posCustomer.id) === String(cid) && typeof window.__repriceCartForCustomer === 'function') {
+   window.__repriceCartForCustomer();
+   if(typeof renderCart === 'function') renderCart();
+  }
+ } catch(e) { console.error(e); if(typeof showToast === 'function') showToast('Padam gagal: ' + (e.message || '').slice(0, 80), 'error'); }
 };
 
 // =============================================================

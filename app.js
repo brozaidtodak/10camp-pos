@@ -872,6 +872,8 @@ let masterProducts = [];
 // Single source of truth for "is this product live in cashier?"
 // Strict: only `true` counts as published. NULL / false / undefined = draft.
 window.isPublished = function(p) { return !!p && p.is_published === true; };
+// p1_962 — SKU discontinued (berhenti jual): tanda di metadata.discontinued. Disorok dari cashier.
+window.__isDiscontinued = function(p) { return !!(p && p.metadata && typeof p.metadata === 'object' && p.metadata.discontinued); };
 
 let pettyCashLedger = [];
 // p1_50 — persistence so refresh doesn't wipe the ledger (was in-memory only).
@@ -14037,7 +14039,7 @@ function renderPOS(searchTerm = "") {
  const exactMatches = masterProducts.filter(p => (p.erp_barcode || '').toString().trim() === barcode);
  if(exactMatches.length === 1) {
  const m = exactMatches[0];
- if(isPublished(m)) {
+ if(isPublished(m) && !window.__isDiscontinued(m)) {  // p1_962 — jangan scan-add SKU discontinued
  window.addToCart(m.sku);
  const inp = document.getElementById('searchInput');
  if(inp) inp.value = '';
@@ -14051,7 +14053,7 @@ function renderPOS(searchTerm = "") {
  if(searchTerm && typeof window.__szGridOpen === 'function') {
  const ps2 = searchTerm.trim().toUpperCase();
  if(ps2.length >= 2) {
- const sibCount = masterProducts.filter(p => isPublished(p) && (p.parent_sku||'').toUpperCase() === ps2).length;
+ const sibCount = masterProducts.filter(p => isPublished(p) && !window.__isDiscontinued(p) && (p.parent_sku||'').toUpperCase() === ps2).length;
  if(sibCount > 1) {
  window.__szGridOpen(ps2);
  const inp = document.getElementById('searchInput');
@@ -14065,6 +14067,7 @@ function renderPOS(searchTerm = "") {
  const term = searchTerm.toLowerCase();
  let filtered = masterProducts.filter(p => {
  if(!isPublished(p)) return false;
+ if(window.__isDiscontinued(p)) return false;  // p1_962 — SKU discontinued disorok dari cashier
  if(activeBrand && (p.brand || '').toLowerCase() !== activeBrand) return false;
  if(term) {
  // p1_209 — Expanded search: name, sku, brand, erp_barcode, category, parent_sku
@@ -14338,12 +14341,13 @@ function renderPOS(searchTerm = "") {
   n=n.replace(/\s*[_]\s*/g,' — ').replace(/\s{2,}/g,' ').trim();
   return n||(p.name||'Untitled');
  }
+ function disc(x){ return window.__isDiscontinued ? window.__isDiscontinued(x) : false; }  // p1_962
  function variantsOf(p){
   let vs=[];
-  if(p.parent_sku) vs=arr().filter(x=>x.parent_sku===p.parent_sku && pub(x));
+  if(p.parent_sku) vs=arr().filter(x=>x.parent_sku===p.parent_sku && pub(x) && !disc(x));
   if(vs.length<2 && p.sku && p.sku.indexOf('-')>-1){
    const parts=p.sku.split('-');
-   if(parts.length>=2){ const pre=parts.slice(0,-1).join('-'); const f=arr().filter(x=>x.sku!==p.sku && pub(x) && x.sku.indexOf(pre+'-')===0); if(f.length) vs=[p,...f]; }
+   if(parts.length>=2){ const pre=parts.slice(0,-1).join('-'); const f=arr().filter(x=>x.sku!==p.sku && pub(x) && !disc(x) && x.sku.indexOf(pre+'-')===0); if(f.length) vs=[p,...f]; }
   }
   if(!vs.length) vs=[p];
   return vs;
@@ -14512,6 +14516,86 @@ function renderPOS(searchTerm = "") {
  };
  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && dsc && dsc.classList.contains('show')) closeDsc(); });
 })();
+
+// =============================================================
+// p1_962 — Section "Discontinued SKU" (Inventory): tanda SKU berhenti jual -> disorok cashier.
+// Tanda disimpan di products_master.metadata.discontinued. Section ini senarai + tanda + pulih.
+// =============================================================
+window.__discMark = async function(sku, val) {
+ const p = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => x.sku === sku);
+ if(!p) { if(window.showToast) showToast('SKU tak dijumpai: ' + sku, 'warn'); return; }
+ if(typeof db === 'undefined' || !db) { if(window.showToast) showToast('DB belum sedia.', 'error'); return; }
+ if(val && !confirm('Tanda ' + sku + ' sebagai DISCONTINUED? Ia akan disorok dari cashier (tak boleh jual).')) return;
+ const prevMeta = (p.metadata && typeof p.metadata === 'object') ? p.metadata : {};
+ const newMeta = { ...prevMeta, discontinued: val ? true : null };
+ try {
+  const { error } = await db.from('products_master').update({ metadata: newMeta, updated_at: new Date().toISOString(), last_modified_by: (window.currentUser||{}).name || 'System' }).eq('sku', sku);
+  if(error) throw error;
+  p.metadata = newMeta; // selaras in-memory
+  if(window.showToast) showToast(val ? (sku + ' ditanda discontinued') : (sku + ' dipulihkan'), 'success');
+  window.renderDiscontinued();
+  if(typeof renderPOS === 'function') renderPOS((document.getElementById('searchInput')||{}).value || '');
+ } catch(e) { console.error('discMark:', e); if(window.showToast) showToast('Gagal: ' + e.message, 'error'); }
+};
+window.__discAddFromInput = function() {
+ const inp = document.getElementById('discAddInput'); if(!inp) return;
+ let v = (inp.value || '').trim(); if(!v) { if(window.showToast) showToast('Taip / pilih SKU dulu', 'warn'); return; }
+ // input boleh "SKU — Nama" (dari datalist) atau SKU sahaja
+ const sku = v.split('—')[0].split(' ')[0].trim().toUpperCase();
+ const p = (typeof masterProducts !== 'undefined' ? masterProducts : []).find(x => (x.sku||'').toUpperCase() === sku);
+ if(!p) { if(window.showToast) showToast('SKU "' + sku + '" tak dijumpai dalam katalog', 'warn'); return; }
+ inp.value = '';
+ window.__discMark(p.sku, true);
+};
+window.renderDiscontinued = function() {
+ const sec = document.getElementById('discontinuedSection'); if(!sec) return;
+ const all = (typeof masterProducts !== 'undefined' ? masterProducts : []);
+ const disc = all.filter(p => window.__isDiscontinued(p)).sort((a,b)=>(a.sku||'').localeCompare(b.sku||''));
+ const stockBy = new Map();
+ (typeof inventoryBatches !== 'undefined' ? inventoryBatches : []).forEach(b => { if(b.qty_remaining > 0) stockBy.set(b.sku, (stockBy.get(b.sku)||0) + b.qty_remaining); });
+ // produk aktif (boleh ditanda) untuk datalist
+ const active = all.filter(p => isPublished(p) && !window.__isDiscontinued(p)).sort((a,b)=>(a.sku||'').localeCompare(b.sku||''));
+ const esc = (s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ const opts = active.map(p => `<option value="${esc(p.sku)} — ${esc((p.name||'').slice(0,60))}">`).join('');
+ const rows = disc.map(p => {
+  const stk = stockBy.get(p.sku) || 0;
+  const nm = (p.name||'').replace(/^[A-Z0-9-]+\s*[|_]\s*/i,'').split(/\s*\|\s*/)[0].trim() || p.name || '—';
+  return `<tr style="border-bottom:1px solid #F0EAE1;">
+   <td style="padding:10px 12px; font-family:'SF Mono',Menlo,monospace; font-size:12px; color:#101010; font-weight:600;">${esc(p.sku)}</td>
+   <td style="padding:10px 12px; font-size:13px; color:#3a342c;">${esc(nm)}</td>
+   <td style="padding:10px 12px; font-size:12px; color:#6B7280;">${esc(p.brand||'—')}</td>
+   <td style="padding:10px 12px; text-align:right; font-size:13px; font-weight:700; color:${stk>0?'#B45309':'#9CA3AF'};">${stk} ${esc(p.unit||'pcs')}</td>
+   <td style="padding:10px 12px; text-align:center;"><button onclick="window.__discMark('${String(p.sku).replace(/'/g,"\\'")}', false)" style="padding:5px 14px; font-size:12px; font-weight:700; background:#fff; color:#15803d; border:1px solid #86efac; border-radius:7px; cursor:pointer;">Pulihkan</button></td>
+  </tr>`;
+ }).join('');
+ sec.innerHTML = `
+  <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="ban" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Discontinued SKU</h2>
+  <p style="color:#6B7280; font-size:13px; margin:0 0 18px; max-width:640px;">SKU yang dah berhenti jual. Produk discontinued <b>disorok dari cashier</b> (tak boleh jual) walaupun ada baki stok. Stok kekal dalam rekod inventori &mdash; cuma tak boleh dijual sampai dipulihkan.</p>
+  <div class="admin-card" style="padding:18px; margin-bottom:18px;">
+   <strong style="color:#101010; font-size:14px;">Tanda SKU sebagai Discontinued</strong>
+   <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+    <input id="discAddInput" list="discAddList" placeholder="Cari SKU atau nama produk…" style="flex:1; min-width:240px; padding:11px 14px; border:1px solid #E5E0D8; border-radius:9px; font-size:13px;">
+    <datalist id="discAddList">${opts}</datalist>
+    <button onclick="window.__discAddFromInput()" class="btn-brand-primary" style="padding:11px 22px; border:none; border-radius:9px; font-size:13px; font-weight:700; background:#CD7C32; color:#FAF6EF; cursor:pointer;"><i data-lucide="ban" style="width:14px;height:14px;vertical-align:-2px;"></i> Tanda Discontinued</button>
+   </div>
+  </div>
+  <div class="admin-card" style="padding:0; overflow:hidden;">
+   <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #F0EAE1;">
+    <strong style="color:#101010; font-size:14px;">Senarai Discontinued</strong>
+    <span style="font-size:12px; color:#6B7280; background:#F8F4ED; padding:3px 10px; border-radius:999px; font-weight:700;">${disc.length} SKU</span>
+   </div>
+   ${disc.length ? `<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse;">
+    <thead><tr style="background:#FBF7F1; text-align:left;">
+     <th style="padding:10px 12px; font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.5px;">SKU</th>
+     <th style="padding:10px 12px; font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.5px;">Nama</th>
+     <th style="padding:10px 12px; font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.5px;">Brand</th>
+     <th style="padding:10px 12px; font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.5px; text-align:right;">Baki Stok</th>
+     <th style="padding:10px 12px; font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.5px; text-align:center;">Tindakan</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`
+   : `<div style="padding:40px 20px; text-align:center; color:#9CA3AF;"><i data-lucide="package-check" style="width:32px;height:32px;opacity:.4;"></i><p style="font-size:13px; margin:8px 0 0;">Tiada SKU discontinued. Semua produk masih aktif untuk jualan.</p></div>`}
+  </div>`;
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
 
 // =============================================================
 // p1_24 — POS Product Detail Modal (gallery + variants + add)

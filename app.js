@@ -14151,7 +14151,6 @@ function renderPOS(searchTerm = "") {
  <div style="position:relative; border-radius:12px; overflow:hidden; margin-bottom:8px;">
  <img src="${window.__thumbUrl(thumb, 200)}" class="pos-zoom-trigger" loading="lazy" decoding="async" onclick="event.stopPropagation(); window.posOpenMedia('${skuEsc}')" title="Tap untuk lihat gambar & video" onerror="window.__imgThumbErr(this, '${String(thumb).replace(/'/g, "\\'")}')">
  ${__hasVideo ? `<span style="position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; background:rgba(16,16,16,.62); color:#FAF6EF; display:flex; align-items:center; justify-content:center; z-index:2; pointer-events:none;" title="Ada video"><svg viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M8 5v14l11-7z"/></svg></span>` : ''}
- <button type="button" class="posDescBtn" onclick="event.stopPropagation(); window.posOpenDesc('${skuEsc}')" title="Lihat description produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.5" r="0.5" fill="currentColor"/></svg> Desc</button>
  </div>
  <div class="product-card__badges">
  <span class="sku-badge">${p.sku}</span>
@@ -14163,6 +14162,7 @@ function renderPOS(searchTerm = "") {
  <h3 class="product-card__title" title="${safeName}">${cleanName}</h3>
  ${priceHtml}
  <p class="product-card__stock"${isOOS ? ' style="color:#9CA3AF;"' : (totalStock <= (window.__POS_LOW_STOCK || 3) ? ' style="color:#B45309; font-weight:700;"' : '')}>${isOOS ? `0 ${p.unit||'pcs'}` : `${totalStock} ${p.unit||'pcs'} ${(window.t?window.t('cs_in_stock'):'in stock')}`}</p>
+ <span class="posDescLink" onclick="event.stopPropagation(); window.posOpenDesc('${skuEsc}')" title="Lihat description produk">desc</span>
  </div>
  `;
  });
@@ -14469,9 +14469,9 @@ function renderPOS(searchTerm = "") {
  if(!document.getElementById('posDescCss')){
   const st=document.createElement('style'); st.id='posDescCss';
   st.textContent=''
-   +'.posDescBtn{position:absolute;bottom:8px;right:8px;height:30px;padding:0 12px;border-radius:15px;border:none;background:rgba(16,16,16,.62);color:#FAF6EF;font-family:Poppins,system-ui,sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.3)}'
-   +'.posDescBtn:active{transform:scale(.94)}'
-   +'.posDescBtn svg{width:13px;height:13px}'
+   +'.posDescLink{display:inline-block;margin-top:4px;font-family:Poppins,system-ui,sans-serif;font-size:11px;font-weight:600;color:#9b8b76;cursor:pointer;text-decoration:underline;text-underline-offset:2px;letter-spacing:.2px}'
+   +'.posDescLink:hover{color:#CD7C32}'
+   +'.posDescLink:active{opacity:.6}'
    +'.posDescSc{position:fixed;inset:0;z-index:10250;background:rgba(16,16,16,.55);display:none;align-items:center;justify-content:center;padding:18px;font-family:Poppins,system-ui,sans-serif}'
    +'.posDescSc.show{display:flex}'
    +'.posDescCard{background:#FAF6EF;width:100%;max-width:460px;max-height:82vh;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 44px rgba(0,0,0,.3)}'

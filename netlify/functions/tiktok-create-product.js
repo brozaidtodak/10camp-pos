@@ -14,7 +14,7 @@
  * Auth: requires header x-pos-key === TIKTOK_CREATE_KEY (env) OR same-origin POS call.
  */
 const tt = require('./_tiktok');
-const { requireStaff } = require('./_auth'); // shared staff-JWT gate (same as other mutating fns)
+const { requireAuth } = require('./_auth'); // staff JWT (browser) OR internal key (cron/testing)
 const V = tt.VERSION;
 const API_BASE = 'https://open-api.tiktokglobalshop.com';
 const SALES_WAREHOUSE = '7369471784624146184'; // 10 Camp default SALES_WAREHOUSE (probe)
@@ -106,12 +106,13 @@ async function uploadImageByUrl(url, accessToken) {
 
 exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'POST only' };
-    const auth = await requireStaff(event);
+    const auth = await requireAuth(event);
     if (!auth.ok) return auth.response;
 
     let body = {};
     try { body = JSON.parse(event.body || '{}'); } catch (e) { return { statusCode: 400, body: 'bad json' }; }
-    const { sku, title: titleOverride, category_id: catOverride, dry = false, force = false, save_mode = 'AS_DRAFT' } = body;
+    const { sku, title: titleOverride, category_id: catOverride, dry = false, force = false,
+            publish = false, product_id: publishProductId = null, save_mode = 'AS_DRAFT' } = body;
     if (!sku) return { statusCode: 400, body: 'sku required' };
 
     const errors = [];
@@ -125,7 +126,7 @@ exports.handler = async (event) => {
         let skuRows = rows.filter(r => r.sku && r.sku !== sku);
         const hasVariants = skuRows.length > 0;
         if (!hasVariants) skuRows = [lead];
-        if (lead.metadata && lead.metadata.tiktok_product_id && !dry && !force)
+        if (lead.metadata && lead.metadata.tiktok_product_id && !dry && !force && !publish)
             return { statusCode: 200, body: JSON.stringify({ ok: false, already: true, product_id: lead.metadata.tiktok_product_id }) };
 
         // 2) Title + category + description
@@ -195,15 +196,39 @@ exports.handler = async (event) => {
             package_dimensions: dim,
             skus
         };
-        const res = await tt.ttRequest('POST', `/product/${V}/products`, {
-            body: payload, accessToken: tok.access_token, shopCipher: cipher });
+        // PUBLISH = edit existing draft → LISTING (submit for review). Else POST create.
+        const targetId = publishProductId || (lead.metadata && lead.metadata.tiktok_product_id);
+        let res;
+        if (publish && targetId) {
+            // fetch current SKU ids so the edit updates existing SKUs in place (not duplicate)
+            try {
+                const det = await tt.ttRequest('GET', `/product/${V}/products/${targetId}`, {
+                    accessToken: tok.access_token, shopCipher: cipher });
+                const idBySeller = {};
+                for (const s of ((det.data && det.data.skus) || [])) idBySeller[(s.seller_sku || '').toUpperCase()] = s.id;
+                payload.skus = skus.map(s => {
+                    const id = idBySeller[(s.seller_sku || '').toUpperCase()];
+                    return id ? Object.assign({ id }, s) : s;
+                });
+            } catch (e) { errors.push('detail fetch: ' + e.message); }
+            payload.save_mode = 'LISTING';
+            res = await tt.ttRequest('PUT', `/product/${V}/products/${targetId}`, {
+                body: payload, accessToken: tok.access_token, shopCipher: cipher });
+        } else {
+            res = await tt.ttRequest('POST', `/product/${V}/products`, {
+                body: payload, accessToken: tok.access_token, shopCipher: cipher });
+        }
         if (res.code !== 0) {
             return { statusCode: 200, headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ ok: false, tiktok_code: res.code, tiktok_msg: res.message,
+                body: JSON.stringify({ ok: false, published: !!publish, tiktok_code: res.code, tiktok_msg: res.message,
                     title, category_id, errors, payload_preview: { skus, image_count: main_images.length } }, null, 2) };
         }
         const data = res.data || {};
-        const productId = data.product_id;
+        const productId = data.product_id || targetId;
+        if (publish) {
+            return { statusCode: 200, headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ ok: true, published: true, product_id: productId, title, category_id, errors }, null, 2) };
+        }
         // 7) Write tiktok_product_id back to each sku's metadata
         const skuIdBySeller = {};
         for (const s of (data.skus || [])) skuIdBySeller[s.seller_sku] = s.id;

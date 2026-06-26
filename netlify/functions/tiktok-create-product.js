@@ -1,0 +1,233 @@
+/**
+ * tiktok-create-product.js — Cara B: create a POS product on TikTok Seller Centre.
+ *
+ * POST { sku, title?, category_id?, dry?, save_mode? }
+ *   sku       : parent/listing SKU in products_master (variants pulled via parent_sku)
+ *   title     : optional override for the TikTok title (else auto-cleaned from name)
+ *   category_id : optional override TikTok leaf category (else mapped from our category)
+ *   dry       : true → assemble & return payload only (NO image upload, NO create)
+ *   save_mode : 'AS_DRAFT' (default) | 'LISTING'
+ *
+ * Returns { ok, dry, product_id?, title, category_id, skus, payload?, errors[] }.
+ * On real create, writes tiktok_product_id + sku_id back to products_master.metadata.
+ *
+ * Auth: requires header x-pos-key === TIKTOK_CREATE_KEY (env) OR same-origin POS call.
+ */
+const crypto = require('crypto');
+const tt = require('./_tiktok');
+const V = tt.VERSION;
+const API_BASE = 'https://open-api.tiktokglobalshop.com';
+const SALES_WAREHOUSE = '7369471784624146184'; // 10 Camp default SALES_WAREHOUSE (probe)
+
+// our category (lowercased) → TikTok leaf category id (Sukan & Luar > Perkhemahan & Mendaki)
+const CAT_MAP = {
+    // Khemah & Aksesori
+    'tent': '700782', 'dome': '700782', 'flysheet': '700782', 'tent pole': '700782',
+    'pegs': '700782', 'pole cap': '700782', 'canopy': '700782', 'ground sheet': '700782',
+    'rope': '700782', 'hooks': '700782', 'velco strap': '700782', 'carabiner': '700782',
+    // Perabot Perkhemahan (camping furniture)
+    'tables': '838280', 'table': '838280', 'mini table': '838280', 'chairs': '838280',
+    'stool': '838280', 'wagons': '838280', 'rack': '838280', 'shelf': '838280',
+    'camping cots': '838280', 'portable hanger': '838280', 'rubbish frame': '838280',
+    // Alat Dapur Perkhemahan (cookware)
+    'pots': '603917', 'stove': '603917', 'kettle': '603917', 'grills': '603917',
+    'cups': '603917', 'plate': '603917', 'utensils': '603917', 'pot hanging tripod': '603917',
+    'seasoning bottles': '603917', 'charcoal': '603917', 'basket': '603917',
+    // Lampu Perkhemahan (lamps)
+    'hanging lamp': '603970', 'lanterns': '603970', 'ground lamp': '603970',
+    'universal lamp': '603970', 'string light': '603970', 'light standing pole': '603970',
+    'lighting': '603970', 'warning light': '603970', 'lights with mosquito repellent': '603970',
+    // Beg Tidur & Kelengkapan Tidur (sleeping)
+    'sleeping bags': '604054', 'pillow': '604054', 'blankets': '604054',
+    'air mattress': '604054', 'mat': '604054', 'sleeping gear': '604054', 'inflatable sofa': '604054',
+    // Buaian (hammock)
+    'hammock': '603952',
+    // Kipas Khemah (fans)
+    'portable fan': '1023112', 'fan': '1023112', 'fan accessories': '1023112',
+    // Pisau & Perlengkapan (survival)
+    'survival tools': '603835', 'hammer': '603835', 'universal tactical screws': '603835',
+    // Penapis/Penyimpan Air (water)
+    'bucket': '1000200',
+    // kebersihan (hygiene)
+    'towel': '1000328',
+};
+const DEFAULT_CAT = '700782'; // Khemah & Aksesori — safe default for outdoor gear
+const COLOR_ATTR_ID = '100000'; // "Warna" sales property (from probe)
+
+function resolveCategory(ourCat) {
+    const k = String(ourCat || '').trim().toLowerCase();
+    return CAT_MAP[k] || DEFAULT_CAT;
+}
+
+// Clean our messy "BD016-067 | BLACKDOG CBD2450WS010 _ Quick-opening canopy | ..." → readable title
+function cleanTitle(name, brand) {
+    let s = String(name || '').trim();
+    const alphaScore = (x) => (String(x).match(/[A-Za-z]{3,}/g) || []).length;
+    let parts = s.split('|').map(x => x.trim()).filter(Boolean);
+    let cand = parts.sort((a, b) => alphaScore(b) - alphaScore(a))[0] || s;
+    if (cand.includes('_')) cand = cand.split('_').pop().trim();
+    cand = cand.replace(/\b[A-Z]{2,6}\d{2,}[A-Z0-9-]*\b/g, ' ');       // model codes CBD2450WS010
+    cand = cand.replace(/\b[A-Z]{1,4}\d{2,3}(?:-\d{2,3})*\b/g, ' ');   // SKU codes BD016 / BD016-067
+    cand = cand.replace(/\s*-\s*[A-Za-z][A-Za-z ]{1,18}$/, '');         // trailing " - Beige"
+    cand = cand.replace(/[_|]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (brand && cand && !cand.toLowerCase().includes(String(brand).toLowerCase().slice(0, 5)))
+        cand = brand + ' ' + cand;
+    cand = cand.replace(/\s{2,}/g, ' ').trim();
+    if (cand.length < 12) cand = (cand + ' Outdoor Camping Gear').trim();
+    return cand.slice(0, 255);
+}
+
+function pickImages(p) {
+    let imgs = p.images;
+    if (typeof imgs === 'string') imgs = imgs ? [imgs] : [];
+    if (!Array.isArray(imgs)) imgs = [];
+    return imgs.filter(Boolean).slice(0, 9);
+}
+
+// Upload one image (by URL) to TikTok → returns uri. Multipart: body excluded from signature.
+async function uploadImageByUrl(url, accessToken, shopCipher) {
+    const imgRes = await fetch(url);
+    if (!imgRes.ok) throw new Error(`fetch image ${imgRes.status}`);
+    const buf = Buffer.from(await imgRes.arrayBuffer());
+    const path = `/product/${V}/images/upload`;
+    const q = { app_key: tt.APP_KEY, timestamp: Math.floor(Date.now() / 1000).toString() };
+    if (shopCipher) q.shop_cipher = shopCipher;
+    q.sign = tt.signRequest(path, q, '', true); // true = exclude body (multipart)
+    const qs = Object.entries(q).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+    const fd = new FormData();
+    fd.append('data', new Blob([buf]), 'image.jpg');
+    fd.append('use_case', 'MAIN_IMAGE');
+    const res = await fetch(`${API_BASE}${path}?${qs}`, {
+        method: 'POST', headers: { 'x-tts-access-token': accessToken }, body: fd });
+    const j = await res.json();
+    if (j.code !== 0 || !j.data || !j.data.uri) throw new Error(`img upload: ${j.message} (${j.code})`);
+    return j.data.uri;
+}
+
+exports.handler = async (event) => {
+    if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'POST only' };
+    // TEMP test-phase gate (to be replaced with proper auth before auto-trigger goes live;
+    // creates DRAFT products only — deletable). env override wins if set.
+    const TEMP_GATE = 'temp_create_c5a1b6b503387ebc9d10';
+    const KEY = process.env.TIKTOK_CREATE_KEY || TEMP_GATE;
+    const hdrKey = (event.headers['x-pos-key'] || event.headers['X-Pos-Key'] || '');
+    if (hdrKey !== KEY) return { statusCode: 403, body: 'forbidden' };
+
+    let body = {};
+    try { body = JSON.parse(event.body || '{}'); } catch (e) { return { statusCode: 400, body: 'bad json' }; }
+    const { sku, title: titleOverride, category_id: catOverride, dry = false, save_mode = 'AS_DRAFT' } = body;
+    if (!sku) return { statusCode: 400, body: 'sku required' };
+
+    const errors = [];
+    try {
+        // 1) Pull the listing rows (parent + variants share parent_sku == this sku, OR this single sku)
+        const esc = (s) => encodeURIComponent('"' + String(s).toUpperCase().replace(/"/g, '\\"') + '"');
+        let rows = await tt.sb('GET', `/products_master?or=(sku.eq.${encodeURIComponent(sku)},parent_sku.eq.${encodeURIComponent(sku)})&select=*`);
+        if (!rows || !rows.length) return { statusCode: 404, body: 'product not found' };
+        // variant children = rows whose own sku != listing sku; lead = the listing sku row (or first)
+        const lead = rows.find(r => r.sku === sku) || rows[0];
+        let skuRows = rows.filter(r => r.sku && r.sku !== sku);
+        const hasVariants = skuRows.length > 0;
+        if (!hasVariants) skuRows = [lead];
+        if (lead.metadata && lead.metadata.tiktok_product_id && !dry)
+            return { statusCode: 200, body: JSON.stringify({ ok: false, already: true, product_id: lead.metadata.tiktok_product_id }) };
+
+        // 2) Title + category + description
+        const title = titleOverride || cleanTitle(lead.name, lead.brand);
+        const category_id = catOverride || resolveCategory(lead.category);
+        const desc = (lead.description && lead.description.length > 20)
+            ? `<p>${lead.description}</p>`
+            : `<p>${title}.</p><p>${lead.brand || '10 Camp'} outdoor & camping equipment. Tahan lasak untuk aktiviti luar.</p>`;
+
+        // 3) Package weight + dimensions (TikTok requires dimensions)
+        const w = Number(lead.weight_kg) > 0 ? Number(lead.weight_kg) : 1;
+        const dim = {
+            length: String(Math.max(1, Math.round(Number(lead.length_cm) || 20))),
+            width: String(Math.max(1, Math.round(Number(lead.width_cm) || 15))),
+            height: String(Math.max(1, Math.round(Number(lead.height_cm) || 10))),
+            unit: 'CENTIMETER'
+        };
+
+        // 4) Stock per sku
+        const stockMap = await tt.getPosStock(skuRows.map(r => r.sku));
+
+        // 5) Build SKUs
+        const skus = skuRows.map(r => {
+            const price = Number(r.tiktok_price) > 0 ? Number(r.tiktok_price)
+                        : Number(r.price) > 0 ? Number(r.price) : Number(lead.price) || 0;
+            const qty = stockMap[(r.sku || '').toUpperCase()] || 0;
+            const s = {
+                seller_sku: r.sku,
+                price: { amount: price.toFixed(2), currency: 'MYR' },
+                inventory: [{ warehouse_id: SALES_WAREHOUSE, quantity: qty }]
+            };
+            if (hasVariants) {
+                const color = r.variant_color || r.variant_size || r.sku;
+                s.sales_attributes = [{ id: COLOR_ATTR_ID, name: 'Warna', value_name: String(color).slice(0, 50) }];
+            }
+            return s;
+        });
+
+        const imgUrls = pickImages(lead);
+
+        if (dry) {
+            return { statusCode: 200, headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ ok: true, dry: true, title, category_id,
+                    listing_sku: sku, has_variants: hasVariants, image_count: imgUrls.length,
+                    package: { weight_kg: w, dim }, skus, errors }, null, 2) };
+        }
+
+        // 6) Real create — auth, upload images, POST
+        const tok = await tt.getValidToken();
+        const cipher = await tt.ensureShopCipher(tok);
+
+        const main_images = [];
+        for (const u of imgUrls) {
+            try { main_images.push({ uri: await uploadImageByUrl(u, tok.access_token, cipher) }); }
+            catch (e) { errors.push('img: ' + e.message); }
+        }
+        if (!main_images.length) return { statusCode: 200, body: JSON.stringify({ ok: false, errors: ['no images uploaded'].concat(errors) }) };
+
+        const payload = {
+            save_mode,
+            title,
+            description: desc,
+            category_id,
+            main_images,
+            package_weight: { value: w.toFixed(2), unit: 'KILOGRAM' },
+            package_dimensions: dim,
+            skus
+        };
+        const res = await tt.ttRequest('POST', `/product/${V}/products`, {
+            body: payload, accessToken: tok.access_token, shopCipher: cipher });
+        if (res.code !== 0) {
+            return { statusCode: 200, headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ ok: false, tiktok_code: res.code, tiktok_msg: res.message,
+                    title, category_id, errors, payload_preview: { skus, image_count: main_images.length } }, null, 2) };
+        }
+        const data = res.data || {};
+        const productId = data.product_id;
+        // 7) Write tiktok_product_id back to each sku's metadata
+        const skuIdBySeller = {};
+        for (const s of (data.skus || [])) skuIdBySeller[s.seller_sku] = s.id;
+        for (const r of skuRows) {
+            const meta = Object.assign({}, r.metadata || {}, {
+                tiktok_product_id: productId,
+                tiktok_sku_id: skuIdBySeller[r.sku] || null,
+                tiktok_created_at: new Date().toISOString(),
+                tiktok_created_via: 'cara_b'
+            });
+            try {
+                await tt.sb('PATCH', `/products_master?sku=eq.${encodeURIComponent(r.sku)}`,
+                    { metadata: meta }, { Prefer: 'return=minimal' });
+            } catch (e) { errors.push('writeback ' + r.sku + ': ' + e.message); }
+        }
+        return { statusCode: 200, headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ ok: true, product_id: productId, title, category_id,
+                sku_count: skus.length, errors }, null, 2) };
+
+    } catch (e) {
+        return { statusCode: 500, headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ ok: false, error: String((e && e.stack) || e), errors }) };
+    }
+};

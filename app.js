@@ -36547,6 +36547,8 @@ window.renderProductDatabase = function() {
  }
  // p1_490 — filter Discontinued (stok habis, tak renew). Tag dlm metadata.discontinued.
  if(fStatus === 'discontinued' && !(p.metadata && p.metadata.discontinued === true)) return false;
+ // p1_968 — produk belum dihantar ke TikTok (Cara B): tiada metadata.tiktok_product_id + bukan discontinued
+ if(fStatus === 'not_tiktok' && ((p.metadata && p.metadata.tiktok_product_id) || (p.metadata && p.metadata.discontinued === true))) return false;
  if(q) {
  const hay = `${p.sku||''} ${p.name||''} ${p.brand||''} ${p.category||''} ${p.erp_barcode||''}`.toLowerCase();
  if(!hay.includes(q)) return false;
@@ -36605,7 +36607,7 @@ window.renderProductDatabase = function() {
  if(fBrand) chips.push({label: 'Brand: ' + fBrand, clear: "document.getElementById('pdBrand').value=''; window.renderProductDatabase();"});
  if(fCat) chips.push({label: 'Category: ' + fCat, clear: "document.getElementById('pdCategory').value=''; window.renderProductDatabase();"});
  if(fStatus) {
-   const map = { published:'Live', draft:'Draft', oos:'Out of Stock', low:'Low Stock', noimage:'No Image', discontinued:'Discontinued' };
+   const map = { published:'Live', draft:'Draft', oos:'Out of Stock', low:'Low Stock', noimage:'No Image', discontinued:'Discontinued', not_tiktok:'Belum di TikTok' };
    const allPill = "document.querySelectorAll('#pdbStatusPills .pdb-pill').forEach(b=>b.classList.remove('pdb-pill--active'));document.querySelector('#pdbStatusPills .pdb-pill[data-status=\\\"\\\"]').classList.add('pdb-pill--active');document.getElementById('pdStatus').value='';window.renderProductDatabase();";
    chips.push({label: 'Status: ' + (map[fStatus] || fStatus), clear: allPill});
  }

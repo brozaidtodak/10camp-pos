@@ -49,14 +49,20 @@ exports.handler = async (event) => {
         tt.ttRequest('POST', `/product/${V}/categories/recommend`, {
             body: { product_title: title }, accessToken: at, shopCipher: cipher }));
 
-    // 4) Full category tree size check (don't dump all — just count + sample leaves)
+    // 4) Category tree — meta always; full leaf dump only when ?dump=cats (heavy)
     await safe('categories_meta', async () => {
         const r = await tt.ttRequest('GET', `/product/${V}/categories`, {
             query: { category_version: 'v1' }, accessToken: at, shopCipher: cipher });
         const cats = (r.data && r.data.categories) || [];
         const leaves = cats.filter(c => c.is_leaf);
-        return { code: r.code, message: r.message, total: cats.length, leaf_count: leaves.length,
-                 sample_leaves: leaves.slice(0, 5) };
+        const meta = { code: r.code, message: r.message, total: cats.length, leaf_count: leaves.length };
+        if (p.dump === 'cats') {
+            meta.all = cats.map(c => ({ id: c.id, n: c.local_name, p: c.parent_id, leaf: c.is_leaf,
+                                        ps: c.permission_statuses }));
+        } else {
+            meta.sample_leaves = leaves.slice(0, 5);
+        }
+        return meta;
     });
 
     // 5) If a category_id is supplied, fetch its required attributes + rules (certs?)

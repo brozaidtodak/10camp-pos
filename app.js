@@ -867,7 +867,7 @@ window.renderCustomization = function() {
   + card('Kedai &amp; Hubungan','store', f('custName','Nama Kedai',s.shop.name) + f('custPhone','Telefon',s.shop.phone,'+60 11-...') + f('custWhatsapp','WhatsApp (no sahaja)',s.shop.whatsapp,'601133109547') + f('custEmail','Email',s.shop.email,'','email') + f('custAddress','Alamat',s.shop.address) + f('custHours','Waktu Operasi',s.shop.hours) + f('custFooter','Footer Resit',s.shop.footer))
   + card('Operasi','clock', f('custShiftA','Waktu Syif A',s.shifts.A) + f('custShiftB','Waktu Syif B',s.shifts.B) + f('custShiftC','Waktu Syif C',s.shifts.C) + f('custTarget','Sasaran Jualan Bulanan (RM)',s.sales.monthly_target,'0','number') + f('custPin','PIN Laporan Sulit',s.security.confidential_pin,'1999'))
   + card('Harga &amp; Marketplace','tag', '<p style="font-size:11px; color:#9CA3AF; margin:-4px 0 12px;">Harga jual TikTok/Shopee diset PER-PRODUK di kad Variants — bukan global. Di sini cuma peraturan margin + link store.</p>' + f('custFloorMargin','Margin Lantai Default (%)',s.pricing.floor_margin_pct,'35','number') + f('custRrpMarkup','RRP Markup Default (%)',s.pricing.rrp_markup_pct,'30','number') + f('custShopeeStore','Link Store Shopee',s.links.shopee_store) + f('custTiktokStore','Link Store TikTok',s.links.tiktok_store)
-    + '<div style="margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; display:flex; align-items:flex-start; gap:10px;"><input id="custTtAuto" type="checkbox" ' + ((s.integrations && s.integrations.tiktok_auto_create !== false) ? 'checked' : '') + ' style="width:16px; height:16px; margin-top:2px; accent-color:#101010;"><label for="custTtAuto" style="font-size:12.5px; color:#374151; font-weight:600; cursor:pointer;">Auto-hantar produk BARU ke TikTok (draf)<span style="display:block; font-weight:500; color:#9CA3AF; font-size:11px; margin-top:2px;">Bila staf daftar produk baru + Published, sistem cipta draf di TikTok Seller Centre automatik. Tutup kalau nak hantar manual sahaja.</span></label></div>')
+    + '<div style="margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; display:flex; align-items:flex-start; gap:10px;"><input id="custTtAuto" type="checkbox" ' + ((s.integrations && s.integrations.tiktok_auto_create !== false) ? 'checked' : '') + ' style="width:16px; height:16px; margin-top:2px; accent-color:#101010;"><label for="custTtAuto" style="font-size:12.5px; color:#374151; font-weight:600; cursor:pointer;">Auto-hantar produk BARU ke TikTok (draf)<span style="display:block; font-weight:500; color:#9CA3AF; font-size:11px; margin-top:2px;">Bila staf daftar produk baru (Published atau draf), sistem cipta draf di TikTok Seller Centre automatik. Tutup kalau nak hantar manual sahaja.</span></label></div>')
   + '<div style="display:flex; gap:10px; align-items:center; margin-bottom:30px;"><button onclick="window.__custSave()" class="btn-brand-primary" style="padding:10px 22px; font-size:13px;"><i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Simpan</button><span id="custSaveMsg" style="font-size:12px; color:#9CA3AF;"></span></div>';
  if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){}
 };
@@ -24927,11 +24927,13 @@ window.saveMasterProduct = async function() {
 
  showToast(`${isEdit ? 'Update' : 'Daftar'} "${name}" (${parentKey})${hasVariants ? ' · ' + __vrows.length + ' variant' : ''} berjaya!`, 'success');
 
- // Cara B — auto-hantar produk BARU ke TikTok (draf). Hanya produk baru + published +
- // setting ON. Fire-and-forget: tak block simpan; toast sendiri bila siap/gagal.
+ // Cara B — auto-hantar SEMUA produk BARU ke TikTok (draf), termasuk produk draf POS
+ // (Zaid: "auto untuk semua produk baru termasuk draf"). Hanya produk baru + setting ON.
+ // Fire-and-forget: tak block simpan; toast sendiri bila siap/gagal. Produk di TikTok
+ // tetap masuk sebagai DRAF (save_mode AS_DRAFT), tak terus live.
  try {
   const autoOn = (typeof window.__getSetting === 'function') ? window.__getSetting('integrations.tiktok_auto_create', true) : true;
-  if(!isEdit && autoOn && cleaned.is_published === true){
+  if(!isEdit && autoOn){
    showToast('Menghantar "'+name+'" ke TikTok…', 'info');
    window.__tiktokPushProduct(parentKey, { toast:true });
   }

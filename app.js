@@ -36374,16 +36374,24 @@ window.renderCollections = function() {
  if(!body) return;
  const prods = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
  const pub = (typeof isPublished === 'function') ? isPublished : (() => true);
- // group helper → [{name, total, live}]
+ // group helper → [{name, total(unit), listings, live, liveListings}]
+ // p1_965 — kira LISTING (varian dicantum ikut parent_sku, sama macam grid Produk) +
+ //   unit/SKU mentah. Dulu cuma tunjuk unit (104) tapi grid tunjuk listing (66) → tak padan,
+ //   nampak macam produk hilang. Key listing mirror grid renderProductDatabase.
+ const listingKey = (p) => (p.parent_sku && String(p.parent_sku).trim()) ? ('p:' + p.parent_sku) : ('s:' + p.sku);
  const groupBy = (field) => {
  const m = new Map();
  for(const p of prods) {
  const v = (p[field] || '').trim();
  if(!v) continue;
- if(!m.has(v)) m.set(v, { name: v, total: 0, live: 0 });
- const g = m.get(v); g.total++; if(pub(p)) g.live++;
+ if(!m.has(v)) m.set(v, { name: v, total: 0, live: 0, _L: new Set(), _LL: new Set() });
+ const g = m.get(v); g.total++;
+ const lk = listingKey(p); g._L.add(lk);
+ if(pub(p)) { g.live++; g._LL.add(lk); }
  }
- return Array.from(m.values()).sort((a,b) => b.total - a.total);
+ return Array.from(m.values())
+ .map(g => ({ name: g.name, total: g.total, live: g.live, listings: g._L.size, liveListings: g._LL.size }))
+ .sort((a,b) => b.listings - a.listings);
  };
  const brands = groupBy('brand');
  const cats = groupBy('category');
@@ -36393,7 +36401,7 @@ window.renderCollections = function() {
  const row = (type, g) =>
  `<div onclick="window.__collectionOpen('${type}','${hesc(g.name).replace(/'/g, "\\'")}')" style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px 11px 34px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='#fff'">
  <span style="display:inline-flex; align-items:center; gap:9px; font-size:13.5px; color:#7c4a1a; font-weight:600;"><i data-lucide="tag" style="width:14px;height:14px;color:#9CA3AF;"></i>${hesc(g.name)}</span>
- <span style="display:inline-flex; align-items:center; gap:16px;"><span style="font-size:10.5px; font-weight:700; color:#4E7C4A; background:#E4EFE2; padding:2px 8px; border-radius:999px;">${g.live} live</span><span style="font-size:13px; color:#6B7280; min-width:40px; text-align:right;">${g.total}</span></span>
+ <span style="display:inline-flex; align-items:center; gap:16px;"><span style="font-size:10.5px; font-weight:700; color:#4E7C4A; background:#E4EFE2; padding:2px 8px; border-radius:999px;">${g.liveListings} live</span><span style="font-size:13px; color:#6B7280; min-width:64px; text-align:right;" title="${g.listings} listing (varian dicantum) · ${g.total} unit/SKU">${g.listings} <span style="color:#9CA3AF; font-size:11px;">/ ${g.total}</span></span></span>
  </div>`;
  const groupHeader = (icon, title, sub) =>
  `<div style="display:flex; align-items:center; gap:9px; padding:12px 14px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; font-weight:700; font-size:13px; color:#101010;"><i data-lucide="${icon}" style="width:16px;height:16px;color:#CD7C32;"></i>${title} <span style="font-weight:500; color:#9CA3AF; font-size:11.5px;">${sub}</span></div>`;
@@ -36410,18 +36418,26 @@ window.renderCollections = function() {
  html += cats.map(g => row('category', g)).join('');
  if(noCat) html += `<div style="padding:9px 14px 9px 34px; font-size:12px; color:#9CA3AF;">${noCat} produk tiada kategori</div>`;
  html += '</div>';
- html += '<div style="margin-top:14px; font-size:12px; color:#9CA3AF;">Tekan mana-mana koleksi untuk lihat produk di dalamnya.</div>';
+ html += '<div style="margin-top:14px; font-size:12px; color:#9CA3AF;">Tekan mana-mana koleksi untuk lihat produk di dalamnya. Nombor = <b>listing</b> (varian dah dicantum, sama macam grid Produk) <b>/</b> jumlah unit-SKU.</div>';
  body.innerHTML = html;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 
 // p1_310 — open the Products grid filtered to a collection (brand/category)
+// p1_965 — RESET semua filter lain dulu (search/category/STATUS + status pills + page).
+//   Dulu: status filter lama (cth "Low"/"Draft"/"Live") kekal aktif bila buka koleksi →
+//   produk yang tak match status tersembunyi → nampak macam "tak semua produk ada di collection".
 window.__collectionOpen = function(type, value) {
  if(typeof switchHub === 'function') switchHub(['databaseSection'], 'Products', null);
  if(typeof window.renderProductDatabase === 'function') window.renderProductDatabase(); // ensure filter selects populated
  const sEl = document.getElementById('pdSearch'); if(sEl) sEl.value = '';
  const bEl = document.getElementById('pdBrand'); if(bEl) bEl.value = (type === 'brand') ? value : '';
  const cEl = document.getElementById('pdCategory'); if(cEl) cEl.value = (type === 'category') ? value : '';
+ // reset status filter ke "Semua" supaya koleksi tunjuk SEMUA produk di dalamnya
+ const stEl = document.getElementById('pdStatus'); if(stEl) stEl.value = '';
+ const allPill = document.querySelector('#pdbStatusPills .pdb-pill[data-status=""]');
+ if(allPill) document.querySelectorAll('#pdbStatusPills .pdb-pill').forEach(b => b.classList.toggle('pdb-pill--active', b === allPill));
+ window.__pdbPage = 1; // mula dari muka surat pertama
  if(typeof window.renderProductDatabase === 'function') window.renderProductDatabase();
 };
 

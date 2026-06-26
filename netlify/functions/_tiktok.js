@@ -182,8 +182,20 @@ async function pushInventoryDiffs(tok, shopCipher, diffs) {
     return { pushed, failed, errors };
 }
 
+// SKUs (uppercase) whose POS product has metadata.tiktok_sync_enabled === false.
+// Stock pushes (full reconcile + per-sale) must SKIP these so a manually-managed
+// listing isn't overwritten. Fails OPEN (empty set) on read error — never blocks sync.
+async function getSyncDisabledSet() {
+    const set = new Set();
+    try {
+        const rows = await sb('GET', "/products_master?select=sku&metadata->>tiktok_sync_enabled=eq.false");
+        for (const r of (rows || [])) { const s = (r.sku || '').toUpperCase(); if (s) set.add(s); }
+    } catch (e) { /* fail open */ }
+    return set;
+}
+
 module.exports = {
     VERSION, APP_KEY, APP_SECRET, SERVICE_KEY,
     sb, signRequest, ttRequest, getValidToken, ensureShopCipher,
-    getPosStock, getTiktokProducts, pushInventoryDiffs
+    getPosStock, getTiktokProducts, pushInventoryDiffs, getSyncDisabledSet
 };

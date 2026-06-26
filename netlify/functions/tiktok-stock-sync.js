@@ -21,7 +21,7 @@
 const {
     VERSION, APP_KEY, APP_SECRET, SERVICE_KEY,
     ttRequest, getValidToken, ensureShopCipher,
-    getPosStock, getTiktokProducts, pushInventoryDiffs
+    getPosStock, getTiktokProducts, pushInventoryDiffs, getSyncDisabledSet
 } = require('./_tiktok');
 
 function json(statusCode, obj) {
@@ -65,6 +65,7 @@ exports.handler = async (event) => {
         if (mode === 'list') {
             const STATUSES = ['ACTIVATE', 'DRAFT', 'PENDING', 'FAILED', 'SELLER_DEACTIVATED', 'PLATFORM_DEACTIVATED', 'FREEZE'];
             const posStock = await getPosStock();
+            const syncOff = await getSyncDisabledSet();
             const items = [];
             const statusCount = {};
             for (const st of STATUSES) {
@@ -84,10 +85,14 @@ exports.handler = async (event) => {
                             return {
                                 seller_sku: s.seller_sku || '',
                                 tiktok_qty: parseInt(inv.quantity, 10) || 0,
-                                pos_qty: (sellerSku in posStock) ? posStock[sellerSku] : null
+                                pos_qty: (sellerSku in posStock) ? posStock[sellerSku] : null,
+                                sync_enabled: !syncOff.has(sellerSku)
                             };
                         });
-                        items.push({ product_id: String(p.id), title: p.title || '', status: st, skus });
+                        // product sync = ON unless EVERY mapped SKU is turned off
+                        const mapped = skus.filter(s => s.seller_sku);
+                        const syncEnabled = mapped.length ? mapped.some(s => s.sync_enabled) : true;
+                        items.push({ product_id: String(p.id), title: p.title || '', status: st, skus, sync_enabled: syncEnabled });
                         statusCount[st] = (statusCount[st] || 0) + 1;
                     }
                     pageToken = (res.data && res.data.next_page_token) || '';
@@ -105,14 +110,17 @@ exports.handler = async (event) => {
 
         const posStock = await getPosStock();
         out.pos_skus_with_stock = Object.keys(posStock).length;
+        const syncOff = await getSyncDisabledSet(); // SKUs with sync turned OFF — skip
+        out.sync_off_skus = syncOff.size;
 
         // Map seller_sku → {product_id, sku_id, warehouse_id, tiktok_qty}
         const diffs = [];
-        let mapped = 0, unmatched = 0;
+        let mapped = 0, unmatched = 0, skipped_off = 0;
         for (const p of products) {
             for (const sku of (p.skus || [])) {
                 const sellerSku = (sku.seller_sku || '').toUpperCase();
                 if (!sellerSku) { unmatched++; continue; }
+                if (syncOff.has(sellerSku)) { skipped_off++; continue; } // sync OFF for this SKU
                 const inv = (sku.inventory || [])[0] || {};
                 const ttQty = parseInt(inv.quantity, 10) || 0;
                 const warehouseId = inv.warehouse_id || null;
@@ -133,6 +141,7 @@ exports.handler = async (event) => {
         }
         out.mapped_skus = mapped;
         out.unmatched_skus = unmatched;
+        out.skipped_sync_off = skipped_off;
         out.diffs = diffs.length;
 
         if (mode === 'dryrun') {

@@ -19,7 +19,7 @@
 const {
     APP_KEY, APP_SECRET, SERVICE_KEY,
     getValidToken, ensureShopCipher,
-    getPosStock, getTiktokProducts, pushInventoryDiffs
+    getPosStock, getTiktokProducts, pushInventoryDiffs, getSyncDisabledSet
 } = require('./_tiktok');
 
 function json(statusCode, obj) {
@@ -64,9 +64,10 @@ exports.handler = async (event) => {
 
         // Mapping isn't persisted yet, so pull the catalog to resolve
         // seller_sku → {product_id, sku_id, warehouse_id}. (Future: cache this.)
-        const [products, posStock] = await Promise.all([
+        const [products, posStock, syncOff] = await Promise.all([
             getTiktokProducts(tok.access_token, shopCipher),
-            getPosStock(skus)
+            getPosStock(skus),
+            getSyncDisabledSet()
         ]);
 
         const want = new Set(skus);
@@ -76,6 +77,7 @@ exports.handler = async (event) => {
             for (const sku of (p.skus || [])) {
                 const sellerSku = (sku.seller_sku || '').toUpperCase();
                 if (!want.has(sellerSku)) continue;
+                if (syncOff.has(sellerSku)) continue; // sync OFF for this SKU — skip
                 const inv = (sku.inventory || [])[0] || {};
                 const ttQty = parseInt(inv.quantity, 10) || 0;
                 const posQty = posStock[sellerSku] || 0;

@@ -22469,7 +22469,8 @@ window.__TT_ST = {
  ACTIVATE:{l:'Live',c:'#4E7C4A',bg:'#E4EFE2'}, DRAFT:{l:'Draf',c:'#8A6D1F',bg:'#F8EFD7'},
  PENDING:{l:'Review',c:'#3B5BA5',bg:'#E5ECF8'}, FAILED:{l:'Gagal',c:'#B23A2E',bg:'#F8E1DE'},
  SELLER_DEACTIVATED:{l:'Off (penjual)',c:'#6B7280',bg:'#F3F4F6'},
- PLATFORM_DEACTIVATED:{l:'Off (platform)',c:'#B23A2E',bg:'#F8E1DE'}, FREEZE:{l:'Beku',c:'#6B7280',bg:'#F3F4F6'}
+ PLATFORM_DEACTIVATED:{l:'Off (platform)',c:'#B23A2E',bg:'#F8E1DE'}, FREEZE:{l:'Beku',c:'#6B7280',bg:'#F3F4F6'},
+ NOT_ON_TIKTOK:{l:'Belum di TikTok',c:'#9A5B2B',bg:'#F4E7DA'}
 };
 window.__mpTiktokStock = async function(filter, forceReload){
  const body = document.getElementById('mpDashboardBody'); if(!body) return;
@@ -22477,6 +22478,15 @@ window.__mpTiktokStock = async function(filter, forceReload){
  if(!window.__ttStockData){
   body.innerHTML = '<div style="padding:40px; text-align:center; color:#6B7280;"><i data-lucide="loader" style="width:24px;height:24px;"></i><br>Memuatkan produk TikTok (termasuk draf)… mungkin ambil masa sikit.</div>';
   if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+  // Muat semula: refresh katalog POS dulu supaya produk baru (cth dicipta staf lain) nampak
+  if(forceReload && window.currentUser && typeof db!=='undefined'){
+   try {
+    const { data: master } = await db.from('products_master').select('*').limit(100000);
+    if(master) masterProducts = master;
+    const { data: batches } = await db.from('inventory_batches').select('*').order('inbound_date',{ascending:true}).limit(100000);
+    if(batches) inventoryBatches = batches;
+   } catch(e){ /* abaikan ralat refresh katalog */ }
+  }
   try {
    const r = await fetch('/api/tiktok-stock-sync?mode=list', { headers: window.__authHeaderSync(), cache:'no-store' });
    window.__ttStockData = await r.json();
@@ -22497,18 +22507,56 @@ window.__mpTiktokStock = async function(filter, forceReload){
  html += '<div style="display:flex; gap:8px;"><button onclick="window.__mpTiktokStock(null,true)" class="btn-brand-outline" style="font-size:13px; padding:8px 14px;"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Muat semula</button><button onclick="window.__mpTiktokPushStock()" class="btn-brand-primary" style="font-size:13px; padding:8px 14px;"><i data-lucide="upload-cloud" style="width:14px;height:14px;vertical-align:-2px;"></i> Push Stok ke TikTok</button></div>';
  html += '</div>';
  html += '<h2 class="section-title" data-skip-title-sync style="margin:0 0 4px;"><i data-lucide="refresh-cw" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;"></i>TikTok — Stock Sync</h2>';
- html += '<p style="font-size:12px; color:#9CA3AF; margin:0 0 14px;">Semua '+(d.total||0)+' produk di TikTok ikut status. Draf = belum disubmit/lulus, Live = tersiar untuk jual. Stok TikTok dibanding stok POS.</p>';
+ html += '<p style="font-size:12px; color:#9CA3AF; margin:0 0 14px;">'+(d.total||0)+' produk semua sekali. Status: Live (tersiar), Draf, Review, atau <b>Belum di TikTok</b> (ada di POS tapi belum naik). Stok TikTok dibanding stok POS.</p>';
 
- // enrich tiap produk dengan brand/kategori/nama POS (sekali) untuk search + filter koleksi
+ // MERGE — produk POS yang BELUM di TikTok masuk sekali dgn status "Belum di TikTok"
+ // (Zaid: produk dicipta tapi gagal/tak naik TikTok jadi POS-only — patut nampak di sini).
+ if(typeof masterProducts !== 'undefined' && !d.__merged){
+  const onTk = new Set();
+  (d.items||[]).forEach(it => (it.skus||[]).forEach(s=>{ if(s.seller_sku) onTk.add(String(s.seller_sku).toUpperCase()); }));
+  const stockMap = {};
+  (typeof inventoryBatches!=='undefined'?inventoryBatches:[]).forEach(b=>{ const k=(b.sku||'').toUpperCase(); if(k) stockMap[k]=(stockMap[k]||0)+(parseInt(b.qty_remaining,10)||0); });
+  const groups = new Map();
+  (masterProducts||[]).forEach(p=>{
+   if(!p || !p.sku) return;
+   if(p.metadata && p.metadata.discontinued===true) return;
+   if(p.metadata && p.metadata.tiktok_product_id) return;        // dah ada di TikTok (mapped)
+   if(onTk.has(String(p.sku).toUpperCase())) return;             // SKU dah wujud di TikTok
+   const key = (p.parent_sku && String(p.parent_sku).trim()) ? ('p:'+p.parent_sku) : ('s:'+p.sku);
+   if(!groups.has(key)) groups.set(key, []);
+   groups.get(key).push(p);
+  });
+  const synth = [];
+  groups.forEach((rows, key)=>{
+   const lead = rows.find(r=>r.sku===r.parent_sku) || rows[0];
+   const img = (window.__coverOf && window.__coverOf(lead)) || (lead.images && lead.images[0]) || '';
+   synth.push({
+    product_id: 'pos:'+key, __notTiktok: true,
+    title: (window.__productNameOf?window.__productNameOf(lead):lead.name)||lead.name||'',
+    status: 'NOT_ON_TIKTOK',
+    __brand: lead.brand||'', __cat: lead.category||'', __posName: lead.name||'', __img: img,
+    listing_sku: (lead.parent_sku||lead.sku),
+    skus: rows.map(r=>({ seller_sku: r.sku, tiktok_qty: null, pos_qty: (stockMap[String(r.sku).toUpperCase()]||0), sync_enabled:true }))
+   });
+  });
+  d.items = (d.items||[]).concat(synth);
+  d.status_count = d.status_count || {};
+  d.status_count.NOT_ON_TIKTOK = synth.length;
+  d.total = (d.total||0) + synth.length;
+  d.__merged = true; d.__enriched = false; // re-enrich utk isi __img semua item
+ }
+
+ // enrich tiap produk dengan brand/kategori/nama/gambar POS (sekali) untuk search + filter koleksi + thumbnail
  if(typeof masterProducts !== 'undefined' && !d.__enriched){
   const posBy = {};
   (masterProducts||[]).forEach(mp=>{ if(mp && mp.sku) posBy[String(mp.sku).toUpperCase()] = mp; });
   (d.items||[]).forEach(it=>{
    const ss = (it.skus||[]).map(s=>(s.seller_sku||'').toUpperCase()).filter(Boolean);
    let pp=null; for(const s of ss){ if(posBy[s]){ pp=posBy[s]; break; } }
-   it.__brand = pp ? (pp.brand||'') : '';
-   it.__cat = pp ? (pp.category||'') : '';
-   it.__posName = pp ? (pp.name||'') : '';
+   if(!it.__brand) it.__brand = pp ? (pp.brand||'') : '';
+   if(!it.__cat) it.__cat = pp ? (pp.category||'') : '';
+   if(!it.__posName) it.__posName = pp ? (pp.name||'') : '';
+   if(!it.__img) it.__img = pp ? ((window.__coverOf && window.__coverOf(pp)) || (pp.images && pp.images[0]) || '') : '';
   });
   d.__enriched = true;
  }
@@ -22517,7 +22565,7 @@ window.__mpTiktokStock = async function(filter, forceReload){
  const chip = (key, label, n) => '<button onclick="window.__mpTiktokStock(\''+key+'\')" style="padding:6px 12px; border-radius:999px; border:1px solid '+(cur===key?'#101010':'#E5E7EB')+'; background:'+(cur===key?'#101010':'#FFF')+'; color:'+(cur===key?'#FFF':'#374151')+'; font-size:12px; font-weight:700; cursor:pointer;">'+label+(n!=null?' ('+n+')':'')+'</button>';
  html += '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">';
  html += chip('ALL','Semua', d.total||0);
- ['ACTIVATE','DRAFT','PENDING','FAILED','SELLER_DEACTIVATED','PLATFORM_DEACTIVATED','FREEZE'].forEach(st => { if(sc[st]) html += chip(st, (ST[st]||{}).l||st, sc[st]); });
+ ['ACTIVATE','DRAFT','PENDING','FAILED','SELLER_DEACTIVATED','PLATFORM_DEACTIVATED','FREEZE','NOT_ON_TIKTOK'].forEach(st => { if(sc[st]) html += chip(st, (ST[st]||{}).l||st, sc[st]); });
  html += '</div>';
 
  // search + filter koleksi (brand)
@@ -22532,7 +22580,7 @@ window.__mpTiktokStock = async function(filter, forceReload){
  // jadual — isi rows via __ttRenderRows (kekal fokus search masa taip)
  const th = (t, align) => '<th style="padding:10px; text-align:'+(align||'left')+'; font-size:11px; color:#6B7280; text-transform:uppercase;">'+t+'</th>';
  html += '<div style="border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; background:#FFF;"><table style="width:100%; border-collapse:collapse;">'
-  + '<thead><tr style="background:#F9FAFB; border-bottom:1px solid #E5E7EB;">'+th('Produk')+th('SKU')+th('Status')+th('Stok TikTok','right')+th('Stok POS','right')+th('Sync','center')+'</tr></thead>'
+  + '<thead><tr style="background:#F9FAFB; border-bottom:1px solid #E5E7EB;">'+th('')+th('Produk')+th('SKU')+th('Status')+th('Stok TikTok','right')+th('Stok POS','right')+th('Sync','center')+'</tr></thead>'
   + '<tbody id="ttRows"></tbody></table></div>';
 
  body.innerHTML = html;
@@ -22554,22 +22602,24 @@ window.__ttRenderRows = function(){
  if(col) items = items.filter(x=>(x.__brand||'')===col);
  if(q) items = items.filter(x=> ((x.title||'').toLowerCase().includes(q)) || ((x.__posName||'').toLowerCase().includes(q)) || (x.skus||[]).some(s=>(s.seller_sku||'').toLowerCase().includes(q)) );
  let rows = '';
+ const imgCell = (p) => { const u=p.__img||''; return '<td style="padding:6px 10px; width:46px;">'+(u?'<img src="'+esc(u)+'" loading="lazy" style="width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid #EEE;" onerror="this.style.display=\'none\'">':'<div style="width:38px; height:38px; border-radius:6px; background:#F3F4F6; display:flex; align-items:center; justify-content:center; color:#C4C4C4; font-size:9px;">—</div>')+'</td>'; };
  items.forEach(p => {
   const skus = (p.skus && p.skus.length) ? p.skus : [{seller_sku:'—', tiktok_qty:0, pos_qty:null}];
   const syncOn = p.sync_enabled !== false;
   skus.forEach((s, idx) => {
-   const mism = (s.pos_qty != null && s.pos_qty !== s.tiktok_qty);
+   const mism = (s.tiktok_qty != null && s.pos_qty != null && s.pos_qty !== s.tiktok_qty);
    rows += '<tr onclick="window.__mpTtProductDetail(\''+p.product_id+'\')" style="border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background=\'#F9FAFB\'" onmouseout="this.style.background=\'#FFF\'">'
+    + (idx===0 ? imgCell(p) : '<td></td>')
     + '<td style="padding:9px 10px; font-size:12.5px; color:#101010;">'+(idx===0 ? esc((p.title||'').slice(0,55)) : '')+'</td>'
     + '<td style="padding:9px 10px; font-size:11.5px; color:#6B7280; font-family:Menlo,monospace;">'+esc(s.seller_sku||'—')+'</td>'
     + '<td style="padding:9px 10px;">'+(idx===0?badge(p.status):'')+'</td>'
-    + '<td style="padding:9px 10px; text-align:right; font-size:12.5px; font-weight:700;">'+s.tiktok_qty+'</td>'
+    + '<td style="padding:9px 10px; text-align:right; font-size:12.5px; font-weight:700;">'+(s.tiktok_qty==null?'<span style="color:#C4C4C4;">—</span>':s.tiktok_qty)+'</td>'
     + '<td style="padding:9px 10px; text-align:right; font-size:12.5px; color:'+(mism?'#B23A2E':'#6B7280')+'; font-weight:'+(mism?'700':'500')+';">'+(s.pos_qty==null?'—':s.pos_qty)+(mism?' ⚠':'')+'</td>'
     + '<td style="padding:9px 10px; text-align:center;">'+(idx===0 ? (syncOn ? '<span title="Auto-sync ON" style="color:#4E7C4A; font-size:15px;">●</span>' : '<span title="Auto-sync OFF" style="color:#C4C4C4; font-size:15px;">○</span>') : '')+'</td>'
     + '</tr>';
   });
  });
- if(!rows) rows = '<tr><td colspan="6" style="padding:20px; text-align:center; color:#9CA3AF;">Tiada produk padan tapisan.</td></tr>';
+ if(!rows) rows = '<tr><td colspan="7" style="padding:20px; text-align:center; color:#9CA3AF;">Tiada produk padan tapisan.</td></tr>';
  tb.innerHTML = rows;
  const cnt = document.getElementById('ttCount'); if(cnt) cnt.textContent = items.length + ' produk dipaparkan';
 };
@@ -22592,27 +22642,28 @@ window.__mpTtProductDetail = function(productId){
  const firstSku = (p.skus||[]).map(s=>s.seller_sku).filter(Boolean)[0] || '';
  const hasMappedSku = (p.skus||[]).some(s=>s.seller_sku);
  const sellerUrl = 'https://seller-my.tiktok.com/product/edit/'+p.product_id+'?shop_region=MY';
- // Publish/Published state
+ const notTk = !!p.__notTiktok;
+ const imgTop = p.__img ? '<img src="'+esc(p.__img)+'" style="width:54px; height:54px; object-fit:cover; border-radius:8px; border:1px solid #EEE; flex-shrink:0;" onerror="this.style.display=\'none\'">' : '';
+ // Publish/Published / Hantar state
  let pubBtn = '';
- if(p.status === 'ACTIVATE') pubBtn = '<span style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; background:#E4EFE2; color:#2F5A2C; font-weight:700; font-size:12.5px;"><i data-lucide="check-circle" style="width:15px;height:15px;"></i> Published</span>';
+ if(notTk) pubBtn = hasMappedSku ? '<button onclick="window.__mpTtSendToTiktok(\''+p.product_id+'\')" class="btn-brand-primary" style="font-size:12.5px; padding:8px 14px;"><i data-lucide="send" style="width:14px;height:14px;vertical-align:-2px;"></i> Hantar ke TikTok</button>' : '';
+ else if(p.status === 'ACTIVATE') pubBtn = '<span style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; background:#E4EFE2; color:#2F5A2C; font-weight:700; font-size:12.5px;"><i data-lucide="check-circle" style="width:15px;height:15px;"></i> Published</span>';
  else if(p.status === 'PENDING') pubBtn = '<span style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; background:#E5ECF8; color:#3B5BA5; font-weight:700; font-size:12.5px;"><i data-lucide="clock" style="width:15px;height:15px;"></i> Sedang direview TikTok</span>';
  else if(hasMappedSku) pubBtn = '<button onclick="window.__mpTtPublish(\''+p.product_id+'\')" class="btn-brand-primary" style="font-size:12.5px; padding:8px 14px;"><i data-lucide="rocket" style="width:14px;height:14px;vertical-align:-2px;"></i> Publish ke TikTok</button>';
  const skuRows = ((p.skus||[]).map(s=>{
-  const mism = (s.pos_qty!=null && s.pos_qty!==s.tiktok_qty);
-  return '<tr><td style="padding:6px 8px; font-family:Menlo,monospace; font-size:11.5px;">'+esc(s.seller_sku||'—')+'</td><td style="padding:6px 8px; text-align:right;">'+s.tiktok_qty+'</td><td style="padding:6px 8px; text-align:right; color:'+(mism?'#B23A2E':'#374151')+'; font-weight:'+(mism?'700':'400')+';">'+(s.pos_qty==null?'—':s.pos_qty)+(mism?' ⚠':'')+'</td></tr>';
+  const mism = (s.tiktok_qty!=null && s.pos_qty!=null && s.pos_qty!==s.tiktok_qty);
+  return '<tr><td style="padding:6px 8px; font-family:Menlo,monospace; font-size:11.5px;">'+esc(s.seller_sku||'—')+'</td><td style="padding:6px 8px; text-align:right; color:'+(s.tiktok_qty==null?'#C4C4C4':'#374151')+';">'+(s.tiktok_qty==null?'—':s.tiktok_qty)+'</td><td style="padding:6px 8px; text-align:right; color:'+(mism?'#B23A2E':'#374151')+'; font-weight:'+(mism?'700':'400')+';">'+(s.pos_qty==null?'—':s.pos_qty)+(mism?' ⚠':'')+'</td></tr>';
  }).join('')) || '<tr><td colspan="3" style="padding:8px; color:#9CA3AF; font-size:12px;">Tiada SKU dipadan POS — uruskan di TikTok.</td></tr>';
  const toggleBtn = '<button onclick="window.__mpTtToggleSync(\''+p.product_id+'\')" style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:8px; border:1px solid '+(syncOn?'#4E7C4A':'#D1D5DB')+'; background:'+(syncOn?'#E4EFE2':'#F3F4F6')+'; color:'+(syncOn?'#2F5A2C':'#6B7280')+'; font-weight:700; font-size:12.5px; cursor:pointer;">'+(syncOn?'<i data-lucide="toggle-right" style="width:18px;height:18px;"></i> Auto-sync stok: ON':'<i data-lucide="toggle-left" style="width:18px;height:18px;"></i> Auto-sync stok: OFF')+'</button>';
  const html =
-  '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px;"><div style="font-size:15.5px; font-weight:800; color:#101010; line-height:1.3;">'+esc(p.title||'(tiada tajuk)')+'</div><button onclick="var o=document.getElementById(\'ttDetailOverlay\'); if(o)o.remove();" style="border:none; background:none; font-size:22px; color:#9CA3AF; cursor:pointer; line-height:1;">×</button></div>'
-  + '<div style="margin-bottom:14px;"><span style="display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700; color:'+m.c+'; background:'+m.bg+';">'+m.l+'</span><span style="font-size:11px; color:#9CA3AF; font-family:Menlo,monospace; margin-left:8px;">ID '+p.product_id+'</span></div>'
+  '<div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;">'+imgTop+'<div style="flex:1; min-width:0;"><div style="font-size:15.5px; font-weight:800; color:#101010; line-height:1.3;">'+esc(p.title||'(tiada tajuk)')+'</div><div style="margin-top:6px;"><span style="display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700; color:'+m.c+'; background:'+m.bg+';">'+m.l+'</span>'+(notTk?'':'<span style="font-size:11px; color:#9CA3AF; font-family:Menlo,monospace; margin-left:8px;">ID '+p.product_id+'</span>')+'</div></div><button onclick="var o=document.getElementById(\'ttDetailOverlay\'); if(o)o.remove();" style="border:none; background:none; font-size:22px; color:#9CA3AF; cursor:pointer; line-height:1;">×</button></div>'
   + '<table style="width:100%; border-collapse:collapse; margin-bottom:16px; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;"><thead><tr style="background:#F9FAFB;"><th style="padding:6px 8px; text-align:left; font-size:10.5px; color:#6B7280; text-transform:uppercase;">SKU</th><th style="padding:6px 8px; text-align:right; font-size:10.5px; color:#6B7280; text-transform:uppercase;">Stok TikTok</th><th style="padding:6px 8px; text-align:right; font-size:10.5px; color:#6B7280; text-transform:uppercase;">Stok POS</th></tr></thead><tbody>'+skuRows+'</tbody></table>'
-  + '<div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:700; margin-bottom:6px;">Auto-sync stok</div>'
-  + '<div style="margin-bottom:6px;">'+toggleBtn+'</div>'
-  + '<div style="font-size:11px; color:#9CA3AF; margin-bottom:18px;">Bila ON, stok POS auto-tolak ke TikTok. Tutup kalau nak urus stok produk ni manual (cth listing khas/bundle).</div>'
+  + (notTk ? '<div style="font-size:11.5px; color:#9A5B2B; background:#F4E7DA; border-radius:8px; padding:9px 12px; margin-bottom:16px;">Produk ni belum di TikTok. Tekan "Hantar ke TikTok" untuk cipta draf'+( (p.__img)?'':' — tapi <b>perlu gambar dulu</b>')+'.</div>'
+     : '<div style="font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; font-weight:700; margin-bottom:6px;">Auto-sync stok</div><div style="margin-bottom:6px;">'+toggleBtn+'</div><div style="font-size:11px; color:#9CA3AF; margin-bottom:18px;">Bila ON, stok POS auto-tolak ke TikTok. Tutup kalau nak urus stok produk ni manual (cth listing khas/bundle).</div>')
   + '<div style="display:flex; gap:8px; flex-wrap:wrap;">'
   + pubBtn
   + (hasMappedSku ? '<button onclick="var o=document.getElementById(\'ttDetailOverlay\'); if(o)o.remove(); window.openPdpModal && window.openPdpModal(\''+esc(String(firstSku).replace(/[^A-Za-z0-9_-]/g,''))+'\')" class="btn-brand-outline" style="font-size:12.5px; padding:8px 14px;"><i data-lucide="edit-3" style="width:14px;height:14px;vertical-align:-2px;"></i> Edit di POS</button>' : '')
-  + '<a href="'+sellerUrl+'" target="_blank" rel="noopener" class="btn-brand-outline" style="font-size:12.5px; padding:8px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka / lengkapkan di TikTok</a>'
+  + (notTk ? '' : '<a href="'+sellerUrl+'" target="_blank" rel="noopener" class="btn-brand-outline" style="font-size:12.5px; padding:8px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="external-link" style="width:14px;height:14px;"></i> Buka / lengkapkan di TikTok</a>')
   + '</div>';
  let ov = document.getElementById('ttDetailOverlay');
  if(!ov){ ov = document.createElement('div'); ov.id='ttDetailOverlay'; document.body.appendChild(ov); }
@@ -22667,6 +22718,18 @@ window.__mpTtPublish = async function(productId){
    if(typeof showToast==='function') showToast('Publish gagal: '+(j.tiktok_msg||j.error||'requirement tak cukup — tekan "Buka/lengkapkan di TikTok"'), 'warn');
   }
  } catch(e){ if(typeof showToast==='function') showToast('Publish ralat: '+e.message, 'error'); }
+};
+// Hantar produk POS (belum di TikTok) → cipta draf di TikTok, lepas tu muat semula senarai.
+window.__mpTtSendToTiktok = async function(productId){
+ const d = window.__ttStockData; const p = (d.items||[]).find(x=>x.product_id===productId); if(!p) return;
+ const listingSku = p.listing_sku || (p.skus||[]).map(s=>s.seller_sku).filter(Boolean)[0];
+ if(!listingSku){ if(typeof showToast==='function') showToast('Tiada SKU — tak boleh hantar.', 'warn'); return; }
+ if(typeof showToast==='function') showToast('Menghantar ke TikTok…', 'info');
+ const j = await window.__tiktokPushProduct(listingSku, { toast:true });
+ if(j && j.ok && j.product_id){
+  var o=document.getElementById('ttDetailOverlay'); if(o)o.remove();
+  window.__mpTiktokStock(window.__ttCurFilter, true); // reload supaya produk pindah ke Draf
+ }
 };
 window.__mpMapTiktok = async function() {
  if(typeof showToast === 'function') showToast('Triggering TikTok mapping...', 'info');

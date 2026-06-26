@@ -22194,7 +22194,7 @@ window.renderMarketplaces = async function() {
  {
  key: 'tiktok',
  name: 'TikTok Shop',
- desc: 'Direct API · Read-only product compare (Phase 3 ready)',
+ desc: 'Direct API · Auto-create produk + stock sync (draf & live)',
  storeUrl: 'https://vt.tiktok.com/ZSxoAXDhd/?page=TikTokShop',
  channelValue: 'TikTok Shop',
  icon: 'video',
@@ -22205,7 +22205,7 @@ window.renderMarketplaces = async function() {
  lastSync: mapStats.lastSync.tiktok,
  actions: [
  { label: 'Run Mapping', icon: 'link', onclick: "window.__mpMapTiktok && window.__mpMapTiktok()" },
- { label: 'Compare Products', icon: 'git-compare', onclick: "if(typeof showToast==='function') showToast('TikTok compare view coming soon', 'info');" }
+ { label: 'Sync Stock', icon: 'refresh-cw', onclick: "window.__mpTiktokStock && window.__mpTiktokStock(null, true)" }
  ]
  }
  ];
@@ -22461,6 +22461,82 @@ window.__mpMapShopee = async function() {
 };
 window.__mpSyncShopeeStock = async function() {
  if(typeof showToast === 'function') showToast('Shopee stock sync coming soon', 'info');
+};
+
+// p1_970 — TikTok Stock Sync view: SEMUA produk TikTok (termasuk DRAF) + status + stok.
+// Zack boleh nampak mana draf, mana published, dan banding stok TikTok vs POS.
+window.__TT_ST = {
+ ACTIVATE:{l:'Live',c:'#4E7C4A',bg:'#E4EFE2'}, DRAFT:{l:'Draf',c:'#8A6D1F',bg:'#F8EFD7'},
+ PENDING:{l:'Review',c:'#3B5BA5',bg:'#E5ECF8'}, FAILED:{l:'Gagal',c:'#B23A2E',bg:'#F8E1DE'},
+ SELLER_DEACTIVATED:{l:'Off (penjual)',c:'#6B7280',bg:'#F3F4F6'},
+ PLATFORM_DEACTIVATED:{l:'Off (platform)',c:'#B23A2E',bg:'#F8E1DE'}, FREEZE:{l:'Beku',c:'#6B7280',bg:'#F3F4F6'}
+};
+window.__mpTiktokStock = async function(filter, forceReload){
+ const body = document.getElementById('mpDashboardBody'); if(!body) return;
+ if(forceReload) window.__ttStockData = null;
+ if(!window.__ttStockData){
+  body.innerHTML = '<div style="padding:40px; text-align:center; color:#6B7280;"><i data-lucide="loader" style="width:24px;height:24px;"></i><br>Memuatkan produk TikTok (termasuk draf)… mungkin ambil masa sikit.</div>';
+  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+  try {
+   const r = await fetch('/api/tiktok-stock-sync?mode=list', { headers: window.__authHeaderSync(), cache:'no-store' });
+   window.__ttStockData = await r.json();
+  } catch(e){ body.innerHTML = '<div style="padding:30px; color:#B23A2E;">Ralat muat: '+e.message+'</div>'; return; }
+ }
+ const d = window.__ttStockData;
+ if(!d || !d.items){ body.innerHTML = '<div style="padding:30px; color:#B23A2E;">Gagal muat'+((d&&d.error)?(': '+d.error):'')+' <button onclick="window.__mpTiktokStock(null,true)" class="btn-brand-outline" style="margin-left:10px;font-size:12px;">Cuba lagi</button></div>'; return; }
+ const ST = window.__TT_ST;
+ const cur = filter || 'ALL';
+ const sc = d.status_count || {};
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ const badge = (st) => { const m = ST[st] || {l:st,c:'#6B7280',bg:'#F3F4F6'}; return '<span style="display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700; color:'+m.c+'; background:'+m.bg+';">'+m.l+'</span>'; };
+
+ let html = '';
+ html += '<div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 14px; gap:10px; flex-wrap:wrap;">';
+ html += '<button onclick="window.__mpOpenChannel(\'tiktok\')" class="btn-brand-outline" style="font-size:13px; padding:8px 14px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i>TikTok Shop</button>';
+ html += '<div style="display:flex; gap:8px;"><button onclick="window.__mpTiktokStock(null,true)" class="btn-brand-outline" style="font-size:13px; padding:8px 14px;"><i data-lucide="refresh-cw" style="width:14px;height:14px;vertical-align:-2px;"></i> Muat semula</button><button onclick="window.__mpTiktokPushStock()" class="btn-brand-primary" style="font-size:13px; padding:8px 14px;"><i data-lucide="upload-cloud" style="width:14px;height:14px;vertical-align:-2px;"></i> Push Stok ke TikTok</button></div>';
+ html += '</div>';
+ html += '<h2 class="section-title" data-skip-title-sync style="margin:0 0 4px;"><i data-lucide="refresh-cw" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;"></i>TikTok — Stock Sync</h2>';
+ html += '<p style="font-size:12px; color:#9CA3AF; margin:0 0 14px;">Semua '+(d.total||0)+' produk di TikTok ikut status. Draf = belum disubmit/lulus, Live = tersiar untuk jual. Stok TikTok dibanding stok POS.</p>';
+
+ // status filter chips
+ const chip = (key, label, n) => '<button onclick="window.__mpTiktokStock(\''+key+'\')" style="padding:6px 12px; border-radius:999px; border:1px solid '+(cur===key?'#101010':'#E5E7EB')+'; background:'+(cur===key?'#101010':'#FFF')+'; color:'+(cur===key?'#FFF':'#374151')+'; font-size:12px; font-weight:700; cursor:pointer;">'+label+(n!=null?' ('+n+')':'')+'</button>';
+ html += '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">';
+ html += chip('ALL','Semua', d.total||0);
+ ['ACTIVATE','DRAFT','PENDING','FAILED','SELLER_DEACTIVATED','PLATFORM_DEACTIVATED','FREEZE'].forEach(st => { if(sc[st]) html += chip(st, (ST[st]||{}).l||st, sc[st]); });
+ html += '</div>';
+
+ // rows (1 per sku)
+ const items = (cur==='ALL') ? d.items : d.items.filter(x => x.status === cur);
+ let rows = '';
+ items.forEach(p => {
+  const skus = (p.skus && p.skus.length) ? p.skus : [{seller_sku:'—', tiktok_qty:0, pos_qty:null}];
+  skus.forEach((s, idx) => {
+   const mism = (s.pos_qty != null && s.pos_qty !== s.tiktok_qty);
+   rows += '<tr style="border-bottom:1px solid #F3F4F6;">'
+    + '<td style="padding:9px 10px; font-size:12.5px; color:#101010;">'+(idx===0 ? esc((p.title||'').slice(0,60)) : '')+'</td>'
+    + '<td style="padding:9px 10px; font-size:11.5px; color:#6B7280; font-family:Menlo,monospace;">'+esc(s.seller_sku||'—')+'</td>'
+    + '<td style="padding:9px 10px;">'+(idx===0?badge(p.status):'')+'</td>'
+    + '<td style="padding:9px 10px; text-align:right; font-size:12.5px; font-weight:700;">'+s.tiktok_qty+'</td>'
+    + '<td style="padding:9px 10px; text-align:right; font-size:12.5px; color:'+(mism?'#B23A2E':'#6B7280')+'; font-weight:'+(mism?'700':'500')+';">'+(s.pos_qty==null?'—':s.pos_qty)+(mism?' ⚠':'')+'</td>'
+    + '</tr>';
+  });
+ });
+ if(!rows) rows = '<tr><td colspan="5" style="padding:20px; text-align:center; color:#9CA3AF;">Tiada produk untuk status ni.</td></tr>';
+ html += '<div style="border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; background:#FFF;"><table style="width:100%; border-collapse:collapse;">'
+  + '<thead><tr style="background:#F9FAFB; border-bottom:1px solid #E5E7EB;"><th style="padding:10px; text-align:left; font-size:11px; color:#6B7280; text-transform:uppercase;">Produk</th><th style="padding:10px; text-align:left; font-size:11px; color:#6B7280; text-transform:uppercase;">SKU</th><th style="padding:10px; text-align:left; font-size:11px; color:#6B7280; text-transform:uppercase;">Status</th><th style="padding:10px; text-align:right; font-size:11px; color:#6B7280; text-transform:uppercase;">Stok TikTok</th><th style="padding:10px; text-align:right; font-size:11px; color:#6B7280; text-transform:uppercase;">Stok POS</th></tr></thead>'
+  + '<tbody>'+rows+'</tbody></table></div>';
+
+ body.innerHTML = html;
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+window.__mpTiktokPushStock = async function(){
+ if(typeof showToast === 'function') showToast('Push stok ke TikTok…', 'info');
+ try {
+  const r = await fetch('/api/tiktok-stock-sync?mode=push', { headers: window.__authHeaderSync(), cache:'no-store' });
+  const d = await r.json();
+  if(typeof showToast === 'function') showToast('Push siap: '+(d.pushed||0)+' SKU dikemas kini'+(d.failed?(', '+d.failed+' gagal'):''), d.ok!==false?'success':'warn');
+  window.__mpTiktokStock(null, true);
+ } catch(e){ if(typeof showToast === 'function') showToast('Push gagal: '+e.message, 'error'); }
 };
 window.__mpMapTiktok = async function() {
  if(typeof showToast === 'function') showToast('Triggering TikTok mapping...', 'info');

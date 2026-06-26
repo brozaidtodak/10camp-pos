@@ -115,7 +115,7 @@ exports.handler = async (event) => {
 
     let body = {};
     try { body = JSON.parse(event.body || '{}'); } catch (e) { return { statusCode: 400, body: 'bad json' }; }
-    const { sku, title: titleOverride, category_id: catOverride, dry = false, save_mode = 'AS_DRAFT' } = body;
+    const { sku, title: titleOverride, category_id: catOverride, dry = false, force = false, save_mode = 'AS_DRAFT' } = body;
     if (!sku) return { statusCode: 400, body: 'sku required' };
 
     const errors = [];
@@ -129,7 +129,7 @@ exports.handler = async (event) => {
         let skuRows = rows.filter(r => r.sku && r.sku !== sku);
         const hasVariants = skuRows.length > 0;
         if (!hasVariants) skuRows = [lead];
-        if (lead.metadata && lead.metadata.tiktok_product_id && !dry)
+        if (lead.metadata && lead.metadata.tiktok_product_id && !dry && !force)
             return { statusCode: 200, body: JSON.stringify({ ok: false, already: true, product_id: lead.metadata.tiktok_product_id }) };
 
         // 2) Title + category + description
@@ -210,7 +210,7 @@ exports.handler = async (event) => {
         // 7) Write tiktok_product_id back to each sku's metadata
         const skuIdBySeller = {};
         for (const s of (data.skus || [])) skuIdBySeller[s.seller_sku] = s.id;
-        for (const r of skuRows) {
+        for (const r of (force ? [] : skuRows)) {
             const meta = Object.assign({}, r.metadata || {}, {
                 tiktok_product_id: productId,
                 tiktok_sku_id: skuIdBySeller[r.sku] || null,

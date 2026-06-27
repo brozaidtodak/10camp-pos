@@ -22695,41 +22695,113 @@ window.__mpTtToggleSync = async function(productId){
   window.__mpTtProductDetail(productId);          // refresh modal
  } catch(e){ if(typeof showToast==='function') showToast('Gagal set sync: '+e.message, 'error'); }
 };
-// Publish — terbitkan draf TikTok jadi listing (submit untuk semakan TikTok).
-window.__mpTtPublish = async function(productId){
+// Publish draf → buka BORANG prefill (requirement TikTok + data POS) sebelum terbit.
+window.__mpTtPublish = function(productId){
  const d = window.__ttStockData; const p = (d.items||[]).find(x=>x.product_id===productId); if(!p) return;
  const sellerSku = (p.skus||[]).map(s=>s.seller_sku).filter(Boolean)[0];
- if(!sellerSku){ if(typeof showToast==='function') showToast('Tiada SKU dipadan POS — lengkapkan & publish di TikTok Seller Centre.', 'warn'); return; }
+ if(!sellerSku){ if(typeof showToast==='function') showToast('Tiada SKU dipadan POS — lengkapkan di TikTok Seller Centre.', 'warn'); return; }
  const prod = (typeof masterProducts!=='undefined'?masterProducts:[]).find(mp=>String(mp.sku).toUpperCase()===String(sellerSku).toUpperCase());
  const listingSku = prod ? (prod.parent_sku || prod.sku) : sellerSku;
- if(typeof showToast==='function') showToast('Menerbitkan ke TikTok…', 'info');
- try {
-  const r = await fetch('/api/tiktok-create-product', {
-   method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}),
-   body: JSON.stringify({ sku: listingSku, publish:true, product_id: productId })
-  });
-  const j = await r.json().catch(()=>({ok:false,error:'respons tak sah'}));
-  if(j.ok && j.published){
-   if(typeof showToast==='function') showToast('Berjaya dihantar — TikTok akan review, jadi Live bila lulus.', 'success');
-   p.status = 'PENDING';
-   window.__mpTiktokStock(window.__ttCurFilter);
-   window.__mpTtProductDetail(productId);
-  } else {
-   if(typeof showToast==='function') showToast('Publish gagal: '+(j.tiktok_msg||j.error||'requirement tak cukup — tekan "Buka/lengkapkan di TikTok"'), 'warn');
-  }
- } catch(e){ if(typeof showToast==='function') showToast('Publish ralat: '+e.message, 'error'); }
+ window.__mpTtForm(listingSku, { productId: productId, publish: true });
 };
-// Hantar produk POS (belum di TikTok) → cipta draf di TikTok, lepas tu muat semula senarai.
-window.__mpTtSendToTiktok = async function(productId){
+// Hantar produk POS (belum di TikTok) → buka BORANG prefill (cipta draf).
+window.__mpTtSendToTiktok = function(productId){
  const d = window.__ttStockData; const p = (d.items||[]).find(x=>x.product_id===productId); if(!p) return;
  const listingSku = p.listing_sku || (p.skus||[]).map(s=>s.seller_sku).filter(Boolean)[0];
  if(!listingSku){ if(typeof showToast==='function') showToast('Tiada SKU — tak boleh hantar.', 'warn'); return; }
- if(typeof showToast==='function') showToast('Menghantar ke TikTok…', 'info');
- const j = await window.__tiktokPushProduct(listingSku, { toast:true });
- if(j && j.ok && j.product_id){
-  var o=document.getElementById('ttDetailOverlay'); if(o)o.remove();
-  window.__mpTiktokStock(window.__ttCurFilter, true); // reload supaya produk pindah ke Draf
+ window.__mpTtForm(listingSku, { publish: false });
+};
+// BORANG prefill TikTok (cadangan Zack) — tunjuk field wajib kategori, pra-isi dari POS,
+// staf lengkapkan yang kurang, baru hantar → elak ditolak TikTok.
+window.__mpTtForm = async function(listingSku, opts){
+ opts = opts || {};
+ let ov = document.getElementById('ttFormOverlay');
+ if(!ov){ ov = document.createElement('div'); ov.id='ttFormOverlay'; document.body.appendChild(ov); }
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100000; display:flex; align-items:center; justify-content:center; padding:16px;';
+ const wrap = (inner) => '<div style="background:#FFF; border-radius:14px; max-width:560px; width:100%; max-height:90vh; overflow:auto; padding:22px; box-shadow:0 12px 40px rgba(0,0,0,.3);" onclick="event.stopPropagation()">'+inner+'</div>';
+ ov.innerHTML = wrap('<div style="text-align:center; color:#6B7280; padding:30px;"><i data-lucide="loader" style="width:22px;height:22px;"></i><br>Menyemak keperluan TikTok untuk produk ni…</div>');
+ ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+ let req;
+ try {
+  const r = await fetch('/api/tiktok-create-product', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify({ sku: listingSku, requirements:true }) });
+  req = await r.json();
+ } catch(e){ ov.remove(); if(window.showToast) showToast('Gagal muat keperluan: '+e.message, 'error'); return; }
+ if(!req || !req.ok){ ov.remove(); if(window.showToast) showToast('Gagal: '+((req&&(req.tiktok_msg||req.error||(req.errors&&req.errors[0])))||'tak diketahui'), 'warn'); return; }
+ window.__ttFormReq = req; window.__ttFormSku = listingSku; window.__ttFormOpts = opts;
+ const esc = (typeof hesc==='function') ? hesc : (x)=>String(x==null?'':x);
+ const pf = req.prefill || {};
+ const imgs = (pf.images||[]).slice(0,6).map(u=>'<img src="'+esc(u)+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #EEE;" onerror="this.style.display=\'none\'">').join('');
+ const fld = (id,label,val,o) => { o=o||{}; return '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">'+label+(o.req?' <span style="color:#B23A2E;">*</span>':'')+'</label>'+(o.area?('<textarea id="'+id+'" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'+esc(val)+'</textarea>'):('<input id="'+id+'" type="'+(o.type||'text')+'" value="'+esc(val)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'))+'</div>'; };
+ const reqAttrs = (req.attributes||[]).filter(a=>a.is_required);
+ let attrHtml = '';
+ if(reqAttrs.length){
+  attrHtml = '<div style="font-size:11.5px;font-weight:800;color:#9A5B2B;margin:16px 0 8px;">Wajib TikTok untuk kategori ni:</div>';
+  reqAttrs.forEach(a=>{
+   if(a.values && a.values.length){
+    attrHtml += '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:4px;">'+esc(a.name)+' <span style="color:#B23A2E;">*</span></label><select id="ttattr_'+esc(a.id)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;"><option value="">— pilih —</option>'+a.values.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.name)+'</option>').join('')+'</select></div>';
+   } else {
+    attrHtml += fld('ttattr_'+esc(a.id), esc(a.name), '', {req:true});
+   }
+  });
  }
+ const actLabel = opts.publish ? 'Terbitkan ke TikTok (Live)' : 'Hantar ke TikTok (Draf)';
+ const inner =
+  '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;"><div style="font-size:16px;font-weight:800;color:#101010;">Hantar ke TikTok</div><button onclick="var o=document.getElementById(\'ttFormOverlay\');if(o)o.remove();" style="border:none;background:none;font-size:22px;color:#9CA3AF;cursor:pointer;line-height:1;">×</button></div>'
+  + '<div style="font-size:11.5px;color:#9CA3AF;margin-bottom:14px;">Data dari POS dah diisi. Lengkapkan yang bertanda <span style="color:#B23A2E;">*</span> sebelum hantar — elak ditolak TikTok.</div>'
+  + (imgs ? ('<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">'+imgs+'</div>') : '<div style="font-size:11.5px;color:#B23A2E;background:#F8E1DE;border-radius:8px;padding:9px 12px;margin-bottom:14px;">Tiada gambar — TikTok WAJIB gambar. Tambah gambar di POS dulu (Edit di POS).</div>')
+  + fld('ttf_title','Tajuk produk', pf.title, {req:true})
+  + fld('ttf_desc','Penerangan', pf.description, {area:true})
+  + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">'
+  + fld('ttf_w','Berat kg', pf.weight_kg, {type:'number'})
+  + fld('ttf_l','Panjang cm', pf.length_cm, {type:'number'})
+  + fld('ttf_wd','Lebar cm', pf.width_cm, {type:'number'})
+  + fld('ttf_h','Tinggi cm', pf.height_cm, {type:'number'})
+  + '</div>'
+  + attrHtml
+  + '<div id="ttFormErr" style="display:none;color:#B23A2E;font-size:12px;margin:10px 0;background:#F8E1DE;border-radius:8px;padding:8px 11px;"></div>'
+  + '<button id="ttFormSubmitBtn" onclick="window.__mpTtFormSubmit()" class="btn-brand-primary" style="width:100%;margin-top:14px;font-size:13.5px;padding:11px;"><i data-lucide="send" style="width:15px;height:15px;vertical-align:-2px;"></i> '+actLabel+'</button>';
+ ov.innerHTML = wrap(inner);
+ ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+window.__mpTtFormSubmit = async function(){
+ const req = window.__ttFormReq, sku = window.__ttFormSku, opts = window.__ttFormOpts || {};
+ if(!req) return;
+ const g = id => { const e=document.getElementById(id); return e ? String(e.value||'').trim() : ''; };
+ const errEl = document.getElementById('ttFormErr');
+ const showErr = (m)=>{ if(errEl){ errEl.textContent=m; errEl.style.display='block'; } };
+ const title = g('ttf_title');
+ if(!title){ showErr('Tajuk wajib diisi.'); return; }
+ const attributes = []; const missing = [];
+ (req.attributes||[]).filter(a=>a.is_required).forEach(a=>{
+  const val = g('ttattr_'+a.id);
+  if(!val){ missing.push(a.name); return; }
+  if(a.values && a.values.length){ const v=a.values.find(x=>String(x.id)===val); attributes.push({ id:a.id, values:[{ id:val, name: v?v.name:val }] }); }
+  else attributes.push({ id:a.id, values:[{ name:val }] });
+ });
+ if(opts.publish && missing.length){ showErr('Lengkapkan dulu: '+missing.join(', ')); return; }
+ const payload = { sku, publish: !!opts.publish, title, description: g('ttf_desc'), attributes };
+ const w=parseFloat(g('ttf_w')); if(w>0) payload.weight_kg=w;
+ const l=parseFloat(g('ttf_l')); if(l>0) payload.length_cm=l;
+ const wd=parseFloat(g('ttf_wd')); if(wd>0) payload.width_cm=wd;
+ const h=parseFloat(g('ttf_h')); if(h>0) payload.height_cm=h;
+ if(opts.productId) payload.product_id = opts.productId;
+ const btn = document.getElementById('ttFormSubmitBtn'); if(btn){ btn.disabled=true; btn.textContent='Menghantar…'; }
+ if(errEl) errEl.style.display='none';
+ try {
+  const r = await fetch('/api/tiktok-create-product', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify(payload) });
+  const j = await r.json().catch(()=>({ok:false,error:'respons tak sah'}));
+  if(j.ok && (j.product_id || j.published)){
+   if(window.showToast) showToast(opts.publish ? 'Berjaya dihantar untuk semakan TikTok — jadi Live bila lulus.' : 'Draf dicipta di TikTok.', 'success');
+   var o=document.getElementById('ttFormOverlay'); if(o)o.remove();
+   var o2=document.getElementById('ttDetailOverlay'); if(o2)o2.remove();
+   window.__mpTiktokStock(window.__ttCurFilter, true);
+  } else {
+   showErr('TikTok: '+(j.tiktok_msg||j.error||(j.errors&&j.errors[0])||'gagal — cuba lagi atau lengkapkan di Seller Centre'));
+   if(btn){ btn.disabled=false; btn.innerHTML='<i data-lucide="send" style="width:15px;height:15px;vertical-align:-2px;"></i> '+(opts.publish?'Terbitkan ke TikTok (Live)':'Hantar ke TikTok (Draf)'); if(window.lucide)try{lucide.createIcons();}catch(e){} }
+  }
+ } catch(e){ showErr('Ralat: '+e.message); if(btn){ btn.disabled=false; btn.textContent='Cuba lagi'; } }
 };
 window.__mpMapTiktok = async function() {
  if(typeof showToast === 'function') showToast('Triggering TikTok mapping...', 'info');

@@ -22816,6 +22816,8 @@ window.__mpTtForm = async function(listingSku, opts){
  const esc = (typeof hesc==='function') ? hesc : (x)=>String(x==null?'':x);
  const pf = req.prefill || {};
  const imgs = (pf.images||[]).slice(0,6).map(u=>'<img src="'+esc(u)+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #EEE;" onerror="this.style.display=\'none\'">').join('');
+ const vSkus = (pf.skus||[]).map(s=>s.seller_sku).filter(Boolean);
+ const vNote = vSkus.length>1 ? '<div style="font-size:11.5px;color:#2F5A2C;background:#E4EFE2;border-radius:8px;padding:8px 11px;margin-bottom:14px;"><b>'+vSkus.length+' variant</b> ('+vSkus.map(esc).join(', ')+') — dicipta sebagai 1 produk dengan '+vSkus.length+' variant di TikTok.</div>' : '';
  const fld = (id,label,val,o) => { o=o||{}; return '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">'+label+(o.req?' <span style="color:#B23A2E;">*</span>':'')+'</label>'+(o.area?('<textarea id="'+id+'" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'+esc(val)+'</textarea>'):('<input id="'+id+'" type="'+(o.type||'text')+'" value="'+esc(val)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'))+'</div>'; };
  const reqAttrs = (req.attributes||[]).filter(a=>a.is_required);
  let attrHtml = '';
@@ -22835,6 +22837,7 @@ window.__mpTtForm = async function(listingSku, opts){
   + '<div style="font-size:11.5px;color:#9CA3AF;margin-bottom:'+(usedFallback?'8px':'14px')+';">Data dari POS dah diisi. Lengkapkan yang bertanda <span style="color:#B23A2E;">*</span> sebelum hantar — elak ditolak TikTok.</div>'
   + (usedFallback ? '<div style="font-size:11px;color:#9A5B2B;background:#F4E7DA;border-radius:8px;padding:8px 11px;margin-bottom:14px;">Server sibuk — tak sempat semak requirement kategori. Boleh cuba hantar; kalau TikTok tolak, mesej sebab akan keluar.</div>' : '')
   + (imgs ? ('<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">'+imgs+'</div>') : '<div style="font-size:11.5px;color:#B23A2E;background:#F8E1DE;border-radius:8px;padding:9px 12px;margin-bottom:14px;">Tiada gambar — TikTok WAJIB gambar. Tambah gambar di POS dulu (Edit di POS).</div>')
+  + vNote
   + fld('ttf_title','Tajuk produk', pf.title, {req:true})
   + fld('ttf_desc','Penerangan', pf.description, {area:true})
   + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">'
@@ -22882,17 +22885,20 @@ window.__mpTtFormSubmit = async function(){
  try {
   const r = await fetch('/api/tiktok-create-product', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify(payload) });
   const txt = await r.text();
-  let j = {}; try { j = txt ? JSON.parse(txt) : {}; } catch(_){ j = {}; }
+  let j = {}, parsed = false; try { if(txt){ j = JSON.parse(txt); parsed = true; } } catch(_){ j = {}; parsed = false; }
   const restoreBtn = ()=>{ if(btn){ btn.disabled=false; btn.innerHTML='<i data-lucide="send" style="width:15px;height:15px;vertical-align:-2px;"></i> '+(opts.publish?'Terbitkan ke TikTok (Live)':'Hantar ke TikTok (Draf)'); if(window.lucide)try{lucide.createIcons();}catch(e){} } };
   if(j.ok && (j.product_id || j.published)){
    if(window.showToast) showToast(opts.publish ? 'Berjaya dihantar untuk semakan TikTok — jadi Live bila lulus.' : 'Draf dicipta di TikTok.', 'success');
    var o=document.getElementById('ttFormOverlay'); if(o)o.remove();
    var o2=document.getElementById('ttDetailOverlay'); if(o2)o2.remove();
    window.__mpTiktokStock(window.__ttCurFilter, true);
-  } else if(!txt){
-   // respons kosong = server timeout. Produk MUNGKIN dah tercipta — jangan hantar lagi membuta.
-   showErr('Server timeout. Produk mungkin DAH tercipta di TikTok — tutup, tekan "Muat semula", semak senarai Draf dulu sebelum cuba lagi (elak pendua).');
-   restoreBtn();
+  } else if(!parsed){
+   // respons kosong/bukan-JSON = server timeout (TikTok lambat). Create selalunya TETAP siap di belakang.
+   // Tutup + auto muat-semula — produk akan muncul dalam senarai Draf kalau berjaya. Elak hantar membuta lagi.
+   if(window.showToast) showToast('Server sibuk — produk sedang diproses. Senarai akan muat semula; semak tab Draf sekejap lagi.', 'info');
+   var oa=document.getElementById('ttFormOverlay'); if(oa)oa.remove();
+   var ob=document.getElementById('ttDetailOverlay'); if(ob)ob.remove();
+   setTimeout(()=>{ try{ window.__mpTiktokStock(window.__ttCurFilter, true); }catch(e){} }, 6000);
   } else {
    showErr('TikTok: '+(j.tiktok_msg||j.error||(j.errors&&j.errors[0])||'gagal — cuba lagi atau lengkapkan di Seller Centre'));
    restoreBtn();

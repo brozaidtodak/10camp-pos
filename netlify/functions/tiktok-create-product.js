@@ -112,7 +112,12 @@ exports.handler = async (event) => {
     let body = {};
     try { body = JSON.parse(event.body || '{}'); } catch (e) { return { statusCode: 400, body: 'bad json' }; }
     const { sku, title: titleOverride, category_id: catOverride, dry = false, force = false,
-            publish = false, product_id: publishProductId = null, save_mode = 'AS_DRAFT' } = body;
+            publish = false, product_id: publishProductId = null, save_mode = 'AS_DRAFT',
+            requirements = false,                 // mode=requirements → pulang field wajib kategori + prefill POS
+            description: descOverride = null, brand_id: brandIdOverride = null,
+            attributes: attrOverride = null,      // [{id, name, values:[{id?, name}]}] dari borang prefill
+            weight_kg: wOverride = null, length_cm: lOverride = null,
+            width_cm: wdOverride = null, height_cm: hOverride = null } = body;
     if (!sku) return { statusCode: 400, body: 'sku required' };
 
     const errors = [];
@@ -129,19 +134,20 @@ exports.handler = async (event) => {
         if (lead.metadata && lead.metadata.tiktok_product_id && !dry && !force && !publish)
             return { statusCode: 200, body: JSON.stringify({ ok: false, already: true, product_id: lead.metadata.tiktok_product_id }) };
 
-        // 2) Title + category + description
+        // 2) Title + category + description (borang prefill boleh override)
         const title = titleOverride || cleanTitle(lead.name, lead.brand);
         const category_id = catOverride || resolveCategory(lead.category);
-        const desc = (lead.description && lead.description.length > 20)
-            ? `<p>${lead.description}</p>`
+        const descRaw = descOverride != null ? descOverride : (lead.description || '');
+        const desc = (descRaw && descRaw.length > 20)
+            ? (/[<>]/.test(descRaw) ? descRaw : `<p>${descRaw}</p>`)
             : `<p>${title}.</p><p>${lead.brand || '10 Camp'} outdoor & camping equipment. Tahan lasak untuk aktiviti luar.</p>`;
 
-        // 3) Package weight + dimensions (TikTok requires dimensions)
-        const w = Number(lead.weight_kg) > 0 ? Number(lead.weight_kg) : 1;
+        // 3) Package weight + dimensions (TikTok requires dimensions; borang boleh override)
+        const w = Number(wOverride) > 0 ? Number(wOverride) : (Number(lead.weight_kg) > 0 ? Number(lead.weight_kg) : 1);
         const dim = {
-            length: String(Math.max(1, Math.round(Number(lead.length_cm) || 20))),
-            width: String(Math.max(1, Math.round(Number(lead.width_cm) || 15))),
-            height: String(Math.max(1, Math.round(Number(lead.height_cm) || 10))),
+            length: String(Math.max(1, Math.round(Number(lOverride) || Number(lead.length_cm) || 20))),
+            width: String(Math.max(1, Math.round(Number(wdOverride) || Number(lead.width_cm) || 15))),
+            height: String(Math.max(1, Math.round(Number(hOverride) || Number(lead.height_cm) || 10))),
             unit: 'CENTIMETER'
         };
 
@@ -166,6 +172,44 @@ exports.handler = async (event) => {
         });
 
         const imgUrls = pickImages(lead);
+
+        // REQUIREMENTS — pulang field WAJIB kategori TikTok + nilai prefill dari POS.
+        // Borang "Hantar ke TikTok" guna ni untuk tunjuk apa staf perlu isi sebelum terbit.
+        if (requirements) {
+            const tok = await tt.getValidToken();
+            const cipher = await tt.ensureShopCipher(tok);
+            let attrs = [], rules = {}, brands = [];
+            try {
+                const ar = await tt.ttRequest('GET', `/product/${V}/categories/${category_id}/attributes`,
+                    { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher });
+                attrs = (ar.data && ar.data.attributes) || [];
+            } catch (e) { errors.push('attributes: ' + e.message); }
+            try {
+                const rr = await tt.ttRequest('GET', `/product/${V}/categories/${category_id}/rules`,
+                    { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher });
+                rules = (rr.data) || {};
+            } catch (e) { errors.push('rules: ' + e.message); }
+            // normalize attributes — PRODUCT_PROPERTY only (SALES_PROPERTY=varian, dikendali lain)
+            const norm = attrs.filter(a => (a.type || '') !== 'SALES_PROPERTY').map(a => ({
+                id: String(a.id), name: a.name,
+                is_required: !!(a.is_required || a.is_requried || a.requirement_type === 'REQUIRED'),
+                is_multi: !!a.is_multiple_selection,
+                values: (a.values || []).map(v => ({ id: String(v.id), name: v.name }))
+            }));
+            return { statusCode: 200, headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ ok: true, requirements: true, listing_sku: sku, category_id,
+                    has_variants: hasVariants,
+                    prefill: {
+                        title, description: (lead.description || ''), brand: lead.brand || '',
+                        weight_kg: w, length_cm: Number(dim.length), width_cm: Number(dim.width), height_cm: Number(dim.height),
+                        images: imgUrls, price: (skus[0] && skus[0].price && skus[0].price.amount) || '0.00',
+                        skus: skus.map(s => ({ seller_sku: s.seller_sku, price: s.price.amount, qty: (s.inventory[0] || {}).quantity }))
+                    },
+                    attributes: norm,
+                    package_dimension_required: !!(rules.package_dimension && rules.package_dimension.is_required),
+                    cert_required: Array.isArray(rules.product_certifications) && rules.product_certifications.some(c => c.is_required),
+                    errors }, null, 2) };
+        }
 
         if (dry) {
             return { statusCode: 200, headers: { 'content-type': 'application/json' },
@@ -196,6 +240,14 @@ exports.handler = async (event) => {
             package_dimensions: dim,
             skus
         };
+        if (brandIdOverride) payload.brand_id = String(brandIdOverride);
+        // attribut wajib kategori dari borang prefill → product_attributes
+        if (Array.isArray(attrOverride) && attrOverride.length) {
+            payload.product_attributes = attrOverride
+                .filter(a => a && a.id && Array.isArray(a.values) && a.values.length)
+                .map(a => ({ id: String(a.id),
+                    values: a.values.map(v => v && v.id ? { id: String(v.id), name: v.name } : { name: String(v.name || v) }) }));
+        }
         // PUBLISH = edit existing draft → LISTING (submit for review). Else POST create.
         const targetId = publishProductId || (lead.metadata && lead.metadata.tiktok_product_id);
         let res;

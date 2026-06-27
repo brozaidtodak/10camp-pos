@@ -16643,18 +16643,79 @@ window.handleLogin = handleLogin;
 window.refreshPinLockoutMsg = refreshPinLockoutMsg;
 
 // p1_22: Detect user by PIN alone (iterate all active staff, compute hash, match)
+// p1_979 — PIN custom yang staf set sendiri (table staff_pins). Override hash hardcoded.
+// Fail muat → kekal {} (hardcoded jadi fallback, tiada regresi).
+window.__loadCustomPins = async function(){
+ try {
+  if(typeof db === 'undefined' || !db) { window.__customPinHashes = window.__customPinHashes || {}; return; }
+  const { data } = await db.from('staff_pins').select('staff_id,pin_hash');
+  const m = {};
+  (data||[]).forEach(r => { if(r && r.staff_id && r.pin_hash) m[r.staff_id] = r.pin_hash; });
+  window.__customPinHashes = m;
+ } catch(e){ window.__customPinHashes = window.__customPinHashes || {}; }
+};
 window.__detectUserByPin = async function(pin) {
  if(!/^\d{4,8}$/.test(pin)) return null;
+ if(window.__customPinHashes === undefined){ try { await window.__loadCustomPins(); } catch(e){} }
+ const custom = window.__customPinHashes || {};
  let inactive = [];
  try { inactive = JSON.parse(localStorage.getItem('staffInactive_v1') || '[]'); } catch(e){}
  const candidates = (typeof authUsers !== 'undefined' ? authUsers : []).filter(u => !inactive.includes(u.staff_id));
  for(const u of candidates) {
  try {
  const h = await hashPin(u.staff_id, pin);
- if(h === u.pin_hash) return u;
+ const expected = custom[u.staff_id] || u.pin_hash; // custom override hardcoded
+ if(h === expected) return u;
  } catch(e) {}
  }
  return null;
+};
+// p1_979 — modal Set/Tukar PIN. Selepas login email (kali pertama) atau bila-bila.
+window.__openSetPinModal = function(opts){
+ opts = opts || {};
+ let ov = document.getElementById('setPinOverlay');
+ if(!ov){ ov = document.createElement('div'); ov.id='setPinOverlay'; document.body.appendChild(ov); }
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100001; display:flex; align-items:center; justify-content:center; padding:18px;';
+ const skip = opts.first ? '<button onclick="var o=document.getElementById(\'setPinOverlay\');if(o)o.remove();" style="width:100%;margin-top:8px;background:none;border:none;color:#9CA3AF;font-size:12.5px;cursor:pointer;text-decoration:underline;">Langkau buat masa ni</button>' : '';
+ ov.innerHTML = '<div style="background:#FFF;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 12px 40px rgba(0,0,0,.3);" onclick="event.stopPropagation()">'
+  + '<div style="text-align:center;margin-bottom:8px;"><div style="width:54px;height:54px;border-radius:14px;background:#CD7C32;display:inline-flex;align-items:center;justify-content:center;color:#fff;"><i data-lucide="key-round" style="width:26px;height:26px;"></i></div></div>'
+  + '<div style="font-size:18px;font-weight:800;color:#101010;text-align:center;margin-bottom:4px;">'+(opts.first?'Tetapkan PIN Anda':'Tukar PIN')+'</div>'
+  + '<div style="font-size:12.5px;color:#6B7280;text-align:center;margin-bottom:18px;">Lain kali boleh login laju guna PIN ni — tak payah email setiap kali.</div>'
+  + '<label style="display:block;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:5px;">PIN baru (4-8 digit)</label>'
+  + '<input id="setPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:11px;font-family:Poppins,sans-serif;">'
+  + '<label style="display:block;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:5px;">Sahkan PIN</label>'
+  + '<input id="setPinConfirm" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:6px;font-family:Poppins,sans-serif;">'
+  + '<div id="setPinErr" style="display:none;color:#B23A2E;font-size:12px;margin-bottom:8px;"></div>'
+  + '<button id="setPinBtn" onclick="window.__setPinSubmit()" class="btn-brand-primary" style="width:100%;padding:12px;font-size:14px;margin-top:6px;">Simpan PIN</button>'
+  + skip
+  + '</div>';
+ ov.onclick = function(e){ if(e.target===ov && !opts.first) ov.remove(); };
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+ setTimeout(()=>{ const i=document.getElementById('setPinInput'); if(i) i.focus(); }, 100);
+};
+window.__setPinSubmit = async function(){
+ const pin = (document.getElementById('setPinInput')||{}).value || '';
+ const conf = (document.getElementById('setPinConfirm')||{}).value || '';
+ const errEl = document.getElementById('setPinErr');
+ const showErr = (m)=>{ if(errEl){ errEl.textContent=m; errEl.style.display='block'; } };
+ if(!/^\d{4,8}$/.test(pin)){ showErr('PIN mesti 4-8 digit nombor.'); return; }
+ if(/^(\d)\1+$/.test(pin)){ showErr('PIN terlalu mudah (jangan semua nombor sama).'); return; }
+ if(pin !== conf){ showErr('PIN tak sama. Cuba lagi.'); return; }
+ const btn = document.getElementById('setPinBtn'); if(btn){ btn.disabled=true; btn.textContent='Menyimpan…'; }
+ if(errEl) errEl.style.display='none';
+ try {
+  const r = await fetch('/.netlify/functions/staff-auth', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify({ action:'set_pin', pin }) });
+  const j = await r.json().catch(()=>({}));
+  if(j && j.ok && j.staff_id){
+   try { const h = await hashPin(j.staff_id, pin); window.__customPinHashes = window.__customPinHashes || {}; window.__customPinHashes[j.staff_id] = h; } catch(e){}
+   if(window.showToast) showToast('PIN disimpan. Lain kali boleh login guna PIN ni.', 'success');
+   var o=document.getElementById('setPinOverlay'); if(o)o.remove();
+  } else {
+   const map = { weak_pin:'PIN terlalu mudah.', invalid_pin_format:'Format PIN salah (4-8 digit).', not_staff:'Akaun bukan staf berdaftar.', no_token:'Sesi tamat — login semula.', invalid_session:'Sesi tamat — login semula.', not_authenticated:'Sesi tamat — login semula.' };
+   showErr((map[j && j.error]) || ('Gagal simpan'+(j&&j.error?(': '+j.error):'.')));
+   if(btn){ btn.disabled=false; btn.textContent='Simpan PIN'; }
+  }
+ } catch(e){ showErr('Ralat: '+e.message); if(btn){ btn.disabled=false; btn.textContent='Simpan PIN'; } }
 };
 
 // PIN dots visual feedback
@@ -16989,6 +17050,14 @@ window.submitEmailLogin = async function() {
  const overlay = document.getElementById('pinLoginOverlay');
  if(overlay) overlay.style.display = 'none';
  loginAs(user);
+ // p1_979 — selepas login email, kalau staf belum set PIN sendiri → prompt set PIN
+ // (boleh langkau). Lain kali boleh login guna PIN tu.
+ try {
+  await window.__loadCustomPins();
+  if(user && user.staff_id && !((window.__customPinHashes||{})[user.staff_id])){
+   setTimeout(()=>{ try { window.__openSetPinModal({ first:true }); } catch(e){} }, 700);
+  }
+ } catch(e){}
  } catch(e) {
  errEl.textContent = 'Ralat: ' + (e.message || e);
  errEl.style.color = '#B23A2E';
@@ -22702,14 +22771,14 @@ window.__mpTtPublish = function(productId){
  if(!sellerSku){ if(typeof showToast==='function') showToast('Tiada SKU dipadan POS — lengkapkan di TikTok Seller Centre.', 'warn'); return; }
  const prod = (typeof masterProducts!=='undefined'?masterProducts:[]).find(mp=>String(mp.sku).toUpperCase()===String(sellerSku).toUpperCase());
  const listingSku = prod ? (prod.parent_sku || prod.sku) : sellerSku;
- window.__mpTtForm(listingSku, { productId: productId, publish: true });
+ window.__mpTtForm(listingSku, { productId: productId, publish: true, prod: p });
 };
 // Hantar produk POS (belum di TikTok) → buka BORANG prefill (cipta draf).
 window.__mpTtSendToTiktok = function(productId){
  const d = window.__ttStockData; const p = (d.items||[]).find(x=>x.product_id===productId); if(!p) return;
  const listingSku = p.listing_sku || (p.skus||[]).map(s=>s.seller_sku).filter(Boolean)[0];
  if(!listingSku){ if(typeof showToast==='function') showToast('Tiada SKU — tak boleh hantar.', 'warn'); return; }
- window.__mpTtForm(listingSku, { publish: false });
+ window.__mpTtForm(listingSku, { publish: false, prod: p });
 };
 // BORANG prefill TikTok (cadangan Zack) — tunjuk field wajib kategori, pra-isi dari POS,
 // staf lengkapkan yang kurang, baru hantar → elak ditolak TikTok.
@@ -22722,12 +22791,26 @@ window.__mpTtForm = async function(listingSku, opts){
  ov.innerHTML = wrap('<div style="text-align:center; color:#6B7280; padding:30px;"><i data-lucide="loader" style="width:22px;height:22px;"></i><br>Menyemak keperluan TikTok untuk produk ni…</div>');
  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
- let req;
- try {
+ // Resilient fetch: safe-parse + retry sekali. Server kadang timeout (respons kosong) →
+ // fallback borang ringkas dari data POS tempatan supaya staf TETAP boleh hantar.
+ const fetchReq = async () => {
   const r = await fetch('/api/tiktok-create-product', { method:'POST', headers: window.__authHeaderSync({'Content-Type':'application/json'}), body: JSON.stringify({ sku: listingSku, requirements:true }) });
-  req = await r.json();
- } catch(e){ ov.remove(); if(window.showToast) showToast('Gagal muat keperluan: '+e.message, 'error'); return; }
- if(!req || !req.ok){ ov.remove(); if(window.showToast) showToast('Gagal: '+((req&&(req.tiktok_msg||req.error||(req.errors&&req.errors[0])))||'tak diketahui'), 'warn'); return; }
+  const txt = await r.text();
+  if(!txt) throw new Error('empty');
+  return JSON.parse(txt);
+ };
+ let req = null, usedFallback = false;
+ try { req = await fetchReq(); }
+ catch(e1){ try { await new Promise(rs=>setTimeout(rs,900)); req = await fetchReq(); } catch(e2){ req = null; } }
+ if(!req || !req.ok){
+  usedFallback = true;
+  const pr = opts.prod || {};
+  req = { ok:true, fallback:true, category_id:'', attributes:[],
+   prefill: { title: pr.title || pr.__posName || '', description: '', brand: pr.__brand || '',
+    weight_kg:'', length_cm:'', width_cm:'', height_cm:'',
+    images: (pr.__img ? [pr.__img] : []), price:'',
+    skus: (pr.skus||[]).map(s=>({ seller_sku:s.seller_sku })) } };
+ }
  window.__ttFormReq = req; window.__ttFormSku = listingSku; window.__ttFormOpts = opts;
  const esc = (typeof hesc==='function') ? hesc : (x)=>String(x==null?'':x);
  const pf = req.prefill || {};
@@ -22748,7 +22831,8 @@ window.__mpTtForm = async function(listingSku, opts){
  const actLabel = opts.publish ? 'Terbitkan ke TikTok (Live)' : 'Hantar ke TikTok (Draf)';
  const inner =
   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;"><div style="font-size:16px;font-weight:800;color:#101010;">Hantar ke TikTok</div><button onclick="var o=document.getElementById(\'ttFormOverlay\');if(o)o.remove();" style="border:none;background:none;font-size:22px;color:#9CA3AF;cursor:pointer;line-height:1;">×</button></div>'
-  + '<div style="font-size:11.5px;color:#9CA3AF;margin-bottom:14px;">Data dari POS dah diisi. Lengkapkan yang bertanda <span style="color:#B23A2E;">*</span> sebelum hantar — elak ditolak TikTok.</div>'
+  + '<div style="font-size:11.5px;color:#9CA3AF;margin-bottom:'+(usedFallback?'8px':'14px')+';">Data dari POS dah diisi. Lengkapkan yang bertanda <span style="color:#B23A2E;">*</span> sebelum hantar — elak ditolak TikTok.</div>'
+  + (usedFallback ? '<div style="font-size:11px;color:#9A5B2B;background:#F4E7DA;border-radius:8px;padding:8px 11px;margin-bottom:14px;">Server sibuk — tak sempat semak requirement kategori. Boleh cuba hantar; kalau TikTok tolak, mesej sebab akan keluar.</div>' : '')
   + (imgs ? ('<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">'+imgs+'</div>') : '<div style="font-size:11.5px;color:#B23A2E;background:#F8E1DE;border-radius:8px;padding:9px 12px;margin-bottom:14px;">Tiada gambar — TikTok WAJIB gambar. Tambah gambar di POS dulu (Edit di POS).</div>')
   + fld('ttf_title','Tajuk produk', pf.title, {req:true})
   + fld('ttf_desc','Penerangan', pf.description, {area:true})

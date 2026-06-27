@@ -178,17 +178,16 @@ exports.handler = async (event) => {
         if (requirements) {
             const tok = await tt.getValidToken();
             const cipher = await tt.ensureShopCipher(tok);
-            let attrs = [], rules = {}, brands = [];
-            try {
-                const ar = await tt.ttRequest('GET', `/product/${V}/categories/${category_id}/attributes`,
-                    { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher });
-                attrs = (ar.data && ar.data.attributes) || [];
-            } catch (e) { errors.push('attributes: ' + e.message); }
-            try {
-                const rr = await tt.ttRequest('GET', `/product/${V}/categories/${category_id}/rules`,
-                    { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher });
-                rules = (rr.data) || {};
-            } catch (e) { errors.push('rules: ' + e.message); }
+            let attrs = [], rules = {};
+            // PARALLEL — elak timeout (dulu 2 GET berturut + auth verify > 10s di Netlify → respons kosong)
+            const [arRes, rrRes] = await Promise.allSettled([
+                tt.ttRequest('GET', `/product/${V}/categories/${category_id}/attributes`, { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher }),
+                tt.ttRequest('GET', `/product/${V}/categories/${category_id}/rules`, { query: { category_version: 'v2' }, accessToken: tok.access_token, shopCipher: cipher })
+            ]);
+            if (arRes.status === 'fulfilled') attrs = (arRes.value.data && arRes.value.data.attributes) || [];
+            else errors.push('attributes: ' + String(arRes.reason));
+            if (rrRes.status === 'fulfilled') rules = rrRes.value.data || {};
+            else errors.push('rules: ' + String(rrRes.reason));
             // normalize attributes — PRODUCT_PROPERTY only (SALES_PROPERTY=varian, dikendali lain)
             const norm = attrs.filter(a => (a.type || '') !== 'SALES_PROPERTY').map(a => ({
                 id: String(a.id), name: a.name,

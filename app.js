@@ -22773,6 +22773,11 @@ window.__mpTtFormSubmit = async function(){
  const showErr = (m)=>{ if(errEl){ errEl.textContent=m; errEl.style.display='block'; } };
  const title = g('ttf_title');
  if(!title){ showErr('Tajuk wajib diisi.'); return; }
+ // Gambar WAJIB — kalau tiada, pasti ditolak TikTok. Block + arah ke Edit di POS.
+ if(!(req.prefill && Array.isArray(req.prefill.images) && req.prefill.images.length)){
+  showErr('Produk ni TIADA gambar. TikTok wajib gambar — tutup borang ni, tekan "Edit di POS" untuk tambah gambar dulu, lepas tu cuba semula.');
+  return;
+ }
  const attributes = []; const missing = [];
  (req.attributes||[]).filter(a=>a.is_required).forEach(a=>{
   const val = g('ttattr_'+a.id);

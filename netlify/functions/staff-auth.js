@@ -51,10 +51,48 @@ async function sb(method, path, body) {
   return res.ok;
 }
 
+// custom PIN hash dari DB (staf set sendiri) — override hardcoded kalau ada. Fail → null (fallback).
+async function customHash(staff_id) {
+  try {
+    const rows = await sb('GET', `/staff_pins?staff_id=eq.${encodeURIComponent(staff_id)}&select=pin_hash`);
+    return (Array.isArray(rows) && rows[0] && rows[0].pin_hash) ? rows[0].pin_hash : null;
+  } catch (_) { return null; }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
-  let staff_id, pin;
-  try { const b = JSON.parse(event.body || '{}'); staff_id = String(b.staff_id || '').trim(); pin = String(b.pin || '').trim(); } catch (_) { return json(400, { error: 'bad body' }); }
+  let staff_id, pin, action;
+  try { const b = JSON.parse(event.body || '{}'); staff_id = String(b.staff_id || '').trim(); pin = String(b.pin || '').trim(); action = String(b.action || '').trim(); } catch (_) { return json(400, { error: 'bad body' }); }
+
+  // ── SET PIN — staf yang dah login (email) tetapkan/tukar PIN sendiri. Perlu JWT staf. ──
+  if (action === 'set_pin') {
+    if (!/^\d{4,8}$/.test(pin)) return json(400, { error: 'invalid_pin_format' });
+    if (/^(\d)\1+$/.test(pin)) return json(400, { error: 'weak_pin' }); // semua digit sama
+    const auth = event.headers['authorization'] || event.headers['Authorization'] || '';
+    const m = /Bearer\s+(.+)/i.exec(auth);
+    if (!m) return json(401, { error: 'no_token' });
+    let email = '';
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${m[1].trim()}` } });
+      if (!r.ok) return json(401, { error: 'invalid_session' });
+      const u = await r.json();
+      email = String((u && u.email) || '').toLowerCase();
+      if (!email || u.aud !== 'authenticated') return json(401, { error: 'not_authenticated' });
+    } catch (e) { return json(401, { error: 'auth_check_failed' }); }
+    const entry = Object.entries(STAFF).find(([, rec]) => rec.email.toLowerCase() === email);
+    if (!entry) return json(403, { error: 'not_staff' });
+    const sid = entry[0];
+    const newHash = hashPin(sid, pin);
+    // upsert ke staff_pins (service-role)
+    const up = await fetch(`${SUPABASE_URL}/rest/v1/staff_pins?on_conflict=staff_id`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ staff_id: sid, pin_hash: newHash, updated_at: new Date().toISOString(), updated_by: email })
+    });
+    if (!up.ok) return json(502, { error: 'save_failed', detail: ('http ' + up.status) });
+    return json(200, { ok: true, staff_id: sid });
+  }
+
   if (!staff_id || !/^\d{4,8}$/.test(pin)) return json(400, { error: 'invalid input' });
 
   const ip = (event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
@@ -67,7 +105,10 @@ exports.handler = async (event) => {
   } catch (_) {}
 
   const rec = STAFF[staff_id];
-  const ok = !!rec && hashPin(staff_id, pin) === rec.pin_hash;
+  // DB-first: kalau staf dah set PIN sendiri, guna hash tu; jika tidak / DB gagal → hardcoded.
+  const custom = await customHash(staff_id);
+  const expected = custom || (rec ? rec.pin_hash : null);
+  const ok = !!expected && hashPin(staff_id, pin) === expected;
   try { await sb('POST', '/auth_attempts', { ip, staff_id, ok }); } catch (_) {}
 
   if (!ok) return json(401, { error: 'invalid_pin' });

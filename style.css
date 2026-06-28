@@ -380,6 +380,9 @@ body.pos-mobile-mode .cart-section {
 body.pos-mobile-mode .cart-section > div:first-child {
     flex: 1 0 auto;   /* grow isi ruang bila item sikit (tolak footer ke bawah); natural bila banyak */
     min-height: 0;
+    /* p1_989 — ruang bawah = tinggi footer sticky (Total+BAYAR) supaya baris terakhir
+       (Jualan Ditahan / Kosongkan) boleh scroll ATAS footer, tak tertindih. */
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
 }
 body.pos-mobile-mode #cartItems {
     max-height: none !important;

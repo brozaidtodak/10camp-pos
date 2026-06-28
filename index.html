@@ -34,7 +34,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=67">
+ <link rel="stylesheet" href="style.css?v=68">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <link rel="stylesheet" href="design-tokens.css?v=154">
@@ -3168,9 +3168,13 @@
  <div class="main-content">
  <section class="cart-section" id="posCartDrawer" style="display:flex; flex-direction:column; justify-content:space-between;">
  <div>
- <div class="mobile-cart-header" style="display:none; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid var(--primary); padding-bottom:10px;">
- <h2 class="cart-title" style="margin-bottom:0; border:none; padding:0;" data-i18n="cs_cart_title">Troli Jualan</h2>
- <button onclick="window.toggleMobileCartSheet()" style="background:none; border:none; font-size:24px; font-weight:bold; color:var(--text-muted); cursor:pointer;">×</button>
+ <!-- p1_988 — Header gaya Grab "Order Summary": back + tajuk kiri, "Tambah Item" kanan (dua-dua tutup sheet → kembali katalog) -->
+ <div class="mobile-cart-header" style="display:none; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #EFEAE2;">
+ <button onclick="window.toggleMobileCartSheet()" style="display:flex; align-items:center; gap:7px; background:none; border:none; cursor:pointer; padding:0;">
+ <i data-lucide="chevron-left" style="width:22px; height:22px; color:#101010;"></i>
+ <span style="font-size:18px; font-weight:800; color:#101010;">Ringkasan Pesanan</span>
+ </button>
+ <button onclick="window.toggleMobileCartSheet()" style="background:none; border:none; color:var(--primary); font-size:13.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;"><i data-lucide="plus" style="width:15px; height:15px;"></i> Tambah Item</button>
  </div>
  <div style="display:flex; justify-content:space-between; align-items:center;">
  <h2 class="cart-title desktop-cart-title" style="font-size:20px; font-weight:800; margin:0;" data-i18n="cs_cart_title">Troli Jualan</h2>
@@ -3182,6 +3186,32 @@
  <div id="posCustDetail" style="display:none; align-items:center; gap:10px;"></div>
  </div>
  <div id="cartItems" class="cart-items" style="max-height: calc(100vh - 420px); min-height: 200px; overflow-y:auto; padding-right:10px; margin-bottom:15px;"><p class="empty-cart-message" data-i18n="cs_empty_cart">Imbas barcode atau klik produk dari katalog untuk mulakan jualan.</p></div>
+ <!-- p1_988 — Order Summary gaya Grab: Snap Resit + tindakan order dipindah dari footer ke badan boleh-scroll
+ (baris bersih). Footer kekal Total + BAYAR sahaja → tak tindih item. -->
+ <!-- p1_383 — Snap Resit SIAP-SIAP sebelum checkout. Reuse proofCameraInput global + __proofState. -->
+ <div id="cartProofRow" style="margin-bottom:12px;"></div>
+ <div id="orderSettingsBlock" style="background:#fff; border:1px solid #EFEAE2; border-radius:14px; overflow:hidden; margin-bottom:8px;">
+ <button onclick="window.__notifyInvOpen()" class="order-set-row" title="Maklum inventory untuk sediakan barang">
+ <span class="osr-ic"><i data-lucide="package-check" style="width:17px;height:17px;"></i></span>
+ <span class="osr-main">Maklum Inventori<span class="osr-sub">Sediakan barang untuk customer</span></span>
+ <i data-lucide="chevron-right" class="osr-chev" style="width:18px;height:18px;"></i>
+ </button>
+ <button onclick="window.__heldOpen()" class="order-set-row" title="Jualan customer yang ditahan menunggu inventory">
+ <span class="osr-ic"><i data-lucide="pause-circle" style="width:17px;height:17px;"></i></span>
+ <span class="osr-main">Jualan Ditahan<span class="osr-sub">Tahan order tunggu stok / customer</span></span>
+ <span id="heldSaleBadge" style="display:none; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:#9CA3AF; color:#fff; font-size:11px; font-weight:800; flex-shrink:0;"></span>
+ <i data-lucide="chevron-right" class="osr-chev" style="width:18px;height:18px;"></i>
+ </button>
+ <button onclick="window.__notifyInvEditMine()" class="order-set-row" title="Buka & ubah permintaan inventory yang anda dah hantar">
+ <span class="osr-ic"><i data-lucide="pencil" style="width:16px;height:16px;"></i></span>
+ <span class="osr-main">Edit Permintaan Saya<span class="osr-sub">Ubah permintaan inventori dihantar</span></span>
+ <i data-lucide="chevron-right" class="osr-chev" style="width:18px;height:18px;"></i>
+ </button>
+ <button onclick="window.posConfirmClearCart()" class="order-set-row is-danger" title="Pintasan: F10" data-i18n-title="cs_clear_cart">
+ <span class="osr-ic"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></span>
+ <span class="osr-main">Kosongkan Troli</span>
+ </button>
+ </div>
  </div>
  
  <div style="background:#FAFAFA; padding:20px; border-radius:12px; border:1px solid #E2E2E2;">
@@ -3196,23 +3226,7 @@
  </div>
  <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
  <span id="totalPrice" style="display:none;">0.00</span>
- <!-- p1_383 — Snap Resit SIAP-SIAP sebelum checkout (Zaid: bila ingat, snap dulu). Reuse proofCameraInput global + __proofState. -->
- <div id="cartProofRow" style="margin-bottom:12px;"></div>
  <button onclick="window.openPaymentModal()" id="btnOpenPayment" class="checkout-btn" style="background:var(--primary); padding:16px 22px; margin:0; border-radius:50px; box-shadow:0 4px 18px rgba(205,124,50,0.35); transition:0.2s; display:flex; justify-content:space-between; align-items:center; font-size:15px;" disabled="" data-i18n="cs_pay_now" title="Pintasan: F9 / Shortcut: F9"><span>BAYAR SEKARANG</span><span style="font-size:18px; font-weight:900; letter-spacing:-0.5px;">RM <span id="bayarBtnTotal">0.00</span></span></button>
- <button onclick="window.posConfirmClearCart()" class="login-btn" style="width:100%; background:none; color:#9CA3AF; border:none; box-shadow:none; padding:10px; margin-top:4px; min-height:40px; font-size:12px; font-weight:500; text-decoration:underline; text-decoration-color:#D1D5DB;" data-i18n="cs_clear_cart" title="Pintasan: F10 / Shortcut: F10">Kosongkan Troli</button>
- <!-- p1_986 — Koordinasi Inventori: kumpulan BERASINGAN dari blok checkout (divider + label)
- supaya footer tak serabut. Sebelum ni Maklum/Ditahan/Edit berlonggok terus bawah BAYAR. -->
- <div style="margin-top:16px; padding-top:14px; border-top:1px solid #ECE6DC;">
- <div style="display:flex; align-items:center; gap:6px; margin-bottom:9px;">
- <i data-lucide="boxes" style="width:13px; height:13px; color:var(--primary);"></i>
- <span style="font-size:10.5px; font-weight:700; color:#9A7B53; text-transform:uppercase; letter-spacing:0.5px;">Koordinasi Inventori</span>
- </div>
- <div style="display:flex; gap:8px;">
- <button onclick="window.__notifyInvOpen()" class="cart-action-btn" style="flex:1; background:#FAF1E6; color:#7A5410; border:1px solid #CD7C32; box-shadow:none; padding:12px 8px; border-radius:12px; font-weight:700; font-size:12px; min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;" title="Maklum inventory untuk sediakan barang"><i data-lucide="package-check" style="width:15px;height:15px;"></i> Maklum Inventori</button>
- <button onclick="window.__heldOpen()" class="cart-action-btn" style="flex:1; background:#F5F5F5; color:#101010; border:1px solid #E2E2E2; box-shadow:none; padding:12px 8px; border-radius:12px; font-weight:700; font-size:12px; min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;" title="Jualan customer yang ditahan menunggu inventory"><i data-lucide="pause-circle" style="width:15px;height:15px;"></i> Jualan Ditahan <span id="heldSaleBadge" style="display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#9CA3AF; color:#fff; font-size:11px; font-weight:800;"></span></button>
- </div>
- <button onclick="window.__notifyInvEditMine()" style="background:none; color:#9CA3AF; border:none; box-shadow:none; padding:8px; margin-top:6px; font-weight:600; font-size:11px; min-height:36px; display:flex; align-items:center; justify-content:center; gap:5px; cursor:pointer; width:100%;" title="Buka & ubah permintaan inventory yang anda dah hantar"><i data-lucide="pencil" style="width:12px;height:12px;"></i> Edit Permintaan Saya</button>
- </div>
  <!-- p1_131 — Keyboard shortcut hints visible (hidden in mobile app) -->
  <div class="pos-desktop-kbd-hints" style="display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:10px; color:#9CA3AF;">
  <span><kbd style="background:#F3F4F6; padding:1px 5px; border-radius:3px; font-family:monospace; font-size:10px;">F9</kbd> Bayar</span>
@@ -3257,11 +3271,17 @@
  </section>
  </div>
  
- <!-- Mobile Floating Cart Bar — p1_240: orange "Lihat Troli" je (buang green BAYAR — staff tekan cart dulu untuk bayar) -->
+ <!-- Mobile Floating Cart Bar — p1_988: gaya "Bakul" Grab (badge kiraan + RM + chevron-up) → tap buka Ringkasan Pesanan -->
  <div id="mobileCartFloatingBar" style="display:none;">
- <button type="button" onclick="toggleMobileCartSheet()" style="background:var(--primary); color:#fff; border:none; padding:16px 22px; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 6px 20px rgba(200,116,30,0.35); transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform=''">
- <span style="display:flex; align-items:center; gap:8px;"><i data-lucide="shopping-cart" style="width:17px;height:17px;"></i> <span data-i18n="cs_view_cart">Lihat Troli</span></span>
- <span style="font-weight:800;"><span id="mobileCartItemCount">0</span> item · RM <span id="mobileCartTotal">0.00</span></span>
+ <button type="button" onclick="toggleMobileCartSheet()" style="background:var(--primary); color:#fff; border:none; padding:16px 22px; border-radius:16px; font-size:15px; font-weight:800; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 8px 24px rgba(205,124,50,0.4); transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform=''">
+ <span style="display:flex; align-items:center; gap:11px;">
+ <span style="position:relative; display:flex; align-items:center;">
+ <i data-lucide="shopping-bag" style="width:20px;height:20px;"></i>
+ <span id="mobileCartItemCount" style="position:absolute; top:-8px; right:-10px; background:#fff; color:var(--primary); min-width:18px; height:18px; border-radius:9px; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px;">0</span>
+ </span>
+ <span data-i18n="cs_view_cart">Bakul</span>
+ </span>
+ <span style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:7px;">RM <span id="mobileCartTotal">0.00</span> <i data-lucide="chevron-up" style="width:16px;height:16px;opacity:0.85;"></i></span>
  </button>
  </div>
  </div>
@@ -9012,6 +9032,7 @@
  { id:'p1_939', label:'Security: toast "Q1 Aliff Report Imported" bocor ke public landing (Zaid: "sambung kritik"). PUNCA: seedQ1Aliff() + memoRayaAidiladha2026 seed dua-duanya tembak pada DOMContentLoaded tanpa guard currentUser — mana-mana browser baru (Puppeteer/incognito/pelanggan) akan jalankan seed dan tunjuk toast staff. FIX: (1) guard awal dalam seedQ1Aliff: if(!window.currentUser && !opts.force) return — seed hanya jalan selepas login, flag belum set = cuba lagi bila login. (2) Guard dalam Raya seed DOMContentLoaded: if(!window.currentUser) return sebelum cek FLAG. Toast & data selamat. app.js v883→884.', d:'done' },
  { id:'p1_938', label:'Landing page audit fixes (Zaid: "sambung kritik website"). (1) Unity collection card — CSS .lp-collection{display:block} override HTML hidden attr → kad Unity masih nampak dengan badge "BUKAN UNTUK JUAL" atas page awam. FIX: delete Unity card HTML terus, tukar grid 3-col→2-col dengan class --2col (Naturehike jadi featured card kiri besar, Voucher kanan). design-tokens.css tambah .lp-collections__grid--2col{grid-template-columns:2fr 1fr}. (2) Nama produk kotor — "BLACKDOG CBD2450ZM014 _ Carrot Atmosphere" tidak kena bersih oleh lpParseProductName (brand ada spasi "BLACK DOG" ≠ "BLACKDOG" dalam nama). FIX: tambah separator " _ " pattern: kalau prefix sebelum " _ " semua UPPERCASE → strip, ambil bahagian selepas. Juga strip leading lone underscore "_ Inflatable Bed..." → "Inflatable Bed...". app.js v882→883, design-tokens.css.', d:'done' },
  { id:'p1_940', label:'Landing page audit — warna butang sosial off-brand (Zaid: "sambung kritik"). Ikuti Kami section + footer social icons guna warna platform (Instagram #C13584 pink, Facebook #1877F2 biru, TikTok #111827) yang melanggar brand lock. FIX: Instagram → #CD7C32 (Sunset Bronze, utama), TikTok+Facebook → #101010 (Tropical Black). Sama untuk 3 footer icons. Kini seragam dengan palet brand. index.html sahaja, v884→885.', d:'done' },
+ { id:'p1_988', label:'Cashier phone — flow gaya Grab "Order Summary" (Zaid: "aku nak tiru cemni, pilih barang masuk basket tapi still guna cart, lepas tu ada order summary, semua settings macam inform inventory letak dekat order summary" + 5 screenshot GrabFood). Cart engine sedia ada KEKAL — UX je berubah. (1) Bar terapung → gaya "Bakul" Grab: ikon beg + badge kiraan bulat + RM + chevron-up (kekal bronze sebab brand-lock, bukan hijau Grab). i18n cs_view_cart "Lihat Troli"→"Bakul"/"Basket". (2) Cart sheet → "Ringkasan Pesanan": header back-chevron + tajuk + link "Tambah Item" (tutup sheet → kembali katalog). (3) SEMUA setting/tindakan (Snap Resit, Maklum Inventori, Jualan Ditahan, Edit Permintaan Saya, Kosongkan Troli) DIPINDAH dari footer ke BADAN boleh-scroll sebagai baris bersih gaya Grab (.order-set-row: ikon+tajuk+sub+chevron; Kosongkan=is-danger merah). (4) Footer kini RINGKAS: Total + BAYAR SEKARANG sahaja → tak tindih item lagi. Item troli (thumbnail+nama+stepper+harga+Edit+delete) dah memang gaya Grab. index.html + app.js (i18n) v980→981 + style.css v67→68 (.order-set-row). Semua mod kekal jalan.', d:'done' },
  { id:'p1_987', label:'FIX item troli bawah terlindung footer (Zaid: "kenapa item bawah tak dapat view penuh?" + screenshot item ke-2 terpotong). PUNCA AKAR: pada mobile, troli = bottom-sheet (.cart-section position:fixed, scroll sendiri) + footer position:sticky bawah, TAPI #cartItems ada scroll DALAMAN sendiri (max-height calc(100vh-420px)). Dua scroll bersarang berlanggar — tetingkap dalaman cartItems memanjang ke bawah footer sticky, item terakhir terlindung. Footer "Koordinasi Inventori" (p1_986) yang lebih tinggi buat jadi lebih ketara. FIX (style.css mobile-only): layout flex betul — badan (.cart-section > div:first-child = header+widget+items) jadi flex:1 0 auto (grow isi ruang bila item sikit, natural bila banyak) + SATU kawasan scroll; buang cap dalaman #cartItems (max-height:none/overflow:visible); justify-content:flex-start elak gotcha space-between+overflow potong atas. Footer sticky kini SENTIASA duduk bawah semua item — tiada tindih tak kira footer berapa tinggi. style.css v66→67. Desktop tak terjejas (semua scoped pos-mobile-mode).', d:'done' },
  { id:'p1_986', label:'Cashier — susun semula footer troli (Zaid: "kau adjust lagi, semak sebenarnya, susun semula UI" + bulat area bawah BAYAR). PUNCA serabut: 5 lapis tindakan berlonggok dalam 1 kotak tanpa pengumpulan — Snap Resit (kotak oren terang 2-baris) → BAYAR SEKARANG → Kosongkan Troli (link bergaris) → [Maklum Inventori | Jualan Ditahan] → Edit Permintaan Saya, bentuk butang campur, hierarki kabur. FIX: (1) PISAH konsep — Snap Resit + BAYAR + Kosongkan = blok checkout; Maklum/Ditahan/Edit dikumpul jadi seksyen "KOORDINASI INVENTORI" berasingan (divider border-top + label uppercase + ikon boxes) supaya berhenti bersaing dgn checkout. (2) Slim Snap Resit — dari kotak #fff8f0 oren terang 2-baris → satu baris senyap #FCF7F0 border dashed lembut, teks "Snap Resit · opsional" 1 baris. (3) Touch targets ≥44px untuk butang inventori, ≥40px Kosongkan/Snap (skrin tablet, kurang tersilap tekan). On-brand penuh (bronze/black/cream + status exception). index.html footer + app.js __cartProofRefresh, v979→980.', d:'done' },
  { id:'p1_985', label:'Back-office design-review (gstack) — brand-lock cleanup baki warna luar-brand (Zaid lulus 3/3: biru→bronze, investor tab→bronze, slate→neutral grey). FIX design-tokens.css: (1) semua #1E3A8A biru→#101010 (gradient .inv-hero/.inv-kpi--accent jadi hitam→bronze, token --info-900); (2) .mode-tab--investor navy→bronze (var(--primary), active gradient primary-500/700); (3) slate blue-grey Inventory Analytics→warm neutral grey (#64748B→#6B7280, #1E293B→#1F2937, #334155→#374151, #475569→#4B5563, #94A3B8→#9CA3AF, #CBD5E1→#D1D5DB, #E2E8F0→#E5E7EB, #F1F5F9→#F3F4F6). #0F172A near-black DIKEKAL (p1_594). 0 slate/biru tinggal, CSS balanced. design-tokens.css v153→154.', d:'done' },
@@ -14440,7 +14461,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=980"></script>
+ <script src="app.js?v=981"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

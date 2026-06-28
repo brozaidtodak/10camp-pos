@@ -38261,7 +38261,7 @@ window.I18N = {
  cs_empty_cart: { bm: 'Imbas barcode atau klik produk dari katalog untuk mulakan jualan.', en: 'Scan a barcode or tap a product from the catalogue to start a sale.' },
  cs_loading: { bm: 'Memuatkan data cloud...', en: 'Loading cloud data...' },
  cs_items: { bm: 'item', en: 'items' },
- cs_view_cart: { bm: 'Lihat Troli', en: 'View Cart' },
+ cs_view_cart: { bm: 'Bakul', en: 'Basket' },
 
  // p1_78 — homeSection (Overview)
  hs_range_today: { bm: 'Hari Ini', en: 'Today' },

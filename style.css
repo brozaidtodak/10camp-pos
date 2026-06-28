@@ -388,6 +388,46 @@ body.pos-mobile-mode #cartItems {
     margin-bottom: 10px;
 }
 
+/* p1_988 — Order Summary gaya Grab: baris setting/tindakan dalam badan troli (Maklum Inventori,
+   Jualan Ditahan, Edit Permintaan, Kosongkan). Senarai bersih icon + tajuk + sub + chevron. */
+.order-set-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid #F0EDE8;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 700;
+    color: #101010;
+    min-height: 54px;
+}
+.order-set-row:last-child { border-bottom: none; }
+.order-set-row:active { background: #FAF7F2; }
+.order-set-row .osr-ic {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: #FAF1E6;
+    color: #7A5410;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.order-set-row .osr-main { flex: 1; min-width: 0; line-height: 1.3; }
+.order-set-row .osr-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: #9A8E7C;
+    margin-top: 1px;
+}
+.order-set-row .osr-chev { color: #C9BEAD; flex-shrink: 0; }
+.order-set-row.is-danger { color: #B23A2E; }
+.order-set-row.is-danger .osr-ic { background: #F7E9E6; color: #B23A2E; }
+
 /* p1_240 — Main content padding-bottom revert ke 100px (cuma satu button Lihat Troli orange, BAYAR dah pindah ke dalam drawer) */
 body.pos-mobile-mode .main-content {
     padding-bottom: 100px !important;

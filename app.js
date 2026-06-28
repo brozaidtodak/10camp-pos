@@ -15580,12 +15580,12 @@ window.__cartProofRefresh = function() {
  <button type="button" onclick="window.__proofClearFile()" title="${T('cs_remove_receipt')}" style="background:none; border:none; color:#7C2A20; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
  </div>`;
  } else {
- row.innerHTML = `<div style="display:flex; align-items:stretch; gap:8px;">
- <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; background:#fff8f0; border:1px dashed #fdba74; color:#7c4a1a; padding:8px 12px; border-radius:10px; cursor:pointer;">
- <i data-lucide="camera" style="width:15px;height:15px;flex-shrink:0;"></i>
- <span style="display:flex; flex-direction:column; align-items:flex-start; line-height:1.25; text-align:left;"><span style="font-weight:700; font-size:12.5px;">${T('cs_snap_receipt')}</span><span style="opacity:0.62; font-weight:400; font-size:10px; white-space:nowrap;">${T('cs_snap_hint')} · ${T('cs_optional')}</span></span>
+ row.innerHTML = `<div style="display:flex; align-items:stretch; gap:6px;">
+ <button type="button" onclick="document.getElementById('proofCameraInput').click()" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; background:#FCF7F0; border:1px dashed #E3C9A8; color:#8A6A3E; padding:8px 12px; border-radius:9px; cursor:pointer; min-height:40px;">
+ <i data-lucide="camera" style="width:14px;height:14px;flex-shrink:0;"></i>
+ <span style="font-weight:600; font-size:12px;">${T('cs_snap_receipt')} <span style="opacity:0.6; font-weight:400; font-size:10.5px;">· ${T('cs_optional')}</span></span>
  </button>
- <button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:1px solid #E5E7EB; color:#9CA3AF; padding:8px 10px; border-radius:10px; cursor:pointer; font-size:10.5px; white-space:nowrap;">${T('cs_or_pick_file')}</button>
+ <button type="button" onclick="document.getElementById('proofFileInput').click()" style="background:none; border:1px solid #ECE6DC; color:#9CA3AF; padding:8px 10px; border-radius:9px; cursor:pointer; font-size:10.5px; white-space:nowrap; min-height:40px;">${T('cs_or_pick_file')}</button>
  </div>`;
  }
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}

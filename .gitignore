@@ -35,3 +35,4 @@ android/keystore.properties
 android/*.keystore
 *.keystore
 android/app/build/
+.gstack/

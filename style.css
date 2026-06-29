@@ -393,6 +393,32 @@ body.pos-mobile-mode #cartItems {
     margin-bottom: 10px;
 }
 
+/* p1_994b — FIX footer tindih kandungan (Zaid screenshot: "Jualan Ditahan" separuh tertutup,
+   "Kosongkan Troli" mengintai BAWAH footer). PUNCA: corak position:sticky + margin-bottom negatif
+   tak pin footer betul-betul di bawah scrollport. FIX: flex column betul — container tak scroll,
+   BADAN (div pertama) yang scroll, footer (div akhir) flex item TETAP di bawah (bukan sticky).
+   Footer sentiasa pinned, badan scroll di antara, TIADA tindih. Mobile-only. */
+body.pos-mobile-mode .cart-section {
+    overflow: hidden;       /* container tak scroll sendiri */
+    padding-bottom: 0;
+}
+body.pos-mobile-mode .cart-section > div:first-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;       /* INI satu-satunya kawasan scroll */
+    padding-bottom: 12px;   /* footer kini berasingan — tak perlu ruang besar untuk clear */
+}
+body.pos-mobile-mode .cart-section > div:last-child {
+    position: static;       /* bukan sticky lagi */
+    flex: 0 0 auto;         /* sentiasa di bawah, tak scroll, tak tindih */
+    margin: 0 -20px 0;      /* span penuh lebar (cancel padding tepi container) */
+    padding: 11px 18px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid #E5E7EB;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.04);
+    background: #FAFAFA;
+}
+
 /* p1_988 — Order Summary gaya Grab: baris setting/tindakan dalam badan troli (Maklum Inventori,
    Jualan Ditahan, Edit Permintaan, Kosongkan). Senarai bersih icon + tajuk + sub + chevron. */
 .order-set-row {

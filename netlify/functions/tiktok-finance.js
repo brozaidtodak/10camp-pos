@@ -82,7 +82,7 @@ function mapTxn(t) {
 
 exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
-    const mode = ['rows', 'statement_rows'].includes(params.mode) ? params.mode : 'peek';
+    const mode = ['rows', 'statement_rows', 'statements_full'].includes(params.mode) ? params.mode : 'peek';
     const toMs   = params.to   ? Date.parse(params.to)   : Date.now();
     const fromMs = params.from ? Date.parse(params.from) : (toMs - 30 * 24 * 60 * 60 * 1000);
     if (isNaN(fromMs) || isNaN(toMs)) return json(400, { error: 'invalid ?from/?to (YYYY-MM-DD)' });
@@ -139,6 +139,28 @@ exports.handler = async (event) => {
                     net_payout: net,
                 };
             });
+            out.row_count = out.rows.length;
+            return json(200, out);
+        }
+
+        if (mode === 'statements_full') {
+            // One row per PAYOUT statement with the FULL official fields (as shown in
+            // TikTok Seller Centre): payout date, revenue, fees, adjustment, settlement,
+            // status, currency, payment id. Cheap — no per-order sub-calls.
+            out.rows = statements.map(s => ({
+                statement_id: String(s.id),
+                statement_date: ymd(s.statement_time),
+                payment_date: ymd(s.payment_time),
+                status: s.payment_status || null,
+                currency: s.currency || 'MYR',
+                payment_id: String(s.payment_id || ''),
+                revenue: sgn(s.revenue_amount),
+                fee: num(s.fee_amount),
+                adjustment: sgn(s.adjustment_amount),
+                net_sales: sgn(s.net_sales_amount),
+                shipping_cost: sgn(s.shipping_cost_amount),
+                settlement: sgn(s.settlement_amount),
+            }));
             out.row_count = out.rows.length;
             return json(200, out);
         }

@@ -37301,6 +37301,16 @@ window.renderCollections = function() {
  const body = document.getElementById('collectionsBody');
  if(!body) return;
  const prods = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ // p1_1003 — kalau katalog belum siap load (race: buka/refresh Collections masa boot, sebelum initApp
+ // muat masterProducts) → jangan render 0/kosong. Tunjuk "Memuatkan…" + auto-retry sampai katalog sampai.
+ if(prods.length === 0 && window.currentUser){
+  body.innerHTML = '<div style="padding:44px; text-align:center; color:#9CA3AF;"><i data-lucide="loader" style="width:26px;height:26px;"></i><br><span style="font-size:13px;">Memuatkan katalog…</span></div>';
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+  window.__collLoadRetry = (window.__collLoadRetry || 0);
+  if(window.__collLoadRetry < 50){ window.__collLoadRetry++; setTimeout(() => { try { window.renderCollections(); } catch(e){} }, 400); }
+  return;
+ }
+ window.__collLoadRetry = 0;
  const pub = (typeof isPublished === 'function') ? isPublished : (() => true);
  // group helper → [{name, total(unit), listings, live, liveListings}]
  // p1_965 — kira LISTING (varian dicantum ikut parent_sku, sama macam grid Produk) +

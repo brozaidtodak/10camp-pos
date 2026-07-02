@@ -105,12 +105,27 @@ exports.handler = async (event) => {
         await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
         return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Kod dah tamat tempoh. Hantar kod baru.' }) };
       }
-      if ((row.attempts || 0) >= 5) {
-        await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
-        return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Terlalu banyak cubaan. Hantar kod baru.' }) };
+      // M19 (audit 2026-07-01) — increment attempts ATOMICALLY *before* checking the code, via a
+      // compare-and-swap PATCH (filter attempts=eq.<seen>). Concurrent verifies used to all read the same
+      // attempts value, pass the <5 check together, and burst past the 5-cap; now each guess must win a
+      // CAS slot (else it re-reads + retries), so the cap holds under concurrency.
+      let cur = row;
+      let consumed = false;
+      for (let i = 0; i < 8 && !consumed; i++) {
+        const seen = cur.attempts || 0;
+        if (seen >= 5) {
+          await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+          return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Terlalu banyak cubaan. Hantar kod baru.' }) };
+        }
+        const won = await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}&attempts=eq.${seen}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ attempts: seen + 1 }) });
+        if (Array.isArray(won) && won.length) { consumed = true; break; }
+        // CAS miss — another request incremented first; re-read latest and retry.
+        const rr = await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}&select=*&limit=1`);
+        cur = rr && rr[0];
+        if (!cur) return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Tiada kod. Hantar kod baru.' }) };
       }
-      if (String(row.code) !== code) {
-        await sb(`/loyalty_otp?email=eq.${encodeURIComponent(email)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ attempts: (row.attempts || 0) + 1 }) });
+      if (!consumed) return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Terlalu banyak cubaan serentak. Cuba lagi.' }) };
+      if (String(cur.code) !== code) {
         return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: false, error: 'Kod salah.' }) };
       }
       // BERJAYA — buang kod (one-time) + pulang data loyalti

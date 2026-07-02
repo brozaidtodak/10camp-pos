@@ -8243,6 +8243,14 @@ window.__ppeCancelOrder = async function(){
  const u = window.currentUser || {};
  let md = st.meta; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } } md = md || {};
  const sale = (Array.isArray(salesHistory) ? salesHistory : []).find(s => s.id === saleId);
+ // M10 (audit 2026-07-01) — idempotency guard: if this order is already Cancelled (or its stock was
+ // already restored), a retry/reopen must NOT restock again. Was: restock+returns_log ran before the
+ // status write, and stock_restored persisted only with that write → a failed write + reopen double-restocked.
+ if(sale && (String(sale.status || '').toLowerCase() === 'cancelled' || md.stock_restored)){
+  if(typeof showToast === 'function') showToast('Order #' + saleId + ' dah dibatalkan / stok dah dipulang.', 'warn');
+  window.__ppeState = null; const mm = document.getElementById('ppEditModal'); if(mm) mm.style.display = 'none';
+  return;
+ }
  const channel = (sale && sale.channel) || (document.getElementById('ppEditChannel') || {}).value || '';
  const wasDeducted = !!md.stock_deducted || /POS|Cashier|Walk/i.test(channel); // elak phantom utk order marketplace yg tak deduct guna stok POS
  const restock = wasDeducted && !md.stock_restored;
@@ -8254,11 +8262,17 @@ window.__ppeCancelOrder = async function(){
  }
  }
  if(restocked.length){
- const rows = restocked.map((r, i) => ({ source: 'pos', external_id: 'pos_cancel_' + saleId + '_' + (r.sku || 'item') + '_' + Date.now() + '_' + i, sku: r.sku, qty: r.quantity, type: 'cancel', reason: 'Order dibatalkan', cost_impact: 0, reported_at: new Date().toISOString(), notes: 'Batal order #' + saleId + ' oleh ' + (u.name || '?') }));
+ // M10 — deterministic external_id (no Date.now()) so a re-run dedups instead of writing phantom rows.
+ const rows = restocked.map((r, i) => ({ source: 'pos', external_id: 'pos_cancel_' + saleId + '_' + (r.sku || 'item') + '_' + i, sku: r.sku, qty: r.quantity, type: 'cancel', reason: 'Order dibatalkan', cost_impact: 0, reported_at: new Date().toISOString(), notes: 'Batal order #' + saleId + ' oleh ' + (u.name || '?') }));
  try { await db.from('returns_log').insert(rows); } catch(e){ console.warn('returns_log cancel gagal:', e); }
  }
  md.cancelled_by = u.name || '?'; md.cancelled_at = new Date().toISOString();
- if(restock) md.stock_restored = true;
+ // M10 — persist the restock guard IMMEDIATELY (before the status write) so a failed status write + retry
+ // can't double-restock. On reopen the early guard above sees stock_restored=true and bails.
+ if(restock){
+  md.stock_restored = true; md.stock_restored_at = new Date().toISOString();
+  try { await db.from('sales_history').update({ metadata: md }).eq('id', saleId); if(sale) sale.metadata = md; } catch(e){ console.warn('persist stock_restored (cancel) gagal:', e); }
+ }
  const { error } = await db.from('sales_history').update({ status: 'Cancelled', metadata: md }).eq('id', saleId);
  if(error) throw error;
  if(sale){ sale.status = 'Cancelled'; sale.metadata = md; }
@@ -8362,7 +8376,10 @@ window.__ppSaveEdit = async function() {
  buyer_tin: get('ppEditBuyerTin') || null
  };
  if(!isNaN(total)) { payload.total_amount = total; payload.total = total; }
- // p1_565 — reconcile barang: tambah → tolak stok; kurang/buang → pulang stok + returns_log. Set items + metadata.
+ // p1_565 + M11 (audit 2026-07-01) — COMPUTE the item delta + build payload here, but DEFER the physical
+ // stock moves + returns_log until AFTER the sale update succeeds. Previously stock was adjusted and
+ // returns_log written BEFORE the update → a failed save + retry double-deducted/restocked + phantom log rows.
+ let __editRecon = null;
  try {
  const st = window.__ppeState;
  if(st && st.saleId === saleId){
@@ -8374,31 +8391,35 @@ window.__ppSaveEdit = async function() {
  const delta = (newMap[sku] || 0) - (origMap[sku] || 0);
  if(delta === 0) continue;
  const isCustom = (typeof sku === 'string' && sku.startsWith('CUSTOM-')) || !sku;
- if(delta > 0){
- added.push({ sku, qty: delta });
- if(!isCustom && typeof window.__applyStockDelta === 'function'){ try { await window.__applyStockDelta(sku, -delta, 'Edit order #' + saleId + ': tambah ' + delta); } catch(e){ console.warn('deduct add gagal', sku, e); } }
- } else {
- const q = -delta;
- returned.push({ sku, qty: q });
- if(!isCustom && typeof window.__applyStockDelta === 'function'){ try { await window.__applyStockDelta(sku, q, 'Edit order #' + saleId + ': pulang ' + q); } catch(e){ console.warn('restock return gagal', sku, e); } }
- }
- }
- if(returned.length){
- const rows = returned.map((r, i) => ({ source: 'pos', external_id: 'pos_edit_' + saleId + '_' + (r.sku || 'item') + '_' + Date.now() + '_' + i, sku: r.sku, qty: r.qty, type: 'edit_return', reason: 'Edit order', cost_impact: 0, reported_at: new Date().toISOString(), notes: 'Edit order #' + saleId + ' oleh ' + (u.name || '?') + (editNote ? ' · ' + editNote : '') }));
- try { await db.from('returns_log').insert(rows); } catch(e){ console.warn('returns_log edit gagal:', e); }
+ if(delta > 0) added.push({ sku, qty: delta, isCustom });
+ else returned.push({ sku, qty: -delta, isCustom });
  }
  payload.items = st.items.map(it => ({ sku: it.sku, name: it.name, price: it.price, quantity: it.quantity, isCustom: it.isCustom }));
  let md = st.meta; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } } md = md || {};
- md.last_edit = { added, returned, edited_by: u.name || '?', edited_at: new Date().toISOString(), note: editNote || null };
- // p1_993 (#4) — JANGAN paksa stock_deducted=true. Edit hanya laras DELTA stok; kalau order asal tak pernah
- // tolak stok (cth marketplace, flag false/tiada), paksa true buatkan void kemudian pulang FULL qty = lebih-pulang.
- // Kekalkan nilai asal md.stock_deducted (POS sale memang dah true dari masa jual).
+ md.last_edit = { added: added.map(a=>({sku:a.sku,qty:a.qty})), returned: returned.map(r=>({sku:r.sku,qty:r.qty})), edited_by: u.name || '?', edited_at: new Date().toISOString(), note: editNote || null };
+ // p1_993 (#4) — JANGAN paksa stock_deducted=true (kekalkan nilai asal md.stock_deducted).
  payload.metadata = md;
+ __editRecon = { st, added, returned };
  }
- } catch(e){ console.warn('reconcile items gagal:', e); }
+ } catch(e){ console.warn('reconcile compute gagal:', e); }
  try {
  const { error } = await db.from('sales_history').update(payload).eq('id', saleId);
  if(error) throw error;
+ // M11 — sale row persisted → NOW apply the physical stock delta + returns_log once, then advance
+ // st.orig so a re-save in the same session computes a zero delta (no re-apply). A failed update above
+ // means we never reached here, so nothing was applied → retry is safe.
+ if(__editRecon){
+ try {
+ for(const a of __editRecon.added){ if(!a.isCustom && typeof window.__applyStockDelta === 'function'){ try { await window.__applyStockDelta(a.sku, -a.qty, 'Edit order #' + saleId + ': tambah ' + a.qty); } catch(e){ console.warn('deduct add gagal', a.sku, e); } } }
+ for(const r of __editRecon.returned){ if(!r.isCustom && typeof window.__applyStockDelta === 'function'){ try { await window.__applyStockDelta(r.sku, r.qty, 'Edit order #' + saleId + ': pulang ' + r.qty); } catch(e){ console.warn('restock return gagal', r.sku, e); } } }
+ const rets = __editRecon.returned.filter(r => !r.isCustom);
+ if(rets.length){
+ const rows = rets.map((r, i) => ({ source: 'pos', external_id: 'pos_edit_' + saleId + '_' + (r.sku || 'item') + '_' + i, sku: r.sku, qty: r.qty, type: 'edit_return', reason: 'Edit order', cost_impact: 0, reported_at: new Date().toISOString(), notes: 'Edit order #' + saleId + ' oleh ' + (u.name || '?') + (editNote ? ' · ' + editNote : '') }));
+ try { await db.from('returns_log').insert(rows); } catch(e){ console.warn('returns_log edit gagal:', e); }
+ }
+ if(__editRecon.st){ __editRecon.st.orig = __editRecon.st.items.map(it => ({ sku: it.sku, name: it.name, price: it.price, quantity: it.quantity, isCustom: it.isCustom })); }
+ } catch(e){ console.warn('M11 apply stock delta gagal:', e); }
+ }
  // M2 (audit 2026-07-01) — adjust loyalty by the total delta (match the ORIGINAL customer who earned it).
  try {
   if(!isNaN(total) && __editOldTotal != null && Array.isArray(customersData)){
@@ -15128,12 +15149,17 @@ window.addToCart = function(sku) {
  if(typeof showToast === 'function') showToast(`AMARAN: ${sku} stok sistem = 0. Jual sebagai backorder.`, 'warn');
  }
  }
+ // M15 (audit 2026-07-01) — B2B volume-tier price is qty-dependent (min_qty); re-evaluate after the
+ // qty change so crossing a tier threshold via +/- taps updates the negotiated price (was: kept old price).
+ if(typeof window.__repriceCartForCustomer === 'function' && window.posCustomer && window.posCustomer.is_b2b) window.__repriceCartForCustomer();
  renderCart();
 }
 
 window.decreaseQuantity = function(sku) {
  const c = cart.find(x => x.sku === sku);
  if(c) { if(c.quantity> 1) c.quantity--; else cart = cart.filter(x => x.sku !== sku); }
+ // M15 — re-evaluate B2B volume tier when qty drops below a min_qty threshold.
+ if(typeof window.__repriceCartForCustomer === 'function' && window.posCustomer && window.posCustomer.is_b2b) window.__repriceCartForCustomer();
  renderCart();
 }
 
@@ -19768,33 +19794,34 @@ document.getElementById("saveScheduleBtn")?.addEventListener('click', async () =
  }
 
  const existingIndex = staffSchedules.findIndex(s => s.staff_name === name && s.date === dateStrInput);
+ const oldObj = existingIndex !== -1 ? staffSchedules[existingIndex] : null;
+ const profile = staffProfiles.find(p => p.name === name);
+
+ // M14 (audit 2026-07-01) — ask the negative-AL-balance confirm BEFORE deleting the old shift.
+ // Previously the delete ran first, so clicking Cancel here destroyed the day with no replacement.
+ // Account for the +1 refund when the record being replaced is itself an AL.
+ if(shift === 'AL' && profile) {
+ const refund = (oldObj && oldObj.shift === 'AL') ? 1 : 0;
+ if(((profile.leave_balance || 0) + refund) <= 0) {
+ if(!confirm(`Baki cuti (AL) ${name} telah habis! Teruskan potong baki negatif?`)) return;
+ }
+ }
+
  if(existingIndex !== -1) {
  // Pulangkan semula baki cuti jika rekod lama adalah AL
- let oldObj = staffSchedules[existingIndex];
- if(oldObj.shift === 'AL') {
- let profile = staffProfiles.find(p => p.name === name);
- if(profile) {
+ if(oldObj.shift === 'AL' && profile) {
  profile.leave_balance += 1;
- // p1_144 — persist refund
- if(typeof window.staffProfileSync === 'function') window.staffProfileSync(profile);
- }
+ if(typeof window.staffProfileSync === 'function') window.staffProfileSync(profile); // p1_144 — persist refund
  }
  // Buang rekod lama (Overwrite)
  await db.from('roster_schedules').delete().eq('id', oldObj.id);
  staffSchedules.splice(existingIndex, 1);
  }
 
- // Pemotongan Baki Cuti jika AL baru
- if(shift === 'AL') {
- let profile = staffProfiles.find(p => p.name === name);
- if(profile && profile.leave_balance <= 0) {
- if(!confirm(`Baki cuti (AL) ${name} telah habis! Teruskan potong baki negatif?`)) return;
- }
- if(profile) {
+ // Pemotongan Baki Cuti jika AL baru (confirm sudah dibuat di atas sebelum sebarang delete)
+ if(shift === 'AL' && profile) {
  profile.leave_balance -= 1;
- // p1_144 — persist
- if(typeof window.staffProfileSync === 'function') window.staffProfileSync(profile);
- }
+ if(typeof window.staffProfileSync === 'function') window.staffProfileSync(profile); // p1_144 — persist
  }
 
  // MC logic

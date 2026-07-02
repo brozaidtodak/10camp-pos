@@ -71,7 +71,16 @@ async function searchProducts(args) {
         if (!q) return { error: 'query kosong' };
         const qe = encodeURIComponent(q);
         // published only; NO cost columns; match name/category/brand
-        const rows = await sb('GET', `/products_master?select=sku,name,price,compare_at_price,category,brand&is_published=eq.true&or=(name.ilike.*${qe}*,category.ilike.*${qe}*,brand.ilike.*${qe}*)&limit=12`);
+        let rows = await sb('GET', `/products_master?select=sku,name,price,compare_at_price,category,brand,metadata&is_published=eq.true&or=(name.ilike.*${qe}*,category.ilike.*${qe}*,brand.ilike.*${qe}*)&limit=24`);
+        // audit 2026-07-03 — jangan cadang produk DISCONTINUED atau event-SKU (yang storefront sorok).
+        const EVENT_KW = ['OUTDOOREXPO'];
+        rows = (Array.isArray(rows) ? rows : []).filter(r => {
+            const md = r.metadata || {};
+            if (md.discontinued === true) return false;
+            const hay = ((r.sku || '') + ' ' + (r.name || '') + ' ' + (r.category || '')).toUpperCase();
+            if (EVENT_KW.some(k => hay.includes(k))) return false;
+            return true;
+        }).slice(0, 12).map(r => { delete r.metadata; return r; });
         if (!rows || !rows.length) return { found: 0, note: 'Tiada produk padan dalam katalog.' };
         const maxP = Number(args && args.max_price) || 0;
         let list = rows;

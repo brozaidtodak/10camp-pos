@@ -186,11 +186,11 @@ function buildEmailHtml(sale, imgMap) {
                 <!-- Footer -->
                 <tr><td style="padding:24px 32px 32px; background:#F9FAFB; border-top:1px solid #E5E7EB;">
                     <p style="margin:0 0 6px; font-size:13px; color:#374151; line-height:1.6;">
-                        Ada soalan? Hubungi kami: <a href="https://wa.me/60123456789" style="color:#C8741E; text-decoration:none; font-weight:700;">WhatsApp</a> · <a href="mailto:admin@10camp.com" style="color:#C8741E; text-decoration:none; font-weight:700;">admin@10camp.com</a>
+                        Ada soalan? Hubungi kami: <a href="https://wa.me/601133109547" style="color:#C8741E; text-decoration:none; font-weight:700;">WhatsApp</a> · <a href="mailto:admin@10camp.com" style="color:#C8741E; text-decoration:none; font-weight:700;">admin@10camp.com</a>
                     </p>
                     <p style="margin:6px 0 0; font-size:11.5px; color:#9CA3AF; line-height:1.5;">
                         Lihat katalog penuh: <a href="https://www.10camp.com" style="color:#9CA3AF;">www.10camp.com</a><br>
-                        Shopee: <a href="https://shopee.com.my/10camp_my" style="color:#9CA3AF;">@10camp_my</a> · TikTok: <a href="https://www.tiktok.com/@10campmy" style="color:#9CA3AF;">@10campmy</a>
+                        Shopee: <a href="https://shopee.com.my/10camp.os" style="color:#9CA3AF;">10camp.os</a> · TikTok: <a href="https://vt.tiktok.com/ZSxoAXDhd/" style="color:#9CA3AF;">10 CAMP</a>
                     </p>
                 </td></tr>
 

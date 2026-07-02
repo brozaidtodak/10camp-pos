@@ -10661,6 +10661,10 @@ window.__returnRefundConfirm = async function(){
   if(totalRestored >= soldQty) md.stock_restored = true; // semua unit dah balik ke stok → blok double-restock bila void
  }
  const newStatus = (retQty >= soldQty) ? 'Refunded' : sale.status; // penuh → Refunded; separa → kekal status (rekod dalam metadata)
+ // H2 (audit follow-up p1_1004) — kalau staf UNTICK "pulang ke stok" (barang rosak/write-off) untuk refund
+ // PENUH, tanda stock_restored=true supaya __restockSaleIfVoided (di bawah) + sebarang void kemudian TAK
+ // tambah balik stok. (M1 dulu silap anggap restock sentiasa jalan → refund penuh sentiasa restock walau untick.)
+ if(!restock && newStatus === 'Refunded'){ md.stock_restored = true; md.stock_writeoff = true; md.stock_restored_at = nowIso; }
  await db.from('sales_history').update({ status: newStatus, metadata: md }).eq('id', sale.id);
  sale.status = newStatus; sale.metadata = md;
  // M1 (audit 2026-07-01) — refund/return NEVER rolled back loyalty; customer kept points + total_spent
@@ -13964,12 +13968,15 @@ window.__qsRenderPills = function() {
  salesHistory.forEach(sale => {
  const t = new Date(sale.timestamp || sale.created_at || 0).getTime();
  if(t < cutoff) return;
+ if(sale.is_test) return; // p1_1004 (M5) — jangan kira jualan test
+ const st = (sale.status || '').toLowerCase(); if(st.includes('void') || st.includes('cancel') || st.includes('refund')) return; // skip void/cancel/refund
  const items = (() => { try { return JSON.parse(sale.items || '[]'); } catch(e) { return sale.items || []; } })();
  (Array.isArray(items) ? items : []).forEach(it => {
  const sku = (it.sku || '').toUpperCase();
  if(!sku) return;
  if(!tally[sku]) tally[sku] = { sku, name: it.name || sku, qty: 0 };
- tally[sku].qty += Number(it.qty || 0);
+ // p1_1004 (M5) — jualan native POS simpan `quantity`; dulu baca `it.qty` sahaja → semua native dikira 0
+ tally[sku].qty += (typeof window.__aoItemQty === 'function') ? window.__aoItemQty(it) : (Number(it.qty != null ? it.qty : it.quantity) || 0);
  });
  });
  }
@@ -15120,16 +15127,33 @@ window.__repriceCartForCustomer = function() {
 		const retail = p ? (parseFloat(p.price) || 0) : (item.retail_price != null ? Number(item.retail_price) : Number(item.price) || 0);
 		let np = null;
 		if(pc && pc.is_b2b) np = window.__b2bPriceFor(pc.id, item.sku, item.quantity);
+		// p1_1004 (M1) — set base BARU tapi KEKALKAN diskaun manual (kalau ada) atas base itu.
+		// Dulu terus tulis item.price = np → diskaun manual hilang dari harga dicaj TAPI badge "−RM x"
+		// kekal → pelanggan dicaj LEBIH dari yang dipapar. Kini kira semula potongan atas base baru.
+		const applyBase = (base) => {
+			base = Number(base) || 0;
+			if(item.discount_input != null && Number(item.discount_input) > 0){
+				let disc = item.discount_type === 'pct'
+					? Math.round(base * Number(item.discount_input) / 100 * 100) / 100
+					: Math.round(Number(item.discount_input) * 100) / 100;
+				if(disc > base) disc = base;
+				item.original_price = base; item.discount_amount = disc;
+				const eff = Math.round((base - disc) * 100) / 100;
+				if(Number(item.price) !== eff) changed++;
+				item.price = eff;
+			} else {
+				if(Number(item.price) !== base) changed++;
+				item.price = base;
+			}
+		};
 		if(np != null) {
 			if(item.retail_price == null) item.retail_price = retail;
-			if(Number(item.price) !== Number(np)) changed++;
-			item.price = Number(np);
 			item.b2b_priced = true;
+			applyBase(Number(np));
 		} else if(item.b2b_priced) {
-			if(Number(item.price) !== retail) changed++;
-			item.price = retail;
 			item.b2b_priced = false;
 			delete item.retail_price;
+			applyBase(retail);
 		}
 	});
 	return changed;
@@ -16331,7 +16355,11 @@ window.processNewCheckout = async function() {
  const __rc = (typeof customersData !== 'undefined' && Array.isArray(customersData)) ? customersData.find(c => c.id === window.__pendingRedeem.customer_id) : null;
  if(__rc) {
  const __prevPR = Number(__rc.points_redeemed) || 0;
- const __newPR = __prevPR + window.__pendingRedeem.cost;
+ // p1_1004 — clamp: points_redeemed tak boleh lebih mata yang diperoleh (elak baki mata negatif kalau
+ // mata jatuh antara pilih ganjaran & checkout / redeem serentak). Kalau clamped, warn.
+ const __earned = Number(__rc.points) || 0;
+ const __newPR = Math.min(__prevPR + window.__pendingRedeem.cost, __earned);
+ if(__newPR < __prevPR + window.__pendingRedeem.cost) console.warn('redeem clamp: mata tak cukup, points_redeemed dihadkan ke', __earned);
  try {
  await withTimeout(db.from('customers').update({ points_redeemed: __newPR }).eq('id', __rc.id), 10000, 'tolak mata ditebus');
  __rc.points_redeemed = __newPR; window.__pastCustomersCache = null;
@@ -20323,7 +20351,7 @@ window.hrcSubmitClaim = function() {
 
 window.hrcApproveClaim = function(id) {
  const u = _hrCurrentUser();
- if (!u || u.role !== 'superior') { if (typeof showToast === 'function') showToast('Hanya Bos boleh lulus tuntutan', 'warn'); return; }
+ if (!u || !(window.isBoss && window.isBoss(u))) { if (typeof showToast === 'function') showToast('Hanya Bos boleh lulus tuntutan', 'warn'); return; } // p1_1004 (H1) — role 'superior' retired; gate ikut isBoss (padan render)
  const all = _hrcLoadClaims();
  const c = all.find(x => x.id === id);
  if (!c) return;
@@ -20337,7 +20365,7 @@ window.hrcApproveClaim = function(id) {
 
 window.hrcRejectClaim = function(id) {
  const u = _hrCurrentUser();
- if (!u || u.role !== 'superior') { if (typeof showToast === 'function') showToast('Hanya Bos boleh tolak tuntutan', 'warn'); return; }
+ if (!u || !(window.isBoss && window.isBoss(u))) { if (typeof showToast === 'function') showToast('Hanya Bos boleh tolak tuntutan', 'warn'); return; } // p1_1004 (H1)
  if (!confirm('Tolak tuntutan ini?')) return;
  const all = _hrcLoadClaims();
  const c = all.find(x => x.id === id);
@@ -20652,7 +20680,7 @@ window.renderPendingSchedules = function() {
 window.approveRequest = async function(id) {
  // p1_68: only Bos approves leave requests
  const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
- if (!u || u.role !== 'superior') {
+ if (!u || !(window.isBoss && window.isBoss(u))) { // p1_1004 (H1) — role 'superior' retired; gate ikut isBoss
  if (typeof showToast === 'function') showToast('Hanya Bos boleh approve permohonan cuti', 'warn');
  else alert('Hanya Bos boleh approve permohonan cuti');
  return;
@@ -20724,7 +20752,7 @@ window.approveRequest = async function(id) {
 window.rejectLeaveRequest = async function(id) {
  // p1_68: only Bos rejects leave requests
  const u = window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : null);
- if (!u || u.role !== 'superior') {
+ if (!u || !(window.isBoss && window.isBoss(u))) { // p1_1004 (H1)
  if (typeof showToast === 'function') showToast('Hanya Bos boleh tolak permohonan cuti', 'warn');
  else alert('Hanya Bos boleh tolak permohonan cuti');
  return;
@@ -21275,7 +21303,7 @@ window.memoSubmit = function() {
 // Approve / Reject (Superior only)
 window.memoApprove = function(id) {
  const u = window.memoCurrentUser();
- if(!u || u.role !== 'superior') { if(typeof showToast==='function') showToast('Hanya Superior boleh approve', 'warn'); return; }
+ if(!u || !(window.isBoss && window.isBoss(u))) { if(typeof showToast==='function') showToast('Hanya Bos boleh approve', 'warn'); return; } // p1_1004 (H1)
  const memos = window.memoLoad();
  const m = memos.find(x => x.id === id);
  if(!m) return;
@@ -21303,7 +21331,7 @@ window.memoApprove = function(id) {
 };
 window.memoOpenReject = function(id) {
  const u = window.memoCurrentUser();
- if(!u || u.role !== 'superior') { if(typeof showToast==='function') showToast('Hanya Superior boleh reject', 'warn'); return; }
+ if(!u || !(window.isBoss && window.isBoss(u))) { if(typeof showToast==='function') showToast('Hanya Bos boleh reject', 'warn'); return; } // p1_1004 (H1)
  const memos = window.memoLoad();
  const m = memos.find(x => x.id === id);
  if(!m) return;

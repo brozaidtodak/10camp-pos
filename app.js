@@ -20718,14 +20718,17 @@ window.approveRequest = async function(id) {
  }
 
  let newSched = {
- id: Date.now(),
+ id: Date.now() * 1000 + Math.floor(Math.random() * 1000), // p1_1005 (M4) — kurangkan collision Date.now() ms
  staff_name: req.staff_name,
  date: req.date,
  shift: req.shift,
  mc_name: req.mc_name
  };
+ // p1_1005 (M4) — tulis DB DULU + semak {error} (supabase-js tak throw). Dulu push memori + buang pending
+ // walau insert gagal senyap → "DILULUSKAN" palsu, baris hilang bila reload.
+ const { error: __schedErr } = await db.from('roster_schedules').insert([newSched]);
+ if(__schedErr){ if(typeof showToast === 'function') showToast('Gagal simpan jadual: ' + (__schedErr.message || __schedErr), 'error'); else alert('Gagal simpan jadual.'); return; }
  staffSchedules.push(newSched);
- await db.from('roster_schedules').insert([newSched]);
 
  pendingSchedules.splice(reqIndex, 1); // Remove from pending
  await db.from('pending_requests').delete().eq('id', id);
@@ -22847,7 +22850,7 @@ window.__mpTiktokStock = async function(filter, forceReload){
  const curQ = window.__ttSearch || '';
  html += '<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">';
  html += '<div style="position:relative; flex:1; min-width:200px;"><i data-lucide="search" style="width:15px;height:15px; position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9CA3AF;"></i><input id="ttSearchInput" type="text" value="'+esc(curQ)+'" oninput="window.__ttSearch=this.value; window.__ttRenderRows();" placeholder="Cari nama atau SKU…" style="width:100%; box-sizing:border-box; padding:9px 11px 9px 32px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif;"></div>';
- html += '<select id="ttCollectionSel" onchange="window.__ttCollection=this.value; window.__ttRenderRows();" style="padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif; min-width:170px;"><option value="">Semua koleksi</option>'+brands.map(b=>'<option value="'+esc(b)+'"'+(b===curCol?' selected':'')+'>'+esc(b)+'</option>').join('')+'</select>';
+ html += '<select id="ttCollectionSel" onchange="window.__ttCollection=this.value; window.__ttRenderRows();" style="padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif; min-width:170px;"><option value="">Semua brand</option>'+brands.map(b=>'<option value="'+esc(b)+'"'+(b===curCol?' selected':'')+'>'+esc(b)+'</option>').join('')+'</select>';
  html += '</div>';
  html += '<p style="font-size:11.5px; color:#9CA3AF; margin:-4px 0 12px;"><i data-lucide="mouse-pointer-click" style="width:12px;height:12px;vertical-align:-2px;"></i> Tekan mana-mana baris untuk on/off sync, publish atau edit. <span id="ttCount" style="font-weight:600;"></span></p>';
  // jadual — isi rows via __ttRenderRows (kekal fokus search masa taip)
@@ -37176,13 +37179,21 @@ window.__getCollections = function(){
 try { Object.defineProperty(window, '__CAMP_COLLECTIONS', { configurable:true, get(){ return window.__getCollections(); } }); }
 catch(e){ window.__CAMP_COLLECTIONS = window.__CAMP_COLLECTIONS_DEFAULT.slice(); }
 // Tambah/buang koleksi (mgmt) — simpan ke app_settings, semua peranti sama.
+// p1_1005 (M3) — pastikan app_settings SEBENAR dah dimuat sebelum tulis. Kalau tulis atas defaults
+// (settings belum load), __saveAppSettings akan PADAM PIN/target/shop info yang tersimpan di server.
+window.__ensureSettingsLoaded = async function(){
+ if(window.__appSettings) return true;
+ if(window.__loadAppSettings){ try { await window.__loadAppSettings(); } catch(e){} }
+ return !!window.__appSettings;
+};
 window.__collAdd = async function(){
  const el = document.getElementById('collNewName'); if(!el) return;
  const name = (el.value||'').trim(); if(!name) return;
  const list = window.__getCollections();
  if(list.some(c => c.toLowerCase() === name.toLowerCase())){ if(window.showToast) showToast('Koleksi dah wujud.','warn'); return; }
- const s = window.__appSettings || (window.__appSettingsDefaults ? window.__appSettingsDefaults() : {});
- s.collections = [...list, name]; window.__appSettings = s; el.value='';
+ if(!(await window.__ensureSettingsLoaded())){ if(window.showToast) showToast('Tetapan belum dimuat — cuba lagi sekejap.','warn'); return; }
+ const s = window.__appSettings;
+ s.collections = [...list, name]; el.value='';
  if(window.__saveAppSettings) await window.__saveAppSettings();
  if(window.showToast) showToast('Koleksi "'+name+'" ditambah.','success');
  if(window.renderCollections) window.renderCollections();
@@ -37190,8 +37201,9 @@ window.__collAdd = async function(){
 window.__collRemove = async function(name){
  if(!name) return;
  if(!confirm('Buang koleksi "'+name+'"? Produk yang di-assign koleksi ni jadi "tiada koleksi" (data produk tak dipadam).')) return;
- const s = window.__appSettings || (window.__appSettingsDefaults ? window.__appSettingsDefaults() : {});
- s.collections = window.__getCollections().filter(c => c !== name); window.__appSettings = s;
+ if(!(await window.__ensureSettingsLoaded())){ if(window.showToast) showToast('Tetapan belum dimuat — cuba lagi sekejap.','warn'); return; }
+ const s = window.__appSettings;
+ s.collections = window.__getCollections().filter(c => c !== name);
  if(window.__saveAppSettings) await window.__saveAppSettings();
  if(window.showToast) showToast('Koleksi "'+name+'" dibuang.','success');
  if(window.renderCollections) window.renderCollections();
@@ -37332,10 +37344,17 @@ window.renderCollections = function() {
  // p1_1003 — kalau katalog belum siap load (race: buka/refresh Collections masa boot, sebelum initApp
  // muat masterProducts) → jangan render 0/kosong. Tunjuk "Memuatkan…" + auto-retry sampai katalog sampai.
  if(prods.length === 0 && window.currentUser){
-  body.innerHTML = '<div style="padding:44px; text-align:center; color:#9CA3AF;"><i data-lucide="loader" style="width:26px;height:26px;"></i><br><span style="font-size:13px;">Memuatkan katalog…</span></div>';
-  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
   window.__collLoadRetry = (window.__collLoadRetry || 0);
-  if(window.__collLoadRetry < 50){ window.__collLoadRetry++; setTimeout(() => { try { window.renderCollections(); } catch(e){} }, 400); }
+  if(window.__collLoadRetry < 50){
+   window.__collLoadRetry++;
+   body.innerHTML = '<div style="padding:44px; text-align:center; color:#9CA3AF;"><i data-lucide="loader" style="width:26px;height:26px;"></i><br><span style="font-size:13px;">Memuatkan katalog…</span></div>';
+   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+   setTimeout(() => { try { window.renderCollections(); } catch(e){} }, 400);
+  } else {
+   // p1_1005 — retry habis (~20s) dan katalog masih kosong → jangan spinner selamanya; tunjuk empty + cuba lagi
+   body.innerHTML = '<div style="padding:40px; text-align:center; color:#9CA3AF;"><i data-lucide="package-x" style="width:30px;height:30px;opacity:.5;"></i><br><span style="font-size:13px;">Katalog kosong atau gagal dimuat.</span><br><button onclick="window.__collLoadRetry=0; window.renderCollections();" class="btn-brand-outline" style="margin-top:12px; font-size:12px; padding:7px 16px;">Cuba lagi</button></div>';
+   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+  }
   return;
  }
  window.__collLoadRetry = 0;

@@ -13943,6 +13943,7 @@ window.__posToggleBrand = function(brand) {
 
 window.__posResetSearch = function() {
  window.__posBrandFilter = '';
+ window.__posCollectionFilter = ''; window.__posCategoryFilter = ''; // p1_1002
  const inp = document.getElementById('searchInput');
  if(inp) inp.value = '';
  window.__bpRendered = false;
@@ -14148,7 +14149,7 @@ function renderPOS(searchTerm = "") {
  const activeBrand = (window.__posBrandFilter || '').toLowerCase();
  // Clear (X) button visibility toggle
  const clearBtn = document.getElementById('posSearchClear');
- if(clearBtn) clearBtn.style.display = (searchTerm || activeBrand) ? 'flex' : 'none';
+ if(clearBtn) clearBtn.style.display = (searchTerm || activeBrand || window.__posCollectionFilter || window.__posCategoryFilter) ? 'flex' : 'none';
 
  // Reset page if searching
  if(searchTerm !== lastPosSearchTerm) {
@@ -14193,6 +14194,9 @@ function renderPOS(searchTerm = "") {
  if(!isPublished(p)) return false;
  if(window.__isDiscontinued(p)) return false;  // p1_962 — SKU discontinued disorok dari cashier
  if(activeBrand && (p.brand || '').toLowerCase() !== activeBrand) return false;
+ // p1_1002 — tapis ikut Koleksi / Kategori (dari Katalog browse)
+ if(window.__posCollectionFilter && (window.__collectionOf ? window.__collectionOf(p) : '') !== window.__posCollectionFilter) return false;
+ if(window.__posCategoryFilter && (p.category || '') !== window.__posCategoryFilter) return false;
  if(term) {
  // p1_209 — Expanded search: name, sku, brand, erp_barcode, category, parent_sku
  const hay = (p.name || '').toLowerCase() + ' ' + (p.sku || '').toLowerCase() + ' ' + (p.brand || '').toLowerCase() + ' ' + (p.erp_barcode || '').toString().toLowerCase() + ' ' + (p.category || '').toLowerCase() + ' ' + (p.parent_sku || '').toLowerCase();
@@ -14209,7 +14213,7 @@ function renderPOS(searchTerm = "") {
 
  // p1_209 — Empty state with reset link
  if(filtered.length === 0) {
- const ctx = [searchTerm ? '"' + searchTerm + '"' : '', activeBrand ? 'brand "' + activeBrand + '"' : ''].filter(Boolean).join(' + ');
+ const ctx = [searchTerm ? '"' + searchTerm + '"' : '', activeBrand ? 'brand "' + activeBrand + '"' : '', window.__posCollectionFilter ? 'koleksi "' + window.__posCollectionFilter + '"' : '', window.__posCategoryFilter ? 'kategori "' + window.__posCategoryFilter + '"' : ''].filter(Boolean).join(' + ');
  list.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px 20px; color:#9CA3AF;">'
  + '<i data-lucide="package-x" style="width:36px; height:36px; opacity:0.4; margin-bottom:8px;"></i>'
  + '<p style="font-size:14px; margin:4px 0;">Tiada produk padan' + (ctx ? ' dengan ' + ctx : '') + '.</p>'
@@ -14302,6 +14306,15 @@ function renderPOS(searchTerm = "") {
  <button onclick="changePosPage(1)" ${posCurrentPage>= totalPages ? 'disabled style="opacity:0.5"' : 'style="cursor:pointer"'} class="custom-btn"> Next> </button>
  </div>
  `;
+ // p1_1002 — chip aktif bila browse ikut Koleksi/Kategori (staff nampak tapisan + boleh reset)
+ if(window.__posCollectionFilter || window.__posCategoryFilter){
+  const gname = window.__posCollectionFilter || window.__posCategoryFilter;
+  const gtype = window.__posCollectionFilter ? 'Koleksi' : 'Kategori';
+  htmlBuf = '<div style="grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:10px; background:#F4E8D8; border:1px solid #E8D9C7; border-radius:10px; padding:9px 13px; margin-bottom:10px;">'
+   + '<span style="font-size:12.5px; font-weight:700; color:#7A4A1E;"><i data-lucide="layout-grid" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px;"></i>' + gtype + ': ' + hesc(gname) + ' · ' + filtered.length + ' produk</span>'
+   + '<button onclick="window.__posResetSearch()" style="background:#fff; color:#A5611F; border:1px solid #E8D9C7; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">Tunjuk semua</button>'
+   + '</div>' + htmlBuf;
+ }
  list.innerHTML = htmlBuf;
 }
 
@@ -37185,6 +37198,103 @@ window.__collectionOf = function(p){
  return (cat && window.__CAT_TO_COLLECTION[cat]) ? window.__CAT_TO_COLLECTION[cat] : '';
 };
 
+// p1_1002 — thumbnail WAKIL untuk kumpulan (brand/kategori/koleksi): guna cover produk pertama dalam
+// kumpulan yang ada gambar (published diutamakan). Dikira sekali, di-cache. '' = tiada gambar.
+window.__groupThumbCache = window.__groupThumbCache || {};
+window.__groupMatch = function(p, type, name){
+ if(!p) return false;
+ const nl = String(name || '').toLowerCase();
+ if(type === 'brand') return (p.brand || '').trim().toLowerCase() === nl;
+ if(type === 'category') return (p.category || '').trim().toLowerCase() === nl;
+ if(type === 'collection') return (window.__collectionOf ? window.__collectionOf(p) : '') === name;
+ return false;
+};
+window.__groupThumb = function(type, name){
+ const key = type + '::' + name;
+ if(window.__groupThumbCache[key] !== undefined) return window.__groupThumbCache[key];
+ let img = '', any = '';
+ const prods = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ for(const p of prods){
+  if(!window.__groupMatch(p, type, name)) continue;
+  const c = (window.__coverOf && window.__coverOf(p)) || (p.images && p.images[0]) || '';
+  if(!c) continue;
+  if(typeof isPublished === 'function' && isPublished(p) && !(window.__isDiscontinued && window.__isDiscontinued(p))) { img = c; break; }
+  if(!any) any = c;
+ }
+ const out = img || any || '';
+ window.__groupThumbCache[key] = out;
+ return out;
+};
+
+// p1_1002 — Cashier: browse produk ikut Koleksi / Brand / Kategori. Staff pilih kumpulan (tile bergambar)
+// → tapis senarai produk cashier ikut kumpulan itu. Guna window.__posCollectionFilter/__posCategoryFilter
+// (selari __posBrandFilter sedia ada).
+window.__posBrowseType = 'collection';
+window.__posBrowseClose = function(){ const o = document.getElementById('posBrowseOverlay'); if(o) o.remove(); };
+window.__posBrowseOpen = function(type){
+ window.__posBrowseType = type || window.__posBrowseType || 'collection';
+ const old = document.getElementById('posBrowseOverlay'); if(old) old.remove();
+ const ov = document.createElement('div'); ov.id = 'posBrowseOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(16,16,16,.55); z-index:9800; display:flex; align-items:flex-start; justify-content:center; padding:24px 14px; overflow:auto;';
+ ov.addEventListener('click', e => { if(e.target === ov) window.__posBrowseClose(); });
+ ov.innerHTML = '<div style="background:#fff; width:100%; max-width:780px; border-radius:16px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.3); margin:auto;">'
+  + '<div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid #EEE;">'
+   + '<div style="font-weight:800; font-size:16px;"><i data-lucide="layout-grid" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;"></i>Katalog Produk</div>'
+   + '<button onclick="window.__posBrowseClose()" title="Tutup" style="border:none;background:#F3F4F6;width:32px;height:32px;border-radius:50%;cursor:pointer;"><i data-lucide="x" style="width:16px;height:16px;"></i></button>'
+  + '</div>'
+  + '<div id="posBrowseTabs" style="display:flex; gap:8px; padding:14px 18px 0;"></div>'
+  + '<div id="posBrowseBody" style="padding:16px 18px 22px; max-height:70vh; overflow:auto;"></div>'
+  + '</div>';
+ document.body.appendChild(ov);
+ window.__posBrowseRender();
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
+window.__posBrowseSetTab = function(type){ window.__posBrowseType = type; window.__posBrowseRender(); if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} };
+window.__posBrowseRender = function(){
+ const tabsEl = document.getElementById('posBrowseTabs'); const bodyEl = document.getElementById('posBrowseBody');
+ if(!tabsEl || !bodyEl) return;
+ const type = window.__posBrowseType;
+ const tabs = [['collection','Koleksi','folder-tree'],['brand','Brand','award'],['category','Kategori','layers']];
+ tabsEl.innerHTML = tabs.map(function(t){ const on = t[0] === type;
+  return '<button onclick="window.__posBrowseSetTab(\'' + t[0] + '\')" style="flex:1; padding:9px 10px; border-radius:10px; border:1.5px solid ' + (on?'var(--primary)':'#E5E7EB') + '; background:' + (on?'var(--primary)':'#fff') + '; color:' + (on?'#fff':'#374151') + '; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="' + t[2] + '" style="width:14px;height:14px;"></i>' + t[1] + '</button>';
+ }).join('');
+ const prods = (typeof masterProducts !== 'undefined' && Array.isArray(masterProducts)) ? masterProducts : [];
+ const tally = new Map();
+ for(const p of prods){
+  if(!isPublished(p)) continue; if(window.__isDiscontinued && window.__isDiscontinued(p)) continue;
+  let g = '';
+  if(type === 'brand') g = (p.brand || '').trim();
+  else if(type === 'category') g = (p.category || '').trim();
+  else g = (window.__collectionOf ? window.__collectionOf(p) : '');
+  if(!g) continue;
+  tally.set(g, (tally.get(g) || 0) + 1);
+ }
+ const groups = Array.from(tally.entries()).sort((a,b) => b[1] - a[1]);
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ if(!groups.length){ bodyEl.innerHTML = '<div style="padding:34px; text-align:center; color:#9CA3AF;">Tiada kumpulan untuk tab ini.</div>'; return; }
+ bodyEl.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px;">'
+  + groups.map(function(gc){ const name = gc[0], count = gc[1];
+    const img = window.__groupThumb(type, name);
+    const media = img
+     ? '<div style="aspect-ratio:1/1; background:#FBF7F0; border-radius:11px 11px 0 0; overflow:hidden;"><img src="' + esc(img) + '" style="width:100%;height:100%;object-fit:contain;" loading="lazy"></div>'
+     : '<div style="aspect-ratio:1/1; background:#F4E8D8; border-radius:11px 11px 0 0; display:flex; align-items:center; justify-content:center; color:#A5611F; font-weight:800; font-size:22px; letter-spacing:.02em;">' + esc(String(name).slice(0,2).toUpperCase()) + '</div>';
+    return '<button onclick="window.__posPickGroup(\'' + type + '\',' + JSON.stringify(String(name)).replace(/"/g,'&quot;') + ')" style="text-align:left; padding:0; border:1px solid #EAE0D2; border-radius:12px; background:#fff; cursor:pointer; overflow:hidden;">'
+     + media
+     + '<div style="padding:8px 10px 10px;"><div style="font-size:12.5px; font-weight:700; color:#101010; line-height:1.25;">' + esc(name) + '</div><div style="font-size:11px; color:#8C7C6A; margin-top:2px;">' + count + ' produk</div></div>'
+     + '</button>';
+  }).join('') + '</div>';
+};
+window.__posPickGroup = function(type, name){
+ window.__posBrandFilter = (type === 'brand') ? name : '';
+ window.__posCollectionFilter = (type === 'collection') ? name : '';
+ window.__posCategoryFilter = (type === 'category') ? name : '';
+ const inp = document.getElementById('searchInput'); if(inp) inp.value = '';
+ window.__posBrowseClose();
+ window.__bpRendered = false; if(window.__bpRenderBrandPills) window.__bpRenderBrandPills(); window.__bpRendered = true;
+ if(typeof renderPOS === 'function') renderPOS('');
+ if(window.showToast) showToast('Tunjuk: ' + name + ' (' + (type==='collection'?'Koleksi':type==='brand'?'Brand':'Kategori') + ')', 'info');
+};
+
 // p1_310 — Collections list (EasyStore-style): products grouped into Brands +
 // Categories with counts. Click a row → open Products grid filtered to it.
 window.renderCollections = function() {
@@ -37229,9 +37339,16 @@ window.renderCollections = function() {
  const colls = Array.from(collMap.values()).map(g => ({ name: g.name, total: g.total, live: g.live, listings: g._L.size, liveListings: g._LL.size }));
  const noColl = prods.filter(p => !(window.__collectionOf ? window.__collectionOf(p) : '')).length;
 
+ // p1_1002 — thumbnail wakil (gambar produk pertama dlm kumpulan yg ada gambar) di setiap baris
+ const thumbEl = (type, name) => {
+  const img = window.__groupThumb ? window.__groupThumb(type, name) : '';
+  return img
+   ? `<span style="width:32px;height:32px;border-radius:7px;overflow:hidden;flex-shrink:0;background:#FBF7F0;display:inline-flex;border:1px solid #EEE4D6;"><img src="${hesc(img)}" style="width:100%;height:100%;object-fit:contain;" loading="lazy"></span>`
+   : `<span style="width:32px;height:32px;border-radius:7px;flex-shrink:0;background:#F4E8D8;color:#A5611F;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">${hesc(String(name).slice(0,2).toUpperCase())}</span>`;
+ };
  const row = (type, g) =>
- `<div onclick="window.__collectionOpen('${type}','${hesc(g.name).replace(/'/g, "\\'")}')" style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px 11px 34px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='#fff'">
- <span style="display:inline-flex; align-items:center; gap:9px; font-size:13.5px; color:#7c4a1a; font-weight:600;"><i data-lucide="tag" style="width:14px;height:14px;color:#9CA3AF;"></i>${hesc(g.name)}</span>
+ `<div onclick="window.__collectionOpen('${type}','${hesc(g.name).replace(/'/g, "\\'")}')" style="display:flex; align-items:center; justify-content:space-between; padding:9px 14px 9px 24px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='#fff'">
+ <span style="display:inline-flex; align-items:center; gap:11px; font-size:13.5px; color:#7c4a1a; font-weight:600;">${thumbEl(type, g.name)}${hesc(g.name)}</span>
  <span style="display:inline-flex; align-items:center; gap:16px;"><span style="font-size:10.5px; font-weight:700; color:#4E7C4A; background:#E4EFE2; padding:2px 8px; border-radius:999px;">${g.liveListings} live</span><span style="font-size:13px; color:#6B7280; min-width:64px; text-align:right;" title="${g.listings} listing (varian dicantum) · ${g.total} unit/SKU">${g.listings} <span style="color:#9CA3AF; font-size:11px;">/ ${g.total}</span></span></span>
  </div>`;
  const groupHeader = (icon, title, sub) =>

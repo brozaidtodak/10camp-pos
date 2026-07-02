@@ -16254,8 +16254,11 @@ window.processNewCheckout = async function() {
  const __deductOne = async (item) => {
  for(let attempt = 0; attempt < 2; attempt++) {
  try {
+ // M2 (audit 2026-07-03) — hantar p_ref = client_txn_id:sku (stabil merentas retry/re-click). RPC
+ // idempoten: kalau attempt-0 dah commit di server tapi respons hilang (timeout), retry dgn ref sama
+ // pulang alokasi SAMA tanpa deduct kedua kali → elak double-deduct.
  const { data: __alloc, error: __allocErr } = await withTimeout(
- db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity }),
+ db.rpc('deduct_stock_fifo', { p_sku: item.sku, p_qty: item.quantity, p_ref: (__txnId || '') + ':' + item.sku }),
  15000, 'deduct stok ' + item.sku + (attempt ? ' (retry)' : ''));
  if(__allocErr) { if(attempt === 0) continue; throw __allocErr; }
  ((__alloc && __alloc.allocated) ? __alloc.allocated : []).forEach(a => {

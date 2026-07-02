@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>10 CAMP · System Structure</title>
+<style>
+  :root{
+    --bronze:#CD7C32; --bronze-deep:#A5611F; --ink:#101010; --cream:#FAF6EF; --card:#FFFFFF;
+    --line:#E9DECF; --muted:#8C7C6A; --tint:#F4E8D8;
+    --shelter:#3A6045; --code-bg:#161310; --code-ink:#EDE4D6; --code-accent:#E4A05A;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:-apple-system,"Segoe UI",system-ui,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15.5px}
+  a{color:var(--bronze-deep)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* top bar */
+  header.top{position:sticky;top:0;z-index:20;background:rgba(250,246,239,.92);
+    backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
+  .top-in{display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em}
+  .brand .mark{width:26px;height:26px;border-radius:7px;background:var(--ink);color:var(--bronze);
+    display:grid;place-items:center;font-size:13px;font-weight:900}
+  nav.jump{display:flex;gap:4px;flex-wrap:wrap}
+  nav.jump a{font-size:13px;font-weight:600;color:#5A4E40;text-decoration:none;padding:7px 12px;border-radius:8px}
+  nav.jump a:hover{background:var(--tint);color:var(--bronze-deep)}
+  @media(max-width:720px){nav.jump{display:none}}
+
+  /* hero */
+  .hero{padding:46px 0 30px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--bronze-deep);font-weight:800;margin:0 0 12px}
+  h1{font-size:clamp(30px,5.4vw,46px);line-height:1.05;margin:0 0 14px;font-weight:850;letter-spacing:-.025em;text-wrap:balance}
+  .lede{margin:0;max-width:66ch;color:#4A4238;font-size:16px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:12.5px;color:#5A4E40;font-weight:600}
+  .chip b{color:var(--ink)}
+
+  /* overview cards */
+  .overview{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:34px 0}
+  @media(max-width:820px){.overview{grid-template-columns:1fr}}
+  .ocard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;
+    display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;transition:.15s}
+  .ocard:hover{border-color:var(--bronze);box-shadow:0 8px 26px rgba(205,124,50,.10);transform:translateY(-2px)}
+  .ocard .num{font-size:12px;font-weight:800;color:var(--bronze-deep);letter-spacing:.08em}
+  .ocard h3{margin:2px 0 0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .ocard p{margin:0;font-size:13.5px;color:var(--muted)}
+
+  /* sections */
+  section.surface{padding:40px 0;border-top:1px solid var(--line);scroll-margin-top:70px}
+  .s-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .s-head .n{font-size:13px;font-weight:800;color:#fff;background:var(--bronze);border-radius:8px;padding:3px 10px}
+  .s-head h2{font-size:26px;margin:0;font-weight:850;letter-spacing:-.02em}
+  .s-sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+
+  .block{margin-top:22px}
+  .block > .label{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--bronze-deep);margin-bottom:10px}
+  .block > .label::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--bronze)}
+  .objective{font-size:15.5px;color:#3A342C;max-width:74ch}
+  .objective ol{margin:10px 0 0;padding-left:20px}
+  .objective li{margin:4px 0}
+  .warn{margin-top:12px;background:var(--tint);border-left:3px solid var(--bronze);border-radius:0 9px 9px 0;
+    padding:11px 15px;font-size:14px;color:#5A4327}
+
+  pre.flow{background:var(--code-bg);color:var(--code-ink);border-radius:14px;padding:18px 20px;overflow-x:auto;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.65;margin:0;
+    border:1px solid #2a2620}
+  pre.flow .a{color:var(--code-accent)}
+  pre.flow b{color:#fff;font-weight:600}
+
+  ul.sop{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  ul.sop li{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px 15px;font-size:14px}
+  ul.sop li b{color:var(--ink)}
+  ul.sop code{background:var(--tint);color:var(--bronze-deep);padding:1px 6px;border-radius:5px;
+    font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+
+  /* rules */
+  section.rules{padding:40px 0 20px;border-top:2px solid var(--ink);scroll-margin-top:70px}
+  .rulegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+  @media(max-width:720px){.rulegrid{grid-template-columns:1fr}}
+  .rule{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .rule .k{font-size:19px;font-weight:900;color:var(--bronze);line-height:1;font-variant-numeric:tabular-nums}
+  .rule .t{font-size:13.8px}
+  .rule .t b{display:block;margin-bottom:2px}
+
+  footer{padding:30px 0 50px;border-top:1px solid var(--line);margin-top:30px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand"><span class="mark">10</span> System Structure</div>
+    <nav class="jump">
+      <a href="#landing">Landing</a>
+      <a href="#backoffice">Back Office</a>
+      <a href="#pos">POS Apps</a>
+      <a href="#rules">Peraturan Silang</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <p class="eyebrow">10 CAMP · Governance</p>
+    <h1>Objective, Pipeline &amp; SOP</h1>
+    <p class="lede">Rujukan tunggal untuk 3 permukaan sistem 10 CAMP — apa setiap satu patut buat, bagaimana data mengalir, dan peraturan operasi. Kemas kini bila skop berubah.</p>
+    <div class="meta">
+      <span class="chip">Live: <b>www.10camp.com</b></span>
+      <span class="chip">Deploy: <b>git push → Netlify</b></span>
+      <span class="chip">Brand: <b>Bronze / Black / Cream · Poppins</b></span>
+      <span class="chip"><b>Tiada emoji</b> · Lucide icon</span>
+    </div>
+  </div>
+
+  <div class="overview">
+    <a class="ocard" href="#landing"><span class="num">01</span><h3>Landing Page</h3><p>Etalase katalog awam + corong ke marketplace / walk-in. Bukan payment gateway.</p></a>
+    <a class="ocard" href="#backoffice"><span class="num">02</span><h3>Back Office</h3><p>Control-plane pengurusan: katalog, inventori, procurement, kewangan, HR, marketplace.</p></a>
+    <a class="ocard" href="#pos"><span class="num">03</span><h3>POS Apps</h3><p>Cashier jualan (web + mobile) — duit / stok / loyalti tepat, tahan-offline.</p></a>
+  </div>
+
+  <!-- LANDING -->
+  <section class="surface" id="landing">
+    <div class="s-head"><span class="n">01</span><h2>Landing Page</h2></div>
+    <p class="s-sub">Storefront awam · pelawat anon · www.10camp.com</p>
+
+    <div class="block">
+      <span class="label">Objective</span>
+      <div class="objective">
+        Etalase katalog awam + corong jualan. <b>Bukan payment gateway</b> — pelanggan beli via Shopee / TikTok / walk-in.
+        <ol>
+          <li>Pamer produk (katalog live, harga marketplace, stok) dengan cara premium &amp; dipercayai.</li>
+          <li>Corong ke marketplace / WhatsApp / kedai.</li>
+          <li>Tangkap lead: VIP loyalty (mata), pertanyaan/invois web (menunggu pengesahan admin).</li>
+          <li>SEO / keterlihatan (schema, sitemap, marketing pixels).</li>
+        </ol>
+        <div class="warn"><b>Tak boleh:</b> dedah kos / margin / supplier / PII pelanggan ke pelawat awam. Landing = data <b>cost-free</b> sahaja.</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <span class="label">Pipeline</span>
+      <pre class="flow">Pelawat anon
+  <span class="a">→</span> GET www.10camp.com (SPA boot, no login)
+  <span class="a">→</span> initApp(anon): baca VIEW cost-free — <b>public_products</b> + <b>public_stock</b> (bukan base table)
+  <span class="a">→</span> render storefront + activity tiles + category pills
+       Penapis wajib: is_published · bukan discontinued · bukan event-SKU (OUTDOOREXPO)
+  <span class="a">→</span> browse / cari / product detail
+  <span class="a">→</span> Corong keluar:
+       (a) Butang marketplace → link Shopee/TikTok (app_settings.links)
+       (b) WhatsApp → wa.me (app_settings.shop.whatsapp)
+       (c) Pertanyaan web → public-checkout → quotations_log 'Web Invoice' → admin sahkan
+       (d) VIP loyalty → loyalty-otp (OTP email) → papar mata/pembelian</pre>
+      <div class="warn">Sempadan keselamatan: role <code style="background:none;padding:0;color:inherit">anon</code> hanya baca 2 view. Semua tulisan awam lalu Netlify function service-role (throttle + validate sendiri).</div>
+    </div>
+
+    <div class="block">
+      <span class="label">SOP</span>
+      <ul class="sop">
+        <li><b>Nak produk keluar di landing:</b> set <b>Published</b> + bukan discontinued + bukan event-SKU. Tak nampak → semak 3 syarat ni dulu.</li>
+        <li><b>Landing = Preview parity:</b> ubah grid landing mesti sama pada Preview Mode (DOM/CSS sama). Guna ID selector.</li>
+        <li><b>Kontak &amp; sosial:</b> SEMUA dari <code>app_settings</code> (whatsapp, links) — jangan hardcode.</li>
+        <li><b>Jangan dedah:</b> kos, margin, supplier/vendor, bin lokasi, notes dalaman, PII pelanggan ke laluan anon.</li>
+        <li><b>Deploy:</b> push → tunggu Netlify → curl-verify <code>app.js?v=</code> → kill &amp; buka semula app.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- BACK OFFICE -->
+  <section class="surface" id="backoffice">
+    <div class="s-head"><span class="n">02</span><h2>Back Office</h2></div>
+    <p class="s-sub">Pengurusan · staff / mgmt (login PIN)</p>
+
+    <div class="block">
+      <span class="label">Objective</span>
+      <div class="objective">Satu control-plane untuk seluruh operasi 10 CAMP: katalog, inventori, procurement, kewangan, HR, sync marketplace, CRM, laporan. Staff jalankan operasi harian; Bos/mgmt awasi + luluskan.</div>
+    </div>
+
+    <div class="block">
+      <span class="label">Pipeline</span>
+      <pre class="flow">Login staf (email/password kali pertama → PIN peranti sama; __detectUserByPin)
+  <span class="a">→</span> initApp(staff): baca BASE table penuh (products_master, inventory_batches,
+     inventory_transactions, suppliers, PO, reservations) + app_settings + promos
+  <span class="a">→</span> Modul:
+     • <b>Product Master</b>  → CRUD katalog → auto-push draf TikTok (+ Shopee)
+     • <b>Inventory</b>       → batches FIFO, Analytics, Receiving, Cycle Count, Locations
+     • <b>Procurement</b>     → Calculator (RMB×ex + SF 5% + shipping + part-time) → landed cost
+     • <b>Marketplace</b>     → Stock Sync 2-hala + Price Push + Not-on-TikTok + Campaign flags
+     • <b>Finance</b>         → Commission, Laporan Sulit (PIN), bridge ke 10cc
+     • <b>HR / Roster</b>     → syif, cuti (AL/MC), tuntutan, approval (Bos)
+     • <b>CRM / Members</b>   → loyalty, tier, B2B negotiated price
+     • <b>Collections</b>     → koleksi/brand/kategori (thumbnail) + Urus Koleksi
+  <span class="a">→</span> Tulisan: Supabase (RLS) + Netlify service-role functions (gated _auth)</pre>
+    </div>
+
+    <div class="block">
+      <span class="label">SOP</span>
+      <ul class="sop">
+        <li><b>Roles:</b> <code>mgmt</code> · <code>sales</code> · <code>inventory</code> · <b>Bos</b> dikenali via <code>isBoss(u)</code> (jawatan Managing Director) — BUKAN role lama <code>'superior'</code> (retired).</li>
+        <li><b>Approval</b> (HR claim / cuti / memo): gate guna <code>isBoss(u)</code> — konsisten render butang &amp; handler.</li>
+        <li><b>Roadmap rule (keras):</b> tiap perubahan update <code>ROADMAP_DATA</code> dalam index.html, commit sama.</li>
+        <li><b>Data integrity:</b> semua tulisan duit/stok — semak <code>{error}</code> &amp; throw · operasi idempoten (persist flag dulu) · jangan guna <code>Date.now()</code> sebagai PK.</li>
+        <li><b>Jangan padam sejarah produk:</b> buang produk = padam baris katalog SAHAJA; jualan/returns kekal.</li>
+        <li><b>Marketplace:</b> harga POS = harga kedai (base terendah); Shopee/TikTok LEBIH tinggi (cover fee).</li>
+        <li><b>Brand-lock + no-emoji</b> untuk SEMUA skrin (3 warna + Poppins + logo rasmi + corak 10 Camp).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- POS -->
+  <section class="surface" id="pos">
+    <div class="s-head"><span class="n">03</span><h2>POS Apps</h2></div>
+    <p class="s-sub">Cashier · jualan (web + mobile Capacitor)</p>
+
+    <div class="block">
+      <span class="label">Objective</span>
+      <div class="objective">Point-of-sale untuk <b>walk-in</b> + fulfillment omnichannel. Laju, tahan-offline, dengan <b>duit / stok / loyalti tepat</b>. Skrin staf jual; mobile shell (Android/iOS) untuk peranti kedai.</div>
+    </div>
+
+    <div class="block">
+      <span class="label">Pipeline</span>
+      <pre class="flow">Login staf → Cashier
+  <span class="a">→</span> Buka Shift (float masuk laci; cash_drawer_log)
+  <span class="a">→</span> Cari / Scan barcode / <b>Katalog</b> (browse ikut Koleksi/Brand/Kategori) → troli
+  <span class="a">→</span> Attach pelanggan: Walk-in / VIP (loyalty) / B2B (harga rundingan ikut min_qty)
+  <span class="a">→</span> Diskaun (manual/global) + Loyalty redeem
+  <span class="a">→</span> Checkout:
+       1. <b>deduct_stock_fifo</b> (RPC atomik, idempoten via p_ref = client_txn_id:sku)
+       2. insert sales_history (client_txn_id = kunci idempotensi)
+       3. kira mata + total_spent (RM10 = 1 mata)
+       4. resit (email/print) + rekod laci + komisen
+       5. push stok ke TikTok/Shopee (fire-and-forget)
+  <span class="a">→</span> Return/Refund · Void · Tahan Jualan · Split · Tutup Kira (Z-report) · Offline queue+sync</pre>
+    </div>
+
+    <div class="block">
+      <span class="label">SOP</span>
+      <ul class="sop">
+        <li><b>Mula shift:</b> Buka Shift → float. <b>Tutup shift:</b> Tutup Kira → kira tunai sebenar vs dijangka → simpan Z-report.</li>
+        <li><b>Refund / Return:</b> barang elok balik jual → <b>tick</b> "Pulang ke stok" · barang <b>rosak / write-off</b> → <b>UNTICK</b> (stok TAK ditambah balik).</li>
+        <li>Refund penuh → status Refunded + loyalti dipulih; separa → loyalti dipulih berkadar.</li>
+        <li><b>B2B:</b> harga tier ikut qty (min_qty) — dinilai semula bila qty berubah. Yang dicaj mesti sama dengan yang dipapar.</li>
+        <li><b>Offline caveat:</b> stok/resit ikut masa sync; elak jual offline masa stok kritikal.</li>
+        <li><b>Mobile:</b> Capacitor shell. Kill &amp; buka semula app untuk muat versi baru.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section class="rules" id="rules">
+    <div class="s-head"><span class="n">★</span><h2>Peraturan Silang</h2></div>
+    <p class="s-sub">Semua permukaan</p>
+    <div class="rulegrid">
+      <div class="rule"><span class="k">1</span><span class="t"><b>Roadmap update</b>tiap perubahan update ROADMAP_DATA (index.html).</span></div>
+      <div class="rule"><span class="k">2</span><span class="t"><b>Brand-lock</b>3 warna (bronze/black/cream) + Poppins + no emoji (Lucide icon).</span></div>
+      <div class="rule"><span class="k">3</span><span class="t"><b>Semak {error} + idempotensi</b>pada tiap tulisan duit/stok.</span></div>
+      <div class="rule"><span class="k">4</span><span class="t"><b>Auth</b>endpoint bermutasi/pulang-data gated (requireStaff/requireAuth) + INTERNAL_FN_SECRET. Jangan dedah kos/PII ke anon.</span></div>
+      <div class="rule"><span class="k">5</span><span class="t"><b>Guard boot-race</b>render yang bergantung masterProducts mesti tahan kalau katalog belum load (loading + retry), bukan render 0.</span></div>
+      <div class="rule"><span class="k">6</span><span class="t"><b>Deploy</b>push → Netlify → verify app.js?v= → kill-reopen app.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    10 CAMP — System Governance · sumber: <code style="background:var(--tint);padding:1px 6px;border-radius:5px">docs/SYSTEM_GOVERNANCE.md</code> (repo pos-site) · dokumen dalaman.
+  </footer>
+
+</div>
+</body>
+</html>

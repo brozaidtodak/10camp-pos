@@ -8340,6 +8340,10 @@ window.__ppSaveEdit = async function() {
  const get = (id) => (document.getElementById(id)?.value || '').trim();
  const saleId = parseInt(get('ppEditId'), 10);
  if(!saleId) return;
+ // M2 (audit 2026-07-01) — capture the sale's ORIGINAL total + customer BEFORE the edit so loyalty can be
+ // adjusted by the delta afterwards (editing RM500→RM50 used to leave 50 pts + RM500 lifetime spend).
+ const __editExisting = (Array.isArray(salesHistory) ? salesHistory : []).find(s => String(s.id) === String(saleId)) || null;
+ const __editOldTotal = __editExisting ? (Number(__editExisting.total != null ? __editExisting.total : __editExisting.total_amount) || 0) : null;
  const totalRaw = get('ppEditTotal');
  const total = parseFloat(totalRaw);
  if(totalRaw !== '' && (isNaN(total) || total < 0)) {
@@ -8395,6 +8399,29 @@ window.__ppSaveEdit = async function() {
  try {
  const { error } = await db.from('sales_history').update(payload).eq('id', saleId);
  if(error) throw error;
+ // M2 (audit 2026-07-01) — adjust loyalty by the total delta (match the ORIGINAL customer who earned it).
+ try {
+  if(!isNaN(total) && __editOldTotal != null && Array.isArray(customersData)){
+   const delta = Math.round((total - __editOldTotal) * 100) / 100;
+   if(Math.abs(delta) >= 0.005){
+    const src = __editExisting || {};
+    const phoneNorm = (src.customer_phone||'').replace(/[^0-9]/g,'');
+    const em = (src.customer_email||'').trim().toLowerCase();
+    const nml = (src.customer_name||'').trim().toLowerCase();
+    const hasId = phoneNorm || em || (nml && nml!=='walk-in');
+    const cust = hasId ? customersData.find(c =>
+      (phoneNorm && (c.phone||'').replace(/[^0-9]/g,'')===phoneNorm) ||
+      (em && (c.email||'').toLowerCase()===em) ||
+      (!phoneNorm && !em && (c.name||'').toLowerCase()===nml)) : null;
+    if(cust){
+     const newSpent = Math.max(0, Math.round(((Number(cust.total_spent)||0) + delta) * 100) / 100);
+     const upd = { total_spent: newSpent, points: window.__pointsForSpend(newSpent) };
+     await db.from('customers').update(upd).eq('id', cust.id);
+     Object.assign(cust, upd); window.__pastCustomersCache = null;
+    }
+   }
+  }
+ } catch(le){ console.warn('M2 adjust loyalty on edit gagal:', le); }
  // Audit log
  try {
  await db.from('audit_logs').insert([{
@@ -10615,6 +10642,32 @@ window.__returnRefundConfirm = async function(){
  const newStatus = (retQty >= soldQty) ? 'Refunded' : sale.status; // penuh → Refunded; separa → kekal status (rekod dalam metadata)
  await db.from('sales_history').update({ status: newStatus, metadata: md }).eq('id', sale.id);
  sale.status = newStatus; sale.metadata = md;
+ // M1 (audit 2026-07-01) — refund/return NEVER rolled back loyalty; customer kept points + total_spent
+ // (and VIP tier → auto-discount) for refunded money. Full refund → reuse the canonical full reversal
+ // (idempotent via md.loyalty_reversed, skips the restock already done above). Partial → reverse loyalty
+ // proportional to the refunded RM but keep the order counted.
+ try {
+  if(newStatus === 'Refunded'){
+   if(typeof window.__restockSaleIfVoided === 'function') await window.__restockSaleIfVoided(sale, 'refunded');
+  } else if(amount > 0 && !md.loyalty_reversed && Array.isArray(customersData)){
+   const phoneNorm = (sale.customer_phone||'').replace(/[^0-9]/g,'');
+   const em = (sale.customer_email||'').trim().toLowerCase();
+   const nml = (sale.customer_name||'').trim().toLowerCase();
+   const hasId = phoneNorm || em || (nml && nml!=='walk-in');
+   const cust = hasId ? customersData.find(c =>
+     (phoneNorm && (c.phone||'').replace(/[^0-9]/g,'')===phoneNorm) ||
+     (em && (c.email||'').toLowerCase()===em) ||
+     (!phoneNorm && !em && (c.name||'').toLowerCase()===nml)) : null;
+   if(cust){
+    const newSpent = Math.max(0, Math.round(((Number(cust.total_spent)||0) - amount)*100)/100);
+    const upd = { total_spent: newSpent, points: window.__pointsForSpend(newSpent) };
+    await db.from('customers').update(upd).eq('id', cust.id);
+    Object.assign(cust, upd); window.__pastCustomersCache = null;
+    md.loyalty_reversed = true; md.loyalty_reversed_at = new Date().toISOString();
+    await db.from('sales_history').update({ metadata: md }).eq('id', sale.id); sale.metadata = md;
+   }
+  }
+ } catch(le){ console.warn('M1 reverse loyalty on refund gagal:', le); }
  if(typeof showToast === 'function') showToast(type + ' selesai' + (restock ? ' · stok dipulangkan' : '') + (amount > 0 ? ' · refund RM' + amount.toFixed(2) : '') + (type === 'exchange' ? ' — ring barang ganti sebagai jualan baru' : ''), 'success');
  const ov = document.getElementById('rrOverlay'); if(ov) ov.remove();
  if(typeof window.closeOrderDetail === 'function') window.closeOrderDetail();
@@ -36268,6 +36321,37 @@ window.__returnPickerPick = function(saleId){
  else if(typeof showToast === 'function') showToast('Fungsi return tak dijumpai.', 'error');
 };
 
+// M5 (audit 2026-07-01) — cash that a sale actually put in the drawer: full amount for a cash sale,
+// only the Cash leg for a Split payment (previously Split was skipped entirely → drawer looked OVER).
+window.__saleCashInDrawer = function(s){
+ if(!s) return 0;
+ const pm = s.payment_method || 'Cash';
+ const recv = parseFloat(s.total != null ? s.total : s.total_amount) || 0;
+ if(/cash|tunai/i.test(pm)) return recv > 0 ? recv : 0;
+ if(pm === 'Split'){
+  let md = s.metadata; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } }
+  const legs = (md && md.split_payments) || [];
+  return round2(legs.filter(l => /cash|tunai/i.test(l && l.method)).reduce((sum,l)=> sum + (parseFloat(l.amount)||0), 0));
+ }
+ return 0;
+};
+// M4 (audit 2026-07-01) — cash refunded OUT of the drawer today. A refund only removes drawer cash up to
+// the cash that came in for that sale (card/e-wallet refunds don't touch the drawer). Was ignored entirely
+// → the drawer always looked SHORT by the refunded cash.
+window.__cashRefundsToday = function(dayStartMs){
+ let out = 0, cnt = 0;
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+  if(!s || s.is_test) return;
+  let md = s.metadata; if(typeof md === 'string'){ try { md = JSON.parse(md); } catch(e){ md = {}; } } md = md || {};
+  if(!md.return_done || !(Number(md.return_amount) > 0)) return;
+  const rt = md.returned_at ? new Date(md.returned_at).getTime() : (s.created_at ? new Date(s.created_at).getTime() : 0);
+  if(rt < dayStartMs) return;
+  const cashCap = window.__saleCashInDrawer(s);
+  const cashBack = Math.min(Number(md.return_amount) || 0, cashCap);
+  if(cashBack > 0){ out = round2(out + cashBack); cnt++; }
+ });
+ return { amount: out, count: cnt };
+};
 // p1_857 — Tutup Kira (Z-Report). Float + jualan tunai − duit keluar = dijangka vs kira sebenar.
 window.__cashCloseCounted = '';
 window.__cashCloseData = { cashSales:0, cashSalesCount:0, cashOut:0, cashOutCount:0, floatOpen:0 };
@@ -36283,12 +36367,11 @@ window.openCashClose = async function(){
  if(dt < dayStart.getTime()) return;
  if(s.is_test) return;
  const st = (s.status || '').toLowerCase(); if(st.indexOf('cancel') !== -1 || st.indexOf('void') !== -1) return;
- if(!/cash|tunai/i.test(s.payment_method || 'Cash')) return;
- const recv = parseFloat(s.total != null ? s.total : s.total_amount) || 0;
- if(recv <= 0) return;
  const isReal = (typeof window.__isRealSale === 'function') ? window.__isRealSale(s) : true;
  if(!isReal) return;
- cashSales = round2(cashSales + recv); cashSalesCount++;
+ const cashPart = window.__saleCashInDrawer(s); // M5 — includes the Cash leg of Split payments
+ if(cashPart <= 0) return;
+ cashSales = round2(cashSales + cashPart); cashSalesCount++;
  });
  // Duit keluar + float hari ini dari cash_drawer_log
  let cashOut = 0, cashOutCount = 0, floatOpen = 0;
@@ -36303,6 +36386,8 @@ window.openCashClose = async function(){
  }
  }
  } catch(e){ console.warn('openCashClose fetch', e); }
+ // M4 — cash refunds paid from the drawer are also cash OUT; fold into cashOut so expected is correct.
+ try { const __ref = window.__cashRefundsToday(dayStart.getTime()); cashOut = round2(cashOut + __ref.amount); cashOutCount += __ref.count; } catch(e){}
  window.__cashCloseData = { cashSales, cashSalesCount, cashOut, cashOutCount, floatOpen };
  window.__cashCloseCounted = '';
  const setTxt = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
@@ -36372,10 +36457,9 @@ window.__fetchCashDrawerToday = async function(){
  if(dt < dayStart.getTime()) return;
  if(s.is_test) return;
  const st = (s.status || '').toLowerCase(); if(st.indexOf('cancel') !== -1 || st.indexOf('void') !== -1) return;
- if(!/cash|tunai/i.test(s.payment_method || 'Cash')) return;
- const recv = parseFloat(s.total != null ? s.total : s.total_amount) || 0; if(recv <= 0) return;
  const isReal = (typeof window.__isRealSale === 'function') ? window.__isRealSale(s) : true; if(!isReal) return;
- cashSales = round2(cashSales + recv); cashSalesCount++;
+ const cashPart = window.__saleCashInDrawer(s); if(cashPart <= 0) return; // M5 — Split cash leg included
+ cashSales = round2(cashSales + cashPart); cashSalesCount++;
  });
  let cashOut = 0, cashOutCount = 0, floatOpen = null;
  try {
@@ -36386,6 +36470,8 @@ window.__fetchCashDrawerToday = async function(){
  }
  }
  } catch(e){ console.warn('fetchCashDrawerToday', e); }
+ // M4 — include cash refunds paid from the drawer as cash OUT.
+ try { const __ref = window.__cashRefundsToday(dayStart.getTime()); cashOut = round2(cashOut + __ref.amount); cashOutCount += __ref.count; } catch(e){}
  return { cashSales, cashSalesCount, cashOut, cashOutCount, floatOpen };
 };
 window.openCashDrawerHub = async function(){

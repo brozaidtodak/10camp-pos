@@ -13,6 +13,7 @@ import esbuild from 'esbuild';
 
 const TARGETS = [
   { file: 'app.js',            loader: 'js'  },
+  { file: 'roadmap-data.js',   loader: 'js'  }, // p1_1023 — lazy-loaded, tapi besar; minify jugak
   { file: 'design-tokens.css', loader: 'css' },
   { file: 'style.css',         loader: 'css' },
 ];

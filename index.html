@@ -37,7 +37,7 @@
  <link rel="stylesheet" href="style.css?v=71">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
- <link rel="stylesheet" href="design-tokens.css?v=156">
+ <link rel="stylesheet" href="design-tokens.css?v=157">
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
       Fallback ke CDN HANYA kalau fail tempatan gagal define global supabase. -->
@@ -56,6 +56,13 @@
   <script defer data-site="pos" src="https://analytics.10camp.com/track.js"></script>
 </head>
 <body>
+ <!-- p1_1012 — Boot splash (kaunter iPad): tutup landing customer dari saat pertama sampai app tentukan POS/skrin-kunci. Skrip inline sinkron tanda <html> sebelum landing sempat paint. -->
+ <div id="posBootSplash" style="display:none; position:fixed; inset:0; z-index:9999; background:radial-gradient(130% 80% at 50% -10%, #212a3a 0%, #14181f 45%, #0d0d0d 100%); flex-direction:column; align-items:center; justify-content:center; gap:18px; transition:opacity .3s ease;">
+ <div style="font-weight:800; letter-spacing:3px; color:#CD7C32; font-size:15px; font-family:Poppins,sans-serif;">10 CAMP · KAUNTER POS</div>
+ <div style="width:34px; height:34px; border:3px solid rgba(205,124,50,.25); border-top-color:#CD7C32; border-radius:50%; animation:pbsSpin .8s linear infinite;"></div>
+ <div style="color:#9a948b; font-size:13px; font-family:Poppins,sans-serif;">Memuatkan…</div>
+ </div>
+ <script>(function(){try{if(/TenCampPOSApp/.test(navigator.userAgent||'')||/[?&]posapp=1/.test(location.search||'')){document.documentElement.classList.add('pos-app-boot');setTimeout(function(){var s=document.getElementById('posBootSplash');document.documentElement.classList.remove('pos-app-boot');if(s){s.style.opacity='0';setTimeout(function(){s.style.display='none';},340);}},12000);}}catch(e){}})();</script>
 
 
 
@@ -9004,6 +9011,7 @@
  { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (283/283 · last 2026-06-05) — Marketplaces dashboard live (EasyStore + Shopee + TikTok). Real-time platform status: connected count, total mapped, per-platform last-sync timestamp + progress bar + action buttons. Data dari products_master.metadata. Function-first ship.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
+ { id:'p1_1012', label:'BUANG KELIP LANDING masa app boot (Zaid: "sebelum memuatkan data dari awan still keluar landing page dalam beberapa saat, nak buang terus"). Punca: shopAppLayout (landing customer) = paparan default; masa app tunggu __restoreSession + muat data Supabase (async, beberapa saat) ia kelip dulu. FIX = BOOT SPLASH brand: #posBootSplash (position:fixed z-9999, radial-gradient Tropical Black + wordmark "10 CAMP · KAUNTER POS" + spinner + "Memuatkan…") tutup skrin dari SAAT PERTAMA. Skrip inline sinkron di atas <body> tanda <html class=pos-app-boot> (CSS render-blocking dari design-tokens tunjuk splash) SEBELUM landing sempat paint — hanya bila app mode (TenCampPOSApp / ?posapp=1). Boot IIFE: lepas __restoreSession selesai → kalau login, loginAs dah tunjuk POS; kalau TAK login + app mode → handleLogin() (skrin kunci, bukan landing); kemudian __endAppBoot() fade+buang splash. Failsafe 12s dalam skrip inline (elak tersangkut). Web/desktop tak terjejas (splash tak pernah tunjuk). app.js v1002->v1003, design-tokens v156->157.', d:'done' },
  { id:'p1_1011', label:'APP LOCK SCREEN — logout dalam app POS tak lagi hempas ke storefront customer (Zaid: "kalau logout apps keluar macam ni [landing customer], aku tak suka, buat lebih apps feature"). Dulu handleLogout tunjuk shopAppLayout (kedai online customer) — pelik untuk app kaunter. Sekarang bila window.__isPOSApp: logout/Tukar Staf → SKRIN KUNCI brand-gelap (#pinLoginOverlay.is-app-lock radial-gradient Tropical Black) + header #pinLockHeader = wordmark "10 CAMP · KAUNTER POS" + JAM HIDUP (update 15s, __lockClockStart/Tick/Stop) + tarikh BM + salam ikut masa + pad PIN. Butang tutup (×) disorok (skrin kunci tak boleh dismiss). Web/desktop kekal modal biasa. handleLogout app mode sorok kedua-dua layout + panggil handleLogin() akhir. app.js v999->v1000, design-tokens v155->156.', d:'done' },
  { id:'p1_1010', label:'PIN-FIRST LOGIN untuk iPad kongsi (Zaid: "POS tak perlu sign in email+password, masuk PIN terus detect siapa, sales auto detect by siapa; 1 iPad untuk semua orang"). Infra dah wujud (staff-auth.js tukar PIN → sesi Supabase authenticated sebenar via magiclink+verifyOtp; sales smemang auto-tag staff_name=currentUser.name masa checkout) — cuma UI default dulu email. Sekarang: (1) Login overlay PIN-FIRST dengan KEYPAD numerik on-screen (butang besar sentuh-mesra .pin-key, input readonly/inputmode=none supaya keyboard iPad TAK muncul; __pinKey kendali 0-9/C/padam → dots + auto-submit sedia ada). Masuk PIN → __detectUserByPin kenal staf → __upgradeToAuthSession (sesi authenticated) → loginAs → sales auto-tag orang tu. (2) Email+password disorok di belakang link "Bos: log masuk guna emel" (fallback pemilik); handleLogin() SELALU reset ke pad PIN. (3) "TUKAR STAF" — model kekal-login + tukar cepat (pilihan Zaid): butang di top bar app (ikon user-round-cog) + header desktop → __switchStaff() = handleLogout + terus buka pad PIN untuk orang seterusnya. Attribution kekal via staff_name (sales_history). Keypad on-brand (Poppins, cream/bronze, no emoji). app.js v997->v998, design-tokens v154->155.', d:'done' },
  { id:'p1_1009', label:'MARKETING P1 #1 — Email Win-Back engine (re-engage pelanggan lapsed via email → beli semula di Shopee/TikTok/WhatsApp). Idea dilombong dari awesome-ecommerce-skills (win-back/lifecycle automation = jurang marketing terbesar). Model 10 CAMP: tiada checkout web, jadi email FUNNEL ke 3 channel. DB baru: winback_segment(p_days,p_limit) RPC (pelanggan ada email + pernah aktif + last order > N hari + tak opt-out + tak dimel dalam 30 hari, susun ikut total_spent), table winback_sends (log hantar) + marketing_optout (unsubscribe). Function netlify/functions/winback.js (requireAuth): mode=preview (kiraan + contoh + preview HTML), mode=send&dryrun=1 (DEFAULT, tak hantar), mode=send&dryrun=0 (LIVE via Resend, cap 300/run, log winback_sends, skip opted-out). winback-unsub.js PUBLIC (token HMAC guna INTERNAL_FN_SECRET → marketing_optout). Email template on-brand (Sunset Bronze/Tropical Black, butang Shopee/TikTok/WA + pautan unsubscribe). UI: panel "Email Win-Back" dalam page Engagement (reengageSection) — pelengkap tier WhatsApp sedia ada: selektor hari (60/90/120/180), kiraan boleh-hantar, preview email (iframe), contoh sasaran, butang Dry-run + Hantar LIVE (2x sahkan). 1,544 pelanggan lapsed (90 hari) boleh dicapai. TIADA email sebenar dihantar sehingga staf tekan Live + sahkan. app.js v996->v997.', d:'done' },
@@ -14546,7 +14554,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1002"></script>
+ <script src="app.js?v=1003"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

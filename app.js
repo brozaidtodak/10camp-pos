@@ -29,8 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
  const __h = (location.hash || '').toLowerCase().replace(/^#/, '');
  let __isSec = false;
  try { __isSec = !!(__h && document.querySelector('#appSidebar .menu-item[data-tab="' + (window.CSS && CSS.escape ? CSS.escape(__h) : __h.replace(/"/g,'')) + '"]')); } catch(e){}
- if(!restored && !window.currentUser && (__h === 'staff' || __isSec) && typeof handleLogin === 'function') handleLogin();
+ // p1_1012 — dalam app (iPad kaunter): kalau tak login, terus ke SKRIN KUNCI (bukan storefront customer).
+ // Elak kelip landing. Web/desktop kekal ikut hash sahaja.
+ if(!restored && !window.currentUser && typeof handleLogin === 'function' && (window.__isPOSApp || __h === 'staff' || __isSec)) handleLogin();
  } catch(e){}
+ // p1_1012 — boot selesai (POS/skrin-kunci dah dipapar) → padam splash supaya tiada kelip landing.
+ try { if(typeof window.__endAppBoot === 'function') window.__endAppBoot(); } catch(e){}
  })();
  // p1_956 — paste a section link while already logged in → navigate live.
  window.addEventListener('hashchange', function(){ try { if(window.currentUser && typeof window.__navGoHash === 'function') window.__navGoHash(); } catch(e){} });
@@ -42,6 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // App native append "TenCampPOSApp" ke user-agent. Untuk PREVIEW/test dalam browser biasa
 // (tanpa build native), buka dgn ?posapp=1 — selamat sebab pengguna web biasa takkan letak param ni.
 window.__isPOSApp = /TenCampPOSApp/.test(navigator.userAgent || '') || /[?&]posapp=1/.test(location.search || '');
+// p1_1012 — tamatkan splash boot (buang kelip landing customer masa app mula muat data awan).
+// Dipanggil lepas boot tentukan POS (login) atau skrin kunci. Idempotent.
+window.__endAppBoot = function() {
+ try {
+  document.documentElement.classList.remove('pos-app-boot');
+  const sp = document.getElementById('posBootSplash');
+  if(sp && sp.style.display !== 'none') { sp.style.opacity = '0'; setTimeout(function(){ sp.style.display = 'none'; }, 340); }
+ } catch(e){}
+};
 // p1_543 — PREVIEW sahaja: ?posapp=1 dalam browser (BUKAN app native TenCampPOSApp). Untuk tunjuk label "MODE PREVIEW".
 window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCampPOSApp/.test(navigator.userAgent || '');
 // p1_534 — App skop (Zaid): Cashier + All Orders + My Commission + Stock Take.

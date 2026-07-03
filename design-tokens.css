@@ -2015,6 +2015,10 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
 #pinLockHeader .plh-date { font-size: 13px; color: #9a948b; margin-top: 8px; }
 #pinLockHeader .plh-greet { font-size: 13.5px; color: #E0A468; margin-top: 3px; font-weight: 600; }
 @keyframes plhFade { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+/* p1_1012 — Boot splash (kaunter iPad): tutup landing customer masa app mula muat data awan.
+   Kelas pos-app-boot ditambah oleh skrip inline sinkron (sebelum landing paint). */
+html.pos-app-boot #posBootSplash { display: flex !important; }
+@keyframes pbsSpin { to { transform: rotate(360deg); } }
 
 /* p1_18 — Owner tier (Pengurusan): gold accent to distinguish from regular Pengurus */
 .mode-tab--owner {

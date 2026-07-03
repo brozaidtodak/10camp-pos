@@ -31,7 +31,7 @@ const STAFF = {
   CMP010: { email: 'farhanwakiman@10camp.com', pin_hash: 'bed579f196a5bbb1ffbf1ba2b3c9bdd754a28680861ce96103794e25527d914e' },
   CMP005: { email: 'zack@10camp.com',          pin_hash: 'e5f99d4a4886603bb5c9dd78b4c529ee3657dcf6818a93aff697f7436eef36ca' },
   CMP006: { email: 'ariff@10camp.com',         pin_hash: '3392222a8b235180e57307768e7f2200e8ca4ae32ea6cd065572d22f5a7923d7' },
-  CMP003: { email: 'irfan@10camp.com',         pin_hash: '1ac46628226b2db70ab61adf7e7912aa6456b7c703c1b922a9a5bba78d16396c' },
+  CMP003: { email: 'irfan@10camp.com',         pin_hash: 'aa4bca4c820628e53cd56bdf7cc1520283cd2a95b190f87c7953f78054f56450' },
   CMP011: { email: 'tarmizi@10camp.com',       pin_hash: '4c3c39d9b9cd41540b359ffed45b97d5b76b04a6461d1cdedb79eb4003727779' },
   CMP009: { email: 'fahmi@10camp.com',         pin_hash: '1eeab06ad295d2d41259419cb3a5d1d914ddd9c9e70c66e658042341986c91de' },
   TST001: { email: 'tester@10camp.com',        pin_hash: '0992063d103f60eaac866479931a0a052aea264d4c761ceb643fdda2b4c322ef' },

@@ -16926,7 +16926,8 @@ window.refreshPinLockoutMsg = refreshPinLockoutMsg;
 window.__loadCustomPins = async function(){
  try {
   if(typeof db === 'undefined' || !db) { window.__customPinHashes = window.__customPinHashes || {}; return; }
-  const { data } = await db.from('staff_pins').select('staff_id,pin_hash');
+  const { data, error } = await db.from('staff_pins').select('staff_id,pin_hash');
+  if(error){ window.__customPinHashes = window.__customPinHashes || {}; return; } // p1_1018 — kekal cache kalau gagal (offline/RLS), jangan kosongkan
   const m = {};
   (data||[]).forEach(r => { if(r && r.staff_id && r.pin_hash) m[r.staff_id] = r.pin_hash; });
   window.__customPinHashes = m;
@@ -16934,7 +16935,8 @@ window.__loadCustomPins = async function(){
 };
 window.__detectUserByPin = async function(pin) {
  if(!/^\d{4,8}$/.test(pin)) return null;
- if(window.__customPinHashes === undefined){ try { await window.__loadCustomPins(); } catch(e){} }
+ // p1_1018 — sentiasa muat semula PIN custom (fresh merentas peranti: staf set PIN kat 1 device, terus jalan kat iPad kongsi). Offline/gagal → kekal cache.
+ try { await window.__loadCustomPins(); } catch(e){}
  const custom = window.__customPinHashes || {};
  let inactive = [];
  try { inactive = JSON.parse(localStorage.getItem('staffInactive_v1') || '[]'); } catch(e){}

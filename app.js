@@ -47,6 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // App native append "TenCampPOSApp" ke user-agent. Untuk PREVIEW/test dalam browser biasa
 // (tanpa build native), buka dgn ?posapp=1 — selamat sebab pengguna web biasa takkan letak param ni.
 window.__isPOSApp = /TenCampPOSApp/.test(navigator.userAgent || '') || /[?&]posapp=1/.test(location.search || '');
+// p1_1031 — tanda <html> supaya CSS boleh sorok element yang tak relevan di app mobile (data hanya 2 bulan).
+if(window.__isPOSApp){ try { document.documentElement.classList.add('is-pos-app'); } catch(e){} }
+// Buang option tempoh yang janji >2 bulan dari dropdown Orders (aoPeriod) — data app cuma 2 bulan.
+if(window.__isPOSApp){ document.addEventListener('DOMContentLoaded', function(){ try {
+ var sel = document.getElementById('aoPeriod'); if(!sel) return;
+ ['90','365'].forEach(function(v){ var o = sel.querySelector('option[value="'+v+'"]'); if(o) o.remove(); });
+} catch(e){} }); }
 // p1_1012 — tamatkan splash boot (buang kelip landing customer masa app mula muat data awan).
 // Dipanggil lepas boot tentukan POS (login) atau skrin kunci. Idempotent.
 window.__endAppBoot = function() {
@@ -24010,7 +24017,7 @@ window.renderCommissionReport = function() {
  window.__crLiveSessionsHtml() +
  '<h3 style="margin:4px 0 14px; font-size:14px; font-weight:800;">Kiraan POS <span style="font-size:13px; font-weight:600; color:#9CA3AF;">· ' + esc(range.label) + '</span></h3>' +
  '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">' +
- '<div>' + (function(){ const n=new Date(); const cm=n.toLocaleDateString('en-MY',{month:'short',year:'numeric'}); const pm=new Date(n.getFullYear(),n.getMonth()-1,1).toLocaleDateString('en-MY',{month:'short',year:'numeric'}); return pill('week','Minggu') + pill('month',cm) + pill('lastmonth',pm) + pill('ytd','YTD') + pill('all','Semua'); })() + '</div>' +
+ '<div>' + (function(){ const n=new Date(); const cm=n.toLocaleDateString('en-MY',{month:'short',year:'numeric'}); const pm=new Date(n.getFullYear(),n.getMonth()-1,1).toLocaleDateString('en-MY',{month:'short',year:'numeric'}); return pill('week','Minggu') + pill('month',cm) + pill('lastmonth',pm) + (window.__isPOSApp ? '' : pill('ytd','YTD') + pill('all','Semua')); })() + '</div>' +
  '<button onclick="window.__cmRange=window.__crRange; window.__cmExport && window.__cmExport()" style="background:#101010; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;"><i data-lucide="download" style="width:13px;height:13px;vertical-align:-2px;"></i> Export CSV</button>' +
  '</div>' +
  '<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">' +

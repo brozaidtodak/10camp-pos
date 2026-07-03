@@ -553,6 +553,9 @@ body.pos-mobile-mode .pos-prodsearch-row {
 /* p1_1025 — SMOOTHNESS: virtualize-lite senarai/grid panjang.
    content-visibility:auto = browser LANGKAU render baris/kad di luar skrin (skrol jauh lebih ringan di WKWebView iOS).
    contain-intrinsic-size = anggaran saiz supaya bar skrol stabil (auto = ingat saiz terakhir dirender). */
+/* p1_1031 — App mobile (data 2 bulan): sorok element tempoh yang tak relevan (YTD/All Time) */
+html.is-pos-app [data-app-hide] { display:none !important; }
+
 .lp-product-card,
 .product-card { content-visibility:auto; contain-intrinsic-size:auto 340px; }
 .customer-row,

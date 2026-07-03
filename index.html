@@ -34,7 +34,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=73">
+ <link rel="stylesheet" href="style.css?v=74">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <!-- p1_1026 preconnect: warm TLS awal untuk DATA+IMEJ storage (Supabase) + FONT — boot lebih laju di mobile -->
@@ -6916,8 +6916,8 @@
  <span class="cm-pill active" data-cm-range="month" onclick="window.__cmSetRange('month', this)">This Month</span>
  <span class="cm-pill" data-cm-range="lastmonth" onclick="window.__cmSetRange('lastmonth', this)">Last Month</span>
  <span class="cm-pill" data-cm-range="week" onclick="window.__cmSetRange('week', this)">This Week</span>
- <span class="cm-pill" data-cm-range="ytd" onclick="window.__cmSetRange('ytd', this)">YTD</span>
- <span class="cm-pill" data-cm-range="all" onclick="window.__cmSetRange('all', this)">All Time</span>
+ <span class="cm-pill" data-cm-range="ytd" data-app-hide onclick="window.__cmSetRange('ytd', this)">YTD</span>
+ <span class="cm-pill" data-cm-range="all" data-app-hide onclick="window.__cmSetRange('all', this)">All Time</span>
  <span id="cmRangeLabel" style="margin-left:10px; font-size:11.5px; color:var(--text-muted);"></span>
  </div>
 
@@ -13491,7 +13491,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1018"></script>
+ <script src="app.js?v=1019"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

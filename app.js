@@ -114,8 +114,10 @@ window.__injectPosAppTopBar = function(){
  const bar = document.createElement('div');
  bar.id = 'posAppTopBar';
  bar.innerHTML = '<span class="pat-title" id="posAppTitle">POS / Cashier</span>'
+ + '<button class="pat-who" id="posAppWho" onclick="window.__switchStaff && window.__switchStaff()" title="Tukar Staf" style="flex:0 0 auto; background:rgba(205,124,50,.18); border:0; color:#FAF6EF; font-family:inherit; font-weight:700; font-size:12.5px; padding:6px 11px; border-radius:20px; margin-right:8px; cursor:pointer; display:none; align-items:center; gap:6px; max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;"></button>'
  + '<button class="pat-logout" onclick="window.__posAppOpenAI && window.__posAppOpenAI()" title="Tanya AI" aria-label="Tanya AI" style="margin-right:8px;"><i data-lucide="sparkles" style="width:19px; height:19px;"></i></button>'
  + '<button class="pat-logout" onclick="window.__showWhatsNew && window.__showWhatsNew()" title="Apa Baru" aria-label="Apa Baru" style="position:relative; margin-right:8px;"><i data-lucide="gift" style="width:18px; height:18px;"></i><span id="whatsNewDotApp" style="display:none; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:#B23A2E; border:1.5px solid #101010;"></span></button>'
+ + '<button class="pat-logout" onclick="window.__switchStaff && window.__switchStaff()" title="Tukar Staf" aria-label="Tukar Staf" style="margin-right:8px;"><i data-lucide="user-round-cog" style="width:19px; height:19px;"></i></button>'
  + '<button class="pat-logout" onclick="if(typeof handleLogout===\'function\')handleLogout()" title="Log Keluar" aria-label="Log Keluar"><i data-lucide="log-out" style="width:19px; height:19px;"></i></button>';
  document.body.appendChild(bar);
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
@@ -16765,12 +16767,18 @@ window.handleCustomerLogin = async function() {
 function handleLogin() {
  const overlay = document.getElementById('pinLoginOverlay');
  if(!overlay) { console.error('pinLoginOverlay not found in DOM'); return; }
+ // p1_1010 — iPad kongsi: default SELALU ke pad PIN (email disorok untuk Bos).
+ const __pf = document.getElementById('pinLoginForm');
+ const __ef = document.getElementById('emailLoginForm');
+ if(__pf) __pf.style.display = 'block';
+ if(__ef) __ef.style.display = 'none';
  const pinInput = document.getElementById('pinLoginInput');
  if(pinInput) pinInput.value = '';
  const errEl = document.getElementById('pinLoginError');
  if(errEl) { errEl.textContent = ''; errEl.style.color = ''; }
  if(typeof window.__pinUpdateDots === 'function') window.__pinUpdateDots('');
  overlay.style.display = 'flex';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  // Show global lockout msg if device is locked
  const gl = __pinGetGlobalLockout();
  if(gl.lockedUntil && gl.lockedUntil> Date.now()) {
@@ -16951,6 +16959,27 @@ window.__upgradeToAuthSession = async function(staff_id, pin){
   console.log('[auth] PIN session upgraded → authenticated:', staff_id);
   return true;
  } catch(e){ console.warn('[auth] upgrade err', e); return false; }
+};
+
+// p1_1010 — keypad numerik on-screen (iPad kongsi, tiada keyboard OS). Kemas kini nilai + dots + auto-submit.
+window.__pinKey = function(k) {
+ const inp = document.getElementById('pinLoginInput');
+ if(!inp) return;
+ let v = inp.value || '';
+ if(k === 'del') v = v.slice(0, -1);
+ else if(k === 'clear') v = '';
+ else if(/^\d$/.test(k)) { if(v.length < 8) v += k; }
+ inp.value = v;
+ if(typeof window.__pinUpdateDots === 'function') window.__pinUpdateDots(v);
+ const err = document.getElementById('pinLoginError');
+ if(err && err.textContent) { err.textContent = ''; err.style.color = ''; }
+ if(typeof window.__pinAutoSubmit === 'function') window.__pinAutoSubmit(v);
+};
+
+// p1_1010 — Tukar Staf (iPad kongsi): log keluar orang sekarang + terus buka pad PIN untuk orang seterusnya.
+window.__switchStaff = function() {
+ try { if(typeof handleLogout === 'function') handleLogout(); } catch(e){}
+ try { if(typeof handleLogin === 'function') handleLogin(); } catch(e){}
 };
 
 window.submitPinLogin = async function() {
@@ -17578,6 +17607,11 @@ function loginAs(user, opts) {
  // Header — "Hi, name · Role"
  const sessEl = document.getElementById("sessionUsername");
  if(sessEl) sessEl.innerHTML = `Hi, ${(user.name.split(' ')[0])} <span class="badge badge--neutral" style="margin-left:6px; font-size:9px; vertical-align:middle;">${cap.emoji} ${cap.label}</span>`;
+ // p1_1010 — native top-bar "who" chip (iPad kongsi): tunjuk siapa login sekarang, klik = Tukar Staf
+ try {
+  const whoEl = document.getElementById('posAppWho');
+  if(whoEl) { whoEl.innerHTML = `<i data-lucide="user-round" style="width:14px;height:14px;"></i> ${(user.name||'').split(' ')[0]}`; whoEl.style.display = 'inline-flex'; if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} }
+ } catch(e){}
 
  // Capability-based visibility — clear all role-style hides, then only show what role allows
  document.querySelectorAll(".sales-only,.inv-only,.mgmt-only,.boss-only")
@@ -17718,6 +17752,7 @@ function handleLogout() {
  window.__confUnlockedMem = false;
  const sessEl = document.getElementById("sessionUsername");
  if(sessEl) sessEl.textContent = "POS10C";
+ try { const whoEl = document.getElementById('posAppWho'); if(whoEl) whoEl.style.display = 'none'; } catch(e){} // p1_1010
  document.getElementById("appSidebar")?.classList.remove('open');
  document.getElementById("sidebarOverlay")?.classList.remove('active');
 

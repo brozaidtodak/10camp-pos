@@ -37,7 +37,7 @@
  <link rel="stylesheet" href="style.css?v=71">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
- <link rel="stylesheet" href="design-tokens.css?v=154">
+ <link rel="stylesheet" href="design-tokens.css?v=155">
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
       Fallback ke CDN HANYA kalau fail tempatan gagal define global supabase. -->
@@ -153,8 +153,45 @@
  <h2 style="font-weight:900; font-size:18px; margin-bottom:4px; color:var(--primary);">Log Masuk</h2>
  </div>
 
- <!-- p1_72: Email-only login. PIN form kekal dorment dalam DOM untuk emergency fallback (boleh diaktifkan via window.__showPinFallback()). -->
- <div id="emailLoginForm">
+ <!-- p1_1010 — PIN-first login (iPad kongsi). Masuk PIN → sistem kenal siapa automatik → sales auto-tag orang tu. Email login (Bos) disorok di belakang link. -->
+ <div id="pinLoginForm">
+ <p style="font-size:12.5px; color:#666; margin:0 0 14px; text-align:center;">Masukkan PIN anda — sistem kenal siapa anda automatik.</p>
+ <div id="pinDotsDisplay" style="display:flex; justify-content:center; gap:12px; margin-bottom:18px;">
+ <span class="pin-dot"></span>
+ <span class="pin-dot"></span>
+ <span class="pin-dot"></span>
+ <span class="pin-dot"></span>
+ <span class="pin-dot pin-dot--optional"></span>
+ <span class="pin-dot pin-dot--optional"></span>
+ </div>
+ <!-- input jadi store nilai sahaja; readonly supaya keyboard iPad tak muncul — guna keypad bawah -->
+ <input id="pinLoginInput" type="password" inputmode="none" readonly maxlength="8" autocomplete="off"
+ onkeydown="if(event.key==='Enter') submitPinLogin()"
+ style="position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;" />
+ <select id="pinLoginStaff" style="display:none;"></select>
+ <div id="pinLoginError" style="font-size:12.5px; min-height:20px; margin-bottom:10px; text-align:center;"></div>
+ <!-- Keypad numerik sentuh-mesra -->
+ <div id="pinKeypad" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:6px;">
+ <button type="button" onclick="window.__pinKey('1')" class="pin-key">1</button>
+ <button type="button" onclick="window.__pinKey('2')" class="pin-key">2</button>
+ <button type="button" onclick="window.__pinKey('3')" class="pin-key">3</button>
+ <button type="button" onclick="window.__pinKey('4')" class="pin-key">4</button>
+ <button type="button" onclick="window.__pinKey('5')" class="pin-key">5</button>
+ <button type="button" onclick="window.__pinKey('6')" class="pin-key">6</button>
+ <button type="button" onclick="window.__pinKey('7')" class="pin-key">7</button>
+ <button type="button" onclick="window.__pinKey('8')" class="pin-key">8</button>
+ <button type="button" onclick="window.__pinKey('9')" class="pin-key">9</button>
+ <button type="button" onclick="window.__pinKey('clear')" class="pin-key pin-key--alt" aria-label="Kosongkan">C</button>
+ <button type="button" onclick="window.__pinKey('0')" class="pin-key">0</button>
+ <button type="button" onclick="window.__pinKey('del')" class="pin-key pin-key--alt" aria-label="Padam"><i data-lucide="delete" style="width:22px; height:22px;"></i></button>
+ </div>
+ <div style="margin-top:12px; text-align:center;">
+ <button onclick="window.__showEmailLogin()" style="background:none; border:none; color:#9a948b; font-size:11.5px; cursor:pointer; text-decoration:underline;">Bos: log masuk guna emel</button>
+ </div>
+ </div>
+
+ <!-- Email login — Bos/pemilik sahaja (disorok default) -->
+ <div id="emailLoginForm" style="display:none;">
  <p style="font-size:12px; color:#888; margin:0 0 12px; text-align:center;">Log masuk dengan emel staff + kata laluan.</p>
  <label style="font-size:11px; color:#555; font-weight:700; display:block; margin-bottom:4px;">Emel</label>
  <input id="emailLoginEmail" type="email" autocomplete="email" placeholder="nama@10camp.com" style="width:100%; padding:11px; border:2px solid var(--border-color); border-radius:8px; font-size:14px; margin-bottom:10px;" />
@@ -168,31 +205,9 @@
  <div id="emailLoginError" style="font-size:12px; min-height:18px; margin-bottom:8px; text-align:center;"></div>
  <button onclick="submitEmailLogin()" class="login-btn" style="background:var(--primary); width:100%; padding:12px; font-weight:700;">Log Masuk</button>
  <div style="margin-top:10px; text-align:center; display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+ <button onclick="window.__showPinFallback()" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;">← Guna PIN</button>
  <button onclick="window.__openForgotPassword()" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;">Lupa Password</button>
  <button onclick="window.__forgetSavedLogin()" id="forgetLoginBtn" style="background:none; border:none; color:#6B7280; font-size:12px; cursor:pointer; text-decoration:underline; display:none;">Buang Login Tersimpan</button>
- </div>
- </div>
-
- <!-- PIN form (dorment, p1_72 — emergency fallback only, hidden) -->
- <div id="pinLoginForm" style="display:none;">
- <p style="font-size:12px; color:#888; margin:0 0 12px; text-align:center;">PIN fallback — emergency sahaja.</p>
- <div id="pinDotsDisplay" style="display:flex; justify-content:center; gap:10px; margin-bottom:14px;">
- <span class="pin-dot"></span>
- <span class="pin-dot"></span>
- <span class="pin-dot"></span>
- <span class="pin-dot"></span>
- <span class="pin-dot pin-dot--optional"></span>
- <span class="pin-dot pin-dot--optional"></span>
- </div>
- <input id="pinLoginInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
- oninput="window.__pinUpdateDots(this.value); window.__pinAutoSubmit(this.value);"
- onkeydown="if(event.key==='Enter') submitPinLogin()"
- style="width:100%; padding:12px; border:2px solid var(--border-color); border-radius:8px; font-size:24px; letter-spacing:12px; text-align:center; margin-bottom:8px; font-family:monospace;" />
- <select id="pinLoginStaff" style="display:none;"></select>
- <div id="pinLoginError" style="font-size:12px; min-height:18px; margin-bottom:8px; text-align:center;"></div>
- <button onclick="submitPinLogin()" class="login-btn" style="background:var(--primary); width:100%; padding:12px; font-weight:700;">Log Masuk dengan PIN</button>
- <div style="margin-top:8px; text-align:center;">
- <button onclick="window.__showEmailLogin()" style="background:none; border:none; color:#888; font-size:11px; cursor:pointer; text-decoration:underline;">← Balik ke login emel</button>
  </div>
  </div>
  </div>
@@ -1861,6 +1876,7 @@
  <div>
  <!-- p1_162 — Preview Landing Page (view as customer without logout) -->
  <button onclick="window.previewLanding()" title="Tengok landing page seperti customer (tak perlu logout)" style="font-size:10px; background:var(--primary); border:1px solid var(--primary); color:#FFF; font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:6px;"><i data-lucide="eye" style="width:11px; height:11px; vertical-align:-1px;"></i> Landing</button>
+ <button onclick="window.__switchStaff && window.__switchStaff()" title="Tukar staf — orang seterusnya masuk PIN sendiri" style="font-size:10px; background:var(--primary); border:1px solid var(--primary); color:#FFF; font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:6px;"><i data-lucide="user-round-cog" style="width:11px; height:11px; vertical-align:-1px;"></i> Tukar Staf</button>
  <button onclick="handleLogout()" style="font-size:10px; background:var(--bg-color); border:1px solid var(--border-color); color:var(--text-main); font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:10px;">Log Out</button>
  <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
  </div>
@@ -8983,6 +8999,7 @@
  { id:'p1', num:'PHASE 1', name:'Stabilize + Foundation', status:'done', goal:'Auth · Reports · Marketplace · Analytics', eta:'Q2 2026 · Shipped (283/283 · last 2026-06-05) — Marketplaces dashboard live (EasyStore + Shopee + TikTok). Real-time platform status: connected count, total mapped, per-platform last-sync timestamp + progress bar + action buttons. Data dari products_master.metadata. Function-first ship.',
  desc:'Pindahkan data dari localStorage ke Supabase supaya multi-device + multi-staff. Wire up audit log betul-betul. Lock down role-based access.',
  deliverables:[
+ { id:'p1_1010', label:'PIN-FIRST LOGIN untuk iPad kongsi (Zaid: "POS tak perlu sign in email+password, masuk PIN terus detect siapa, sales auto detect by siapa; 1 iPad untuk semua orang"). Infra dah wujud (staff-auth.js tukar PIN → sesi Supabase authenticated sebenar via magiclink+verifyOtp; sales smemang auto-tag staff_name=currentUser.name masa checkout) — cuma UI default dulu email. Sekarang: (1) Login overlay PIN-FIRST dengan KEYPAD numerik on-screen (butang besar sentuh-mesra .pin-key, input readonly/inputmode=none supaya keyboard iPad TAK muncul; __pinKey kendali 0-9/C/padam → dots + auto-submit sedia ada). Masuk PIN → __detectUserByPin kenal staf → __upgradeToAuthSession (sesi authenticated) → loginAs → sales auto-tag orang tu. (2) Email+password disorok di belakang link "Bos: log masuk guna emel" (fallback pemilik); handleLogin() SELALU reset ke pad PIN. (3) "TUKAR STAF" — model kekal-login + tukar cepat (pilihan Zaid): butang di top bar app (ikon user-round-cog) + header desktop → __switchStaff() = handleLogout + terus buka pad PIN untuk orang seterusnya. Attribution kekal via staff_name (sales_history). Keypad on-brand (Poppins, cream/bronze, no emoji). app.js v997->v998, design-tokens v154->155.', d:'done' },
  { id:'p1_1009', label:'MARKETING P1 #1 — Email Win-Back engine (re-engage pelanggan lapsed via email → beli semula di Shopee/TikTok/WhatsApp). Idea dilombong dari awesome-ecommerce-skills (win-back/lifecycle automation = jurang marketing terbesar). Model 10 CAMP: tiada checkout web, jadi email FUNNEL ke 3 channel. DB baru: winback_segment(p_days,p_limit) RPC (pelanggan ada email + pernah aktif + last order > N hari + tak opt-out + tak dimel dalam 30 hari, susun ikut total_spent), table winback_sends (log hantar) + marketing_optout (unsubscribe). Function netlify/functions/winback.js (requireAuth): mode=preview (kiraan + contoh + preview HTML), mode=send&dryrun=1 (DEFAULT, tak hantar), mode=send&dryrun=0 (LIVE via Resend, cap 300/run, log winback_sends, skip opted-out). winback-unsub.js PUBLIC (token HMAC guna INTERNAL_FN_SECRET → marketing_optout). Email template on-brand (Sunset Bronze/Tropical Black, butang Shopee/TikTok/WA + pautan unsubscribe). UI: panel "Email Win-Back" dalam page Engagement (reengageSection) — pelengkap tier WhatsApp sedia ada: selektor hari (60/90/120/180), kiraan boleh-hantar, preview email (iframe), contoh sasaran, butang Dry-run + Hantar LIVE (2x sahkan). 1,544 pelanggan lapsed (90 hari) boleh dicapai. TIADA email sebenar dihantar sehingga staf tekan Live + sahkan. app.js v996->v997.', d:'done' },
  { id:'p1_1', label:'Supabase schema + RLS', d:'done' },
  { id:'p1_2', label:'Audit log infrastructure', d:'done' },
@@ -14523,7 +14540,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=997"></script>
+ <script src="app.js?v=998"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

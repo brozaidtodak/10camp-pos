@@ -1988,6 +1988,20 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
  outline: none;
  box-shadow: 0 0 0 4px rgba(205, 124, 50, 0.1);
 }
+/* p1_1010 — PIN keypad (iPad kongsi): butang besar sentuh-mesra, on-brand */
+.pin-key {
+ font-family: Poppins, sans-serif;
+ font-size: 24px; font-weight: 700; color: #101010;
+ background: #FAF6EF; border: 1.5px solid #E5DAC8; border-radius: 14px;
+ padding: 16px 0; cursor: pointer; user-select: none;
+ -webkit-tap-highlight-color: transparent;
+ display: flex; align-items: center; justify-content: center;
+ transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.pin-key:hover { border-color: var(--primary, #CD7C32); }
+.pin-key:active { transform: scale(0.94); background: #F1E4D0; }
+.pin-key--alt { color: #8A5A1E; background: #F6EEE2; }
+.pin-key--alt:active { background: #EADBC6; }
 
 /* p1_18 — Owner tier (Pengurusan): gold accent to distinguish from regular Pengurus */
 .mode-tab--owner {

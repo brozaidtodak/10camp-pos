@@ -16798,6 +16798,9 @@ function handleLogin() {
   overlay.classList.add('is-app-lock');
   if(__lockHdr) __lockHdr.style.display = 'block';
   if(__closeBtn) __closeBtn.style.display = 'none';
+  // p1_1011 — skrin kunci staf: sorok widget customer (chat AI + VIP) supaya bersih.
+  try { if(window.__caShow) window.__caShow(false); } catch(e){}
+  try { const bp = document.getElementById('btnCustomerPortal'); if(bp) bp.style.display = 'none'; } catch(e){}
   window.__lockClockStart();
  } else {
   overlay.classList.remove('is-app-lock');

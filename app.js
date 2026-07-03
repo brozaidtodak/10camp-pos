@@ -118,9 +118,9 @@ window.__POS_APP_TABS = [
  { key:'cashier',    icon:'shopping-cart',  label:'Cashier', sections:['posSection'],           title:'POS / Cashier' },
  { key:'orders',     icon:'receipt',        label:'Orders',  sections:['allOrdersSection'],     title:'All Orders',    render:'renderAllOrders' },
  { key:'commission', icon:'coins',          label:'Komisen', sections:['commissionSection'],     title:'My Commission', render:'renderPersonalCommission' },
- { key:'stock',      icon:'clipboard-check',label:'Stok',    sections:['checkSessionsSection'], title:'Stock Take',    render:'renderCheckSessions' },
- { key:'notify',     icon:'package-check',  label:'Notify',  sections:['notifyInvSection'],     title:'Notify Inventory', render:'renderNotifyInventory' }
- // p1_952 — Tanya AI dialih dari bottom bar (kekal max 5 tab) ke TOP bar. Logik buka chat = window.__posAppOpenAI.
+ { key:'stock',      icon:'clipboard-check',label:'Stok',    sections:['checkSessionsSection'], title:'Stock Take',    render:'renderCheckSessions' }
+ // p1_1029 — BACK TO BASICS: mobile shell = Cashier / Orders / Komisen / Stock Take SAHAJA.
+ // Notify DIBUANG dari mobile (kekal di back office). Tanya AI di top bar juga dibuang (bawah).
 ];
 // Top bar native: tajuk skrin semasa + butang logout.
 window.__injectPosAppTopBar = function(){
@@ -129,8 +129,7 @@ window.__injectPosAppTopBar = function(){
  bar.id = 'posAppTopBar';
  bar.innerHTML = '<span class="pat-title" id="posAppTitle">POS / Cashier</span>'
  + '<button class="pat-who" id="posAppWho" onclick="window.__switchStaff && window.__switchStaff()" title="Tukar Staf" style="flex:0 0 auto; background:rgba(205,124,50,.18); border:0; color:#FAF6EF; font-family:inherit; font-weight:700; font-size:12.5px; padding:6px 11px; border-radius:20px; margin-right:8px; cursor:pointer; display:none; align-items:center; gap:6px; max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;"></button>'
- + '<button class="pat-logout" onclick="window.__posAppOpenAI && window.__posAppOpenAI()" title="Tanya AI" aria-label="Tanya AI" style="margin-right:8px;"><i data-lucide="sparkles" style="width:19px; height:19px;"></i></button>'
- + '<button class="pat-logout" onclick="window.__showWhatsNew && window.__showWhatsNew()" title="Apa Baru" aria-label="Apa Baru" style="position:relative; margin-right:8px;"><i data-lucide="gift" style="width:18px; height:18px;"></i><span id="whatsNewDotApp" style="display:none; position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:#B23A2E; border:1.5px solid #101010;"></span></button>'
+ // p1_1029 — Tanya AI + Apa Baru dibuang dari mobile top bar (back to basics). Kedua-dua kekal di back office.
  + '<button class="pat-logout" onclick="window.__switchStaff && window.__switchStaff()" title="Tukar Staf" aria-label="Tukar Staf" style="margin-right:8px;"><i data-lucide="user-round-cog" style="width:19px; height:19px;"></i></button>'
  + '<button class="pat-logout" onclick="if(typeof handleLogout===\'function\')handleLogout()" title="Log Keluar" aria-label="Log Keluar"><i data-lucide="log-out" style="width:19px; height:19px;"></i></button>';
  document.body.appendChild(bar);

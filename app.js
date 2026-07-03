@@ -3693,7 +3693,7 @@ window.__mwDismiss = function() {
 
 // Hook to auto-check after login + every 5 min while session active
 (function(){
- const checkPeriodically = () => { if(typeof window.checkMarginWatcher === 'function') window.checkMarginWatcher(); };
+ const checkPeriodically = () => { if(document.hidden) return; /* p1_1025 pause bila app background */ if(typeof window.checkMarginWatcher === 'function') window.checkMarginWatcher(); };
  setTimeout(checkPeriodically, 2000); // initial after boot
  setInterval(checkPeriodically, 5 * 60 * 1000); // every 5 min
 })();
@@ -45273,6 +45273,7 @@ window.__rcvSaveDamage = async function(poId){
   window.__notifyInvPoll();
   if(typeof window.__heldPoll === 'function') window.__heldPoll(); // p1_911
   window.__notifyInvPollTimer = setInterval(function(){
+   if(document.hidden) return; // p1_1025 — jangan poll bila app di background (jimat bateri + CPU)
    window.__notifyInvPoll();
    if(typeof window.__heldPoll === 'function') window.__heldPoll(); // p1_911 — alert seller bila jualan ditahan sedia
    const sec = document.getElementById('notifyInvSection');

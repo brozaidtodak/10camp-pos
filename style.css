@@ -549,3 +549,12 @@ body.pos-mobile-mode .pos-prodsearch-row {
 .menu-item:hover .nav-share { opacity:.85; }
 .menu-item .nav-share:hover { opacity:1; color:var(--primary, #CD7C32); background:rgba(205,124,50,.14); }
 .menu-item .nav-share:active { transform:scale(.9); }
+
+/* p1_1025 — SMOOTHNESS: virtualize-lite senarai/grid panjang.
+   content-visibility:auto = browser LANGKAU render baris/kad di luar skrin (skrol jauh lebih ringan di WKWebView iOS).
+   contain-intrinsic-size = anggaran saiz supaya bar skrol stabil (auto = ingat saiz terakhir dirender). */
+.lp-product-card,
+.product-card { content-visibility:auto; contain-intrinsic-size:auto 340px; }
+.customer-row,
+.ps-list-row,
+.bc-cust-row { content-visibility:auto; contain-intrinsic-size:auto 64px; }

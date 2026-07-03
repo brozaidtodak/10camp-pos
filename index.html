@@ -34,7 +34,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=72">
+ <link rel="stylesheet" href="style.css?v=73">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <link rel="stylesheet" href="design-tokens.css?v=160">
@@ -45,8 +45,8 @@
  <script>if(!window.supabase){document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></scr'+'ipt>');}</script>
  <!-- Chart.js — defer: hanya dipakai bila buka Analytics/Reports, jangan block boot -->
  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
- <!-- Lucide Icons (dipakai masa boot untuk render ikon — kekal blocking) -->
- <script src="https://unpkg.com/lucide@latest"></script>
+ <!-- Lucide Icons (dipakai masa boot untuk render ikon — kekal blocking). Pin versi (elak redirect @latest tiap boot) -->
+ <script src="https://unpkg.com/lucide@1.23.0/dist/umd/lucide.min.js"></script>
  <!-- PapaParse (import CSV) & XLSX (import/export Excel) — defer: guna atas tindakan user sahaja -->
  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13486,7 +13486,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1013"></script>
+ <script src="app.js?v=1014"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

@@ -9394,6 +9394,23 @@ window.toggleMobileCartSheet = function() {
 
 
 
+// PERF (p1_1021) — App mobile ringan: had data transaksi all-time ke N bulan terakhir.
+// Web POS (buka di laptop/browser = "back office") kekal PENUH all-time. Auto ikut
+// window.__isPOSApp (true HANYA dalam wrap Capacitor / view.html?posapp=1). Staff nak
+// sejarah lebih lama → buka POS di laptop.
+window.__APP_DATA_MONTHS = 3;
+window.__isAppDataCapped = function(){ return !!window.__isPOSApp; };
+window.__appDataCutoffISO = function(months){
+ // Snap ke AWAL BULAN, undur N bulan → papar bulan PENUH (bukan potong tengah bulan).
+ // Cth hari ni 3 Julai, N=3: 1 Julai → undur 3 → 1 April 00:00 = nampak April, Mei, Jun, Julai penuh.
+ const m = (months || window.__APP_DATA_MONTHS || 3);
+ const d = new Date();
+ d.setDate(1);
+ d.setMonth(d.getMonth() - m);
+ d.setHours(0,0,0,0);
+ return d.toISOString();
+};
+
 let __initAppCount = 0;
 async function initApp() {
  __initAppCount++;
@@ -9408,39 +9425,28 @@ async function initApp() {
  // silently truncate (sales_history already >4900 rows). Keeps full data loaded.
  // p1_651 (4b) — staff (authenticated) read the full base table (incl cost); public/anon read
  // the cost-free public_products view. Hides cost/margin/supplier from competitors.
- let master;
- if(window.currentUser){ ({ data: master } = await db.from('products_master').select('*').limit(100000)); }
- else { ({ data: master } = await db.from('public_products').select('*').limit(100000)); }
- if(master) masterProducts = master;
+ // PERF (B) — muat DUA benda WAJIB utk render (produk + stok) SERENTAK, bukan bersiri.
+ // p1_651 (4b) — staff baca base table penuh (incl cost); anon baca view tanpa-cost.
+ const __masterQ = window.currentUser
+   ? db.from('products_master').select('*').limit(100000)
+   : db.from('public_products').select('*').limit(100000);
+ const __batchQ = window.currentUser
+   ? db.from('inventory_batches').select('*').order('inbound_date', {ascending: true}).limit(100000)
+   : db.from('public_stock').select('*').limit(100000);
+ const [__masterRes, __batchRes] = await Promise.all([
+   __masterQ.then(r=>r).catch(()=>({data:null})),
+   __batchQ.then(r=>r).catch(()=>({data:null}))
+ ]);
+ if(__masterRes && __masterRes.data) masterProducts = __masterRes.data;
+ if(__batchRes && __batchRes.data) inventoryBatches = __batchRes.data;
+ window.__mktPromos = window.__mktPromos || []; // diisi di latar (A) utk staf; anon = kosong
  // p1_773 — muat App Settings (Customization) awal: apply PIN/sasaran/kontak (fire-and-forget)
  try { window.__loadAppSettings && window.__loadAppSettings(); } catch(e){}
 
- // p1_627 — shop-level marketplace promotions (coupons, BMSM) for Campaigns page (staff-only)
- // p1_675 — guard: anon (landing) tak guna ni; elak baca jadual selepas RLS dikunci.
- if(window.currentUser){ try { const { data: mktp } = await db.from('marketplace_promotions').select('*').eq('active', true).limit(500); window.__mktPromos = mktp || []; } catch(e){ window.__mktPromos = window.__mktPromos || []; } } else { window.__mktPromos = []; }
+ // PERF (A) — data staf yg TAK perlu utk skrin cashier (transaksi inventori / marketplace
+ // promo / suppliers / PO / reservations / promo-engine) dipindah ke LATAR selepas render
+ // di bawah, supaya kaunter keluar dulu. Dulu ~6 round-trip ni menyekat render.
 
- // p1_651 (4b) — staff read full batches (cost); public read cost-free public_stock (sku+qty only)
- let batches;
- if(window.currentUser){ ({ data: batches } = await db.from('inventory_batches').select('*').order('inbound_date', {ascending: true}).limit(100000)); }
- else { ({ data: batches } = await db.from('public_stock').select('*').limit(100000)); }
- if(batches) inventoryBatches = batches;
-
- // p1_675 — inventory_transactions = data dalaman; staff sahaja (anon landing tak perlu).
- if(window.currentUser){
- let { data: txns } = await db.from('inventory_transactions').select('*').order('created_at', {ascending: false}).limit(100000);
- if(txns) inventoryTransactions = txns;
- }
-
- // p1_675 — pemuat data dalaman (suppliers / PO / reservations / promo-engine) = staff sahaja.
- if(window.currentUser){
- // Sprint 2.1+2.2: load real PO + suppliers tables
- try { if(typeof loadSuppliers === 'function') await loadSuppliers(); } catch(e) { console.warn('loadSuppliers:', e); }
- try { if(typeof loadPosV2 === 'function') await loadPosV2(); } catch(e) { console.warn('loadPosV2:', e); }
- // Sprint 3.4: load active reservations
- try { if(typeof loadReservations === 'function') await loadReservations(); } catch(e) { console.warn('loadReservations:', e); }
- // p7_3: load promo engine rules
- try { if(typeof loadPromotions === 'function') await loadPromotions(); } catch(e) { console.warn('loadPromotions:', e); }
- }
  // p4_4: low-stock notification check (deferred to next tick after render)
  setTimeout(() => { if(typeof checkLowStockNotify === 'function') checkLowStockNotify(); }, 5000);
 
@@ -9455,6 +9461,24 @@ async function initApp() {
  try { if(typeof window.lpHandleDeepLink === 'function') window.lpHandleDeepLink(); } catch(e){}
 
  try { renderQuotePOS(); } catch(e){}
+
+ // PERF (A) — muat data staf bukan-kritikal di LATAR (non-blocking) selepas cashier siap render.
+ // Dulu 6 benda ni disekat SEBELUM render (~6 round-trip bersiri = lag lepas PIN). Sekarang
+ // kaunter keluar dulu, data ni menyusul dalam 1-2s. loadPosV2 render sendiri seksyen PO-nya;
+ // yang lain cuma isi global yg dibaca masa navigasi. Akhir sekali segar semula skrin cashier.
+ if(window.currentUser && !window.__deferStaffLoadRunning){
+ window.__deferStaffLoadRunning = true;
+ (async () => {
+ try { const { data: mktp } = await db.from('marketplace_promotions').select('*').eq('active', true).limit(500); window.__mktPromos = mktp || []; } catch(e){ window.__mktPromos = window.__mktPromos || []; }
+ try { let __itq = db.from('inventory_transactions').select('*').order('created_at', {ascending: false}); __itq = window.__isAppDataCapped() ? __itq.gte('created_at', window.__appDataCutoffISO()) : __itq.limit(100000); const { data: txns } = await __itq; if(txns) inventoryTransactions = txns; } catch(e){} // p1_1021 — app mobile: 3 bulan; web: penuh
+ try { if(typeof loadSuppliers === 'function') await loadSuppliers(); } catch(e){ console.warn('loadSuppliers:', e); }
+ try { if(typeof loadPosV2 === 'function') await loadPosV2(); } catch(e){ console.warn('loadPosV2:', e); }
+ try { if(typeof loadReservations === 'function') await loadReservations(); } catch(e){ console.warn('loadReservations:', e); }
+ try { if(typeof loadPromotions === 'function') await loadPromotions(); } catch(e){ console.warn('loadPromotions:', e); }
+ try { if(typeof renderPOS === 'function') renderPOS(); } catch(e){} // segar semula cashier bila data reservation/promo dah masuk
+ window.__deferStaffLoadRunning = false;
+ })();
+ }
  // p1_648 — load sensitive data ONLY when logged in (public landing = anon; no customer PII / finance / sales)
  // p1_680 — muat data berat SERENTAK (Promise.all), bukan bersiri. Dulu quotations→sales→customers
  // →finance berturut-turut = ~8 round-trip bersiri (lambat atas wifi kedai). Sekarang serentak.
@@ -9462,7 +9486,10 @@ async function initApp() {
  if(window.currentUser){
  const [quotesRes, sales, custs, finRes, b2bplRes] = await Promise.all([
  db.from('quotations_log').select('*').order('created_at', {ascending: false}).then(r=>r).catch(()=>({data:null})),
- db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000).then(r=>r.data||[]).catch(()=>[]),  // p1_743 — startup: 1000 sales TERKINI sahaja (laju ~1MB); sejarah penuh dimuat di latar (bawah)
+ (window.__isAppDataCapped()  // p1_1021 — app mobile: 3 bulan terakhir sahaja (ringan). Web POS: 1000 terkini + sejarah penuh di latar.
+   ? db.from('sales_history').select('*').gte('created_at', window.__appDataCutoffISO()).order('created_at', {ascending: false})
+   : db.from('sales_history').select('*').order('created_at', {ascending: false}).limit(1000)
+ ).then(r=>r.data||[]).catch(()=>[]),  // p1_743 — startup: 1000 sales TERKINI sahaja (laju ~1MB); sejarah penuh dimuat di latar (bawah)
  window.__fetchAllRows('customers', 'id', true).catch(async ()=>{ try { const r = await db.from('customers').select('*'); return r.data || []; } catch(_){ return []; } }),
  db.from('finance_records').select('*').order('year', {ascending: false}).then(r=>r).catch(()=>({data:null})),
 			db.from('b2b_price_list').select('*').then(r=>r).catch(()=>({data:null}))
@@ -9483,7 +9510,8 @@ async function initApp() {
  if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
  // p1_743 — muat SEJARAH JUALAN PENUH di latar (non-blocking) selepas UI cashier siap. Startup cuma
  // ambil 1000 terkini supaya laju; baki sejarah (utk All Orders lama / report) menyusul ~4s kemudian.
- if(window.currentUser && !window.__fullSalesLoaded){
+ // p1_1021 — app mobile: LANGKAU muat all-time (dah cukup 3 bulan); web POS je muat penuh.
+ if(window.currentUser && !window.__fullSalesLoaded && !window.__isAppDataCapped()){
  setTimeout(function(){
  window.__aoFetchAllSales().then(function(all){
  if(all && all.length){
@@ -17645,7 +17673,7 @@ function loginAs(user, opts) {
    progressBar.parentNode.replaceChild(fresh, progressBar);
  }
 
- const dismissTimer = setTimeout(() => window.dismissWelcome(), 2400);
+ const dismissTimer = setTimeout(() => window.dismissWelcome(), 900); // PERF (C) — dulu 2400ms; potong utk rasa lebih pantas lepas PIN
  window.dismissWelcome = function() {
    clearTimeout(dismissTimer);
    welcomeModal.classList.add('is-leaving');
@@ -32273,7 +32301,9 @@ window.renderAllOrders = function() {
  <button ${aoPage >= aoTotalPages ? 'disabled style="'+btnDis+'"' : 'onclick="window.__aoGoPage('+(aoPage+1)+')" style="'+btnStyle+'"'}>Next ›</button>
  <button ${aoPage >= aoTotalPages ? 'disabled style="'+btnDis+'"' : 'onclick="window.__aoGoPage('+aoTotalPages+')" style="'+btnStyle+'"'}>Akhir »</button>
  </div>` : '';
- document.getElementById('aoSummaryLine').innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;"><span>Memaparkan <strong>${aoFrom}-${aoTo}</strong> dari <strong>${filtered.length.toLocaleString()}</strong> order.</span>${pager}</div>`;
+ // p1_1021 — nota had 3 bulan bila jalan dalam app mobile (web POS = penuh).
+ const aoCapNote = window.__isAppDataCapped() ? `<div style="margin-top:6px; font-size:11.5px; color:#8a5a2b; background:#fdf3e7; border:1px solid #f0dcc2; border-radius:6px; padding:6px 10px; display:flex; align-items:center; gap:6px;"><i data-lucide="info" style="width:13px;height:13px;"></i> Papar ${window.__APP_DATA_MONTHS} bulan terakhir sahaja (app ringan). Sejarah penuh: buka POS di laptop (back office).</div>` : '';
+ document.getElementById('aoSummaryLine').innerHTML = `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;"><span>Memaparkan <strong>${aoFrom}-${aoTo}</strong> dari <strong>${filtered.length.toLocaleString()}</strong> order.</span>${pager}</div>${aoCapNote}`;
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  window.__aoUpdateOrderBadge && window.__aoUpdateOrderBadge();
  window.__aoSyncSelectionUI && window.__aoSyncSelectionUI();

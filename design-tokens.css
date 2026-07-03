@@ -1544,7 +1544,7 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
     height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--primary-400), var(--primary-500));
     border-radius: inherit;
-    animation: welcomeProgressDrain 2.4s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    animation: welcomeProgressDrain 0.9s cubic-bezier(0.65, 0, 0.35, 1) forwards;
 }
 
 @keyframes welcomeOverlayIn { from { opacity: 0; } to { opacity: 1; } }

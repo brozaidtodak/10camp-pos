@@ -1,5 +1,9 @@
 [build]
   publish = "."
+  # p1_1022 (Fasa 1a) — minify app.js + CSS di mesin build Netlify sebelum publish.
+  # Sumber git kekal tak di-minify (senang edit). Skrip BULLETPROOF: exit 0 walau gagal
+  # (paling teruk fail tak di-minify, deploy tak pernah pecah). Lihat scripts/build-minify.mjs.
+  command = "node scripts/build-minify.mjs"
 
 [functions]
   directory = "netlify/functions"

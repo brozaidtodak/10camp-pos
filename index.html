@@ -43,16 +43,16 @@
       Fallback ke CDN HANYA kalau fail tempatan gagal define global supabase. -->
  <script src="vendor/supabase-js-2.105.1.js?v=1"></script>
  <script>if(!window.supabase){document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></scr'+'ipt>');}</script>
- <!-- Chart.js -->
- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
- <!-- Lucide Icons (Free & Exclusive looking) -->
+ <!-- Chart.js — defer: hanya dipakai bila buka Analytics/Reports, jangan block boot -->
+ <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <!-- Lucide Icons (dipakai masa boot untuk render ikon — kekal blocking) -->
  <script src="https://unpkg.com/lucide@latest"></script>
- <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
- <!-- JsBarcode for Label Printing -->
- <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
- <!-- QR code generator (for DuitNow QR Phase 2) -->
- <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+ <!-- PapaParse (import CSV) & XLSX (import/export Excel) — defer: guna atas tindakan user sahaja -->
+ <script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+ <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+ <!-- JsBarcode (cetak label) — defer -->
+ <script defer src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+ <!-- qrcode.min.js DIBUANG 2026-07-04: 0 guna dalam kod (dead weight boot). Re-add (lazy) bila bina DuitNow QR. -->
   <script defer data-site="pos" src="https://analytics.10camp.com/track.js"></script>
 </head>
 <body>

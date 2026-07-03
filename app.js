@@ -37388,6 +37388,19 @@ window.__groupThumb = function(type, name){
  return out;
 };
 
+// p1_1015 — Katalog tab Brand: guna LOGO brand (assets/brand/brands-in-store) bukan gambar produk.
+// Normalisasi nama (buang bukan-alfanumerik + lowercase) supaya "MOBI GARDEN"/"Mobigarden" dll padan.
+window.__BRAND_LOGO_FILES = {
+ blackdog:'blackdog.png', chanodug:'chanodug.png', lfo:'lfo.png', mobigarden:'mobi-garden.png',
+ mountainhiker:'mountainhiker.png', naturehike:'naturehike.png', opolar:'opolar.png',
+ payungcamp:'payung-camp.png', shinetrip:'shine-trip.png', todak:'todak.png', vidalido:'vidalido.png'
+};
+window.__brandLogoUrl = function(name){
+ const k = String(name == null ? '' : name).toLowerCase().replace(/[^a-z0-9]/g, '');
+ const f = window.__BRAND_LOGO_FILES[k];
+ return f ? ('/assets/brand/brands-in-store/' + f) : '';
+};
+
 // p1_1002 — Cashier: browse produk ikut Koleksi / Brand / Kategori. Staff pilih kumpulan (tile bergambar)
 // → tapis senarai produk cashier ikut kumpulan itu. Guna window.__posCollectionFilter/__posCategoryFilter
 // (selari __posBrandFilter sedia ada).
@@ -37436,9 +37449,11 @@ window.__posBrowseRender = function(){
  if(!groups.length){ bodyEl.innerHTML = '<div style="padding:34px; text-align:center; color:#9CA3AF;">Tiada kumpulan untuk tab ini.</div>'; return; }
  bodyEl.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px;">'
   + groups.map(function(gc){ const name = gc[0], count = gc[1];
-    const img = window.__groupThumb(type, name);
+    // p1_1015 — tab Brand: utamakan LOGO brand; kalau tiada logo (brand tak dikenali) → fallback gambar produk.
+    const brandLogo = (type === 'brand') ? window.__brandLogoUrl(name) : '';
+    const img = brandLogo || window.__groupThumb(type, name);
     const media = img
-     ? '<div style="aspect-ratio:1/1; background:#FBF7F0; border-radius:11px 11px 0 0; overflow:hidden;"><img src="' + esc(img) + '" style="width:100%;height:100%;object-fit:contain;" loading="lazy"></div>'
+     ? '<div style="aspect-ratio:1/1; background:' + (brandLogo ? '#fff' : '#FBF7F0') + '; border-radius:11px 11px 0 0; overflow:hidden; display:flex; align-items:center; justify-content:center;' + (brandLogo ? ' padding:16px;' : '') + '"><img src="' + esc(img) + '" style="max-width:100%; max-height:100%; width:' + (brandLogo ? 'auto' : '100%') + '; height:' + (brandLogo ? 'auto' : '100%') + '; object-fit:contain;" loading="lazy"></div>'
      : '<div style="aspect-ratio:1/1; background:#F4E8D8; border-radius:11px 11px 0 0; display:flex; align-items:center; justify-content:center; color:#A5611F; font-weight:800; font-size:22px; letter-spacing:.02em;">' + esc(String(name).slice(0,2).toUpperCase()) + '</div>';
     return '<button onclick="window.__posPickGroup(\'' + type + '\',' + JSON.stringify(String(name)).replace(/"/g,'&quot;') + ')" style="text-align:left; padding:0; border:1px solid #EAE0D2; border-radius:12px; background:#fff; cursor:pointer; overflow:hidden;">'
      + media

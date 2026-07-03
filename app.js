@@ -113,6 +113,32 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
  if(document.body) addBanner(); else document.addEventListener('DOMContentLoaded', addBanner);
  }
 })();
+// p1_1030 — APP AUTO-LOCK: posapp WAJIB PIN setiap kali app (re)masuk (Zaid, peranti kongsi).
+// Bila app di-background lalu foreground → tunjuk skrin kunci PIN (handleLogin). Pengecualian:
+// baru balik dari native camera/file picker (snap resit) supaya tak putus checkout.
+(function(){
+ if(!window.__isPOSApp) return;
+ var suppress=false, suppressT=0, wasHidden=false;
+ // Tanda "picker dibuka" bila butang/input fail resit disentuh → resume seterusnya jangan kunci.
+ document.addEventListener('click', function(e){
+  var el=e.target; if(!el) return;
+  var isFile=(el.tagName==='INPUT' && el.type==='file');
+  var oc=(el.getAttribute && el.getAttribute('onclick'))||'';
+  var trig=/proofCameraInput|proofFileInput|proofSnapBtn/.test((el.id||'')+' '+oc);
+  if(isFile || trig){ suppress=true; suppressT=Date.now(); }
+ }, true);
+ document.addEventListener('change', function(e){ if(e.target && e.target.type==='file'){ setTimeout(function(){ suppress=false; }, 600); } }, true);
+ document.addEventListener('visibilitychange', function(){
+  if(document.hidden){ wasHidden=true; return; }
+  if(!wasHidden) return; wasHidden=false;
+  if(suppress && (Date.now()-suppressT) < 90000){ suppress=false; return; } // baru balik dari picker
+  suppress=false;
+  if(!window.currentUser) return;                                          // belum login → PIN dah ada
+  var ov=document.getElementById('pinLoginOverlay');
+  if(ov && ov.style.display && ov.style.display!=='none') return;          // dah terkunci
+  if(typeof handleLogin==='function') try{ handleLogin(); }catch(e){}       // KUNCI + minta PIN
+ });
+})();
 // p1_545 — 4 destinasi app (ikon Lucide, tajuk top bar, fungsi render).
 window.__POS_APP_TABS = [
  { key:'cashier',    icon:'shopping-cart',  label:'Cashier', sections:['posSection'],           title:'POS / Cashier' },
@@ -294,6 +320,10 @@ window.__restoreSession = async function() {
  try { await db.auth.signOut(); } catch(e){}
  return false;
  }
+ // p1_1030 — MOBILE app (peranti kongsi): JANGAN silent-restore → wajib PIN setiap launch.
+ // Sesi Supabase kekal sah (PIN login guna semula = laju); cuma tak auto-buka tanpa PIN.
+ // Boot (baris ~34) akan panggil handleLogin() bila restored=false + posapp. Web/desktop kekal stay-login.
+ if(window.__isPOSApp) return false;
  // Hide any lingering login overlay, then boot user session silently.
  const overlay = document.getElementById('pinLoginOverlay');
  if(overlay) overlay.style.display = 'none';

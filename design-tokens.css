@@ -2002,6 +2002,19 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
 .pin-key:active { transform: scale(0.94); background: #F1E4D0; }
 .pin-key--alt { color: #8A5A1E; background: #F6EEE2; }
 .pin-key--alt:active { background: #EADBC6; }
+/* p1_1011 — App lock screen (kaunter iPad): logout tak lagi hempas ke storefront customer.
+   Overlay jadi skrin kunci brand-gelap dengan jam + salam. */
+#pinLoginOverlay.is-app-lock {
+ background: radial-gradient(130% 80% at 50% -10%, #212a3a 0%, #14181f 45%, #0d0d0d 100%) !important;
+ backdrop-filter: none !important;
+ flex-direction: column; gap: 26px;
+}
+#pinLockHeader { text-align: center; color: #FAF6EF; padding: 0 16px; animation: plhFade .5s ease; }
+#pinLockHeader .plh-brand { font-weight: 800; letter-spacing: 2.5px; color: #CD7C32; font-size: 12.5px; margin-bottom: 12px; }
+#pinLockHeader .plh-time { font-weight: 800; font-size: 46px; line-height: 1; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+#pinLockHeader .plh-date { font-size: 13px; color: #9a948b; margin-top: 8px; }
+#pinLockHeader .plh-greet { font-size: 13.5px; color: #E0A468; margin-top: 3px; font-weight: 600; }
+@keyframes plhFade { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 
 /* p1_18 — Owner tier (Pengurusan): gold accent to distinguish from regular Pengurus */
 .mode-tab--owner {

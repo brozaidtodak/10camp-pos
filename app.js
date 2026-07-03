@@ -16764,6 +16764,19 @@ window.handleCustomerLogin = async function() {
 };
 
 // Open the PIN login overlay; populate the staff dropdown (active only).
+// p1_1011 — jam hidup + salam untuk skrin kunci app (kaunter iPad).
+window.__lockClockTick = function() {
+ try {
+  const now = new Date();
+  const t = document.getElementById('pinLockTime'); if(t) t.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const d = document.getElementById('pinLockDate'); if(d) d.textContent = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long' });
+  const g = document.getElementById('pinLockGreet');
+  if(g) { const h = now.getHours(); g.textContent = h < 12 ? 'Selamat pagi' : h < 15 ? 'Selamat tengah hari' : h < 19 ? 'Selamat petang' : 'Selamat malam'; }
+ } catch(e){}
+};
+window.__lockClockStart = function() { window.__lockClockTick(); try { clearInterval(window.__lockClockTimer); } catch(e){} window.__lockClockTimer = setInterval(window.__lockClockTick, 15000); };
+window.__lockClockStop = function() { try { clearInterval(window.__lockClockTimer); } catch(e){} window.__lockClockTimer = null; };
+
 function handleLogin() {
  const overlay = document.getElementById('pinLoginOverlay');
  if(!overlay) { console.error('pinLoginOverlay not found in DOM'); return; }
@@ -16777,6 +16790,21 @@ function handleLogin() {
  const errEl = document.getElementById('pinLoginError');
  if(errEl) { errEl.textContent = ''; errEl.style.color = ''; }
  if(typeof window.__pinUpdateDots === 'function') window.__pinUpdateDots('');
+ // p1_1011 — App lock screen: dalam app (iPad kaunter) overlay jadi skrin kunci brand-gelap
+ // (jam + salam, tiada butang tutup) bukan modal atas storefront. Web/desktop kekal modal biasa.
+ const __lockHdr = document.getElementById('pinLockHeader');
+ const __closeBtn = document.getElementById('pinLoginClose');
+ if(window.__isPOSApp) {
+  overlay.classList.add('is-app-lock');
+  if(__lockHdr) __lockHdr.style.display = 'block';
+  if(__closeBtn) __closeBtn.style.display = 'none';
+  window.__lockClockStart();
+ } else {
+  overlay.classList.remove('is-app-lock');
+  if(__lockHdr) __lockHdr.style.display = 'none';
+  if(__closeBtn) __closeBtn.style.display = '';
+  window.__lockClockStop();
+ }
  overlay.style.display = 'flex';
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  // Show global lockout msg if device is locked
@@ -17744,8 +17772,15 @@ function handleLogout() {
  try { if(typeof window.__caShow === 'function') window.__caShow(true); } catch(e){} // p1_812 — landing balik = tunjuk widget AI customer
  currentUser = null;
  currentUserRole = null;
- document.getElementById("shopAppLayout").style.display = "block";
- document.getElementById("posAppLayout").style.display = "none";
+ // p1_1011 — dalam app (iPad kaunter): JANGAN hempas ke storefront customer. Sorok kedua-dua
+ // layout, biar skrin kunci PIN (dibuka di hujung fungsi) yang jadi paparan. Web/desktop kekal.
+ if(window.__isPOSApp) {
+  document.getElementById("shopAppLayout").style.display = "none";
+  document.getElementById("posAppLayout").style.display = "none";
+ } else {
+  document.getElementById("shopAppLayout").style.display = "block";
+  document.getElementById("posAppLayout").style.display = "none";
+ }
  document.body.classList.remove('pos-app-scoped'); // p1_545 — sorok top/bottom bar native bila logout
  // p1_554 — kunci semula laporan sulit (PIN 1999) supaya staf seterusnya tak warisi unlock
  try { sessionStorage.removeItem('confUnlocked_v1'); } catch(e){}
@@ -17773,6 +17808,10 @@ function handleLogout() {
 
  // Reset cart
  if(typeof cart !== 'undefined') { cart.length = 0; if(typeof renderCart === 'function') renderCart(); }
+
+ // p1_1011 — dalam app: terus tunjuk skrin kunci PIN (bukan storefront). Dipanggil AKHIR sebab
+ // blok atas baru sorok pinLoginOverlay. Web/desktop: storefront dah dipapar, tak buka auto.
+ if(window.__isPOSApp && typeof handleLogin === 'function') { try { handleLogin(); } catch(e){} }
 }
 
 setTimeout(() => {

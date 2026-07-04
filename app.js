@@ -2778,7 +2778,7 @@ window.__ensureMarketing = function(){
 window.__ensureBackofficeDash = function(){
  if(window.__bodLoaded) return Promise.resolve();
  return window.__bodLoading || (window.__bodLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='backoffice-dash.js?v=2'; // p1_1054
+  var s=document.createElement('script'); s.src='backoffice-dash.js?v=3'; // p1_1055
   s.onload=function(){ window.__bodLoaded=true; res(); };
   s.onerror=function(){ window.__bodLoading=null; rej(new Error('backoffice-dash.js gagal muat')); };
   document.head.appendChild(s);
@@ -9359,7 +9359,9 @@ window.__returnRefundConfirm = async function(){
  const logRows = returned.map(r => ({
  source: 'pos', external_id: 'pos_return_' + sale.id + '_' + (r.sku || 'item') + '_' + Date.now(),
  sku: r.sku, qty: r.qty, type: type, reason: reason,
- cost_impact: restock ? 0 : (costMap[String(r.sku || '').toUpperCase()] || 0),
+ // p1_1055 — RULE ZAID: kos rugi HANYA bila type damaged (barang rosak tak masuk stok balik);
+ // return/refund biasa = restock = RM0. Dulu: !restock sahaja → return tak-restock pun dikira rugi.
+ cost_impact: (type === 'damaged' && !restock) ? (costMap[String(r.sku || '').toUpperCase()] || 0) : 0,
  supplier: (window.__skuSupplierOf ? window.__skuSupplierOf(r.sku) : '') || null, // p1_1054
  reported_at: nowIso,
  notes: 'Order #' + sale.id + ' · ' + type + (amount > 0 ? ' · refund RM' + amount.toFixed(2) : '') + (note ? ' · ' + note : '') + ' · oleh ' + staff

@@ -320,7 +320,11 @@ exports.handler = async (event) => {
                 const pm = await sb('GET', `/products_master?select=sku,cost_price&sku=in.(${list})`);
                 (pm || []).forEach(p => { costMap[(p.sku || '').toUpperCase()] = Number(p.cost_price || 0); });
             }
-            rows.forEach(r => { if (costMap[r.sku] != null) r.cost_impact = costMap[r.sku]; });
+            // p1_1055 — RULE ZAID: kos rugi HANYA untuk jenis kehilangan sebenar (damaged/missing/
+            // expired/lost). Cancel/return marketplace = barang masuk stok balik = RM0. Dulu isi
+            // kos utk SEMUA jenis → "Total Cost Impact" terlebih kira.
+            const LOSS_TYPES = new Set(['damaged', 'missing', 'expired', 'lost']);
+            rows.forEach(r => { r.cost_impact = (LOSS_TYPES.has(r.type) && costMap[r.sku] != null) ? costMap[r.sku] : 0; });
         }
     } catch (e) { out.cost_lookup_error = String(e.message || e); }
 

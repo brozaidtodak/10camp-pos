@@ -150,7 +150,10 @@ window.__rlSubmit = async function() {
  notes: document.getElementById('rlNotes').value.trim() || null,
  channel: document.getElementById('rlChannel').value || null,
  supplier,
- cost_impact: parseFloat(document.getElementById('rlCost').value || '0') || 0,
+ // p1_1055 — RULE ZAID: kos rugi hanya utk jenis kehilangan (damaged/missing/expired);
+ // "Return dari Customer" = masuk stok balik = RM0 walau staf terisi kos.
+ cost_impact: (['damaged','missing','expired'].indexOf(document.getElementById('rlSubmitType').value) >= 0)
+ ? (parseFloat(document.getElementById('rlCost').value || '0') || 0) : 0,
  reported_by_id: u.staff_id || 'unknown',
  reported_by_name: u.name || 'Unknown'
  };

@@ -556,6 +556,11 @@ body.pos-mobile-mode .pos-prodsearch-row {
 /* p1_1031 — App mobile (data 2 bulan): sorok element tempoh yang tak relevan (YTD/All Time) */
 html.is-pos-app [data-app-hide] { display:none !important; }
 
+/* p1_1035 — Skrin kunci PIN terbuka: sorok bar Bakul terapung (z4999 > overlay 3600, boot cache
+   kini render kaunter SEMASA kunci masih terpasang → bar menutup keypad). Padan inline
+   style="display: flex" pada overlay; bila overlay 'none', bar kembali normal. */
+body:has(#pinLoginOverlay[style*="flex"]) #mobileCartFloatingBar { display:none !important; }
+
 .lp-product-card,
 .product-card { content-visibility:auto; contain-intrinsic-size:auto 340px; }
 .customer-row,

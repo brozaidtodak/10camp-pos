@@ -28,6 +28,14 @@ const MAX_SUGGESTIONS = 3;
 
 const json = (code, obj) => ({ statusCode: code, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(obj) });
 
+// p1_1062 — fungsi background = respons tak nampak (202). Simpan hasil/ralat terakhir ke
+// app_settings 'deadstock_agent_last' supaya boleh diperhati (pattern sama ai-selftest).
+async function recordRun(result) {
+    try {
+        await sb('POST', '/app_settings?on_conflict=key', [{ key: 'deadstock_agent_last', value: Object.assign({ at: new Date().toISOString() }, result) }], { Prefer: 'resolution=merge-duplicates,return=minimal' });
+    } catch (_) {}
+}
+
 async function sb(method, path, body, extra) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
         method, headers: Object.assign({ apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' }, extra || {}),
@@ -42,9 +50,17 @@ exports.handler = async (event) => {
     const auth = await requireAuth(event);
     if (!auth.ok) return auth.response;
     if (!SERVICE_KEY) return json(500, { error: 'SUPABASE_SERVICE_KEY tak set' });
-    if (!GEMINI_KEY) return json(500, { error: 'GEMINI_API_KEY tak set' });
+    if (!GEMINI_KEY) { await recordRun({ error: 'GEMINI_API_KEY tak set' }); return json(500, { error: 'GEMINI_API_KEY tak set' }); }
 
-    try {
+    let result;
+    try { result = await runAgent(); }
+    catch (e) { result = { error: String(e.message || e).slice(0, 300) }; }
+    await recordRun(result);
+    return json(result.error ? 500 : 200, result);
+};
+
+async function runAgent() {
+    {
         // ---- 1) Data asas ----
         const prods = await sb('GET', `/products_master?select=sku,name,price,cost_price,is_published&is_published=eq.true&limit=3000`);
         const batches = await sb('GET', `/inventory_batches?select=sku,qty_remaining&limit=20000`);
@@ -86,7 +102,7 @@ exports.handler = async (event) => {
             .sort((a, b) => sold30[b] - sold30[a]).slice(0, 25)
             .map(k => ({ sku: k, name: nameOf[k], price: priceOf[k], sold30: sold30[k], stock: stock[k] || 0 }));
 
-        if (!dead.length) return json(200, { ok: true, note: 'Tiada dead stock layak — semua bergerak. Bagus!', dead: 0 });
+        if (!dead.length) return { ok: true, note: 'Tiada dead stock layak — semua bergerak. Bagus!', dead: 0 };
 
         // ---- 2) Dedup konteks: pending + bundle sebenar + ditolak 30 hari ----
         const sugs = await sb('GET', `/agent_suggestions?type=eq.bundle&select=status,payload,created_at&order=created_at.desc&limit=200`);
@@ -102,7 +118,7 @@ exports.handler = async (event) => {
         (bundles || []).forEach(b => { const its = Array.isArray(b.items) ? b.items : []; its.forEach(it => coveredSkus.add(String(it.sku || '').toUpperCase())); });
 
         const deadOpen = dead.filter(d => !coveredSkus.has(String(d.sku).toUpperCase())).slice(0, 40); // cap konteks AI
-        if (!deadOpen.length) return json(200, { ok: true, note: 'Semua dead stock dah ada cadangan pending / dlm bundle. Tunggu keputusan staf.', dead: dead.length, open: 0 });
+        if (!deadOpen.length) return { ok: true, note: 'Semua dead stock dah ada cadangan pending / dlm bundle. Tunggu keputusan staf.', dead: dead.length, open: 0 };
 
         // ---- 3) Gemini: cadang bundle (JSON) ----
         const prompt = `Kau JURUJUAL kreatif kedai camping/outdoor 10 CAMP (Cyberjaya, Malaysia). Tugas: reka BUNDLE untuk gerakkan DEAD STOCK (tak terjual ${DEAD_DAYS} hari). Strategi bagus: pasangkan dead stock dgn FAST MOVER (penarik), atau gabung beberapa dead stock jadi set bertema (cth "Set Picnic Keluarga", "Starter Camping Solo").
@@ -134,9 +150,9 @@ Jawab JSON SAHAJA (tiada teks lain):
             })
         });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) return json(502, { error: 'Gemini gagal', detail: String((d.error && d.error.message) || r.status).slice(0, 150) });
+        if (!r.ok) return { error: 'Gemini gagal', detail: String((d.error && d.error.message) || r.status).slice(0, 150) };
         let out = {};
-        try { out = JSON.parse(((d.candidates || [])[0] || {}).content.parts.map(p => p.text || '').join('')); } catch (e) { return json(502, { error: 'Jawapan AI bukan JSON', raw: String(JSON.stringify(d)).slice(0, 200) }); }
+        try { out = JSON.parse(((d.candidates || [])[0] || {}).content.parts.map(p => p.text || '').join('')); } catch (e) { return { error: 'Jawapan AI bukan JSON', raw: String(JSON.stringify(d)).slice(0, 200) }; }
         const raw = Array.isArray(out.suggestions) ? out.suggestions.slice(0, MAX_SUGGESTIONS) : [];
 
         // ---- 4) SEMAK SEMULA server-side (jangan percaya matematik AI) + simpan ----
@@ -171,8 +187,6 @@ Jawab JSON SAHAJA (tiada teks lain):
             saved.push(payload.name);
         }
 
-        return json(200, { ok: true, dead: dead.length, open: deadOpen.length, suggested: saved.length, names: saved });
-    } catch (e) {
-        return json(500, { error: String(e.message || e).slice(0, 250) });
+        return { ok: true, dead: dead.length, open: deadOpen.length, suggested: saved.length, names: saved };
     }
-};
+}

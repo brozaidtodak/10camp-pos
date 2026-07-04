@@ -10,9 +10,11 @@ Severity legend: **CRITICAL** = active security hole · **HIGH** = real money/st
 
 ## CRITICAL (1)
 
-### C1 — Staff PINs are offline-crackable (owner account included)
+### C1 — Staff PINs are offline-crackable (owner account included) — **WON'T FIX (Zaid decision 2026-07-04)**
 `netlify/functions/staff-auth.js:42`
-The PIN hash uses a hardcoded, publicly-known salt (`10camp_salt_v1`) and the hashes are shipped in the client bundle (`app.js` ~16557). The verifier actually ran the crack and recovered real PINs in milliseconds: **CMP001 owner (zaid@10camp.com) = 1999**, REV001 = 4729, TST001 = 8888. This bypasses the server's 12-attempt rate limit entirely and lets an attacker mint a genuine authenticated Supabase session as the owner. **Fix: rotate all PINs, remove hashes from the client bundle, use a secret server-side salt (env var) + per-user random salt, and stop mirroring hashes to the public client.**
+The PIN hash uses a hardcoded, publicly-known salt (`10camp_salt_v1`) and the hashes are shipped in the client bundle (`app.js` ~16557). The verifier actually ran the crack and recovered real PINs in milliseconds: **CMP001 owner (zaid@10camp.com) = 1999**, REV001 = 4729, TST001 = 8888. This bypasses the server's 12-attempt rate limit entirely and lets an attacker mint a genuine authenticated Supabase session as the owner.
+
+**DECISION 2026-07-04 (Zaid): keep current PINs — accept the risk, close the item.** Mitigating factors that make this acceptable for 10 CAMP's context: it's a small internal team on a shared company device, the device now auto-locks and requires PIN on every entry (p1_1030), and rotating PINs + re-briefing all staff wasn't worth the operational friction. Original fix (rotate PINs, remove hashes from client, secret server salt) documented above if the risk profile changes later.
 
 ---
 

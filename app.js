@@ -42157,6 +42157,19 @@ window.renderBundles = async function(){
     +'<div class="stat-card"><div style="font-size:12px; color:#6B7280;">Jumlah Pakej</div><div style="font-size:22px; font-weight:900;">'+list.length+'</div></div>'
     +'<div class="stat-card"><div style="font-size:12px; color:#6B7280;">Aktif</div><div style="font-size:22px; font-weight:900;">'+activeCount+'</div></div>'
   +'</div>'
+  // p1_1062 — Ejen Jualan Dead Stock: cadangan bundle AI (terima → terus jadi pakej; tolak → AI belajar)
+  +'<div class="dash-card" style="margin-bottom:16px; padding:14px 16px;">'
+    +'<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">'
+      +'<i data-lucide="sparkles" style="width:16px;height:16px;color:#CD7C32;"></i>'
+      +'<strong style="font-size:13.5px;">Cadangan Ejen AI — Dead Stock</strong>'
+      +'<span style="font-size:11px; color:#9CA3AF;">stok tak bergerak 60 hari → idea bundle. Sesiapa boleh terima/tolak.</span>'
+      +'<span style="margin-left:auto; display:inline-flex; gap:6px;">'
+        +'<button onclick="window.__agentSugGen()" class="btn-brand-secondary" style="font-size:11.5px; padding:5px 11px;"><i data-lucide="wand-2" style="width:13px;height:13px;vertical-align:-2px;"></i> Jana Cadangan</button>'
+        +'<button onclick="window.__agentSugLoad()" class="btn-brand-secondary" style="font-size:11.5px; padding:5px 11px;"><i data-lucide="refresh-cw" style="width:13px;height:13px;vertical-align:-2px;"></i></button>'
+      +'</span>'
+    +'</div>'
+    +'<div id="agentSugWrap"><div style="color:#9CA3AF; font-size:12px; padding:8px 0;">Memuatkan cadangan…</div></div>'
+  +'</div>'
   +'<div class="admin-card" style="padding:16px; margin-bottom:16px;">'
     +'<div style="font-weight:800; margin-bottom:10px;">'+(editing?'Edit Pakej':'Bina Pakej Baru')+(editing?' <button onclick="window.__bundleResetForm()" style="font-size:11px; font-weight:600; margin-left:8px; background:none; border:1px solid #D1D5DB; border-radius:6px; padding:2px 8px; cursor:pointer;">Batal edit</button>':'')+'</div>'
     +'<div style="display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; margin-bottom:10px;">'
@@ -42181,7 +42194,81 @@ window.renderBundles = async function(){
     +'<table style="width:100%; border-collapse:collapse; font-size:13.5px;"><thead><tr style="text-align:left; background:var(--card-bg,#fff); border-bottom:2px solid #D1D5DB;"><th style="padding:8px 10px;">Pakej</th><th style="padding:8px 10px;">Kandungan</th><th style="padding:8px 10px;">Harga</th><th style="padding:8px 10px;">Jimat</th><th style="padding:8px 10px;">Boleh buat</th><th style="padding:8px 10px;"></th></tr></thead><tbody>'+rows+'</tbody></table>'
   +'</div>';
  window.__bundleRenderDraft();
+ try { window.__agentSugLoad(); } catch(e){} // p1_1062 — muat cadangan ejen (async, isi #agentSugWrap)
  if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+};
+
+// ===== p1_1062 — EJEN JUALAN DEAD STOCK: muat / terima / tolak / jana cadangan bundle =====
+window.__agentSugLoad = async function(){
+ const wrap = document.getElementById('agentSugWrap'); if(!wrap) return;
+ const E = window.__bdlE;
+ let sugs = [];
+ try {
+ const { data } = await db.from('agent_suggestions').select('*').eq('type','bundle').eq('status','pending').order('created_at',{ascending:false}).limit(10);
+ sugs = data || [];
+ } catch(e){ wrap.innerHTML = '<div style="color:#B23A2E; font-size:12px;">Gagal muat cadangan: '+E(e.message)+'</div>'; return; }
+ if(!sugs.length){ wrap.innerHTML = '<div style="color:#9CA3AF; font-size:12px; padding:6px 0;">Tiada cadangan menunggu. Ejen jalan tiap pagi 7:15 — atau tekan "Jana Cadangan" untuk suruh dia fikir sekarang.</div>'; return; }
+ wrap.innerHTML = sugs.map(function(g){
+ const p = g.payload || {};
+ const items = Array.isArray(p.items) ? p.items : [];
+ const nameBySku = {}; (p.item_names||[]).forEach(function(x){ nameBySku[x.sku] = x; });
+ const itemsHtml = items.map(function(it){
+ const inf = nameBySku[it.sku] || {};
+ const thumb = (window.__skuThumbHtml ? window.__skuThumbHtml(it.sku, 30) : '');
+ return '<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 0;">'+thumb
+ +'<span style="font-weight:700; font-family:monospace;">'+E(it.sku)+'</span> ×'+(it.qty||1)
+ +'<span style="color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">'+E((inf.name||'').slice(0,44))+'</span>'
+ +(p.dead_skus && p.dead_skus.indexOf(it.sku)>=0 ? '<span style="background:#FAF0EE; color:#7C2A20; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:50px;">DEAD</span>' : '')
+ +'</div>';
+ }).join('');
+ return '<div style="border:1px solid #ECE6DE; border-radius:12px; padding:12px 14px; margin-bottom:10px; background:#FEFCF8;">'
+ +'<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">'
+ +'<strong style="font-size:13.5px; color:#101010;">'+E(p.name||'Pakej')+'</strong>'
+ +'<span style="font-weight:800; color:#CD7C32;">RM '+(Number(p.suggested_price)||0).toFixed(2)+'</span>'
+ +'<span style="font-size:11px; color:#9CA3AF; text-decoration:line-through;">RM '+(Number(p.orig_total)||0).toFixed(2)+'</span>'
+ +(p.margin_pct != null ? '<span style="font-size:10.5px; font-weight:700; color:'+(p.margin_pct>=35?'#4E7C4A':'#B23A2E')+';">margin '+p.margin_pct+'%</span>' : '')
+ +(p.price_adjusted ? '<span style="font-size:10px; color:#9CA3AF;">(harga dilaras sistem — lantai margin)</span>' : '')
+ +'<span style="margin-left:auto; display:inline-flex; gap:6px;">'
+ +'<button onclick="window.__agentSugDecide('+g.id+', \'accepted\')" style="background:#4E7C4A; color:#fff; border:0; border-radius:8px; padding:6px 14px; font-size:12px; font-weight:800; cursor:pointer; font-family:inherit;">Terima → Jadi Pakej</button>'
+ +'<button onclick="window.__agentSugDecide('+g.id+', \'rejected\')" style="background:#fff; color:#B23A2E; border:1px solid #E0B3A9; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;">Tolak</button>'
+ +'</span></div>'
+ +'<div style="margin-top:7px;">'+itemsHtml+'</div>'
+ +(p.rationale ? '<div style="margin-top:7px; font-size:12px; color:#5b5048; background:#fff; border:1px dashed #ECE6DE; border-radius:8px; padding:7px 10px;"><i data-lucide="lightbulb" style="width:12px;height:12px;vertical-align:-2px;color:#C68A1A;"></i> '+E(p.rationale)+'</div>' : '')
+ +'</div>';
+ }).join('');
+ if(window.lucide && window.lucide.createIcons) try { window.lucide.createIcons(); } catch(e){}
+};
+
+window.__agentSugDecide = async function(id, action){
+ const staff = (window.currentUser && (window.currentUser.name || window.currentUser.staff_id)) || 'Unknown';
+ try {
+ if(action === 'accepted'){
+ const { data } = await db.from('agent_suggestions').select('*').eq('id', id).single();
+ if(!data || data.status !== 'pending'){ showToast('Cadangan ni dah diputuskan.', 'warn'); window.__agentSugLoad(); return; }
+ const p = data.payload || {};
+ const { error } = await db.from('product_bundles').insert({
+ bundle_sku: 'BNDL-AI-' + id,
+ name: p.name || ('Pakej AI ' + id),
+ price: Number(p.suggested_price) || 0,
+ items: (p.items || []).map(function(it){ return { sku: it.sku, qty: Number(it.qty) || 1 }; }),
+ active: true,
+ notes: 'Cadangan Ejen AI (dead stock) — ' + String(p.rationale || '').slice(0, 160),
+ created_by: staff
+ });
+ if(error) throw error;
+ }
+ await db.from('agent_suggestions').update({ status: action, decided_by: staff, decided_at: new Date().toISOString() }).eq('id', id);
+ showToast(action === 'accepted' ? 'Pakej dicipta! Boleh edit macam pakej biasa.' : 'Cadangan ditolak — ejen takkan ulang kombinasi ni.', action === 'accepted' ? 'success' : 'info');
+ window.__bundles = null; // paksa reload senarai pakej
+ if(typeof window.renderBundles === 'function') window.renderBundles();
+ } catch(e){ showToast('Gagal: ' + e.message, 'error'); }
+};
+
+window.__agentSugGen = async function(){
+ try {
+ showToast('Ejen tengah analisis dead stock & fikir cadangan… (~1 minit, tekan butang refresh kat panel nanti)', 'info');
+ await fetch('/.netlify/functions/deadstock-agent-background', { headers: window.__authHeaderSync({}) });
+ } catch(e){ showToast('Gagal trigger ejen: ' + e.message, 'error'); }
 };
 
 /* ============================================================================

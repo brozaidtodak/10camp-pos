@@ -217,6 +217,10 @@
 [functions."config-check-cron"]
   schedule = "15 3 * * *"
 
+# p1_1044 — Ujian automatik Tanya AI lawan database (anti-hallucination watchdog), daily 22:45 UTC = 06:45 MYT.
+[functions."ai-selftest-cron"]
+  schedule = "45 22 * * *"
+
 # p1_681 (#8) — Settlement reconciliation: POS marketplace orders vs Shopee escrow + TikTok
 # finance payouts. Daily 02:00 UTC (after settlements typically finalize). Writes settlement_recon.
 [functions."settlement-recon-background"]

@@ -7995,6 +7995,8 @@ async function initApp() {
  try { if(typeof loadPosV2 === 'function') await loadPosV2(); } catch(e){ console.warn('loadPosV2:', e); }
  try { if(typeof loadReservations === 'function') await loadReservations(); } catch(e){ console.warn('loadReservations:', e); }
  try { if(typeof loadPromotions === 'function') await loadPromotions(); } catch(e){ console.warn('loadPromotions:', e); }
+ // p1_1044 — keputusan self-test Tanya AI (cron pagi) utk kad Pusat Amaran; ringan, latar sahaja
+ try { const { data: st } = await db.from('app_settings').select('value').eq('key','ai_selftest_last').maybeSingle(); if(st && st.value) window.__aiSelftestLast = st.value; } catch(e){}
  try { if(typeof renderPOS === 'function') renderPOS(); } catch(e){} // segar semula cashier bila data reservation/promo dah masuk
  window.__deferStaffLoadRunning = false;
  })();
@@ -32651,6 +32653,22 @@ window.__computeDeptAlerts = function(){
   title:'Produk belum set harga jual', desc:'price = 0 — produk tak boleh dijual dengan betul.',
   count:noPrice.length, rows:noPrice.slice(0,8).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
   action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
+ // H) p1_1044 — Self-test Tanya AI GAGAL (system, critical). Cron pagi tanya SKU rawak &
+ // banding jawapan AI dgn database; tak padan = AI mungkin reka data (kes BD057). Tunjuk 3 hari.
+ try {
+  const st = window.__aiSelftestLast;
+  if(st && st.status !== 'pass' && st.at && (Date.now() - new Date(st.at).getTime()) < 3*86400000){
+   const bad = (st.tests||[]).filter(t=>!t.ok);
+   out.push({ key:'ai_selftest', dept:['system'], sev:'critical', icon:'sparkles',
+    title: st.status==='fail' ? 'Tanya AI GAGAL self-test (jawapan data salah)' : 'Self-test Tanya AI ERROR (tak dapat jalan)',
+    desc:'Ujian pagi automatik ('+String(st.at).slice(0,10)+') '+(st.status==='fail'
+      ? 'jumpa jawapan AI TAK PADAN dgn database. Jangan percaya angka stok dari Tanya AI buat masa ni — maklum Zack/Bos.'
+      : 'gagal dijalankan ('+String(st.note||'').slice(0,80)+'). Semak function ai-selftest.'),
+    count: bad.length || 1,
+    rows: bad.slice(0,6).map(t=>({a:t.sku, b:'patut '+t.expect_stock+' unit'+(t.ok_stock?'':' (angka salah)')+((t.wrong_barcodes||[]).length?' + barcode reka':'')})),
+    action:null });
+  }
+ } catch(e){}
  return out;
 };
 window.__renderDeptAlerts = function(){

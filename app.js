@@ -8984,6 +8984,30 @@ window.__appDataCutoffISO = function(months){
  return d.toISOString();
 };
 
+// p1_1034 — BOOT CACHE (app mobile sahaja): simpan produk+stok terakhir dalam IndexedDB peranti.
+// Buka app → kaunter muncul SERTA-MERTA dari cache; data fresh awan menyusul & re-render senyap.
+// IndexedDB (bukan localStorage) sebab data boleh >5MB. Nota: data (incl kos) kekal dlm peranti
+// di sebalik kunci PIN app (p1_1030) — peranti syarikat sahaja.
+window.__bootCacheGet = function(){ return new Promise(function(res){ try {
+ var rq = indexedDB.open('posapp_boot', 1);
+ rq.onupgradeneeded = function(){ try { rq.result.createObjectStore('kv'); } catch(e){} };
+ rq.onsuccess = function(){ try {
+  var g = rq.result.transaction('kv','readonly').objectStore('kv').get('cache');
+  g.onsuccess = function(){ res(g.result || null); try{rq.result.close();}catch(e){} };
+  g.onerror = function(){ res(null); try{rq.result.close();}catch(e){} };
+ } catch(e){ res(null); } };
+ rq.onerror = function(){ res(null); };
+} catch(e){ res(null); } }); };
+window.__bootCacheSet = function(obj){ try {
+ var rq = indexedDB.open('posapp_boot', 1);
+ rq.onupgradeneeded = function(){ try { rq.result.createObjectStore('kv'); } catch(e){} };
+ rq.onsuccess = function(){ try {
+  var tx = rq.result.transaction('kv','readwrite');
+  tx.objectStore('kv').put(obj, 'cache');
+  tx.oncomplete = function(){ try{rq.result.close();}catch(e){} };
+ } catch(e){} };
+} catch(e){} };
+
 let __initAppCount = 0;
 async function initApp() {
  __initAppCount++;
@@ -8999,6 +9023,25 @@ async function initApp() {
  }
  try {
  console.log("Loading Cloud Omnichannel Data...");
+ // p1_1034 — CACHE-FIRST (app + staf): kalau ada cache produk+stok dari sesi lepas,
+ // render kaunter TERUS dari cache & buang splash — awan refresh di belakang (kod bawah
+ // ganti globals + render semula bila fresh sampai). Cache >7 hari diabaikan.
+ let __bootedFromCache = false;
+ if (isFirstLoad && window.__isPOSApp && window.currentUser) {
+  try {
+   const __c = await window.__bootCacheGet();
+   if (__c && Array.isArray(__c.p) && __c.p.length && Array.isArray(__c.b) && (Date.now() - (__c.t || 0)) < 7 * 86400000) {
+    masterProducts = __c.p;
+    inventoryBatches = __c.b;
+    try { renderPOS(); } catch(e){}
+    try { renderPublicStorefront(); } catch(e){}
+    if (typeof hideLoading === 'function') try { hideLoading(); } catch(e){}
+    try { window.__endAppBoot && window.__endAppBoot(); } catch(e){}
+    __bootedFromCache = true;
+    console.log('[boot-cache] kaunter dari cache (' + __c.p.length + ' produk); awan menyusul...');
+   }
+  } catch(e){}
+ }
  // p1_308 — explicit high .limit() so PostgREST's default 1000-row cap doesn't
  // silently truncate (sales_history already >4900 rows). Keeps full data loaded.
  // p1_651 (4b) — staff (authenticated) read the full base table (incl cost); public/anon read
@@ -9017,6 +9060,10 @@ async function initApp() {
  ]);
  if(__masterRes && __masterRes.data) masterProducts = __masterRes.data;
  if(__batchRes && __batchRes.data) inventoryBatches = __batchRes.data;
+ // p1_1034 — simpan snapshot fresh ke boot cache (fire-and-forget) utk launch seterusnya serta-merta.
+ if (window.__isPOSApp && window.currentUser && __masterRes && __masterRes.data && __batchRes && __batchRes.data) {
+  try { window.__bootCacheSet({ t: Date.now(), p: masterProducts, b: inventoryBatches }); } catch(e){}
+ }
  window.__mktPromos = window.__mktPromos || []; // diisi di latar (A) utk staf; anon = kosong
  // p1_773 — muat App Settings (Customization) awal: apply PIN/sasaran/kontak (fire-and-forget)
  try { window.__loadAppSettings && window.__loadAppSettings(); } catch(e){}

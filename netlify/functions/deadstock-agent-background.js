@@ -146,7 +146,9 @@ Jawab JSON SAHAJA (tiada teks lain):
             headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.8, maxOutputTokens: 1200, responseMimeType: 'application/json' }
+                // p1_1062 fix — run pertama terpotong ("Jawapan AI bukan JSON"): gemini-2.5 BERFIKIR
+                // dulu & thinking makan bajet output; 1200 tak cukup. thinkingBudget 0 + bajet besar.
+                generationConfig: { temperature: 0.8, maxOutputTokens: 4000, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } }
             })
         });
         const d = await r.json().catch(() => ({}));

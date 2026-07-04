@@ -1,6 +1,11 @@
 /**
- * staff-assistant.js — in-app AI helper for staff (p1_795 v1; p1_796 v2 = live data via tools).
- * Browser-called by logged-in staff; gated by requireStaff. OpenAI gpt-4o-mini. Monthly cost cap ~RM50.
+ * staff-assistant.js — in-app AI helper for staff (p1_795 v1; p1_796 v2 = live data via tools;
+ * p1_1041 v3 = Gemini free tier as primary brain, OpenAI fallback).
+ * Browser-called by logged-in staff; gated by requireStaff.
+ *
+ * v3 (p1_1041): PRIMARY = Google Gemini (gemini-2.5-flash, free tier = RM0/bulan) via GEMINI_API_KEY.
+ * FALLBACK = OpenAI gpt-4o-mini (only when Gemini errors/quota — still under the RM50 monthly cap).
+ * Same TOOLS + KB + safety rules for both providers. Response includes `provider` for debugging.
  *
  * v2: the model can call READ-ONLY, SAFETY-SCOPED tools (function calling). It NEVER touches the DB
  * directly. Hard rules enforced server-side: NO cost/margin/profit, NO customer PII, NO other staff's
@@ -11,9 +16,11 @@
  */
 const { requireStaff } = require('./_auth');
 
+const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = 'gemini-2.5-flash';    // free tier: cukup besar utk pasukan kecil; kos RM0
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
-const MODEL = 'gpt-4o-mini';
-const CAP_USD = 10;                 // ~RM50/month; safety backstop
+const MODEL = 'gpt-4o-mini';                // fallback sahaja
+const CAP_USD = 10;                 // ~RM50/month; safety backstop (hanya relevan bila fallback OpenAI digunakan)
 const PRICE_IN = 0.15 / 1e6, PRICE_OUT = 0.60 / 1e6;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://asehjdnfzoypbwfeazra.supabase.co';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
@@ -128,13 +135,90 @@ PENGETAHUAN SISTEM (how-to + SOP):
 - PUSAT AMARAN (Home tab "Amaran"): isu ikut bahagian. LOCENG notifikasi ada tapisan Belum baca/Penting/Semua.
 - SIAPA: Bos=Zaid (keputusan/harga/polisi). Aliff=admin/kewangan/komisen/claim. Zack=sistem/bug. Kael/Fahmi=inventory.`;
 
+// ---- p1_1041 — GEMINI (primary, free tier): loop dgn function-calling, sama tools/KB ----
+async function askGemini(systemText, history, caller) {
+    // tukar TOOLS (format OpenAI) → functionDeclarations Gemini. Fungsi tanpa parameter: omit `parameters`.
+    const decls = TOOLS.map(t => {
+        const f = t.function;
+        const d = { name: f.name, description: f.description };
+        if (f.parameters && f.parameters.properties && Object.keys(f.parameters.properties).length) d.parameters = f.parameters;
+        return d;
+    });
+    const contents = history.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+    let totIn = 0, totOut = 0;
+    for (let step = 0; step < 4; step++) {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+            method: 'POST',
+            headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: { parts: [{ text: systemText }] },
+                contents,
+                tools: [{ functionDeclarations: decls }],
+                // thinkingBudget 0 = jawab terus tanpa "berfikir" (laju utk chat staf; soalan SOP tak perlu deep reasoning)
+                generationConfig: { temperature: 0.3, maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } }
+            })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error('gemini ' + r.status + ': ' + String((d.error && d.error.message) || '').slice(0, 120));
+        const um = d.usageMetadata || {};
+        totIn += um.promptTokenCount || 0;
+        totOut += (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0);
+        const content = d.candidates && d.candidates[0] && d.candidates[0].content;
+        const parts = (content && content.parts) || [];
+        const calls = parts.filter(p => p.functionCall);
+        if (calls.length) {
+            contents.push({ role: 'model', parts });
+            const fr = [];
+            for (const c of calls) {
+                const result = await runTool(c.functionCall.name, c.functionCall.args || {}, caller);
+                fr.push({ functionResponse: { name: c.functionCall.name, response: result } });
+            }
+            contents.push({ role: 'user', parts: fr });
+            continue; // biar model baca hasil tool + jawab
+        }
+        const text = parts.map(p => p.text || '').join('').trim();
+        return { reply: text || 'Maaf, aku tak dapat jawab tu.', in_tok: totIn, out_tok: totOut };
+    }
+    return { reply: 'Maaf, soalan tu agak kompleks — cuba pecahkan atau tanya Bos/Aliff.', in_tok: totIn, out_tok: totOut };
+}
+
+// ---- OpenAI (fallback sahaja — bila Gemini error/kuota) ----
+async function askOpenAI(systemText, history, caller) {
+    const messages = [{ role: 'system', content: systemText }, ...history];
+    let totIn = 0, totOut = 0;
+    for (let step = 0; step < 4; step++) {
+        const r = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: MODEL, messages, tools: TOOLS, temperature: 0.3, max_tokens: 600 })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error('openai ' + r.status + ': ' + String((d.error && d.error.message) || '').slice(0, 120));
+        totIn += (d.usage && d.usage.prompt_tokens) || 0;
+        totOut += (d.usage && d.usage.completion_tokens) || 0;
+        const msg = d.choices && d.choices[0] && d.choices[0].message;
+        if (!msg) return { reply: 'Maaf, aku tak dapat jawab tu.', in_tok: totIn, out_tok: totOut };
+        if (msg.tool_calls && msg.tool_calls.length) {
+            messages.push(msg);
+            for (const tc of msg.tool_calls) {
+                let a = {}; try { a = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
+                const result = await runTool(tc.function.name, a, caller);
+                messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+            }
+            continue; // let the model read tool results + answer
+        }
+        return { reply: msg.content || 'Maaf, aku tak dapat jawab tu.', in_tok: totIn, out_tok: totOut };
+    }
+    return { reply: 'Maaf, soalan tu agak kompleks — cuba pecahkan atau tanya Bos/Aliff.', in_tok: totIn, out_tok: totOut };
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
     if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
 
     const auth = await requireStaff(event);
     if (!auth.ok) return auth.response;
-    if (!OPENAI_KEY) return json(500, { error: 'OPENAI_API_KEY tak set' });
+    if (!GEMINI_KEY && !OPENAI_KEY) return json(500, { error: 'tiada API key AI diset' });
 
     const callerEmail = (auth.user && auth.user.email || '').toLowerCase();
     const caller = STAFF_BY_EMAIL[callerEmail] || null;
@@ -146,59 +230,55 @@ exports.handler = async (event) => {
         .map(m => ({ role: m.role, content: String(m.content).slice(0, 2000) })).slice(-8);
     if (!history.length || history[history.length - 1].role !== 'user') return json(400, { error: 'no user message' });
 
-    // ---- monthly cost cap ----
+    // ---- monthly cost cap (hanya kos OpenAI fallback yang menambah cost_usd; Gemini free = 0) ----
     const usageKey = 'ai_usage_' + ymNow();
-    let usage = { cost_usd: 0, calls: 0, in_tok: 0, out_tok: 0 };
+    let usage = { cost_usd: 0, calls: 0, in_tok: 0, out_tok: 0, g_calls: 0, o_calls: 0 };
     try {
         const rows = await sb('GET', `/app_settings?key=eq.${usageKey}&select=value&limit=1`);
         if (rows && rows[0] && rows[0].value) usage = Object.assign(usage, rows[0].value);
     } catch (_) {}
-    if (usage.cost_usd >= CAP_USD) return json(200, { reply: 'Maaf, had penggunaan AI bulan ni dah dicapai. Cuba bulan depan, atau bagitahu Bos kalau perlu naikkan had.', capped: true });
+    const capped = usage.cost_usd >= CAP_USD; // cap hanya menyekat laluan BERBAYAR (OpenAI); Gemini free diteruskan
 
     // ---- language: follow the APP'S selected mode (window.I18N.lang), NOT the user's typing language ----
     const __lang = (body.lang === 'en') ? 'en' : 'bm';
     const __langRule = __lang === 'en'
         ? '\n\nLANGUAGE — HARD OVERRIDE (overrides any language guidance above): Reply ONLY in English, even if the user types in Malay / Manglish / mixed. Do not use Malay words.'
         : '\n\nBAHASA — WAJIB IKUT (atasi arahan bahasa lain): Jawab dalam Bahasa Melayu sahaja, walaupun pengguna menaip dalam English / campur.';
-    // ---- OpenAI loop with tool calls ----
-    const messages = [{ role: 'system', content: KB + __langRule }, ...history];
-    let reply = '', totIn = 0, totOut = 0;
+    const systemText = KB + __langRule;
+
+    // ---- Gemini dulu (free); OpenAI hanya bila Gemini gagal DAN belum capped ----
+    let out = null, provider = '', cost = 0;
     try {
-        for (let step = 0; step < 4; step++) {
-            const r = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: MODEL, messages, tools: TOOLS, temperature: 0.3, max_tokens: 600 })
-            });
-            const d = await r.json().catch(() => ({}));
-            if (!r.ok) return json(502, { error: 'AI gagal jawab', detail: (d.error && d.error.message) || r.status });
-            totIn += (d.usage && d.usage.prompt_tokens) || 0;
-            totOut += (d.usage && d.usage.completion_tokens) || 0;
-            const msg = d.choices && d.choices[0] && d.choices[0].message;
-            if (!msg) { reply = 'Maaf, aku tak dapat jawab tu.'; break; }
-            if (msg.tool_calls && msg.tool_calls.length) {
-                messages.push(msg);
-                for (const tc of msg.tool_calls) {
-                    let a = {}; try { a = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
-                    const result = await runTool(tc.function.name, a, caller);
-                    messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
-                }
-                continue; // let the model read tool results + answer
+        if (!GEMINI_KEY) throw new Error('gemini key tiada');
+        out = await askGemini(systemText, history, caller);
+        provider = 'gemini';
+    } catch (ge) {
+        if (OPENAI_KEY && !capped) {
+            try {
+                out = await askOpenAI(systemText, history, caller);
+                provider = 'openai';
+                cost = out.in_tok * PRICE_IN + out.out_tok * PRICE_OUT;
+            } catch (oe) {
+                return json(502, { error: 'AI gagal jawab', detail: String(oe.message || oe).slice(0, 150) });
             }
-            reply = msg.content || 'Maaf, aku tak dapat jawab tu.';
-            break;
+        } else if (capped) {
+            return json(200, { reply: 'Maaf, had penggunaan AI bulan ni dah dicapai. Cuba bulan depan, atau bagitahu Bos kalau perlu naikkan had.', capped: true });
+        } else {
+            return json(502, { error: 'AI gagal jawab', detail: String(ge.message || ge).slice(0, 150) });
         }
-        if (!reply) reply = 'Maaf, soalan tu agak kompleks — cuba pecahkan atau tanya Bos/Aliff.';
-    } catch (e) {
-        return json(502, { error: 'AI gagal jawab', detail: String(e.message || e).slice(0, 150) });
     }
 
     // ---- record usage ----
     try {
-        const cost = totIn * PRICE_IN + totOut * PRICE_OUT;
-        const next = { cost_usd: +(usage.cost_usd + cost).toFixed(6), calls: (usage.calls || 0) + 1, in_tok: (usage.in_tok || 0) + totIn, out_tok: (usage.out_tok || 0) + totOut, updated_at: new Date().toISOString() };
+        const next = {
+            cost_usd: +(usage.cost_usd + cost).toFixed(6), calls: (usage.calls || 0) + 1,
+            in_tok: (usage.in_tok || 0) + out.in_tok, out_tok: (usage.out_tok || 0) + out.out_tok,
+            g_calls: (usage.g_calls || 0) + (provider === 'gemini' ? 1 : 0),
+            o_calls: (usage.o_calls || 0) + (provider === 'openai' ? 1 : 0),
+            updated_at: new Date().toISOString()
+        };
         await sb('POST', '/app_settings?on_conflict=key', { key: usageKey, value: next }, { Prefer: 'resolution=merge-duplicates,return=minimal' });
     } catch (_) {}
 
-    return json(200, { reply });
+    return json(200, { reply: out.reply, provider });
 };

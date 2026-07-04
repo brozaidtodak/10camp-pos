@@ -9027,6 +9027,13 @@ async function initApp() {
 
  try { renderQuotePOS(); } catch(e){}
 
+ // PERF (p1_1032) — DEDAH cashier SEKARANG: produk + stok dah dimuat & render, kaunter dah boleh guna.
+ // Data lain (sales/customers/finance/roster) TAK perlu utk kaunter → biar menyusul di latar. Dulu splash
+ // "Memuatkan data dari awan" kekal sampai SEMUA await habis (~hujung initApp) walau cashier dah siap =
+ // lag lepas PIN. Hujung initApp masih ada hideLoading/__endAppBoot (idempotent) sbg jaring keselamatan.
+ if (isFirstLoad && typeof hideLoading === 'function') { try { hideLoading(); } catch(e){} }
+ try { if(__wasAuthedAtStart && typeof window.__endAppBoot === 'function') window.__endAppBoot(); } catch(e){}
+
  // PERF (A) — muat data staf bukan-kritikal di LATAR (non-blocking) selepas cashier siap render.
  // Dulu 6 benda ni disekat SEBELUM render (~6 round-trip bersiri = lag lepas PIN). Sekarang
  // kaunter keluar dulu, data ni menyusul dalam 1-2s. loadPosV2 render sendiri seksyen PO-nya;
@@ -9069,6 +9076,9 @@ async function initApp() {
  }
  if(custs && custs.length) customersData = custs;
  if(finRes && finRes.data) financeRecords = finRes.data;
+ // p1_1032 — cashier dah didedah awal (produk+stok); segar semula bila sales/customers masuk
+ // supaya banner Sasaran Jualan + VIP lookup betul (bukan 0 sekejap).
+ try { if(typeof renderPOS === 'function') renderPOS(); } catch(e){}
  }
  // p3_10/p1_324: refresh fulfillment KPIs + sidebar badge once orders loaded
  if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }

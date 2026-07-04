@@ -15,6 +15,7 @@ const TARGETS = [
   { file: 'app.js',            loader: 'js'  },
   { file: 'roadmap-data.js',   loader: 'js'  }, // p1_1023 — lazy-loaded, tapi besar; minify jugak
   { file: 'marketing.js',      loader: 'js'  }, // p1_1027 — lazy-loaded Marketing module; minify jugak
+  { file: 'backoffice-dash.js', loader: 'js' }, // p1_1036 — lazy-loaded back-office dashboards; minify jugak
   { file: 'design-tokens.css', loader: 'css' },
   { file: 'style.css',         loader: 'css' },
 ];

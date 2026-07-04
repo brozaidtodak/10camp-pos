@@ -44,14 +44,30 @@
 <div class="card">
  <div class="brand">10 CAMP REWARDS<small>PROGRAM GANJARAN PELANGGAN</small></div>
 
- <!-- STEP 1: EMAIL -->
+ <!-- STEP 1: EMAIL (login) -->
  <div class="panel" id="stepEmail">
  <h2>Semak Mata &amp; Ganjaran</h2>
- <div class="sub">Masukkan email yang anda guna semasa membeli. Kami hantar kod 6-digit untuk sahkan.</div>
+ <div class="sub">Masukkan email yang anda guna semasa membeli. Kami hantar kod 6-digit untuk sahkan — tiada password diperlukan.</div>
  <label>Email</label>
  <input type="email" id="email" inputmode="email" autocomplete="email" placeholder="nama@email.com">
  <button class="btn" id="sendBtn" onclick="sendCode()">Hantar Kod</button>
+ <button class="btn-ghost" onclick="openSignup()">Customer baru? Daftar akaun</button>
  <div class="err" id="errEmail"></div>
+ </div>
+
+ <!-- p1_1059 — STEP 1B: SIGN UP (customer baru) -->
+ <div class="panel hidden" id="stepSignup">
+ <h2>Daftar 10 CAMP Rewards</h2>
+ <div class="sub">Isi maklumat anda — kami hantar kod ke email untuk sahkan. Kumpul mata setiap kali membeli (RM10 = 1 mata).</div>
+ <label>Nama</label>
+ <input type="text" id="suName" autocomplete="name" placeholder="Nama penuh" style="margin-bottom:12px;">
+ <label>No. Telefon</label>
+ <input type="tel" id="suPhone" inputmode="tel" autocomplete="tel" placeholder="0123456789" style="margin-bottom:12px;">
+ <label>Email</label>
+ <input type="email" id="suEmail" inputmode="email" autocomplete="email" placeholder="nama@email.com">
+ <button class="btn" id="signupBtn" onclick="doSignup()">Daftar &amp; Hantar Kod</button>
+ <button class="btn-ghost" onclick="show('stepEmail')">&larr; Dah ada akaun? Log masuk</button>
+ <div class="err" id="errSignup"></div>
  </div>
 
  <!-- STEP 2: CODE -->
@@ -72,8 +88,10 @@
 <script>
  var API = '/.netlify/functions/loyalty-otp';
  var curEmail = '';
+ var SESS_KEY = 'loy_sess'; // p1_1059 — token kekal-login 90 hari
  function $(id){ return document.getElementById(id); }
- function show(id){ ['stepEmail','stepCode','stepDash'].forEach(function(s){ $(s).classList.toggle('hidden', s!==id); }); }
+ function show(id){ ['stepEmail','stepSignup','stepCode','stepDash'].forEach(function(s){ $(s).classList.toggle('hidden', s!==id); }); }
+ function openSignup(){ var e=($('email').value||'').trim(); if(e) $('suEmail').value = e; show('stepSignup'); setTimeout(function(){ $('suName').focus(); }, 100); }
  function tierOf(spent){ spent = Number(spent)||0; if(spent>=3000) return {name:'VIP',pct:10,bg:'#3b2a52',color:'#D8B4FE'}; if(spent>=1000) return {name:'Silver',pct:5,bg:'#2a3340',color:'#CBD5E1'}; return {name:'Bronze',pct:3,bg:'#3a2c14',color:'#F0C896'}; }
  var REDEEMS = {
  Bronze: [['Diskaun 3% (auto)','Percuma'],['Voucher RM5','50 mata'],['Free gift kecil','30 mata']],
@@ -95,11 +113,38 @@
  $('sendBtn').disabled = true; $('sendBtn').textContent = 'Menghantar…';
  try {
  var d = await post({ action:'send', email: email });
+ // p1_1059 — email belum berdaftar → terus buka borang daftar (prefill email)
+ if(d && d.not_found){
+ $('suEmail').value = email;
+ show('stepSignup');
+ $('errSignup').textContent = 'Email ni belum berdaftar — isi maklumat untuk daftar.';
+ setTimeout(function(){ $('suName').focus(); }, 100);
+ } else {
  curEmail = email;
  $('emailEcho').textContent = email;
  show('stepCode'); setTimeout(function(){ $('code').focus(); }, 100);
+ }
  } catch(e){ $('errEmail').textContent = 'Ralat rangkaian. Cuba lagi.'; }
  $('sendBtn').disabled = false; $('sendBtn').textContent = 'Hantar Kod';
+ }
+
+ // p1_1059 — daftar customer baru (profil pending server-side; OTP sahkan email; verify cipta akaun)
+ async function doSignup(){
+ var name = ($('suName').value||'').trim();
+ var phone = ($('suPhone').value||'').trim();
+ var email = ($('suEmail').value||'').trim().toLowerCase();
+ $('errSignup').textContent = '';
+ if(name.length < 2){ $('errSignup').textContent = 'Nama terlalu pendek.'; return; }
+ if(phone.replace(/\D/g,'').length < 9){ $('errSignup').textContent = 'No. telefon tak sah.'; return; }
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $('errSignup').textContent = 'Email tak sah.'; return; }
+ $('signupBtn').disabled = true; $('signupBtn').textContent = 'Menghantar…';
+ try {
+ var d = await post({ action:'signup', name:name, phone:phone, email:email });
+ if(d && d.exists){ $('email').value = email; show('stepEmail'); $('errEmail').textContent = 'Email dah berdaftar — terus log masuk.'; }
+ else if(d && d.ok){ curEmail = email; $('emailEcho').textContent = email; show('stepCode'); setTimeout(function(){ $('code').focus(); }, 100); }
+ else { $('errSignup').textContent = (d && d.error) || 'Ralat. Cuba lagi.'; }
+ } catch(e){ $('errSignup').textContent = 'Ralat rangkaian. Cuba lagi.'; }
+ $('signupBtn').disabled = false; $('signupBtn').textContent = 'Daftar & Hantar Kod';
  }
 
  async function verifyCode(){
@@ -109,7 +154,11 @@
  $('verifyBtn').disabled = true; $('verifyBtn').textContent = 'Menyemak…';
  try {
  var d = await post({ action:'verify', email: curEmail, code: code });
- if(d && d.ok){ renderDash(d.customer, d.purchases||[]); show('stepDash'); }
+ if(d && d.ok){
+ // p1_1059 — simpan sesi 90 hari: lain kali buka, terus masuk tanpa OTP
+ try { if(d.session_token) localStorage.setItem(SESS_KEY, d.session_token); } catch(e){}
+ renderDash(d.customer, d.purchases||[]); show('stepDash');
+ }
  else { $('errCode').textContent = (d && d.error) || 'Kod salah.'; }
  } catch(e){ $('errCode').textContent = 'Ralat rangkaian. Cuba lagi.'; }
  $('verifyBtn').disabled = false; $('verifyBtn').textContent = 'Sahkan';
@@ -139,8 +188,20 @@
  + '<div class="sec-title">Ganjaran tier '+t.name+'</div>' + rewardsHtml
  + '<div class="note" style="margin-top:10px;">Untuk tebus voucher / free gift, tunjuk skrin ni pada staf di kedai. Diskaun '+t.pct+'% dikira automatik masa bayar.</div>'
  + '<div class="sec-title">Pembelian terkini</div>' + pHtml
- + '<button class="btn-ghost" style="margin-top:18px;" onclick="location.reload()">Log keluar</button>';
+ + '<button class="btn-ghost" style="margin-top:18px;" onclick="try{localStorage.removeItem(\'loy_sess\');}catch(e){} location.reload()">Log keluar</button>';
  }
+
+ // p1_1059 — kekal login: kalau ada sesi tersimpan, terus masuk (tiada OTP)
+ (async function(){
+ var tok = null;
+ try { tok = localStorage.getItem(SESS_KEY); } catch(e){}
+ if(!tok) return;
+ try {
+ var d = await post({ action:'session', token: tok });
+ if(d && d.ok){ renderDash(d.customer, d.purchases||[]); show('stepDash'); }
+ else { try { localStorage.removeItem(SESS_KEY); } catch(e){} }
+ } catch(e){ /* rangkaian gagal — biar borang email */ }
+ })();
 
  // Enter key shortcuts
  document.addEventListener('keydown', function(e){

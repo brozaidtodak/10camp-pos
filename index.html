@@ -2055,9 +2055,10 @@
  <div class="menu-item" data-tab="nav_sys_barcode" onclick="event.stopPropagation(); switchHub(['barcodeSection'], 'Barcode Generator', this);" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="printer" style="width:15px; height:15px;"></i> <span>Barcode Generator</span>
  </div>
- <div class="menu-item mgmt-only" data-tab="nav_backfill_order" onclick="event.stopPropagation(); switchHub(['backfillOrderSection'], 'Backfill Order', this); if(typeof renderBackfillOrder==='function') renderBackfillOrder();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="database-backup" style="width:15px; height:15px;"></i> <span>Backfill Order</span>
- </div>
+ <!-- p1_1048 — Backfill Order DIBUANG dari sidebar (Zaid: "perlu ke?"). Tool SEMENTARA p1_849
+      (backfill batch dari PO-DO); input dah KOSONG (0 rekod PO-DO dlm DB) = tiada kerja boleh buat.
+      Kod + section KEKAL dorman (renderBackfillOrder / backfillOrderSection) — kalau projek
+      backfill DO 2025/26 jadi nanti, pulihkan menu-item di sini semula. -->
  </div>
  <div class="nav-section-label">Pemasaran</div>
  <!-- p1_280 — Messages parent (collapsible) -->
@@ -13494,7 +13495,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1031"></script>
+ <script src="app.js?v=1032"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

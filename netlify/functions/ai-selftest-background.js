@@ -1,5 +1,10 @@
 /**
- * ai-selftest.js — ujian automatik Tanya AI lawan database (p1_1044).
+ * ai-selftest-background.js — ujian automatik Tanya AI lawan database (p1_1044).
+ *
+ * NOTA "-background": fungsi sync Netlify ada had ~10s — 3 soalan AI berturut kadang lebih
+ * (disahkan: run manual awal kena bunuh separuh jalan). Suffix -background = had 15 MINIT.
+ * Trade-off: respons HTTP jadi 202 kosong serta-merta — keputusan SENTIASA baca dari
+ * app_settings ai_selftest_last (bukan dari respons).
  *
  * KENAPA: Zack tangkap Tanya AI reka data stok (BD057, p1_1043). Fix dah masuk (paksa tool call),
  * tapi kita nak JARING KESELAMATAN kekal: tiap pagi sistem sendiri tanya beberapa SKU rawak

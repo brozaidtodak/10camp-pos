@@ -32655,9 +32655,16 @@ window.__computeDeptAlerts = function(){
   action:{label:'Kalkulator Harga', onclick:"document.querySelector('[data-tab=nav_sys_calc]')?.click()"} });
  // H) p1_1044 — Self-test Tanya AI GAGAL (system, critical). Cron pagi tanya SKU rawak &
  // banding jawapan AI dgn database; tak padan = AI mungkin reka data (kes BD057). Tunjuk 3 hari.
+ // H2) Senyap pun dibendera: keputusan terakhir > 2 hari = ujian tak jalan (cron mati / function
+ // rosak) — senyap BUKAN bermaksud selamat.
  try {
   const st = window.__aiSelftestLast;
-  if(st && st.status !== 'pass' && st.at && (Date.now() - new Date(st.at).getTime()) < 3*86400000){
+  if(st && st.at && (Date.now() - new Date(st.at).getTime()) > 2*86400000){
+   out.push({ key:'ai_selftest_stale', dept:['system'], sev:'warn', icon:'sparkles',
+    title:'Self-test Tanya AI tak jalan 2+ hari', desc:'Keputusan terakhir '+String(st.at).slice(0,10)+'. Cron pagi mungkin tak fire atau function rosak — semak ai-selftest-background / maklum Zack.',
+    count:1, rows:[], action:null });
+  }
+  else if(st && st.status !== 'pass' && st.at && (Date.now() - new Date(st.at).getTime()) < 3*86400000){
    const bad = (st.tests||[]).filter(t=>!t.ok);
    out.push({ key:'ai_selftest', dept:['system'], sev:'critical', icon:'sparkles',
     title: st.status==='fail' ? 'Tanya AI GAGAL self-test (jawapan data salah)' : 'Self-test Tanya AI ERROR (tak dapat jalan)',

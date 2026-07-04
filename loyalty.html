@@ -93,10 +93,12 @@
  function show(id){ ['stepEmail','stepSignup','stepCode','stepDash'].forEach(function(s){ $(s).classList.toggle('hidden', s!==id); }); }
  function openSignup(){ var e=($('email').value||'').trim(); if(e) $('suEmail').value = e; show('stepSignup'); setTimeout(function(){ $('suName').focus(); }, 100); }
  function tierOf(spent){ spent = Number(spent)||0; if(spent>=3000) return {name:'VIP',pct:10,bg:'#3b2a52',color:'#D8B4FE'}; if(spent>=1000) return {name:'Silver',pct:5,bg:'#2a3340',color:'#CBD5E1'}; return {name:'Bronze',pct:3,bg:'#3a2c14',color:'#F0C896'}; }
+ // p1_1060 — skim baru (walk-in sahaja; tiada gateway online): diskaun pada ITEM TERPILIH
+ // + baju percuma Silver/VIP 1×/tahun. Voucher/gift lama dibuang.
  var REDEEMS = {
- Bronze: [['Diskaun 3% (auto)','Percuma'],['Voucher RM5','50 mata'],['Free gift kecil','30 mata']],
- Silver: [['Diskaun 5% (auto)','Percuma'],['Voucher RM20','150 mata'],['Free penghantaran / item','80 mata']],
- VIP:    [['Diskaun 10% (auto)','Percuma'],['Voucher RM50','300 mata'],['Free gift premium','250 mata']]
+ Bronze: [['Diskaun 3% — item terpilih','Di kedai']],
+ Silver: [['Diskaun 5% — item terpilih','Di kedai'],['Baju eksklusif percuma','1×/tahun · saiz terhad']],
+ VIP:    [['Diskaun 10% — item terpilih','Di kedai'],['Baju eksklusif percuma','1×/tahun · saiz terhad']]
  };
  function fmtRM(n){ return 'RM ' + (Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0}); }
  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -186,7 +188,7 @@
  + '</div>'
  + progress
  + '<div class="sec-title">Ganjaran tier '+t.name+'</div>' + rewardsHtml
- + '<div class="note" style="margin-top:10px;">Untuk tebus voucher / free gift, tunjuk skrin ni pada staf di kedai. Diskaun '+t.pct+'% dikira automatik masa bayar.</div>'
+ + '<div class="note" style="margin-top:10px;">Ganjaran ditebus di kedai 10 CAMP Cyberjaya sahaja (walk-in). Tunjuk skrin ni pada staf — diskaun '+t.pct+'% diberi pada item terpilih masa bayar; baju percuma ikut stok saiz yang ada.</div>'
  + '<div class="sec-title">Pembelian terkini</div>' + pHtml
  + '<button class="btn-ghost" style="margin-top:18px;" onclick="try{localStorage.removeItem(\'loy_sess\');}catch(e){} location.reload()">Log keluar</button>';
  }

@@ -385,10 +385,17 @@ window.LOYALTY_TIERS = [
  { key:'silver', name:'Silver', min:1000, autoPct:5,  color:'#374151', bg:'#E5E7EB' },
  { key:'bronze', name:'Bronze', min:0,    autoPct:3,  color:'#8A5A1E', bg:'#F6E9D6' }
 ];
+// p1_1060 — SKIM GANJARAN BARU (Zaid, 5 Jul): tiada payment gateway online → ganjaran WALK-IN
+// sahaja. Diskaun tier hanya pada ITEM TERPILIH = item yang margin semasa >= minMargin (lindung
+// margin; sistem kira sendiri dari cost_price). Baju percuma Silver/VIP = 1×/TAHUN, saiz terhad,
+// staf rekod di panel checkout (table loyalty_shirt_claims, unique customer+tahun).
+// Voucher RM / free gift LAMA DIBUANG (tak realistik tanpa gateway).
 window.LOYALTY_REDEEMS = {
- bronze: [ { type:'disc', label:'Diskaun 3% (Bronze)', pct:3, cost:0 }, { type:'voucher', label:'Voucher RM5', rm:5, cost:50 }, { type:'gift', label:'Free gift kecil (sticker/keychain)', cost:30 } ],
- silver: [ { type:'disc', label:'Diskaun 5% (Silver)', pct:5, cost:0 }, { type:'voucher', label:'Voucher RM20', rm:20, cost:150 }, { type:'gift', label:'Free penghantaran / item kecil', cost:80 } ],
- vip:    [ { type:'disc', label:'Diskaun 10% (VIP)', pct:10, cost:0 }, { type:'voucher', label:'Voucher RM50', rm:50, cost:300 }, { type:'gift', label:'Free gift premium (headlamp/botol)', cost:250 } ]
+ bronze: [ { type:'tier_disc', label:'Diskaun 3% — item terpilih', pct:3, minMargin:35, cost:0 } ],
+ silver: [ { type:'tier_disc', label:'Diskaun 5% — item terpilih', pct:5, minMargin:40, cost:0 },
+           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 } ],
+ vip:    [ { type:'tier_disc', label:'Diskaun 10% — item terpilih', pct:10, minMargin:45, cost:0 },
+           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 } ]
 };
 // Tier ikut total_spent (senarai disusun tinggi→rendah; ambil yang pertama layak)
 window.__custTier = function(totalSpent){
@@ -439,6 +446,49 @@ window.__cpApplyRedeem = function(idx){
  if(!r) return;
  const avail = window.__custPointsAvail(match);
  if(r.cost > 0 && avail < r.cost){ if(typeof showToast === 'function') showToast('Mata tak cukup — perlu ' + r.cost + ', ada ' + avail + '.', 'warn'); return; }
+ // p1_1060 — semua ganjaran tier = WALK-IN sahaja (tiada gateway online)
+ if(r.type === 'tier_disc' || r.type === 'shirt'){
+ const ch = (document.getElementById('cpChannel') || {}).value || 'POS Cashier';
+ if(ch !== 'POS Cashier'){ if(typeof showToast === 'function') showToast('Ganjaran tier untuk WALK-IN sahaja (channel POS Cashier).', 'warn'); return; }
+ }
+ if(r.type === 'tier_disc'){
+ // p1_1060 — diskaun HANYA pada item terpilih = margin semasa >= minMargin (kira dari cost_price).
+ // Item tiada kos / margin nipis TAK layak — lindung margin (arahan Zaid: VIP 45 / Silver 40 / Bronze 35).
+ const costMap = {};
+ (Array.isArray(masterProducts) ? masterProducts : []).forEach(p => { if(p.sku) costMap[String(p.sku).toUpperCase()] = parseFloat(p.cost_price || 0) || 0; });
+ let eligibleTotal = 0, eligibleCount = 0, skipCount = 0;
+ (Array.isArray(cart) ? cart : []).forEach(it => {
+ const price = Number(it.price) || 0, qty = Number(it.quantity) || 0;
+ const cost = costMap[String(it.sku || '').toUpperCase()] || 0;
+ const margin = (price > 0 && cost > 0) ? ((price - cost) / price * 100) : -1;
+ if(margin >= (r.minMargin || 0)) { eligibleTotal += price * qty; eligibleCount++; }
+ else skipCount++;
+ });
+ if(eligibleCount === 0){ if(typeof showToast === 'function') showToast('Tiada item dalam troli layak (margin bawah ' + r.minMargin + '% / tiada kos). Diskaun tier tak boleh diberi.', 'warn'); return; }
+ const discRm = round2(eligibleTotal * (r.pct || 0) / 100);
+ const dt = document.getElementById('cpDiscType'); if(dt) dt.value = 'rm';
+ const da = document.getElementById('cpDiscAmt'); if(da) da.value = discRm.toFixed(2);
+ const dr = document.getElementById('cpDiscReason'); if(dr) dr.value = 'Diskaun tier ' + r.pct + '% — ' + eligibleCount + ' item layak (walk-in)';
+ window.__pendingRedeem = { customer_id: match.id, tier: tk, idx: idx, type: r.type, label: r.label, cost: 0, rm: discRm, pct: r.pct || 0 };
+ if(typeof cpRecomputeTotal === 'function') cpRecomputeTotal();
+ if(typeof window.cpVipLookup === 'function') window.cpVipLookup();
+ if(typeof showToast === 'function') showToast('Diskaun ' + r.pct + '%: ' + eligibleCount + ' item layak → −RM ' + discRm.toFixed(2) + (skipCount ? ' (' + skipCount + ' item tak layak)' : ''), 'success');
+ return;
+ }
+ if(r.type === 'shirt'){
+ // p1_1060 — rekod claim baju: 1×/TAHUN per customer (unique DB), tiada kesan harga
+ (async function(){
+ try {
+ const yr = new Date().getFullYear();
+ const { data: ex } = await db.from('loyalty_shirt_claims').select('id,claimed_at').eq('customer_id', match.id).eq('claim_year', yr).limit(1);
+ if(ex && ex.length){ if(typeof showToast === 'function') showToast((match.name || 'Customer') + ' dah claim baju tahun ' + yr + ' (' + new Date(ex[0].claimed_at).toLocaleDateString('en-MY') + ').', 'warn'); return; }
+ const { error } = await db.from('loyalty_shirt_claims').insert([{ customer_id: match.id, claim_year: yr, tier: tk, staff_name: (window.currentUser || {}).name || 'Unknown' }]);
+ if(error) throw error;
+ if(typeof showToast === 'function') showToast('Claim baju ' + yr + ' direkod untuk ' + (match.name || 'customer') + ' — serahkan baju (saiz terhad, ikut stok).', 'success');
+ } catch(e){ if(typeof showToast === 'function') showToast('Gagal rekod claim: ' + e.message, 'error'); }
+ })();
+ return;
+ }
  if(r.type === 'disc'){
  const dt = document.getElementById('cpDiscType'); if(dt) dt.value = 'pct';
  const da = document.getElementById('cpDiscAmt'); if(da) da.value = r.pct;
@@ -41545,7 +41595,7 @@ window.renderPointsMembership = function(){
 
  sec.innerHTML = `
   <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="star" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i> Points &amp; Membership</h2>
-  <p class="soft-note">Cara sistem ganjaran 10 CAMP berfungsi. Tier ditentukan ikut <strong>jumlah belanja seumur hidup</strong> pelanggan. Diskaun ikut tier diberi automatik; voucher &amp; hadiah guna mata.</p>
+  <p class="soft-note">Cara sistem ganjaran 10 CAMP berfungsi (p1_1060). Tier ikut <strong>jumlah belanja seumur hidup</strong>. <strong>Ganjaran untuk WALK-IN sahaja</strong> (tiada gateway online): diskaun tier diberi pada <strong>item terpilih sahaja</strong> — sistem kira margin setiap item di panel checkout, hanya item cukup margin dapat diskaun (VIP 10% / Silver 5% / Bronze 3%). Baju percuma Silver &amp; VIP = <strong>1×/tahun, saiz terhad</strong> — rekod claim di panel checkout (butang dlm banner tier).</p>
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin:6px 0 16px;">
    <div class="stat-card"><div style="font-size:12px; color:var(--text-muted,#6B7280);">Kadar Mata</div><div style="font-size:22px; font-weight:900;">RM${rate} = 1 mata</div></div>
    <div class="stat-card"><div style="font-size:12px; color:var(--text-muted,#6B7280);">Jumlah Ahli</div><div style="font-size:22px; font-weight:900;">${custs.length.toLocaleString()}</div></div>

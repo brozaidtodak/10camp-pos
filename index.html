@@ -2468,7 +2468,7 @@
  <span id="mwMessage">Margin Watcher: <strong>0</strong> SKU dijual bawah floor price dalam 24 jam terakhir.</span>
  </div>
  <div style="display:flex; gap:8px; align-items:center;">
- <button onclick="document.querySelector('[data-tab=inv_floorprice]')?.click(); window.__mwDismiss();" style="background:#FFF; color:#7C2A20; border:1px solid #E0B3A9; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-right" style="width:12px; height:12px;"></i> Tengok Detail</button>
+ <button onclick="window.__calcShow && window.__calcShow('harga'); window.__mwDismiss();" style="background:#FFF; color:#7C2A20; border:1px solid #E0B3A9; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-right" style="width:12px; height:12px;"></i> Tengok Detail</button>
  <button onclick="window.__mwDismiss()" title="Dismiss" style="background:none; border:none; color:#7C2A20; cursor:pointer; padding:4px;"><i data-lucide="x" style="width:14px; height:14px;"></i></button>
  </div>
  </div>
@@ -2883,7 +2883,7 @@
  <p style="margin:0 0 14px; font-size:12.5px; color:var(--neutral-500);" data-i18n="dash_overview_combined_empty_sub">Tiada memo aktif & jadual belum ditetapkan untuk hari ni.</p>
  <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
  <button onclick="document.querySelector('[data-tab=memo_board]')?.click();" style="padding:6px 14px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_memo">Hantar Memo</button>
- <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="padding:6px 14px; background:#fff; color:var(--primary); border:1px solid var(--primary); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_roster">Tetap Jadual</button>
+ <button onclick="document.querySelector('[data-tab=hr_roster]')?.click();" style="padding:6px 14px; background:#fff; color:var(--primary); border:1px solid var(--primary); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;" data-i18n="dash_overview_combined_action_roster">Tetap Jadual</button>
  </div>
  </div>
  <div class="dash-overview-row" style="margin-bottom:var(--space-4);">
@@ -2906,7 +2906,7 @@
  <i data-lucide="calendar-days" style="width:16px; height:16px; color:#CD7C32;"></i>
  <span data-i18n="dash_overview_roster_title">Jadual</span> <span id="dashOverviewRosterDate" style="font-weight:400; color:var(--neutral-500); font-size:12px;"></span>
  </h3>
- <button onclick="(document.querySelector('[data-tab=hr_roster]') || document.querySelector('[data-tab=roster]'))?.click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_roster_view">Lihat penuh</button>
+ <button onclick="document.querySelector('[data-tab=hr_roster]')?.click();" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; text-decoration:underline;" data-i18n="dash_overview_roster_view">Lihat penuh</button>
  </div>
  <div id="dashOverviewRosterList" style="display:flex; flex-direction:column; gap:6px; padding:8px 0;">
  <p style="font-size:12.5px; color:var(--neutral-500); margin:0; padding:12px 0; text-align:center;" data-i18n="dash_overview_roster_empty">Jadual belum ditetapkan untuk hari ni.</p>

@@ -59,6 +59,73 @@ const changedAssets = /\n\+\+\+ b\/(app\.js|design-tokens\.css|style\.css)/.test
 const bumped = /[-+][^\n]*\.(js|css)\?v=\d+/.test(diff);
 if (changedAssets && !bumped) warns.push('app.js/CSS berubah tapi nampak tiada bump ?v= dalam index.html — sahkan cache-bust.');
 
+// 4) p1_1049 — ANTI-HABUK (penuh-fail, baseline bersih sejak p1_1047/1045):
+//    kelas bug yang audit Jul 2026 jumpa — tangkap masa push, bukan masa staf komplen.
+const fs = require('fs');
+let appSrc = '', htmlSrc = '';
+try { appSrc = fs.readFileSync('app.js', 'utf8'); htmlSrc = fs.readFileSync('index.html', 'utf8'); } catch (e) {}
+
+// 4a) BUTANG LOMPAT MATI — semua rujukan programatik [data-tab=X] mesti sasar data-tab yang wujud.
+//     (p1_1047: 4 butang mati selepas restruktur sidebar p1_816 — loceng amaran, Review, Buka Report, Buka Inventory)
+if (appSrc && htmlSrc) {
+ const defined = new Set();
+ (htmlSrc.match(/data-tab="([a-z_0-9]+)"/g) || []).forEach(m => defined.add(m.slice(10, -1)));
+ const refRe = /\[data-tab=\\?["']?([a-z_0-9]+)\\?["']?\]/g;
+ const seen = new Set();
+ let m;
+ for (const src of [appSrc, htmlSrc]) {
+  refRe.lastIndex = 0;
+  while ((m = refRe.exec(src)) !== null) {
+   const t = m[1];
+   if (seen.has(t)) continue; seen.add(t);
+   if (!defined.has(t)) failures.push(`Butang lompat MATI: rujukan [data-tab=${t}] tapi tiada elemen data-tab="${t}" dalam index.html`);
+  }
+ }
+}
+
+// 4b) I18N-WIPE — data-i18n pada elemen yang ada ANAK ber-id dinamik (bukan jiran sebaris).
+//     applyI18N buat textContent=val → anak dipadam (p1_1045: total BAYAR SEKARANG lenyap sejak p1_947).
+//     Parse ringkas: dari tag pembuka data-i18n, cari </tagNama> padanan dlm baris sama —
+//     hanya flag kalau ada <x id="..."> DI ANTARA pembuka dan penutup (= anak sebenar).
+if (htmlSrc) {
+ htmlSrc.split('\n').forEach((line, i) => {
+  if (isComment(line)) return;
+  let from = 0;
+  while (true) {
+   const di = line.indexOf('data-i18n="', from);
+   if (di === -1) break;
+   from = di + 11;
+   const openStart = line.lastIndexOf('<', di);
+   if (openStart === -1) continue;
+   const tagM = /^<([a-z0-9]+)/.exec(line.slice(openStart));
+   if (!tagM) continue;
+   const tag = tagM[1];
+   const openEnd = line.indexOf('>', di);
+   if (openEnd === -1) continue;
+   const closeIdx = line.indexOf('</' + tag, openEnd);
+   if (closeIdx === -1) continue; // tutup di baris lain — skip (elak false positive multi-baris)
+   const inner = line.slice(openEnd + 1, closeIdx);
+   if (/<[a-z]+ [^>]*id="/.test(inner)) {
+    failures.push(`i18n-wipe risk index.html:${i + 1}: data-i18n pada <${tag}> yang ada ANAK ber-id (applyI18N akan padam anak) — pindahkan data-i18n ke span label`);
+   }
+  }
+ });
+}
+
+// 4c) SECTION YATIM (warning sahaja) — id="xxxSection" yang TIADA rujukan lain di mana-mana.
+//     Allowlist = dorman sengaja (kod kekal, menu dibuang).
+const ORPHAN_OK = new Set(['backfillOrderSection']); // p1_1048 — dorman sengaja utk backfill DO 2025/26
+if (appSrc && htmlSrc) {
+ const secs = new Set();
+ (htmlSrc.match(/id="([A-Za-z0-9]+Section)"/g) || []).forEach(s => secs.add(s.slice(4, -1)));
+ secs.forEach(sec => {
+  if (ORPHAN_OK.has(sec)) return;
+  const inApp = appSrc.split(sec).length - 1;
+  const inHtml = htmlSrc.split(sec).length - 1; // 1 = definisi sendiri
+  if (inApp === 0 && inHtml <= 1) warns.push(`Section yatim: ${sec} tiada laluan masuk (tiada rujukan) — habuk? Atau tambah ke ORPHAN_OK kalau dorman sengaja.`);
+ });
+}
+
 // Report
 console.log('POS Guardian (mekanikal) — ' + (process.env.GITHUB_SHA || 'local'));
 if (warns.length) { console.log('\nAMARAN:'); warns.forEach(w => console.log('  - ' + w)); }

@@ -172,6 +172,9 @@ Jawab JSON SAHAJA (tiada teks lain):
             let adjusted = false;
             if (!(price > 0) || price >= origTotal) { price = Math.round(origTotal * 0.88 * 10) / 10; adjusted = true; }   // default ~12% diskaun
             const floorPrice = cost > 0 ? cost / (1 - FLOOR_MARGIN / 100) : 0;
+            // p1_1062 fix — combo yang TAK BOLEH didiskaun langsung (lantai margin >= jumlah harga asal)
+            // = bukan tawaran (bundle lebih mahal dari beli asing, mengarut) → GUGUR, jangan laras naik.
+            if (cost > 0 && floorPrice >= origTotal * 0.98) continue;
             if (cost > 0 && price < floorPrice) { price = Math.ceil(floorPrice); adjusted = true; }                        // kuatkuasa lantai margin
             const marginPct = price > 0 && cost > 0 ? Math.round((price - cost) / price * 100) : null;
             const payload = {

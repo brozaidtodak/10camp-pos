@@ -677,7 +677,7 @@ window.showToast = function(msg, type) {
   apps: function(){ const el = document.querySelector('[data-tab="nav_apps"]'); if(el) return el.click(); try { if(typeof switchHub === 'function') switchHub(['appsSection'], 'Apps', null); if(typeof window.renderApps === 'function') window.renderApps(); } catch(e){} },
   invoice: function(){ const el = document.querySelector('[data-tab="admin_invoice"]'); if(el) return el.click(); try { if(typeof switchHub === 'function') switchHub(['invoiceSection'], 'Invoice & Quotation', null); } catch(e){} },
   bulkedit: function(){ const el = document.querySelector('[data-tab="admin_bulk_ops"]'); if(el) return el.click(); try { if(typeof switchHub === 'function') switchHub(['bulkOpsSection'], 'Bulk Product Edit', null); if(typeof window.renderBulkOps === 'function') window.renderBulkOps(); } catch(e){} },
-  amaran: function(){ const el = document.querySelector('[data-ov-tab="aim"]'); const home = document.querySelector('[data-tab="homeTab"]') || document.querySelector('[data-tab="nav_overview"]'); if(home) home.click(); try { if(window.__ovTab) window.__ovTab('aim'); } catch(e){} }
+  amaran: function(){ const el = document.querySelector('[data-ov-tab="aim"]'); const home = document.querySelector('[data-tab="overview"]'); if(home) home.click(); try { if(window.__ovTab) window.__ovTab('aim'); } catch(e){} } // p1_1047 — dulu sasar homeTab/nav_overview (dua-dua TAK wujud) = butang mati
  };
  // ESC closes panel
  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openState) api.close(); });
@@ -5332,7 +5332,7 @@ window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
  <td style="font-size:12px;"><strong>${r.period_start} → ${r.period_end}</strong></td>
  <td style="font-size:12px;">${escAttr(r.submitted_by_name)}</td>
  <td style="text-align:right; font-size:12px;">${r.items_variance} items / ${fmtRM(r.rm_variance)}</td>
- <td><button class="sy-btn fin-btn--gold" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=inv_stockcheck]')?.click()">Review →</button></td>
+ <td><button class="sy-btn fin-btn--gold" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=nav_sys_stocktake]')?.click()">Review →</button><!-- p1_1047: inv_stockcheck dah tak wujud --></td>
  </tr>`).join('')}
  </tbody>
  </table>
@@ -5357,7 +5357,7 @@ window.__rpRenderSysmgmtTemplate = async function(body, u, range) {
  </div>
  <div class="rp-kpi">
  <div class="rp-kpi__lbl">Tindakan</div>
- <div class="rp-kpi__val" style="font-size:13px;"><button class="sy-btn secondary" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=inv_pricehistory]')?.click()">Buka Report →</button></div>
+ <div class="rp-kpi__val" style="font-size:13px;"><button class="sy-btn secondary" style="font-size:11px; padding:5px 10px;" onclick="document.querySelector('[data-tab=nav_sys_pricehistory]')?.click()">Buka Report →</button><!-- p1_1047: inv_pricehistory dah tak wujud --></div>
  </div>
  </div>
  ${priceChanges.length > 0 ? `
@@ -32752,7 +32752,7 @@ window.__computeDeptAlerts = function(){
  if(liveZero.length) out.push({ key:'live_zero', dept:['inventory'], sev:'warn', icon:'package',
   title:'Produk LIVE tapi stok habis', desc:'Masih terbit/jual di marketplace tapi stok 0 — restock atau nyahterbit.',
   count:liveZero.length, rows:liveZero.slice(0,12).map(p=>({a:p.sku, b:(p.name||'').slice(0,32)})),
-  action:{label:'Buka Inventory', onclick:"document.querySelector('[data-tab=nav_inventory]')?.click()"} });
+  action:{label:'Buka Stock Levels', onclick:"document.querySelector('[data-tab=nav_stock_levels]')?.click()"} }); // p1_1047 — nav_inventory = nav-parent (bukan data-tab), butang dulu mati
  // C) Harga walk-in bawah kos (sales + pricing, critical)
  const belowCost = MP.filter(p=>{ const pr=Number(p.price)||0, c=Number(p.cost_price)||0; return pr>0 && c>0 && pr < c; });
  if(belowCost.length) out.push({ key:'below_cost_cat', dept:['sales','pricing'], sev:'critical', icon:'trending-down',

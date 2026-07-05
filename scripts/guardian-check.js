@@ -115,18 +115,24 @@ if (htmlSrc) {
 // 4c) SECTION YATIM (warning sahaja) — id="xxxSection" yang TIADA rujukan lain di mana-mana.
 //     Allowlist = dorman sengaja (kod kekal, menu dibuang).
 const ORPHAN_OK = new Set([
- 'backfillOrderSection',   // p1_1048 — dorman sengaja utk backfill DO 2025/26
- 'notifyInvSection',       // p1_1063 — Notify Inventory disorok (0 penggunaan); pulih bila perlu
- // p1_1063 — ZOMBIE (audit 5 Jul): section tanpa laluan nav TAPI renderer masih tulis ke dalamnya.
- // Pembersihan = FASA 2 (padam fn + section serentak, verify satu-satu — lihat planning.html):
- 'inventorySection', 'pickingSection', 'stockCheckSection', 'stockCheckHistorySection',
- 'agingSection', 'snapshotSection', 'valuationSection', 'fulfillmentSection', 'hubShiftSection',
- 'supplierPerfSection', 'productSalesSection', 'salesAnalyticsSection', 'rosterReconSection',
- 'reservationsSection', 'staffMgmtSection'
+ 'backfillOrderSection',    // p1_1048 — dorman sengaja utk backfill DO 2025/26
+ 'notifyInvSection',        // p1_1063 — Notify Inventory disorok (0 penggunaan); pulih bila perlu
+ // p1_1067 — baki zombie DITANGGUH (10 lain dah dipadam; hubShiftSection rupanya LIVE dlm modal):
+ 'fulfillmentSection',      // 147 baris; renderFulfillment dorman; nilai fasa depan
+ 'salesAnalyticsSection',   // julat parser tak pasti — perlu semakan manual
+ 'reservationsSection',     // alat mgmt release reservation (dorman sengaja, 0 kos boot)
+ 'staffMgmtSection'         // 341 baris, 21 elemen HOT — pembedahan besar, verify dulu
 ]);
 if (appSrc && htmlSrc) {
  const secs = new Set();
- (htmlSrc.match(/id="([A-Za-z0-9]+Section)"/g) || []).forEach(s => secs.add(s.slice(4, -1)));
+ // p1_1067 — hanya PAGE navigasi sebenar (class tab-section). Dulu semua id *Section difllag →
+ // false positive utk blok statik dlm modal live yang kebetulan bernama Section (cth hubShiftSection
+ // = UI Buka Shift dlm modal cashDrawerHub — hampir dipadam!).
+ htmlSrc.split('\n').forEach(line => {
+  if (!line.includes('tab-section')) return;
+  const m = /id="([A-Za-z0-9]+Section)"/.exec(line);
+  if (m) secs.add(m[1]);
+ });
  secs.forEach(sec => {
   if (ORPHAN_OK.has(sec)) return;
   const inApp = appSrc.split(sec).length - 1;

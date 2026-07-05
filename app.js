@@ -8124,7 +8124,8 @@ async function initApp() {
  } catch(e){}
  }
  // p3_10/p1_324: refresh fulfillment KPIs + sidebar badge once orders loaded
- if(typeof window.renderFulfillment === 'function') { try { window.renderFulfillment(); } catch(e){} }
+ // p1_1067 — renderFulfillment TAK dipanggil masa boot lagi (fulfillmentSection = zombie tanpa
+ // laluan nav; fungsi kekal dorman utk fasa akan datang). Badge order diurus __aoUpdateOrderBadge.
  if(typeof window.__aoUpdateOrderBadge === 'function') { try { window.__aoUpdateOrderBadge(); } catch(e){} }
  // p1_743 — muat SEJARAH JUALAN PENUH di latar (non-blocking) selepas UI cashier siap. Startup cuma
  // ambil 1000 terkini supaya laju; baki sejarah (utk All Orders lama / report) menyusul ~4s kemudian.
@@ -8204,7 +8205,8 @@ async function initApp() {
  }
  } // p1_675 — tutup guard roster/pending/realtime (staff sahaja)
 
- renderWMS();
+ // p1_1067 — renderWMS() dibuang dari boot: inventorySection dipadam (zombie) + inboundSkuSelect
+ // tak wujud dlm HTML pun — render 823 produk ke skrin hantu SETIAP boot = bazir. Fn kekal dorman.
  if(typeof populateEditSkuList === 'function') populateEditSkuList();
  if(typeof populateMovementSkuList === 'function') populateMovementSkuList();
  renderHistory();
@@ -8215,7 +8217,7 @@ async function initApp() {
  if(typeof renderWhAudit === 'function') renderWhAudit();
  if(typeof renderInventoryLedger === 'function') renderInventoryLedger();
  if(typeof renderPoSection === 'function') renderPoSection();
- if(typeof renderValuationSection === 'function') renderValuationSection();
+ // p1_1067 — renderValuationSection dibuang dari boot (valuationSection dipadam — zombie)
  if(typeof renderMgmtInventory === 'function') renderMgmtInventory();
  autoClockOutUnclosed();
  if(typeof renderPersonalCommission === "function") renderPersonalCommission();

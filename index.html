@@ -3519,58 +3519,7 @@
  <!-- ============================================== -->
  <!-- SECTION: INVENTORY WMS (p1_49: card grid + filter bar) -->
  <!-- ============================================== -->
- <div id="inventorySection" class="tab-section" style="display: none;">
- <h2 class="section-title" style="margin-top:30px;">Browse Products</h2>
- <p class="inv-page-sub">Tengok semua stok ikut brand, kategori, atau status. Klik kad untuk edit.</p>
-
- <!-- KPI Strip -->
- <div class="inv-kpi-strip" id="invKpiStrip">
- <div class="inv-kpi"><span class="inv-kpi__num" id="invKpiTotal">0</span><span class="inv-kpi__lbl">Total Produk</span></div>
- <div class="inv-kpi"><span class="inv-kpi__num" id="invKpiBrands">0</span><span class="inv-kpi__lbl">Brand</span></div>
- <div class="inv-kpi"><span class="inv-kpi__num" id="invKpiCats">0</span><span class="inv-kpi__lbl">Kategori</span></div>
- <div class="inv-kpi inv-kpi--warn" onclick="window.invSetFilter('status','low')" style="cursor:pointer;"><span class="inv-kpi__num" id="invKpiLow">0</span><span class="inv-kpi__lbl">Low Stock</span></div>
- <div class="inv-kpi inv-kpi--bad" onclick="window.invSetFilter('status','oos')" style="cursor:pointer;"><span class="inv-kpi__num" id="invKpiOOS">0</span><span class="inv-kpi__lbl">Sold Out</span></div>
- </div>
-
- <!-- Filter Bar -->
- <div class="inv-filters">
- <div class="inv-filters__search">
- <i data-lucide="search"></i>
- <input id="invSearchInput" type="search" placeholder="Cari SKU, nama, atau brand..." oninput="window.invHandleSearch(this.value)">
- </div>
- <select id="invBrandFilter" class="inv-filters__select" onchange="window.invSetFilter('brand', this.value)">
- <option value="">Semua Brand</option>
- </select>
- <select id="invCatFilter" class="inv-filters__select" onchange="window.invSetFilter('cat', this.value)">
- <option value="">Semua Kategori</option>
- </select>
- <select id="invStatusFilter" class="inv-filters__select" onchange="window.invSetFilter('status', this.value)">
- <option value="">Semua Status</option>
- <option value="active">Active</option>
- <option value="draft">Draft</option>
- <option value="low">Low Stock</option>
- <option value="oos">Sold Out</option>
- </select>
- <div class="inv-view-toggle" role="tablist" aria-label="View mode">
- <button class="inv-view-btn is-active" data-view="grid" onclick="window.invSetView('grid')" title="Grid view"><i data-lucide="grid-2x2"></i></button>
- <button class="inv-view-btn" data-view="table" onclick="window.invSetView('table')" title="Table view"><i data-lucide="rows-3"></i></button>
- </div>
- </div>
-
- <!-- Active filter banner -->
- <div id="invActiveFilters" class="inv-active-filters" style="display:none;"></div>
-
- <!-- Grid view (default) -->
- <div id="invGridContainer" class="inv-grid"></div>
-
- <!-- Table view (toggle) -->
- <div id="invTableContainer" class="table-responsive" style="display:none;">
- <table class="inventory-table">
- <thead><tr><th>SKU Profile</th><th>Informasi Fizikal &amp; Logistik</th><th>Bilangan / Total Stock</th><th>Lokasi Gudang (Bin)</th><th>Cost / Retail</th></tr></thead>
- <tbody id="inventoryTableBody"></tbody>
- </table>
- </div>
- </div>
+ <!-- p1_1067 — inventorySection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: INDIVIDUAL STOCK CHECK (INV PAGE 2) -->
@@ -3736,26 +3685,7 @@
  <!-- ============================================== -->
  <!-- SECTION: SMART PICKING LIST -->
  <!-- ============================================== -->
- <div id="pickingSection" class="tab-section" style="display: none;">
- <div class="admin-card" style="padding:20px; border-top:4px solid var(--primary); margin-bottom:20px;">
- <h2 style="margin-bottom:15px;"><i data-lucide="route" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;"></i> <span data-i18n="sp_title">Smart Picking List (Laluan Kutipan Pintar)</span></h2>
- <p style="font-size:13px; color:#888; margin-bottom:20px;" data-i18n="sp_sub">Masukkan senarai SKU barang yang anda ingin ambil dari stor. Sistem akan menyusun senarai ini mengikut laluan berjalan kaki terpendek (Zone Aisle Rack Tier Bin).</p>
-
- <div style="display:flex; gap:10px; margin-bottom:20px; align-items:flex-end;">
- <div style="flex:1;">
- <label class="small-lbl" data-i18n="sp_scan_label">Scan / Taip SKU</label>
- <input type="text" id="pickingSkuSearch" class="login-input" placeholder="Taip SKU..." list="movementSkuList" style="margin:0;">
- </div>
- <button class="btn-primary" style="height:42px; padding:0 20px;" onclick="window.addPickingItem()" data-i18n="sp_add_btn">Tambah Item</button>
- <button class="btn-success" style="height:42px; padding:0 20px;" onclick="window.generatePickingPath()" data-i18n="sp_generate_btn">Jana Laluan Pintar (Generate Path)</button>
- <button class="btn-danger" style="height:42px; padding:0 20px;" onclick="window.clearPickingList()" data-i18n="sp_clear_btn">Clear</button>
- </div>
-
- <div id="pickingListContainer" style="background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #e5e7eb; min-height:100px;">
- <p style="color:#999; text-align:center; margin-top:20px;" data-i18n="sp_empty">Senarai item kutipan kosong.</p>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — pickingSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: BARCODE GENERATOR -->
@@ -4574,28 +4504,7 @@
  <!-- ============================================== -->
  <!-- p1_110 — STOCK CHECK REPORTS workflow (Kael→Zack→Bos) -->
  <!-- ============================================== -->
- <div id="stockCheckSection" class="tab-section" style="display:none;">
- <div class="rp-wrap">
- <div class="rp-header">
- <div>
- <h2 class="rp-title"><i data-lucide="file-check" style="width:22px; height:22px; color:var(--primary);"></i> Stock Check Reports</h2>
- <p class="rp-subtitle">Workflow Kael (Chief Inv) submit → Zack (System Mgr) review → Bos final view. Audit trail untuk setiap stock take session.</p>
- </div>
- <button class="rp-manual-save" onclick="window.__scOpenSubmit()"><i data-lucide="plus" style="width:13px;height:13px;"></i> Submit New Report</button>
- </div>
-
- <!-- Status filter tabs -->
- <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;">
- <button class="sy-btn secondary sc-tab sc-tab--active" data-sc-status="all" onclick="window.__scSetFilter('all', this)">Semua</button>
- <button class="sy-btn secondary sc-tab" data-sc-status="submitted" onclick="window.__scSetFilter('submitted', this)">Menunggu Review <span id="scCountSubmitted" style="background:#F8EFD7; color:#7A5410; padding:1px 6px; border-radius:50px; font-size:10px; margin-left:4px;">0</span></button>
- <button class="sy-btn secondary sc-tab" data-sc-status="reviewed" onclick="window.__scSetFilter('reviewed', this)">Direview</button>
- <button class="sy-btn secondary sc-tab" data-sc-status="approved" onclick="window.__scSetFilter('approved', this)">Bos Acknowledged</button>
- <button class="sy-btn secondary sc-tab" data-sc-status="rejected" onclick="window.__scSetFilter('rejected', this)">Rejected</button>
- </div>
-
- <div id="stockCheckList"><p style="color:#9CA3AF; padding:40px; text-align:center;">Memuatkan…</p></div>
- </div>
- </div>
+ <!-- p1_1067 — stockCheckSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- Submit Modal -->
  <div id="scSubmitOverlay" class="fin-modal-overlay" style="display:none;" onclick="if(event.target===this) window.__scCloseSubmit()">
@@ -4664,43 +4573,7 @@
  <!-- ============================================== -->
  <!-- p1_156 — STOCK CHECK HISTORY (Zack dashboard) -->
  <!-- ============================================== -->
- <div id="stockCheckHistorySection" class="tab-section" style="display:none;">
- <div class="rp-wrap">
- <div class="rp-header">
- <div>
- <h2 class="rp-title"><i data-lucide="history" style="width:22px; height:22px; color:var(--primary);"></i> Stock Check History</h2>
- <p class="rp-subtitle">Audit coverage tracker — bila SKU last dikira, mana stale, mana ada variance. Zack (SysMgr) + Bos oversight.</p>
- </div>
- <button class="rp-manual-save" onclick="window.renderStockCheckHistory()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh</button>
- </div>
- <!-- 4 KPI cards -->
- <div id="schStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:18px;"></div>
- <!-- Recent audit days timeline -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="calendar-days" style="width:14px;height:14px;"></i> Aktiviti Audit Terkini</h3>
- <p class="rp-section__help">Group by tarikh — siapa audit berapa SKU bila.</p>
- <div id="schTimeline" style="font-size:12.5px;">
- <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
- </div>
- </div>
- <!-- Top stale SKUs -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> Top 20 SKU Paling Lama Tak Audit</h3>
- <p class="rp-section__help">Prioritize Kael untuk audit kerana stale paling lama.</p>
- <div id="schStaleList" style="font-size:12px;">
- <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
- </div>
- </div>
- <!-- Variance items -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="diff" style="width:14px;height:14px;"></i> Variance Detected</h3>
- <p class="rp-section__help">SKU dengan kiraan fizikal beza dari stok sistem. Investigate.</p>
- <div id="schVarianceList" style="font-size:12px;">
- <p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p>
- </div>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — stockCheckHistorySection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- p1_111 — PRICE HISTORY REPORT -->
@@ -5061,57 +4934,7 @@
  <!-- ============================================== -->
  <!-- p1_120 — SUPPLIER PERFORMANCE -->
  <!-- ============================================== -->
- <div id="supplierPerfSection" class="tab-section" style="display:none;">
- <div class="rp-wrap">
- <div class="rp-header">
- <div>
- <h2 class="rp-title"><i data-lucide="truck" style="width:22px; height:22px; color:var(--primary);"></i> Supplier Performance</h2>
- <p class="rp-subtitle">Track PO frequency, total cost, lead time per supplier. Negotiation leverage + identify problem partners.</p>
- </div>
- <button class="sy-btn secondary" onclick="window.renderSupplierPerf()"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Refresh</button>
- </div>
-
- <!-- Period filter -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Period</h3>
- <div style="display:flex; gap:6px; flex-wrap:wrap;">
- <button class="sy-btn sp-period-btn sp-period-btn--active" data-sp-period="90d" onclick="window.__spSetPeriod('90d', this)">90 Hari</button>
- <button class="sy-btn secondary sp-period-btn" data-sp-period="180d" onclick="window.__spSetPeriod('180d', this)">180 Hari</button>
- <button class="sy-btn secondary sp-period-btn" data-sp-period="ytd" onclick="window.__spSetPeriod('ytd', this)">YTD</button>
- <button class="sy-btn secondary sp-period-btn" data-sp-period="all" onclick="window.__spSetPeriod('all', this)">All Time</button>
- </div>
- </div>
-
- <!-- KPI summary -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="bar-chart" style="width:14px;height:14px;"></i> Ringkasan</h3>
- <div class="rp-kpi-grid">
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Total Supplier</div>
- <div class="rp-kpi__val" id="spTotalSuppliers">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Total PO</div>
- <div class="rp-kpi__val" id="spTotalPO">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Total Spend</div>
- <div class="rp-kpi__val" id="spTotalSpend">—</div>
- </div>
- <div class="rp-kpi">
- <div class="rp-kpi__lbl">Avg Lead Time</div>
- <div class="rp-kpi__val" id="spAvgLead">—</div>
- </div>
- </div>
- </div>
-
- <!-- Supplier table -->
- <div class="rp-section">
- <h3 class="rp-section__title"><i data-lucide="list" style="width:14px;height:14px;"></i> Senarai Supplier (sort by total spend)</h3>
- <div id="spTableWrap"><p style="color:#9CA3AF; padding:20px; text-align:center;">Memuatkan…</p></div>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — supplierPerfSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- p1_121 — RETURNS / DAMAGE TRACKER -->
@@ -5484,172 +5307,22 @@
  <!-- ============================================== -->
  <!-- SECTION: PRODUCT SALES SUMMARY -->
  <!-- ============================================== -->
- <div id="productSalesSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="trending-up" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Product Sales Summary</h2>
- <p style="font-size:13px; color:#666; margin-bottom:14px;">
- Jualan semua produk sepanjang sejarah. <strong>Balance</strong> = Stock Sekarang − Total Sold. Kalau jualan melebihi stok terkini, baki akan jadi <strong style="color:#B23A2E;">negative</strong> — bermakna SKU tu high-velocity dan kemungkinan ada activity dalam EasyStore.
- </p>
-
- <div id="prodSalesSummaryStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:14px;"></div>
-
- <div class="admin-card" style="padding:14px; margin-bottom:14px;">
- <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap:10px; align-items:end;">
- <div><label class="small-lbl">Cari (SKU/Nama/Brand)</label><input type="text" id="prodSalesSearch" class="login-input" placeholder="naturehike / NH061" style="margin:0;" oninput="renderProductSales()"></div>
- <div><label class="small-lbl">Brand</label><select id="prodSalesBrand" class="login-input" style="margin:0;" onchange="renderProductSales()"><option value="">Semua</option></select></div>
- <div><label class="small-lbl">Filter</label>
- <select id="prodSalesFilter" class="login-input" style="margin:0;" onchange="renderProductSales()">
- <option value="all">Semua produk</option>
- <option value="negative" selected>Hanya yang baki NEGATIVE</option>
- <option value="zero_stock">Stock = 0 sahaja</option>
- <option value="movers">Yang ada jualan</option>
- <option value="dead">Tak pernah dijual</option>
- </select>
- </div>
- <div><label class="small-lbl">Susun ikut</label>
- <select id="prodSalesSort" class="login-input" style="margin:0;" onchange="renderProductSales()">
- <option value="balance_asc" selected>Balance (paling negative dulu)</option>
- <option value="sold_desc">Total Sold (banyak ke sikit)</option>
- <option value="recent_desc">Last 6mo Sold</option>
- <option value="stock_asc">Stock (rendah ke tinggi)</option>
- <option value="sku">SKU (A-Z)</option>
- </select>
- </div>
- <div><label class="small-lbl">Per Halaman</label>
- <select id="prodSalesPageSize" class="login-input" style="margin:0;" onchange="renderProductSales()">
- <option value="100" selected>100</option>
- <option value="250">250</option>
- <option value="500">500</option>
- <option value="9999">Semua</option>
- </select>
- </div>
- </div>
- <div style="display:flex; gap:10px; margin-top:10px; align-items:end;">
- <button class="btn-success" onclick="window.exportProductSalesCsv()" style="background:#cd7c32; border-color:#cd7c32;"> Export CSV</button>
- <p id="prodSalesSummaryLine" style="font-size:12px; color:#666; margin:0;"></p>
- </div>
- </div>
-
- <div class="admin-card" style="padding:0;">
- <div class="table-responsive">
- <table class="data-table" style="font-size:12px;">
- <thead style="position:sticky; top:0; background:#FAFAFA; z-index:5;"><tr>
- <th>SKU</th>
- <th>Nama / Brand</th>
- <th style="text-align:right;">Total Sold (Lifetime)</th>
- <th style="text-align:right;">Last 6mo</th>
- <th style="text-align:right;">Stock Sekarang</th>
- <th style="text-align:right;">Balance</th>
- <th style="text-align:right;">Reorder Point</th>
- <th style="text-align:right;">Revenue (RM)</th>
- <th style="text-align:center;">Last Sale</th>
- </tr></thead>
- <tbody id="prodSalesTbody">
- <tr class="skel-row" aria-hidden="true"><td colspan="9"><span class="skeleton skeleton--text"></span></td></tr>
- <tr class="skel-row" aria-hidden="true"><td colspan="9"><span class="skeleton skeleton--text"></span></td></tr>
- <tr class="skel-row" aria-hidden="true"><td colspan="9"><span class="skeleton skeleton--text"></span></td></tr>
- <tr class="skel-row" aria-hidden="true"><td colspan="9"><span class="skeleton skeleton--text"></span></td></tr>
- <tr class="skel-row" aria-hidden="true"><td colspan="9"><span class="skeleton skeleton--text"></span></td></tr>
- </tbody>
- </table>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — productSalesSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: STOCK AGING (Sprint 3.5) -->
  <!-- ============================================== -->
- <div id="agingSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="hourglass" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Stock Aging Report</h2>
- <p style="font-size:13px; color:#666; margin-bottom:18px;">Berapa lama setiap batch dah duduk dalam gudang? Stok> 365 hari biasanya dead stock — perlu clearance / discount.</p>
-
- <div id="agingSummary" style="margin-bottom:14px;"></div>
-
- <div class="admin-card" style="padding:0;">
- <div class="table-responsive">
- <table class="data-table" style="font-size:13px;">
- <thead style="background:#FAFAFA;"><tr>
- <th>Bucket</th>
- <th style="text-align:right;">Qty</th>
- <th style="text-align:right;">Modal Diikat (RM)</th>
- <th style="text-align:right;">Potensi Jualan (RM)</th>
- <th style="text-align:right;">% Modal</th>
- <th>Drilldown</th>
- </tr></thead>
- <tbody id="agingTbody"></tbody>
- </table>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — agingSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: STOCK SNAPSHOT (Sprint 3.6) -->
  <!-- ============================================== -->
- <div id="snapshotSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="camera" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Stock Snapshot (Period-End)</h2>
- <p style="font-size:13px; color:#666; margin-bottom:18px;">Eksport laporan stok pada satu tarikh tertentu — guna untuk closing akaun bulanan / suku tahun. Sistem akan rewind transaction history untuk anggar baki sebenar pada tarikh tersebut.</p>
-
- <div class="admin-card" style="padding:20px;">
- <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:end;">
- <div>
- <label class="small-lbl">Tarikh Snapshot</label>
- <input type="date" id="snapshotDate" class="login-input" style="margin:0;">
- </div>
- <div>
- <button class="btn-success" onclick="window.exportInventorySnapshot()" style="width:100%;"> Eksport CSV</button>
- </div>
- </div>
- <div class="soft-note" style="margin-top:12px;">
- <strong>Nota:</strong> Snapshot adalah anggaran (rewind dari current state). Untuk akuracy 100%, recommend monthly cron job snapshot in real-time. Sekarang ni cukup untuk audit/accountant reference.
- </div>
- </div>
- </div>
+ <!-- p1_1067 — snapshotSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: STOCK VALUATION (ASSETS) -->
  <!-- ============================================== -->
- <div id="valuationSection" class="tab-section" style="display: none;">
- <div class="admin-card" style="padding:20px; border-top:4px solid #101010; margin-bottom:20px;">
- <h2 style="margin-bottom:15px;"><i data-lucide="wallet" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;"></i> Stock Valuation &amp; Asset Dashboard</h2>
- <p style="font-size:13px; color:#888; margin-bottom:20px;">Pemantauan jumlah keseluruhan modal dan nilai aset yang berada di dalam gudang secara masa sebenar (*real-time*).</p>
- 
- <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:25px;">
- <div style="background:#FAF0EE; padding:20px; border-radius:8px; border:1px solid #ECD2CA; text-align:center;">
- <p style="font-size:12px; font-weight:bold; color:#B23A2E; text-transform:uppercase; margin-bottom:5px;">Total Modal Aset</p>
- <h3 id="valTotalCost" style="font-size:24px; color:#7C2A20; margin:0;">RM 0.00</h3>
- <p style="font-size:10px; color:#B23A2E; margin-top:5px;">Kos stok sedia ada</p>
- </div>
- <div style="background:#fff8f0; padding:20px; border-radius:8px; border:1px solid #fed7aa; text-align:center;">
- <p style="font-size:12px; font-weight:bold; color:#b86a26; text-transform:uppercase; margin-bottom:5px;">Total Nilai Runcit</p>
- <h3 id="valTotalRetail" style="font-size:24px; color:#101010; margin:0;">RM 0.00</h3>
- <p style="font-size:10px; color:#b86a26; margin-top:5px;">Potensi jualan kasar</p>
- </div>
- <div style="background:#E6F0E4; padding:20px; border-radius:8px; border:1px solid #ABC6A0; text-align:center;">
- <p style="font-size:12px; font-weight:bold; color:#345E43; text-transform:uppercase; margin-bottom:5px;">Unjuran Keuntungan</p>
- <h3 id="valTotalProfit" style="font-size:24px; color:#345E43; margin:0;">RM 0.00</h3>
- <p style="font-size:10px; color:#345E43; margin-top:5px;">Potensi untung kasar (ROI)</p>
- </div>
- </div>
-
- <h3 style="font-size:16px; border-bottom:2px solid #E5E7EB; padding-bottom:10px; margin-bottom:15px; color:#374151;">Top 10 High Value Assets (Pengikat Modal)</h3>
- <div class="table-responsive">
- <table class="inventory-table">
- <thead>
- <tr>
- <th>#</th>
- <th>SKU</th>
- <th>Nama Produk</th>
- <th>Baki Stok</th>
- <th>Kos/Unit</th>
- <th>Total Modal (RM)</th>
- </tr>
- </thead>
- <tbody id="valuationTableBody">
- <tr><td colspan="6" style="text-align:center;">Mengira nilai aset...</td></tr>
- </tbody>
- </table>
- </div>
- </div>
- </div>
+ <!-- p1_1067 — valuationSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- SECTION: CUSTOMERS CRM -->
@@ -8400,18 +8073,7 @@
  <!-- ============================================== -->
  <!-- p4_2 ROSTER ↔ ATTENDANCE RECONCILIATION -->
  <!-- ============================================== -->
- <div id="rosterReconSection" class="tab-section" style="display:none;">
- <h2 class="section-title" style="margin-top:20px;"><i data-lucide="calendar-check" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Roster ↔ Attendance Reconciliation</h2>
- <p style="font-size:13px; color:#666; margin-bottom:14px;">Bandingkan jadual yang dirancang vs attendance sebenar. Highlight no-show, late check-in, missed shift.</p>
-
- <div class="admin-card" style="padding:14px; margin-bottom:14px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
- <div><label class="small-lbl">Dari</label><input type="date" id="rrFromDate" class="login-input" style="margin:0;" onchange="renderRosterRecon()"></div>
- <div><label class="small-lbl">Hingga</label><input type="date" id="rrToDate" class="login-input" style="margin:0;" onchange="renderRosterRecon()"></div>
- <div><label class="small-lbl">Staff</label><select id="rrStaff" class="login-input" style="margin:0;" onchange="renderRosterRecon()"><option value="">Semua</option></select></div>
- </div>
- <div id="rrSummary" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px;"></div>
- <div class="admin-card" style="padding:0;"><div class="table-responsive"><table class="data-table" style="font-size:12px;"><thead style="background:#FAFAFA;"><tr><th>Tarikh</th><th>Staff</th><th>Shift Plan</th><th>Check-In</th><th>Check-Out</th><th>Variance</th><th>Status</th></tr></thead><tbody id="rrTbody"><tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">Loading...</td></tr></tbody></table></div></div>
- </div>
+ <!-- p1_1067 — rosterReconSection DIPADAM (zombie: tiada laluan nav, penulis semua dlm rantai mati; audit 5 Jul) -->
 
  <!-- ============================================== -->
  <!-- p7_4 CUSTOMER SEGMENTS -->
@@ -13499,7 +13161,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1048"></script>
+ <script src="app.js?v=1049"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

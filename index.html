@@ -34,7 +34,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=75">
+ <link rel="stylesheet" href="style.css?v=76">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <!-- p1_1026 preconnect: warm TLS awal untuk DATA+IMEJ storage (Supabase) + FONT — boot lebih laju di mobile -->
@@ -1897,14 +1897,18 @@
  </button>
  </aside>
  <div class="sidebar-main" id="sidebarMain">
+ <!-- p1_1068 — kad pengguna sidebar disusun semula (Zaid: "improvise interface ni"):
+      avatar bronze + nama/role satu baris + 3 butang tindakan grid sama-saiz. Handler semua kekal. -->
  <div class="sidebar-header">
- <span class="store-name" id="sessionUsername">EasyPOS PRO</span>
- <div>
- <!-- p1_162 — Preview Landing Page (view as customer without logout) -->
- <button onclick="window.previewLanding()" title="Tengok landing page seperti customer (tak perlu logout)" style="font-size:10px; background:var(--primary); border:1px solid var(--primary); color:#FFF; font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:6px;"><i data-lucide="eye" style="width:11px; height:11px; vertical-align:-1px;"></i> Landing</button>
- <button onclick="window.__switchStaff && window.__switchStaff()" title="Tukar staf — orang seterusnya masuk PIN sendiri" style="font-size:10px; background:var(--primary); border:1px solid var(--primary); color:#FFF; font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:6px;"><i data-lucide="user-round-cog" style="width:11px; height:11px; vertical-align:-1px;"></i> Tukar Staf</button>
- <button onclick="handleLogout()" style="font-size:10px; background:var(--bg-color); border:1px solid var(--border-color); color:var(--text-main); font-weight:bold; padding:4px 8px; border-radius:4px; cursor:pointer; margin-right:10px;">Log Out</button>
- <button class="close-sidebar-btn" onclick="toggleSidebar()">×</button>
+ <div class="sh-top">
+ <div class="sh-ava" id="shAvatar" aria-hidden="true">?</div>
+ <div class="sh-id"><span class="store-name" id="sessionUsername">EasyPOS PRO</span></div>
+ <button class="close-sidebar-btn" onclick="toggleSidebar()" aria-label="Tutup sidebar">×</button>
+ </div>
+ <div class="sh-actions">
+ <button onclick="window.previewLanding()" title="Tengok landing page seperti customer (tak perlu logout)"><i data-lucide="eye"></i> Landing</button>
+ <button onclick="window.__switchStaff && window.__switchStaff()" title="Tukar staf — orang seterusnya masuk PIN sendiri"><i data-lucide="user-round-cog"></i> Tukar Staf</button>
+ <button class="sh-act--out" onclick="handleLogout()" title="Log keluar"><i data-lucide="log-out"></i> Log Out</button>
  </div>
  </div>
  <div class="menu-list">
@@ -13161,7 +13165,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1049"></script>
+ <script src="app.js?v=1050"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

@@ -16523,6 +16523,8 @@ function loginAs(user, opts) {
  // Header — "Hi, name · Role"
  const sessEl = document.getElementById("sessionUsername");
  if(sessEl) sessEl.innerHTML = `Hi, ${(user.name.split(' ')[0])} <span class="badge badge--neutral" style="margin-left:6px; font-size:9px; vertical-align:middle;">${cap.emoji} ${cap.label}</span>`;
+ // p1_1068 — avatar inisial pada kad pengguna sidebar
+ try { const av = document.getElementById('shAvatar'); if(av) av.textContent = (user.name || '?').trim().charAt(0).toUpperCase(); } catch(e){}
  // p1_1010 — native top-bar "who" chip (iPad kongsi): tunjuk siapa login sekarang, klik = Tukar Staf
  try {
   const whoEl = document.getElementById('posAppWho');

@@ -2018,6 +2018,13 @@
  <i data-lucide="scale" style="width:15px; height:15px;"></i> <span>Rekonsiliasi Stok</span>
  </div>
  <!-- Operasi harian -->
+ <!-- p1_1066 — 2 pintu HILANG dipulihkan (audit logik: feature siap dibina tapi menu lesap masa restruktur p1_816) -->
+ <div class="menu-item" data-tab="nav_stock_transfer" onclick="event.stopPropagation(); switchHub(['stockTransferSection'], 'Stock Transfer', this); if(typeof renderStockTransfer==='function') renderStockTransfer();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="arrow-left-right" style="width:15px; height:15px;"></i> <span>Stock Transfer</span>
+ </div>
+ <div class="menu-item" data-tab="nav_reorder" onclick="event.stopPropagation(); switchHub(['reorderSection'], 'Reorder / Low Stock', this); if(typeof renderReorderSuggest==='function') renderReorderSuggest();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="refresh-cw" style="width:15px; height:15px;"></i> <span>Reorder / Low Stock</span>
+ </div>
  <div class="menu-item" data-tab="nav_bins" onclick="event.stopPropagation(); switchHub(['binsSection'], 'Locations & Bins', this); if(typeof renderBinsLocations==='function') renderBinsLocations();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="map-pin" style="width:15px; height:15px;"></i> <span>Locations &amp; Bins</span>
  </div>
@@ -13492,7 +13499,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1047"></script>
+ <script src="app.js?v=1048"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

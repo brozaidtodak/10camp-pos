@@ -122,7 +122,7 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
  const b = document.createElement('div');
  b.id = '__posAppPreviewBanner';
  b.textContent = 'MODE PREVIEW — paparan app staf';
- b.style.cssText = 'position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:2147483647; background:var(--primary-500,#CD7C32); color:#101010; font:700 11px/1 Poppins,-apple-system,sans-serif; letter-spacing:.6px; padding:7px 14px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.3); pointer-events:none; white-space:nowrap;';
+ b.style.cssText = 'position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:2147483647; background:var(--primary-500,#CD7C32); color:#101010; font:700 11px/1 var(--font-main,Poppins),-apple-system,sans-serif; letter-spacing:.6px; padding:7px 14px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.3); pointer-events:none; white-space:nowrap;';
  (document.body || document.documentElement).appendChild(b);
  };
  if(document.body) addBanner(); else document.addEventListener('DOMContentLoaded', addBanner);
@@ -973,7 +973,7 @@ window.renderCustomization = function() {
  if(!window.__appSettings) { host.innerHTML = '<div class="admin-card" style="padding:24px; text-align:center; color:#9CA3AF;">Memuatkan…</div>'; window.__loadAppSettings().then(()=>window.renderCustomization()); return; }
  const s = window.__appSettings;
  const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
- const f = (id,label,val,ph,type) => '<div style="margin-bottom:12px;"><label style="display:block; font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">' + label + '</label><input id="' + id + '" type="' + (type||'text') + '" value="' + esc(val) + '" placeholder="' + esc(ph||'') + '" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif;"></div>';
+ const f = (id,label,val,ph,type) => '<div style="margin-bottom:12px;"><label style="display:block; font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;">' + label + '</label><input id="' + id + '" type="' + (type||'text') + '" value="' + esc(val) + '" placeholder="' + esc(ph||'') + '" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif;"></div>';
  const card = (title,icon,inner) => '<div class="admin-card" style="padding:18px; margin-bottom:16px;"><div style="font-weight:800; font-size:14px; margin-bottom:14px;"><i data-lucide="' + icon + '" style="width:15px;height:15px;vertical-align:-2px;"></i> ' + title + '</div>' + inner + '</div>';
  host.innerHTML =
   '<h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="sliders-horizontal" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;"></i> Customization</h2>'
@@ -2830,7 +2830,7 @@ window.__mwSubmit = async function() {
 window.__ensureMarketing = function(){
  if(window.__mktLoaded) return Promise.resolve();
  return window.__mktLoading || (window.__mktLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='marketing.js?v=2';
+  var s=document.createElement('script'); s.src='marketing.js?v=3';
   s.onload=function(){ window.__mktLoaded=true; res(); };
   s.onerror=function(){ window.__mktLoading=null; rej(new Error('marketing.js gagal muat')); };
   document.head.appendChild(s);
@@ -3209,8 +3209,8 @@ window.__chatOpen = function(cid, buyerId, name) {
  thread.innerHTML = '<p style="color:#9CA3AF; margin:auto;">Memuatkan mesej…</p>';
  // p1_1046 — kotak balas (Fasa 2): sticky bawah thread; hanya bila ada buyerId (to_id Shopee)
  const composer = buyerId ? `<div style="position:sticky; bottom:0; background:#FAFAFA; padding:10px 0 2px; margin-top:10px; border-top:1px solid #E5E7EB; display:flex; gap:8px;">
-   <input id="chatReplyInput" type="text" maxlength="1000" placeholder="Balas ${esc(name||'pembeli')}…" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__chatSend();}" style="flex:1; padding:10px 13px; border:1px solid #E5E7EB; border-radius:10px; font-size:13px; font-family:Poppins,sans-serif; background:#fff;">
-   <button id="chatReplyBtn" onclick="window.__chatSend()" style="padding:10px 18px; border:none; border-radius:10px; background:var(--primary-500,#CD7C32); color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:Poppins,sans-serif; white-space:nowrap;">Hantar</button>
+   <input id="chatReplyInput" type="text" maxlength="1000" placeholder="Balas ${esc(name||'pembeli')}…" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__chatSend();}" style="flex:1; padding:10px 13px; border:1px solid #E5E7EB; border-radius:10px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif; background:#fff;">
+   <button id="chatReplyBtn" onclick="window.__chatSend()" style="padding:10px 18px; border:none; border-radius:10px; background:var(--primary-500,#CD7C32); color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font-main,Poppins),sans-serif; white-space:nowrap;">Hantar</button>
   </div>` : '';
  fetch('/.netlify/functions/shopee-chat?mode=messages&conversation_id='+encodeURIComponent(cid)+'&page_size=50', { headers: window.__authHeaderSync({}) }).then(r=>r.json()).then(r => {
   if(r.error) { thread.innerHTML = '<p style="color:#B23A2E;">Shopee: '+esc(r.error)+'</p>'; return; }
@@ -10951,7 +10951,7 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
  ov.id = 'scsCountPopupOverlay';
  ov.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:9990; display:flex; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(2px);';
  ov.onclick = function(e){ if(e.target === ov) window.__scsClosePopup(); };
- ov.innerHTML = `<div style="background:#fff; border-radius:14px; width:100%; max-width:380px; box-shadow:0 20px 50px rgba(0,0,0,.3); overflow:hidden; font-family:'Poppins',sans-serif;" onclick="event.stopPropagation()">
+ ov.innerHTML = `<div style="background:#fff; border-radius:14px; width:100%; max-width:380px; box-shadow:0 20px 50px rgba(0,0,0,.3); overflow:hidden; font-family:var(--font-main,Poppins),sans-serif;" onclick="event.stopPropagation()">
   <div style="padding:16px 18px; border-bottom:1px solid #F3F4F6; display:flex; gap:12px; align-items:center;">
    ${thumb}
    <div style="min-width:0;">
@@ -10967,7 +10967,7 @@ window.__scsOpenCountPopup = function(itemId, sessionId) {
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin-bottom:6px;">Kuantiti Dikira (fizikal)</label>
    <input type="number" min="0" inputmode="numeric" id="scsQtyInput-${itemId}" value="" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__scsPopupSave(${itemId}, ${sessionId}, '${skuEsc}', ${sysQtyArg});}" style="width:100%; padding:11px 12px; border:1.5px solid var(--border-color); border-radius:9px; font-size:20px; font-weight:700; text-align:center; color:#111;">
    <label style="display:block; font-size:11.5px; font-weight:700; color:#374151; margin:14px 0 6px;">Catatan (optional)</label>
-   <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:'Poppins',sans-serif;"></textarea>
+   <textarea id="scsNoteInput-${itemId}" rows="2" placeholder="cth: kotak terbuka tapi item lengkap, label fade, ada calar" style="width:100%; padding:9px 11px; border:1.5px solid var(--border-color); border-radius:9px; font-size:12.5px; resize:vertical; font-family:var(--font-main,Poppins),sans-serif;"></textarea>
    ${popReveal
     ? `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:var(--primary-50,#FFF8F0); border-radius:8px; font-size:11px; color:var(--primary-800,#7C4A1A);"><i data-lucide="eye" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kuantiti sistem: <strong>${i.system_qty != null ? i.system_qty : '-'}</strong> · mod semakan</span></div>`
     : `<div style="display:flex; align-items:center; gap:6px; margin-top:10px; padding:7px 10px; background:#F9FAFB; border-radius:8px; font-size:10.5px; color:#9CA3AF;"><i data-lucide="eye-off" style="width:12px;height:12px; flex-shrink:0;"></i><span>Kiraan sistem disorok — kira ikut fizikal sahaja (blind count).</span></div>`}
@@ -13254,7 +13254,7 @@ function renderPOS(searchTerm = "") {
  if(!document.getElementById('posMediaCss')){
   const st = document.createElement('style'); st.id = 'posMediaCss';
   st.textContent = ''
-  + '.posMG{position:fixed;inset:0;z-index:10200;background:rgba(16,16,16,.95);display:none;font-family:Poppins,system-ui,sans-serif}'
+  + '.posMG{position:fixed;inset:0;z-index:10200;background:rgba(16,16,16,.95);display:none;font-family:var(--font-main,Poppins),system-ui,sans-serif}'
   + '.posMG.show{display:block}'
   + '.posMG__track{position:absolute;inset:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}'
   + '.posMG__track::-webkit-scrollbar{display:none}'
@@ -13269,7 +13269,7 @@ function renderPOS(searchTerm = "") {
   + '.posMG__dots .d.on{background:var(--primary-500,#CD7C32);width:22px;border-radius:4px}'
   + '.posMG__type{position:absolute;left:0;right:0;bottom:max(40px,calc(env(safe-area-inset-bottom) + 20px));text-align:center;color:rgba(250,246,239,.75);font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;z-index:2}'
   // variant view
-  + '.posVV{position:fixed;inset:0;z-index:10150;background:rgba(16,16,16,.55);display:none;align-items:flex-end;justify-content:center;font-family:Poppins,system-ui,sans-serif}'
+  + '.posVV{position:fixed;inset:0;z-index:10150;background:rgba(16,16,16,.55);display:none;align-items:flex-end;justify-content:center;font-family:var(--font-main,Poppins),system-ui,sans-serif}'
   + '.posVV.show{display:flex}'
   + '@media(min-width:760px){.posVV{align-items:center}}'
   + '.posVV__card{background:#FAF6EF;width:100%;max-width:760px;max-height:90vh;border-radius:20px 20px 0 0;overflow-y:auto;padding:0 0 calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.3)}'
@@ -13456,10 +13456,10 @@ function renderPOS(searchTerm = "") {
  if(!document.getElementById('posDescCss')){
   const st=document.createElement('style'); st.id='posDescCss';
   st.textContent=''
-   +'.posDescLink{display:inline-block;margin-top:4px;font-family:Poppins,system-ui,sans-serif;font-size:11px;font-weight:600;color:#9b8b76;cursor:pointer;text-decoration:underline;text-underline-offset:2px;letter-spacing:.2px}'
+   +'.posDescLink{display:inline-block;margin-top:4px;font-family:var(--font-main,Poppins),system-ui,sans-serif;font-size:11px;font-weight:600;color:#9b8b76;cursor:pointer;text-decoration:underline;text-underline-offset:2px;letter-spacing:.2px}'
    +'.posDescLink:hover{color:var(--primary-500,#CD7C32)}'
    +'.posDescLink:active{opacity:.6}'
-   +'.posDescSc{position:fixed;inset:0;z-index:10250;background:rgba(16,16,16,.55);display:none;align-items:center;justify-content:center;padding:18px;font-family:Poppins,system-ui,sans-serif}'
+   +'.posDescSc{position:fixed;inset:0;z-index:10250;background:rgba(16,16,16,.55);display:none;align-items:center;justify-content:center;padding:18px;font-family:var(--font-main,Poppins),system-ui,sans-serif}'
    +'.posDescSc.show{display:flex}'
    +'.posDescCard{background:#FAF6EF;width:100%;max-width:460px;max-height:82vh;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 44px rgba(0,0,0,.3)}'
    +'.posDescHead{display:flex;align-items:flex-start;gap:12px;padding:18px 18px 12px;border-bottom:1px solid #EADFD0}'
@@ -15809,9 +15809,9 @@ window.__openSetPinModal = function(opts){
   + '<div style="font-size:18px;font-weight:800;color:#101010;text-align:center;margin-bottom:4px;">'+(opts.first?'Tetapkan PIN Anda':'Tukar PIN')+'</div>'
   + '<div style="font-size:12.5px;color:#6B7280;text-align:center;margin-bottom:18px;">Lain kali boleh login laju guna PIN ni — tak payah email setiap kali.</div>'
   + '<label style="display:block;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:5px;">PIN baru (4-8 digit)</label>'
-  + '<input id="setPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:11px;font-family:Poppins,sans-serif;">'
+  + '<input id="setPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:11px;font-family:var(--font-main,Poppins),sans-serif;">'
   + '<label style="display:block;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:5px;">Sahkan PIN</label>'
-  + '<input id="setPinConfirm" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:6px;font-family:Poppins,sans-serif;">'
+  + '<input id="setPinConfirm" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #E5E7EB;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;margin-bottom:6px;font-family:var(--font-main,Poppins),sans-serif;">'
   + '<div id="setPinErr" style="display:none;color:#B23A2E;font-size:12px;margin-bottom:8px;"></div>'
   + '<button id="setPinBtn" onclick="window.__setPinSubmit()" class="btn-brand-primary" style="width:100%;padding:12px;font-size:14px;margin-top:6px;">Simpan PIN</button>'
   + skip
@@ -21836,8 +21836,8 @@ window.__mpTiktokStock = async function(filter, forceReload){
  const curCol = window.__ttCollection || '';
  const curQ = window.__ttSearch || '';
  html += '<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">';
- html += '<div style="position:relative; flex:1; min-width:200px;"><i data-lucide="search" style="width:15px;height:15px; position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9CA3AF;"></i><input id="ttSearchInput" type="text" value="'+esc(curQ)+'" oninput="window.__ttSearch=this.value; window.__ttRenderRows();" placeholder="Cari nama atau SKU…" style="width:100%; box-sizing:border-box; padding:9px 11px 9px 32px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif;"></div>';
- html += '<select id="ttCollectionSel" onchange="window.__ttCollection=this.value; window.__ttRenderRows();" style="padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif; min-width:170px;"><option value="">Semua brand</option>'+brands.map(b=>'<option value="'+esc(b)+'"'+(b===curCol?' selected':'')+'>'+esc(b)+'</option>').join('')+'</select>';
+ html += '<div style="position:relative; flex:1; min-width:200px;"><i data-lucide="search" style="width:15px;height:15px; position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9CA3AF;"></i><input id="ttSearchInput" type="text" value="'+esc(curQ)+'" oninput="window.__ttSearch=this.value; window.__ttRenderRows();" placeholder="Cari nama atau SKU…" style="width:100%; box-sizing:border-box; padding:9px 11px 9px 32px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif;"></div>';
+ html += '<select id="ttCollectionSel" onchange="window.__ttCollection=this.value; window.__ttRenderRows();" style="padding:9px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif; min-width:170px;"><option value="">Semua brand</option>'+brands.map(b=>'<option value="'+esc(b)+'"'+(b===curCol?' selected':'')+'>'+esc(b)+'</option>').join('')+'</select>';
  html += '</div>';
  html += '<p style="font-size:11.5px; color:#9CA3AF; margin:-4px 0 12px;"><i data-lucide="mouse-pointer-click" style="width:12px;height:12px;vertical-align:-2px;"></i> Tekan mana-mana baris untuk on/off sync, publish atau edit. <span id="ttCount" style="font-weight:600;"></span></p>';
  // jadual — isi rows via __ttRenderRows (kekal fokus search masa taip)
@@ -22011,14 +22011,14 @@ window.__mpTtForm = async function(listingSku, opts){
  const imgs = (pf.images||[]).slice(0,6).map(u=>'<img src="'+esc(u)+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #EEE;" onerror="this.style.display=\'none\'">').join('');
  const vSkus = (pf.skus||[]).map(s=>s.seller_sku).filter(Boolean);
  const vNote = vSkus.length>1 ? '<div style="font-size:11.5px;color:#2F5A2C;background:#E4EFE2;border-radius:8px;padding:8px 11px;margin-bottom:14px;"><b>'+vSkus.length+' variant</b> ('+vSkus.map(esc).join(', ')+') — dicipta sebagai 1 produk dengan '+vSkus.length+' variant di TikTok.</div>' : '';
- const fld = (id,label,val,o) => { o=o||{}; return '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">'+label+(o.req?' <span style="color:#B23A2E;">*</span>':'')+'</label>'+(o.area?('<textarea id="'+id+'" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'+esc(val)+'</textarea>'):('<input id="'+id+'" type="'+(o.type||'text')+'" value="'+esc(val)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;">'))+'</div>'; };
+ const fld = (id,label,val,o) => { o=o||{}; return '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">'+label+(o.req?' <span style="color:#B23A2E;">*</span>':'')+'</label>'+(o.area?('<textarea id="'+id+'" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-main,Poppins),sans-serif;">'+esc(val)+'</textarea>'):('<input id="'+id+'" type="'+(o.type||'text')+'" value="'+esc(val)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-main,Poppins),sans-serif;">'))+'</div>'; };
  const reqAttrs = (req.attributes||[]).filter(a=>a.is_required);
  let attrHtml = '';
  if(reqAttrs.length){
   attrHtml = '<div style="font-size:11.5px;font-weight:800;color:#9A5B2B;margin:16px 0 8px;">Wajib TikTok untuk kategori ni:</div>';
   reqAttrs.forEach(a=>{
    if(a.values && a.values.length){
-    attrHtml += '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:4px;">'+esc(a.name)+' <span style="color:#B23A2E;">*</span></label><select id="ttattr_'+esc(a.id)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Poppins,sans-serif;"><option value="">— pilih —</option>'+a.values.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.name)+'</option>').join('')+'</select></div>';
+    attrHtml += '<div style="margin-bottom:11px;"><label style="display:block;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:4px;">'+esc(a.name)+' <span style="color:#B23A2E;">*</span></label><select id="ttattr_'+esc(a.id)+'" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-main,Poppins),sans-serif;"><option value="">— pilih —</option>'+a.values.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.name)+'</option>').join('')+'</select></div>';
    } else {
     attrHtml += fld('ttattr_'+esc(a.id), esc(a.name), '', {req:true});
    }
@@ -36564,7 +36564,7 @@ window.renderCollections = function() {
   html += '<div style="font-weight:800; font-size:13.5px; margin-bottom:10px;"><i data-lucide="folder-plus" style="width:15px;height:15px;vertical-align:-2px;"></i> Urus Koleksi</div>';
   html += '<p style="font-size:11.5px; color:#9CA3AF; margin:0 0 12px;">Tambah koleksi ikut keperluan. Produk masuk koleksi secara auto ikut kategori, atau set terus di editor produk (medan Collection — by SKU).</p>';
   html += '<div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;">' + clist.map(c => `<span style="display:inline-flex; align-items:center; gap:6px; background:#F3EEE7; color:#7A4A1E; border:1px solid #E8D9C7; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600;">${hesc(c)}<button onclick="window.__collRemove('${hesc(c).replace(/'/g, "\\'")}')" title="Buang" style="border:none; background:none; color:#B23A2E; cursor:pointer; font-size:15px; line-height:1; padding:0;">&times;</button></span>`).join('') + '</div>';
-  html += '<div style="display:flex; gap:8px;"><input id="collNewName" type="text" placeholder="Nama koleksi baru…" onkeydown="if(event.key===\'Enter\'){event.preventDefault(); window.__collAdd();}" style="flex:1; padding:8px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:Poppins,sans-serif;"><button onclick="window.__collAdd()" class="btn-brand-primary" style="font-size:13px; padding:8px 16px; white-space:nowrap;">Tambah</button></div>';
+  html += '<div style="display:flex; gap:8px;"><input id="collNewName" type="text" placeholder="Nama koleksi baru…" onkeydown="if(event.key===\'Enter\'){event.preventDefault(); window.__collAdd();}" style="flex:1; padding:8px 11px; border:1px solid #E5E7EB; border-radius:8px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif;"><button onclick="window.__collAdd()" class="btn-brand-primary" style="font-size:13px; padding:8px 16px; white-space:nowrap;">Tambah</button></div>';
   html += '</div>';
  }
  body.innerHTML = html;
@@ -38219,7 +38219,7 @@ window.I18N = {
  set_card_test_title: { bm: 'Panduan Ujian Sistem', en: 'System Test Guide' },
  set_card_test_sub: { bm: 'Panduan ujian sistem POS untuk Bos verify flow setiap module.', en: 'POS system test guide for the owner to verify each module flow.' },
  set_card_theme_title: { bm: 'Tema Warna', en: 'Colour Theme' },
- set_card_theme_sub: { bm: 'Pilih tema untuk device ini. Warna status (merah/hijau/amber) kekal sama.', en: 'Pick a theme for this device. Status colours (red/green/amber) stay the same.' },
+ set_card_theme_sub: { bm: 'Pilih tema untuk device ini — setiap tema ada warna & font sendiri. Warna status (merah/hijau/amber) kekal sama.', en: 'Pick a theme for this device — each theme has its own colours & font. Status colours (red/green/amber) stay the same.' },
 
  // p1_93 — Permissions Centre i18n
  perm_title: { bm: 'Pusat Kebenaran', en: 'Permissions Centre' },
@@ -43752,7 +43752,7 @@ window.__binBarcode = function(code){
     JsBarcode(svg, code, { format:'CODE128', width:2, height:70, displayValue:true, fontSize:16, margin:6 });
     var markup = new XMLSerializer().serializeToString(svg);
     var w = window.open('', '_blank', 'width=420,height=320');
-    w.document.write('<!DOCTYPE html><html><head><title>Label Bin '+code+'</title></head><body style="font-family:Poppins,Arial,sans-serif;text-align:center;padding:24px;">'
+    w.document.write('<!DOCTYPE html><html><head><title>Label Bin '+code+'</title></head><body style="font-family:var(--font-main,Poppins),Arial,sans-serif;text-align:center;padding:24px;">'
       + '<div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#101010;margin-bottom:8px;">LOKASI BIN</div>'
       + '<div style="font-size:20px;font-weight:900;margin-bottom:12px;">'+code+'</div>'
       + markup

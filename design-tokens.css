@@ -141,7 +141,7 @@
  display: inline-flex; align-items: center; justify-content: center;
  gap: var(--space-2);
  padding: 10px 18px;
- font-family: 'Poppins', sans-serif;
+ font-family: var(--font-main,Poppins), sans-serif;
  font-size: var(--text-base);
  font-weight: var(--weight-semibold);
  line-height: var(--line-tight);
@@ -586,7 +586,7 @@
 }
 
 /* p1_831 — Dokumen memo A4 berjenama (SATU SUMBER gaya) dipakai oleh PDF stage + pratonton dlm-kad */
-.mdoc-page { width: 794px; min-height: 1123px; background: #fff; color: #101010; font-family: Poppins, Arial, sans-serif; display: flex; flex-direction: column; position: relative; }
+.mdoc-page { width: 794px; min-height: 1123px; background: #fff; color: #101010; font-family: var(--font-main,Poppins), Arial, sans-serif; display: flex; flex-direction: column; position: relative; }
 .mdoc-page * { box-sizing: border-box; }
 .mdoc-page .mdoc-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: var(--primary-500,#CD7C32); }
 .mdoc-page .mdoc-inner { flex: 1; padding: 34px 48px 24px 54px; }
@@ -788,7 +788,7 @@
 /* ============================================================
    p1_23 — Public Landing Page (lp-* prefix)
    ============================================================ */
-.lp-root { font-family: 'Poppins', system-ui, -apple-system, sans-serif; color: #1F2937; background: #FFF; }
+.lp-root { font-family: var(--font-main,Poppins), system-ui, -apple-system, sans-serif; color: #1F2937; background: #FFF; }
 .lp-root h1, .lp-root h2, .lp-root h3, .lp-root h4 { font-family: inherit; }
 
 .lp-promo-banner { background: linear-gradient(90deg, var(--primary-700), var(--primary-500), var(--primary-600)); color: #FFF; text-align: center; padding: 8px 40px; font-size: 13px; font-weight: 600; position: relative; }
@@ -1990,7 +1990,7 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
 }
 /* p1_1010 — PIN keypad (iPad kongsi): butang besar sentuh-mesra, on-brand */
 .pin-key {
- font-family: Poppins, sans-serif;
+ font-family: var(--font-main,Poppins), sans-serif;
  font-size: 24px; font-weight: 700; color: #101010;
  background: #FAF6EF; border: 1.5px solid #E5DAC8; border-radius: 14px;
  padding: 16px 0; cursor: pointer; user-select: none;
@@ -2110,7 +2110,7 @@ html.pos-app-boot #posBootSplash { display: flex !important; }
  border: none; outline: none;
  padding: 18px 20px;
  font-size: var(--text-md);
- font-family: 'Poppins', sans-serif;
+ font-family: var(--font-main,Poppins), sans-serif;
  border-bottom: 1px solid var(--neutral-200);
 }
 .cmdk-list {
@@ -2269,7 +2269,7 @@ html.pos-app-boot #posBootSplash { display: flex !important; }
  border: 1px solid var(--neutral-300);
  border-radius: var(--radius-md);
  font-size: var(--text-base);
- font-family: 'Poppins', sans-serif;
+ font-family: var(--font-main,Poppins), sans-serif;
  background: #FFF;
  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -4198,7 +4198,7 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 
 /* p1_853 — Tunai Diterima + Baki (panel checkout, Cara Bayar = Tunai). Brand-lock + tabular figures. */
 .cp-cash__title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.cp-cash__clear { background: none; border: none; color: #B23A2E; font: 700 11.5px 'Poppins', sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; min-height: 32px; }
+.cp-cash__clear { background: none; border: none; color: #B23A2E; font: 700 11.5px var(--font-main,Poppins), sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; min-height: 32px; }
 .cp-cash__amounts { display: flex; gap: 10px; margin-bottom: 12px; }
 .cp-cash__received, .cp-cash__change { flex: 1; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .cp-cash__received { background: #FAF6EF; border: 1px solid #EEE7DA; }
@@ -4214,11 +4214,11 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .cp-cash__change.is-short .cp-cash__change-lbl { color: #B23A2E; }
 .cp-cash__change.is-short .cp-cash__change-val { color: #DC2626; font-size: 17px; }
 .cp-cash__quick { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-.cp-cash__chip { flex: 1; min-width: 54px; min-height: 42px; border: 1px solid #E2D9C8; background: #fff; border-radius: 9px; font: 700 14px 'Poppins', sans-serif; color: #101010; cursor: pointer; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: transform .06s, background .12s; -webkit-tap-highlight-color: transparent; }
+.cp-cash__chip { flex: 1; min-width: 54px; min-height: 42px; border: 1px solid #E2D9C8; background: #fff; border-radius: 9px; font: 700 14px var(--font-main,Poppins), sans-serif; color: #101010; cursor: pointer; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: transform .06s, background .12s; -webkit-tap-highlight-color: transparent; }
 .cp-cash__chip:active { transform: scale(.94); background: #FAF6EF; }
 .cp-cash__chip--exact { background: #FBF1E4; border-color: #E7C68A; color: #7A5410; }
 .cp-cash__keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.cp-cash__key { min-height: 52px; border: 1px solid #E6E0D4; background: #fff; border-radius: 11px; font: 700 20px 'Poppins', sans-serif; color: #101010; cursor: pointer; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; justify-content: center; transition: transform .06s, background .12s; -webkit-tap-highlight-color: transparent; }
+.cp-cash__key { min-height: 52px; border: 1px solid #E6E0D4; background: #fff; border-radius: 11px; font: 700 20px var(--font-main,Poppins), sans-serif; color: #101010; cursor: pointer; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; justify-content: center; transition: transform .06s, background .12s; -webkit-tap-highlight-color: transparent; }
 .cp-cash__key:active { transform: scale(.93); background: #FAF6EF; }
 .cp-cash__key--util { color: #9E7016; background: #FBF1E4; }
 
@@ -4227,7 +4227,7 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .co-amount__rm { font-size: 15px; }
 .co-amount__val { font-size: 34px; font-weight: 800; color: #101010; font-variant-numeric: tabular-nums; }
 .co-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.co-cat { min-height: 44px; border: 1px solid #E2D9C8; background: #fff; border-radius: 9px; font: 600 12.5px 'Poppins', sans-serif; color: #101010; cursor: pointer; padding: 8px 10px; transition: transform .06s, background .12s, border-color .12s; -webkit-tap-highlight-color: transparent; }
+.co-cat { min-height: 44px; border: 1px solid #E2D9C8; background: #fff; border-radius: 9px; font: 600 12.5px var(--font-main,Poppins), sans-serif; color: #101010; cursor: pointer; padding: 8px 10px; transition: transform .06s, background .12s, border-color .12s; -webkit-tap-highlight-color: transparent; }
 .co-cat:active { transform: scale(.96); }
 .co-cat.is-active { background: #FBE9E7; border-color: #E5897E; color: #B23A2E; }
 
@@ -4259,7 +4259,7 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .cc-row--total .cc-row__lbl { font-weight: 800; color: #101010; }
 .cc-row--total .cc-row__val { font-weight: 800; font-size: 16px; }
 .cc-row__inp { display: inline-flex; align-items: center; gap: 5px; }
-.cc-row__inp input { width: 92px; text-align: right; border: 1px solid #E2D9C8; border-radius: 8px; padding: 7px 9px; font: 700 13px 'Poppins', sans-serif; color: #101010; font-variant-numeric: tabular-nums; min-height: 38px; }
+.cc-row__inp input { width: 92px; text-align: right; border: 1px solid #E2D9C8; border-radius: 8px; padding: 7px 9px; font: 700 13px var(--font-main,Poppins), sans-serif; color: #101010; font-variant-numeric: tabular-nums; min-height: 38px; }
 .cc-variance { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 12px; background: #F2F2F2; border: 1px solid #E5E5E5; transition: background .15s, border-color .15s; }
 .cc-variance__lbl { font-weight: 700; color: #9a948b; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
 .cc-variance__val { font-weight: 800; font-size: 18px; color: #6B7280; font-variant-numeric: tabular-nums; }
@@ -4278,7 +4278,7 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .cp-split__lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #101010; }
 .cp-split__inp { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1px solid #E2D9C8; border-radius: 8px; padding: 0 10px; }
 .cp-split__inp > span { color: #9a948b; font-size: 12px; }
-.cp-split__inp input { width: 92px; border: none; background: none; text-align: right; font: 700 14px 'Poppins', sans-serif; color: #101010; font-variant-numeric: tabular-nums; min-height: 42px; }
+.cp-split__inp input { width: 92px; border: none; background: none; text-align: right; font: 700 14px var(--font-main,Poppins), sans-serif; color: #101010; font-variant-numeric: tabular-nums; min-height: 42px; }
 .cp-split__sum { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding-top: 8px; border-top: 1px dashed #E0D7C7; margin-top: 4px; font-weight: 700; color: #5c554c; }
 .cp-split__sum > span:last-child { font-variant-numeric: tabular-nums; color: #101010; }
 .cp-split__bal { font-size: 14px; }
@@ -4286,10 +4286,10 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
 .cp-split__bal.is-short > span:last-child { color: #DC2626; }
 
 /* p1_860 — Offline mode banner (jualan disimpan offline + sync) */
-.pos-offline-banner { position: fixed; left: 0; right: 0; top: 0; z-index: 95; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 14px; font: 700 12px 'Poppins', sans-serif; color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+.pos-offline-banner { position: fixed; left: 0; right: 0; top: 0; z-index: 95; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 14px; font: 700 12px var(--font-main,Poppins), sans-serif; color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
 .pos-offline-banner.is-offline { background: #B23A2E; }
 .pos-offline-banner.is-pending { background: #B45309; }
-.pos-offline-banner__btn { background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.55); color: #fff; font: 700 11px 'Poppins', sans-serif; padding: 5px 11px; border-radius: 6px; cursor: pointer; margin-left: 4px; -webkit-tap-highlight-color: transparent; }
+.pos-offline-banner__btn { background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.55); color: #fff; font: 700 11px var(--font-main,Poppins), sans-serif; padding: 5px 11px; border-radius: 6px; cursor: pointer; margin-left: 4px; -webkit-tap-highlight-color: transparent; }
 .pos-offline-banner__btn:active { transform: scale(.95); }
 body.pos-app-scoped .pos-offline-banner { top: calc(54px + env(safe-area-inset-top)); }
 /* p1_863 — bila banner offline ada, tolak kandungan + sticky search ke bawah supaya tak tertutup */
@@ -4404,7 +4404,7 @@ body.pos-app-scoped .login-input { font-size: 16px !important; }
   body.pos-app-scoped #allOrdersSection .data-table tr { display: block !important; width: auto !important; }
   body.pos-app-scoped #allOrdersSection .data-table tr { border: 1px solid #EEE7DA !important; border-radius: 12px; margin-bottom: 10px; padding: 8px 12px; background: #fff; box-shadow: 0 1px 4px rgba(16,16,16,.05); }
   body.pos-app-scoped #allOrdersSection .data-table td { display: flex !important; justify-content: space-between; align-items: center; gap: 10px; width: auto !important; text-align: right !important; padding: 5px 0 !important; border: none !important; font-size: 13px; }
-  body.pos-app-scoped #allOrdersSection .data-table td[data-label]::before { content: attr(data-label); font: 700 11px 'Poppins',sans-serif; color: #9a948b; text-transform: uppercase; letter-spacing: .3px; text-align: left; flex: 0 0 auto; }
+  body.pos-app-scoped #allOrdersSection .data-table td[data-label]::before { content: attr(data-label); font: 700 11px var(--font-main,Poppins),sans-serif; color: #9a948b; text-transform: uppercase; letter-spacing: .3px; text-align: left; flex: 0 0 auto; }
   /* sorok sel bising di phone (akses via klik order): checkbox(1) item(8) resit(10) pack(11) */
   body.pos-app-scoped #allOrdersSection .data-table td:nth-child(1),
   body.pos-app-scoped #allOrdersSection .data-table td:nth-child(8),
@@ -4425,7 +4425,7 @@ body.pos-app-scoped .login-input { font-size: 16px !important; }
   body.pos-app-scoped .scs-sku-table tr { border: 1px solid #EEE7DA !important; border-radius: 12px; margin-bottom: 10px; padding: 10px 14px; background: #fff; box-shadow: 0 1px 4px rgba(16,16,16,.05); }
   body.pos-app-scoped .scs-sku-table td { display: flex !important; justify-content: space-between; align-items: center; gap: 12px; width: auto !important; text-align: right !important; padding: 6px 0 !important; border: none !important; border-bottom: 1px solid #F6F2EA !important; font-size: 13px; }
   body.pos-app-scoped .scs-sku-table td:last-child { border-bottom: 0 !important; }
-  body.pos-app-scoped .scs-sku-table td[data-label]::before { content: attr(data-label); font: 700 11px 'Poppins',sans-serif; color: #9a948b; text-transform: uppercase; letter-spacing: .3px; text-align: left; flex: 0 0 auto; white-space: nowrap; }
+  body.pos-app-scoped .scs-sku-table td[data-label]::before { content: attr(data-label); font: 700 11px var(--font-main,Poppins),sans-serif; color: #9a948b; text-transform: uppercase; letter-spacing: .3px; text-align: left; flex: 0 0 auto; white-space: nowrap; }
   /* SKU = tajuk kad (besar, menonjol). Nama biar mengalir penuh ke kanan. */
   body.pos-app-scoped .scs-sku-table td.scs-cell-sku { font-size: 16px !important; font-weight: 800; color: #101010; }
   body.pos-app-scoped .scs-sku-table td.scs-cell-name { text-align: right; line-height: 1.4; }
@@ -4562,3 +4562,18 @@ body:has(#saPanel:not([hidden])) #mobileCartFloatingBar { display: none !importa
 .theme-swatch--active { background:var(--primary-50,#FFF8F0); box-shadow: inset 0 0 0 2px var(--primary-500,#CD7C32); }
 .theme-swatch__dot { width:22px; height:22px; border-radius:50%; display:block; border:1px solid rgba(0,0,0,0.12); }
 .theme-swatch__lbl { font-size:9.5px; font-weight:600; color:#6B7280; }
+
+/* =============================================================
+   p1_1072 — FONT PER TEMA (sambungan p1_1071)
+   Brand-lock (Poppins + 3 warna) HANYA terpakai pada tema
+   10CAMP Official. Tema lain bebas — setiap satu ada font
+   sepadan personaliti: Flame=Rubik (tegas berapi),
+   Ocean=Manrope (bersih tenang), Forest=Nunito (bulat organik),
+   Desert=Karla (hangat santai). Font file hanya didownload
+   bila tema aktif (browser lazy-load @font-face ikut guna).
+   ============================================================= */
+:root { --font-main: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif; }
+:root[data-theme="flame"]  { --font-main: 'Rubik', 'Poppins', system-ui, -apple-system, sans-serif; }
+:root[data-theme="ocean"]  { --font-main: 'Manrope', 'Poppins', system-ui, -apple-system, sans-serif; }
+:root[data-theme="forest"] { --font-main: 'Nunito', 'Poppins', system-ui, -apple-system, sans-serif; }
+:root[data-theme="desert"] { --font-main: 'Karla', 'Poppins', system-ui, -apple-system, sans-serif; }

@@ -35,8 +35,8 @@
  <link rel="icon" type="image/png" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=78">
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;family=Rubik:wght@400;500;600;700;800;900&amp;family=Manrope:wght@400;500;600;700;800&amp;family=Nunito:wght@400;600;700;800;900&amp;family=Karla:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="style.css?v=79">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <!-- p1_1026 preconnect: warm TLS awal untuk DATA+IMEJ storage (Supabase) + FONT — boot lebih laju di mobile -->
@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=162">
+ <link rel="stylesheet" href="design-tokens.css?v=163">
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
       Fallback ke CDN HANYA kalau fail tempatan gagal define global supabase. -->
@@ -65,9 +65,9 @@
 <body>
  <!-- p1_1012 — Boot splash (kaunter iPad): tutup landing customer dari saat pertama sampai app tentukan POS/skrin-kunci. Skrip inline sinkron tanda <html> sebelum landing sempat paint. -->
  <div id="posBootSplash" style="display:none; position:fixed; inset:0; z-index:9999; background:radial-gradient(130% 80% at 50% -10%, #212a3a 0%, #14181f 45%, #0d0d0d 100%); flex-direction:column; align-items:center; justify-content:center; gap:18px; transition:opacity .3s ease;">
- <div style="font-weight:800; letter-spacing:3px; color:var(--primary-500,#CD7C32); font-size:15px; font-family:Poppins,sans-serif;">10 CAMP · KAUNTER POS</div>
+ <div style="font-weight:800; letter-spacing:3px; color:var(--primary-500,#CD7C32); font-size:15px; font-family:var(--font-main,Poppins),sans-serif;">10 CAMP · KAUNTER POS</div>
  <div style="width:34px; height:34px; border:3px solid rgba(var(--primary-rgb,205,124,50),.25); border-top-color:var(--primary-500,#CD7C32); border-radius:50%; animation:pbsSpin .8s linear infinite;"></div>
- <div style="color:#9a948b; font-size:13px; font-family:Poppins,sans-serif;">Memuatkan…</div>
+ <div style="color:#9a948b; font-size:13px; font-family:var(--font-main,Poppins),sans-serif;">Memuatkan…</div>
  </div>
  <script>(function(){try{if(/TenCampPOSApp/.test(navigator.userAgent||'')||/[?&]posapp=1/.test(location.search||'')){document.documentElement.classList.add('pos-app-boot');setTimeout(function(){var s=document.getElementById('posBootSplash');document.documentElement.classList.remove('pos-app-boot');if(s){s.style.opacity='0';setTimeout(function(){s.style.display='none';},340);}},15000);}}catch(e){}})();</script>
 
@@ -907,7 +907,7 @@
  <p class="cp-section__title" style="margin:0 0 4px; display:flex; align-items:center; gap:6px;"><i data-lucide="banknote" style="width:15px;height:15px; color:var(--primary-500,#CD7C32);"></i> Kira Cash Dalam Box</p>
  <p style="font-size:11.5px; color:#9a948b; margin:0 0 8px;">Kira semua duit dalam cash box sekarang, masukkan jumlahnya untuk buka shift.</p>
  <div style="display:flex; gap:8px; align-items:stretch;">
- <span class="cc-row__inp" style="flex:1; background:#fff; border:1px solid #EEE7DA; border-radius:10px; padding:0 12px; display:flex; align-items:center; gap:6px;"><span style="color:#9a948b; font-size:13px;">RM</span> <input type="number" id="hubFloatInput" aria-label="Jumlah cash dalam box (RM)" step="0.01" min="0" placeholder="0.00" inputmode="decimal" style="flex:1; border:none; background:none; text-align:right; font:700 16px Poppins; color:#101010; font-variant-numeric:tabular-nums; min-height:46px;"></span>
+ <span class="cc-row__inp" style="flex:1; background:#fff; border:1px solid #EEE7DA; border-radius:10px; padding:0 12px; display:flex; align-items:center; gap:6px;"><span style="color:#9a948b; font-size:13px;">RM</span> <input type="number" id="hubFloatInput" aria-label="Jumlah cash dalam box (RM)" step="0.01" min="0" placeholder="0.00" inputmode="decimal" style="flex:1; border:none; background:none; text-align:right; font:700 16px var(--font-main,Poppins); color:#101010; font-variant-numeric:tabular-nums; min-height:46px;"></span>
  <button type="button" id="hubSaveFloatBtn" onclick="window.saveOpeningFloat()" class="login-btn" style="background:var(--primary-500,#CD7C32); width:auto; padding:0 18px; font-size:14px; margin:0; flex-shrink:0;">Buka Shift</button>
  </div>
  <p id="hubFloatHint" style="font-size:11.5px; color:#9a948b; margin:7px 2px 0;"></p>
@@ -1167,10 +1167,10 @@
  <i data-lucide="user" style="width:18px;height:18px;"></i>
  </button>
  <div id="lpLoginMenu" style="display:none; position:absolute; top:calc(100% + 10px); right:0; background:#FFF; border:1px solid #ECE6DE; border-radius:14px; box-shadow:0 12px 34px rgba(16,16,16,0.14); min-width:250px; z-index:6000; overflow:hidden; text-align:left;">
- <button onclick="window.location.href='loyalty.html'" style="display:block; width:100%; padding:13px 16px; background:none; border:none; border-bottom:1px solid #F3F0EA; cursor:pointer; text-align:left; font-family:Poppins,sans-serif;">
+ <button onclick="window.location.href='loyalty.html'" style="display:block; width:100%; padding:13px 16px; background:none; border:none; border-bottom:1px solid #F3F0EA; cursor:pointer; text-align:left; font-family:var(--font-main,Poppins),sans-serif;">
  <span style="display:flex; align-items:center; gap:10px;"><i data-lucide="gift" style="width:17px;height:17px;color:var(--primary-500,#CD7C32);"></i><span><strong style="font-size:13.5px; color:#101010;">Customer Login</strong><br><span style="font-size:11px; color:#8A8578;">10 CAMP Rewards — semak mata &amp; tier</span></span></span>
  </button>
- <button onclick="document.getElementById('lpLoginMenu').style.display='none'; handleLogin()" style="display:block; width:100%; padding:13px 16px; background:none; border:none; cursor:pointer; text-align:left; font-family:Poppins,sans-serif;">
+ <button onclick="document.getElementById('lpLoginMenu').style.display='none'; handleLogin()" style="display:block; width:100%; padding:13px 16px; background:none; border:none; cursor:pointer; text-align:left; font-family:var(--font-main,Poppins),sans-serif;">
  <span style="display:flex; align-items:center; gap:10px;"><i data-lucide="lock" style="width:17px;height:17px;color:#101010;"></i><span><strong style="font-size:13.5px; color:#101010;">Staff Login</strong><br><span style="font-size:11px; color:#8A8578;">PIN staf / emel Bos</span></span></span>
  </button>
  </div>
@@ -3873,7 +3873,7 @@
  <style>
  /* p1_922 — Calculator sub-nav (gabung Harga + Kos Shipment) */
  .calc-subnav{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border-color);}
- .calc-subtab{display:inline-flex; align-items:center; gap:7px; font-family:'Poppins',sans-serif; font-size:13px; font-weight:700; color:#6B7280; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:10px; padding:9px 16px; cursor:pointer; transition:background .12s, color .12s, box-shadow .12s;}
+ .calc-subtab{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-main,Poppins),sans-serif; font-size:13px; font-weight:700; color:#6B7280; background:#F3F4F6; border:1px solid #E5E7EB; border-radius:10px; padding:9px 16px; cursor:pointer; transition:background .12s, color .12s, box-shadow .12s;}
  .calc-subtab:hover{background:#EFE7DC; color:#7A4A1E;}
  .calc-subtab--active{background:var(--primary-500,#CD7C32); color:#fff; border-color:var(--primary-500,#CD7C32); box-shadow:0 2px 6px -1px rgba(var(--primary-rgb,205,124,50),.45);}
  </style>
@@ -6250,7 +6250,7 @@
  <div class="set-card">
  <div class="set-card__icon"><i data-lucide="palette" style="width:18px; height:18px;"></i></div>
  <div class="set-card__title" data-i18n="set_card_theme_title">Tema Warna</div>
- <div class="set-card__sub" data-i18n="set_card_theme_sub">Pilih tema untuk device ini. Warna status (merah/hijau/amber) kekal sama.</div>
+ <div class="set-card__sub" data-i18n="set_card_theme_sub">Pilih tema untuk device ini — setiap tema ada warna &amp; font sendiri. Warna status (merah/hijau/amber) kekal sama.</div>
  <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
  <button type="button" class="theme-swatch" data-theme-key="official" onclick="window.__setTheme('official')" title="10CAMP Official">
  <span class="theme-swatch__dot" style="background:#CD7C32;"></span><span class="theme-swatch__lbl">Official</span>
@@ -13191,7 +13191,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1052"></script>
+ <script src="app.js?v=1053"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

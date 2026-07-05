@@ -21095,7 +21095,7 @@ window.renderFifoListing = function() {
    <button onclick="event.stopPropagation(); window.__unitLabelsPrint('${skuJs}', ${bn}, ${recv})" title="Cetak label barcode tiap unit batch ni" style="margin-top:4px; background:#FBEFE2; border:1px solid #E7C8A8; color:#7A5410; border-radius:5px; font-size:10px; font-weight:700; padding:2px 7px; cursor:pointer;"><i data-lucide="tag" style="width:10px;height:10px;vertical-align:-1px;"></i> Label</button>
  </td>
  <td style="padding:10px; white-space:nowrap;">${esc(dt)}</td>
- <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;">${esc(b.sku || '-')}</td>
+ <td style="padding:10px; font-family:'SF Mono',Menlo,monospace; font-size:11.5px;"><div style="display:flex;align-items:center;gap:7px;">${window.__skuThumbHtml ? window.__skuThumbHtml(b.sku, 28) : ''}${esc(b.sku || '-')}</div></td>
  <td style="padding:10px;">${esc(nameOf(b.sku).slice(0, 45) || '-')}</td>
  <td style="padding:10px; text-align:right; font-weight:700;">${Number(b.qty_remaining) || 0}</td>
  <td style="padding:10px; text-align:right; color:#6B7280;">${Number(b.qty_received) || 0}</td>

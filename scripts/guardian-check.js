@@ -114,7 +114,16 @@ if (htmlSrc) {
 
 // 4c) SECTION YATIM (warning sahaja) — id="xxxSection" yang TIADA rujukan lain di mana-mana.
 //     Allowlist = dorman sengaja (kod kekal, menu dibuang).
-const ORPHAN_OK = new Set(['backfillOrderSection']); // p1_1048 — dorman sengaja utk backfill DO 2025/26
+const ORPHAN_OK = new Set([
+ 'backfillOrderSection',   // p1_1048 — dorman sengaja utk backfill DO 2025/26
+ 'notifyInvSection',       // p1_1063 — Notify Inventory disorok (0 penggunaan); pulih bila perlu
+ // p1_1063 — ZOMBIE (audit 5 Jul): section tanpa laluan nav TAPI renderer masih tulis ke dalamnya.
+ // Pembersihan = FASA 2 (padam fn + section serentak, verify satu-satu — lihat planning.html):
+ 'inventorySection', 'pickingSection', 'stockCheckSection', 'stockCheckHistorySection',
+ 'agingSection', 'snapshotSection', 'valuationSection', 'fulfillmentSection', 'hubShiftSection',
+ 'supplierPerfSection', 'productSalesSection', 'salesAnalyticsSection', 'rosterReconSection',
+ 'reservationsSection', 'staffMgmtSection'
+]);
 if (appSrc && htmlSrc) {
  const secs = new Set();
  (htmlSrc.match(/id="([A-Za-z0-9]+Section)"/g) || []).forEach(s => secs.add(s.slice(4, -1)));

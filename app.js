@@ -16363,7 +16363,8 @@ function loginAs(user, opts) {
  window.__confUnlockedMem = false;
  currentUser = user;
  window.currentUser = user; // expose for helpers (e.g. hasManagementAccess)
- try { if(typeof window.__notifyInvStartPoll === 'function') window.__notifyInvStartPoll(); } catch(e){} // p1_896 — mula poll badge Notify Inventory
+ // p1_1063 — poll badge Notify Inventory DIMATIKAN (feature disorok: 0 penggunaan, badge dah tiada).
+ // try { if(typeof window.__notifyInvStartPoll === 'function') window.__notifyInvStartPoll(); } catch(e){}
  // p1_648 — reload data now that we're logged in (boot load is gated to public-safe tables only).
  // Covers email/PIN/restore paths; boot initApp skips when already logged in (no double-load).
  try { if(typeof initApp === 'function') initApp(); } catch(e){}
@@ -22094,6 +22095,7 @@ window.renderCampaigns = function() {
 };
 
 // p1_276 — Messages sub-section stubs
+// p1_1063 — stub renderBroadcast: yatim (0 pemanggil; Broadcast sebenar = renderWABroadcast) tapi kekal — deleted separately if verified again
 window.renderBroadcast = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
@@ -22150,9 +22152,7 @@ window.__pmRender = function(q){
   + th('Nama')+th('Telefon')+th('Tier')+th('Belanja',1)+th('Mata Boleh Guna',1)+th('Order',1)+th('Beli Terakhir',1)
   + '</tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="padding:18px;text-align:center;color:#9CA3AF;font-size:13px;">Tiada ahli sepadan carian.</td></tr>')+'</tbody></table></div>' + note;
 };
-window.renderEngagement = function() {
- if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
-};
+// p1_1063 — stub renderEngagement DIPADAM (yatim, 0 pemanggil; Engagement sebenar = renderReengage p1_1009)
 window.renderStoreCredit = function() {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };

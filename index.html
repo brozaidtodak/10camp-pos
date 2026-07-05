@@ -2021,9 +2021,10 @@
  <div class="menu-item" data-tab="nav_bins" onclick="event.stopPropagation(); switchHub(['binsSection'], 'Locations & Bins', this); if(typeof renderBinsLocations==='function') renderBinsLocations();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="map-pin" style="width:15px; height:15px;"></i> <span>Locations &amp; Bins</span>
  </div>
- <div class="menu-item" data-tab="nav_notify_inv" onclick="event.stopPropagation(); switchHub(['notifyInvSection'], 'Notify Inventory', this); if(typeof renderNotifyInventory==='function') renderNotifyInventory();" style="display:flex; align-items:center; gap:10px;">
- <i data-lucide="package-check" style="width:15px; height:15px;"></i> <span>Notify Inventory</span> <span id="notifyInvBadgeSidebar" class="ni-badge" style="display:none;"></span>
- </div>
+ <!-- p1_1063 — Notify Inventory DIBUANG dari sidebar (audit: 0 penggunaan sejak lancar p1_896;
+      keputusan Zaid sama mcm Backfill p1_1048). Kod + section KEKAL dorman (notifyInvSection /
+      renderNotifyInventory / butang "Maklum Inventori" di cashier MASIH berfungsi hantar) —
+      pulihkan menu-item ni kalau staf mula guna semula. -->
  <div class="menu-item" data-tab="nav_events" onclick="event.stopPropagation(); switchHub(['eventSection'], 'Event', this); if(typeof renderEvents==='function') renderEvents();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="calendar-check" style="width:15px; height:15px;"></i> <span>Event</span>
  </div>
@@ -3232,11 +3233,14 @@
  <!-- p1_383 — Snap Resit SIAP-SIAP sebelum checkout. Reuse proofCameraInput global + __proofState. -->
  <div id="cartProofRow" style="margin-bottom:12px;"></div>
  <div id="orderSettingsBlock" style="background:#fff; border:1px solid #EFEAE2; border-radius:14px; overflow:hidden; margin-bottom:8px;">
+ <!-- p1_1063 — butang Maklum Inventori DISOROK (viewer dibuang dari sidebar, 0 penggunaan
+      — kalau butang hantar kekal, staf hantar tapi TIADA SIAPA nampak = lubang hitam senyap.
+      Buang komen ni + pulihkan bersama menu sidebar kalau feature dihidupkan semula.)
  <button onclick="window.__notifyInvOpen()" class="order-set-row" title="Maklum inventory untuk sediakan barang">
  <span class="osr-ic"><i data-lucide="package-check" style="width:17px;height:17px;"></i></span>
  <span class="osr-main">Maklum Inventori<span class="osr-sub">Sediakan barang untuk customer</span></span>
  <i data-lucide="chevron-right" class="osr-chev" style="width:18px;height:18px;"></i>
- </button>
+ </button> -->
  <button onclick="window.__heldOpen()" class="order-set-row" title="Jualan customer yang ditahan menunggu inventory">
  <span class="osr-ic"><i data-lucide="pause-circle" style="width:17px;height:17px;"></i></span>
  <span class="osr-main">Jualan Ditahan<span class="osr-sub">Tahan order tunggu stok / customer</span></span>
@@ -5913,14 +5917,7 @@
  </div>
  </div>
 
- <div id="broadcastSection" class="tab-section" style="display: none;">
- <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="send" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Broadcast</h2>
- <div class="admin-card" style="padding:24px; text-align:center;">
- <i data-lucide="construction" style="width:32px; height:32px; color:#9CA3AF;"></i>
- <h3 style="margin:14px 0 6px;">Coming Soon</h3>
- <p style="color:#6B7280; font-size:13px; margin:0;">Send mass message via Email, WhatsApp, SMS ke customer list. Schedule, template library, open/click tracking.</p>
- </div>
- </div>
+ <!-- p1_1063 — broadcastSection placeholder DIPADAM (yatim, 0 rujukan; Broadcast sebenar = waBroadcastSection) -->
 
  <!-- p1_276 — Connections placeholder -->
  <div id="connectionsSection" class="tab-section" style="display: none;">
@@ -5942,15 +5939,7 @@
  </div>
  </div>
 
- <!-- p1_275 — Engagement placeholder -->
- <div id="engagementSection" class="tab-section" style="display: none;">
- <h2 class="section-title" data-skip-title-sync style="margin-top:20px;"><i data-lucide="megaphone" style="width:22px; height:22px; vertical-align:middle; margin-right:6px;"></i> Engagement</h2>
- <div class="admin-card" style="padding:24px; text-align:center;">
- <i data-lucide="construction" style="width:32px; height:32px; color:#9CA3AF;"></i>
- <h3 style="margin:14px 0 6px;">Coming Soon</h3>
- <p style="color:#6B7280; font-size:13px; margin:0;">Email blast, WhatsApp broadcast, re-engagement campaigns, birthday wishes. Segment-targeted messaging.</p>
- </div>
- </div>
+ <!-- p1_1063 — engagementSection placeholder DIPADAM (yatim; Engagement sebenar = reengageSection p1_1009) -->
 
  <!-- p1_275 — Store Credit placeholder -->
  <div id="storeCreditSection" class="tab-section" style="display: none;">
@@ -13503,7 +13492,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1044"></script>
+ <script src="app.js?v=1045"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

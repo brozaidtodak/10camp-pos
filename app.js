@@ -21282,7 +21282,7 @@ window.renderStockRecon = async function(){
    const gapColor = r.unexplained > 0 ? '#B23A2E' : (r.unexplained < 0 ? '#7A5410' : '#345E43');
    const gapTxt = r.unexplained === 0 ? '<span style="color:#345E43;">0 ✓</span>' : (r.unexplained > 0 ? '−' + r.unexplained : '+' + Math.abs(r.unexplained));
    return '<tr>'
-    + '<td class="l" style="font-family:\'SF Mono\',Menlo,monospace;font-weight:700;font-size:11.5px;">' + (r.sku||'-') + '</td>'
+    + '<td class="l" style="font-family:\'SF Mono\',Menlo,monospace;font-weight:700;font-size:11.5px;"><div style="display:flex;align-items:center;gap:7px;">' + (window.__skuThumbHtml ? window.__skuThumbHtml(r.sku, 26) : '') + (r.sku||'-') + '</div></td>'
     + '<td class="l" style="color:#374151;">' + (String(r.name||'').slice(0,38) || '-') + '</td>'
     + '<td style="font-weight:600;">' + cell(r.received) + '</td>'
     + '<td>' + cell(r.sales) + '</td>'

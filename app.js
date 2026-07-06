@@ -36414,26 +36414,11 @@ window.__posBrowseOpen = function(type){
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
 };
 window.__posBrowseSetTab = function(type){ window.__posBrowseType = type; window.__posBrowseRender(); if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){} };
-// p1_1075 — Tab "Bentuk" (Ariff): flysheet ada banyak bentuk (hexagon, rectangle, twin peak, octagon…)
-// tapi search perlu taip nama specific → susah nak tunjuk pilihan pada customer. Bentuk = kategori
-// yang mengandungi "flysheet"; label mesra dipapar, tapi tapisan guna kategori sedia ada (tiada data baru).
-window.__fsIsShapeCat = function(cat){ return /flysheet/i.test(String(cat || '')); };
-window.__fsShapeLabel = function(cat){
- const c = String(cat || '').trim();
- const map = {
-  'flysheet hexagon (6)': 'Hexagon — 6 Penjuru',
-  'flysheet octagon (8)': 'Octagon — 8 Penjuru',
-  'flysheet rectangle': 'Rectangle — Segi Empat',
-  'flysheet twin peak': 'Twin Peak — 2 Puncak',
-  'dome-flysheet extender': 'Extender Dome'
- };
- return map[c.toLowerCase()] || c.replace(/^flysheet\s+/i, '');
-};
 window.__posBrowseRender = function(){
  const tabsEl = document.getElementById('posBrowseTabs'); const bodyEl = document.getElementById('posBrowseBody');
  if(!tabsEl || !bodyEl) return;
  const type = window.__posBrowseType;
- const tabs = [['collection','Koleksi','folder-tree'],['brand','Brand','award'],['category','Kategori','layers'],['shape','Bentuk','shapes']]; // p1_1075 — Bentuk flysheet
+ const tabs = [['collection','Koleksi','folder-tree'],['brand','Brand','award'],['category','Kategori','layers']];
  tabsEl.innerHTML = tabs.map(function(t){ const on = t[0] === type;
   return '<button onclick="window.__posBrowseSetTab(\'' + t[0] + '\')" style="flex:1; padding:9px 10px; border-radius:10px; border:1.5px solid ' + (on?'var(--primary)':'#E5E7EB') + '; background:' + (on?'var(--primary)':'#fff') + '; color:' + (on?'#fff':'#374151') + '; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;"><i data-lucide="' + t[2] + '" style="width:14px;height:14px;"></i>' + t[1] + '</button>';
  }).join('');
@@ -36444,7 +36429,6 @@ window.__posBrowseRender = function(){
   let g = '';
   if(type === 'brand') g = (p.brand || '').trim();
   else if(type === 'category') g = (p.category || '').trim();
-  else if(type === 'shape') g = window.__fsIsShapeCat(p.category) ? (p.category || '').trim() : ''; // p1_1075
   else g = (window.__collectionOf ? window.__collectionOf(p) : '');
   if(!g) continue;
   tally.set(g, (tally.get(g) || 0) + 1);
@@ -36452,23 +36436,17 @@ window.__posBrowseRender = function(){
  const groups = Array.from(tally.entries()).sort((a,b) => b[1] - a[1]);
  const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
  if(!groups.length){ bodyEl.innerHTML = '<div style="padding:34px; text-align:center; color:#9CA3AF;">Tiada kumpulan untuk tab ini.</div>'; return; }
- // p1_1075 — tab Bentuk: tapisan sebenar guna KATEGORI (data sedia ada); label dipapar versi mesra.
- const pickType = (type === 'shape') ? 'category' : type;
- const hint = (type === 'shape')
-  ? '<div style="display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:9px 12px; background:#FBF7F0; border:1px solid #EEE4D6; border-radius:10px; font-size:12px; color:#8C7C6A;"><i data-lucide="tent" style="width:14px;height:14px;color:var(--primary);flex:none;"></i>Tap bentuk untuk tunjuk semua flysheet bentuk itu — senang tunjuk pilihan pada customer.</div>'
-  : '';
- bodyEl.innerHTML = hint + '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px;">'
+ bodyEl.innerHTML = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px;">'
   + groups.map(function(gc){ const name = gc[0], count = gc[1];
     // p1_1015 — tab Brand: utamakan LOGO brand; kalau tiada logo (brand tak dikenali) → fallback gambar produk.
     const brandLogo = (type === 'brand') ? window.__brandLogoUrl(name) : '';
-    const img = brandLogo || window.__groupThumb(pickType, name);
-    const label = (type === 'shape') ? window.__fsShapeLabel(name) : name;
+    const img = brandLogo || window.__groupThumb(type, name);
     const media = img
      ? '<div style="aspect-ratio:1/1; background:' + (brandLogo ? '#fff' : '#FBF7F0') + '; border-radius:11px 11px 0 0; overflow:hidden; display:flex; align-items:center; justify-content:center;' + (brandLogo ? ' padding:16px;' : '') + '"><img src="' + esc(img) + '" style="max-width:100%; max-height:100%; width:' + (brandLogo ? 'auto' : '100%') + '; height:' + (brandLogo ? 'auto' : '100%') + '; object-fit:contain;" loading="lazy"></div>'
      : '<div style="aspect-ratio:1/1; background:#F4E8D8; border-radius:11px 11px 0 0; display:flex; align-items:center; justify-content:center; color:#A5611F; font-weight:800; font-size:22px; letter-spacing:.02em;">' + esc(String(name).slice(0,2).toUpperCase()) + '</div>';
-    return '<button onclick="window.__posPickGroup(\'' + pickType + '\',' + JSON.stringify(String(name)).replace(/"/g,'&quot;') + ')" style="text-align:left; padding:0; border:1px solid #EAE0D2; border-radius:12px; background:#fff; cursor:pointer; overflow:hidden;">'
+    return '<button onclick="window.__posPickGroup(\'' + type + '\',' + JSON.stringify(String(name)).replace(/"/g,'&quot;') + ')" style="text-align:left; padding:0; border:1px solid #EAE0D2; border-radius:12px; background:#fff; cursor:pointer; overflow:hidden;">'
      + media
-     + '<div style="padding:8px 10px 10px;"><div style="font-size:12.5px; font-weight:700; color:#101010; line-height:1.25;">' + esc(label) + '</div><div style="font-size:11px; color:#8C7C6A; margin-top:2px;">' + count + ' produk</div></div>'
+     + '<div style="padding:8px 10px 10px;"><div style="font-size:12.5px; font-weight:700; color:#101010; line-height:1.25;">' + esc(name) + '</div><div style="font-size:11px; color:#8C7C6A; margin-top:2px;">' + count + ' produk</div></div>'
      + '</button>';
   }).join('') + '</div>';
 };

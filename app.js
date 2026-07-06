@@ -43259,12 +43259,22 @@ window.__marginTagHtml = function(price, cost){
   window.renderWebTraffic = function(){
     var A=window.__ANALYTICS||{};
     function pill(on){ return on?'<span style="font-size:11px;font-weight:800;color:#fff;background:#2e7d32;padding:2px 9px;border-radius:50px;">HIDUP</span>':'<span style="font-size:11px;font-weight:800;color:#fff;background:#9ca3af;padding:2px 9px;border-radius:50px;">MATI</span>'; }
-    function row(name,on){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F1F1F1;font-size:13.5px;font-weight:600;color:var(--text-main);">'+name+' '+pill(on)+'</div>'; }
+    function row(name,on,note){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F1F1F1;font-size:13.5px;font-weight:600;color:var(--text-main);"><span>'+name+(note?' <span style="font-weight:500;color:var(--text-muted);font-size:11.5px;">'+note+'</span>':'')+'</span>'+pill(on)+'</div>'; }
     var body=
-      card('Status tracking',row('Google Analytics 4',!!A.ga4)+row('Meta (Facebook) Pixel',!!A.metaPixel)+row('TikTok Pixel',!!A.tiktokPixel)
-        +'<p style="margin:10px 0 0;font-size:12.5px;color:var(--text-muted);line-height:1.5;">UTM + event klik ke Shopee/TikTok/WhatsApp dipasang automatik. Pixel HIDUP bila ID diisi dalam window.__ANALYTICS (head index.html).</p>')
-      + card('Cara aktifkan',todo('GA4: analytics.google.com → Admin → Data Streams → ID rupa G-XXXXXXXXXX')+todo('Meta Pixel: business.facebook.com → Events Manager → ID ~15 digit')+todo('TikTok Pixel: TikTok Ads Manager → Assets → Events → Web')+'<p style="margin:8px 0 0;font-size:12.5px;color:var(--text-muted);">Bagi ID pada admin, kami isikan. Lepas tu hard-refresh.</p>')
-      + card('Dashboard',ext('https://analytics.google.com','Google Analytics')+ext('https://search.google.com/search-console','Search Console')+ext('https://business.facebook.com/events_manager2','Meta Events')+ext('https://ads.tiktok.com','TikTok Ads'));
+      card('Status tracking',row('Google Analytics 4',!!A.ga4)+row('Meta (Facebook) Pixel',!!A.metaPixel)+row('TikTok Pixel',!!A.tiktokPixel,A.tiktokPixel?'':'tunggu review TikTok Ads')
+        +'<p style="margin:10px 0 0;font-size:12.5px;color:var(--text-muted);line-height:1.5;">UTM + event klik ke Shopee/TikTok/WhatsApp dipasang automatik. Tracking gated ke pengunjung landing/blog SAHAJA — staf back-office tak ditrack.</p>');
+    // p1_1077 — Meta Pixel HIDUP: tukar kad "cara aktif" jadi playbook retargeting (guna Audience export sedia ada).
+    if(A.metaPixel){
+      body += card('Retargeting Meta — dah boleh guna',
+          '<p style="margin:0 0 8px;font-size:13px;color:var(--text-main);line-height:1.6;">Pixel <b>'+String(A.metaPixel)+'</b> tengah kumpul pelawat website. Cara pakai untuk iklan:</p>'
+          + done('Website Custom Audience: Meta auto kumpul pelawat 10camp.com → iklan khas pada orang yang dah lawat tapi belum beli')
+          + done('Segmen POS jadi audience: buka <b>Audiences / Segmen</b> → Eksport CSV (cth belanja tinggi RM500+ / lama tak beli) → muat naik ke Meta jadi Custom Audience')
+          + done('Lookalike: dari mana-mana audience di atas, Meta cari orang BARU yang serupa pelanggan terbaik kau')
+          + '<p style="margin:8px 0 0;font-size:12px;color:var(--text-muted);">Nota: biar pixel kumpul data ~1-2 minggu dulu sebelum buat iklan retargeting — lagi banyak data, lagi tepat.</p>');
+    } else {
+      body += card('Cara aktifkan',todo('GA4: analytics.google.com → Admin → Data Streams → ID rupa G-XXXXXXXXXX')+todo('Meta Pixel: business.facebook.com → Events Manager → ID ~15 digit')+todo('TikTok Pixel: TikTok Ads Manager → Assets → Events → Web')+'<p style="margin:8px 0 0;font-size:12.5px;color:var(--text-muted);">Bagi ID pada admin, kami isikan. Lepas tu hard-refresh.</p>');
+    }
+    body += card('Dashboard',ext('https://analytics.google.com','Google Analytics')+ext('https://search.google.com/search-console','Search Console')+ext('https://business.facebook.com/events_manager2','Meta Events')+ext('https://ads.tiktok.com','TikTok Ads'));
     set('webTrafficBody', shell('activity','Web Traffic','Mata kau untuk landing + blog. Tengok berapa orang masuk, dari mana, dan berapa klik ke marketplace. Tanpa ni semua keputusan marketing jadi tekaan.',body));
   };
 

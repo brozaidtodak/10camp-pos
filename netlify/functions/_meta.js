@@ -42,14 +42,20 @@ async function saveMetaConfig(patch, updatedBy) {
 }
 
 /**
- * graph(path, { token, query }) — call Graph API. `path` starts with "/" (e.g. "/me").
+ * graph(path, { token, query, method, body }) — call Graph API. `path` starts with "/" (e.g. "/me").
+ * GET by default; pass method:'POST' + body (object) to write (e.g. send a message).
  * Returns parsed JSON. Throws Error with Meta's message on non-2xx so callers can surface it.
  */
-async function graph(path, { token, query } = {}) {
+async function graph(path, { token, query, method, body } = {}) {
     const q = new URLSearchParams(Object.assign({}, query || {}));
     if (token) q.set('access_token', token);
     const url = `${GRAPH_BASE}${path}?${q.toString()}`;
-    const res = await fetch(url);
+    const opts = { method: method || 'GET' };
+    if (body != null) {
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(url, opts);
     const text = await res.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch (e) { /* non-json */ }

@@ -3154,8 +3154,8 @@ window.__chatChannel = window.__chatChannel || 'shopee';
 window.__CHAT_CHANNELS = [
  { key:'shopee', label:'Shopee', color:'#EE4D2D', live:true, provider:'shopee-chat' },
  { key:'tiktok', label:'TikTok', color:'#111827', live:false, pending:true, provider:'tiktok-chat' },
- { key:'fb',     label:'FB Messenger', color:'#1877F2', live:false },
- { key:'ig',     label:'Instagram', color:'#C13584', live:false }
+ { key:'fb',     label:'FB Messenger', color:'#1877F2', live:false, pending:true, provider:'messenger-chat' }, // p1_1079
+ { key:'ig',     label:'Instagram', color:'#C13584', live:false, pending:true, provider:'messenger-chat' }  // p1_1079
 ];
 window.__chatSetChannel = function(ch){ window.__chatChannel = ch; window.renderChatInbox(); };
 window.renderChatInbox = function() {
@@ -3181,6 +3181,8 @@ window.renderChatInbox = function() {
  }
  // p1_730 — TikTok: guna tiktok-chat fn; handle 105005 (scope belum aktif) dengan mesej boleh-tindak
  if(window.__chatChannel === 'tiktok') { window.__chatLoadTiktok(list); return; }
+ // p1_1079 — FB Messenger / IG DM: baca dari store meta_messages (diisi webhook)
+ if(window.__chatChannel === 'fb' || window.__chatChannel === 'ig') { window.__chatLoadMeta(list, window.__chatChannel); return; }
  list.innerHTML = '<p style="color:#9CA3AF; padding:18px;">Memuatkan perbualan…</p>';
  fetch('/.netlify/functions/shopee-chat?mode=conversations&page_size=50', { headers: window.__authHeaderSync({}) }).then(r=>r.json()).then(r => {
   if(r.error) { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">Shopee: '+esc(r.error)+'</p>'; return; }
@@ -3202,6 +3204,7 @@ window.renderChatInbox = function() {
 window.__chatOpen = function(cid, buyerId, name) {
  // p1_730 — route ikut channel aktif
  if(window.__chatChannel === 'tiktok') { return window.__chatOpenTiktok(cid, buyerId, name); }
+ if(window.__chatChannel === 'fb' || window.__chatChannel === 'ig') { return window.__chatOpenMeta(cid, buyerId, name, window.__chatChannel); } // p1_1079
  const thread = document.getElementById('chatThread'); if(!thread) return;
  const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
  // p1_1046 — simpan konteks perbualan semasa utk butang Hantar (reply)
@@ -3248,6 +3251,26 @@ window.__chatSend = function() {
  if(!msg) return;
  if(!cur.buyerId) { if(typeof showToast === 'function') showToast('Tak jumpa ID pembeli untuk balas.', 'warn'); return; }
  if(btn) { btn.disabled = true; btn.textContent = 'Menghantar…'; btn.style.opacity = '0.6'; }
+ // p1_1079 — FB/IG guna messenger-chat fn (Graph send), bukan shopee-chat
+ if(cur.channel === 'fb' || cur.channel === 'ig') {
+  fetch('/.netlify/functions/messenger-chat', {
+   method: 'POST',
+   headers: window.__authHeaderSync({ 'Content-Type': 'application/json' }),
+   body: JSON.stringify({ to_id: cur.buyerId, message: msg, channel: cur.channel })
+  }).then(r=>r.json()).then(r => {
+   if(r && r.error) {
+    if(typeof showToast === 'function') showToast('Meta: gagal hantar — ' + String(r.error).slice(0,140), 'error');
+    if(btn) { btn.disabled = false; btn.textContent = 'Hantar'; btn.style.opacity = '1'; }
+    return;
+   }
+   if(typeof showToast === 'function') showToast('Balasan dihantar ke ' + (cur.name || 'pelanggan') + '.', 'success');
+   window.__chatOpenMeta(cur.cid, cur.buyerId, cur.name, cur.channel);
+  }).catch(e => {
+   if(typeof showToast === 'function') showToast('Gagal hantar: ' + e.message, 'error');
+   if(btn) { btn.disabled = false; btn.textContent = 'Hantar'; btn.style.opacity = '1'; }
+  });
+  return;
+ }
  fetch('/.netlify/functions/shopee-chat?mode=send', {
   method: 'POST',
   headers: window.__authHeaderSync({ 'Content-Type': 'application/json' }),
@@ -3330,6 +3353,72 @@ window.__chatOpenTiktok = function(cid, buyerId, name) {
    const brd = fromBuyer ? 'border:1px solid #E5E7EB;' : '';
    return `<div style="align-self:${align}; max-width:75%; margin-bottom:8px;"><div style="background:${bg}; color:${col}; ${brd} padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word;">${body}</div><div style="font-size:10px; color:#9CA3AF; margin-top:2px; text-align:${fromBuyer?'left':'right'};">${t}</div></div>`;
   }).join('');
+  thread.scrollTop = thread.scrollHeight;
+ }).catch(e => { thread.innerHTML = '<p style="color:#B23A2E;">Error: '+esc(e.message)+'</p>'; });
+};
+
+// p1_1079 — FB Messenger / Instagram DM loader. Baca dari meta_messages (diisi meta-webhook).
+// Kosong = belum ada mesej masuk (webhook belum dikonfig di Meta app, atau memang tiada chat lagi).
+window.__chatMetaSetupMsg = function(ch) {
+ const label = ch === 'ig' ? 'Instagram DM' : 'FB Messenger';
+ return '<div style="padding:20px; color:#374151; font-size:13px; line-height:1.7;">'
+  + '<div style="font-weight:800; color:#B8860B; margin-bottom:8px;"><i data-lucide="info" style="width:15px;height:15px;vertical-align:-2px;"></i> ' + label + ' — belum ada mesej</div>'
+  + 'Paip dah siap (webhook + hantar/balas). Mesej masuk akan muncul di sini automatik SELEPAS:'
+  + '<ol style="margin:10px 0 0; padding-left:20px;">'
+  + '<li>Token Meta ada scope <strong>pages_messaging</strong> (System User token)</li>'
+  + '<li>Meta App → Webhooks → callback <code>/.netlify/functions/meta-webhook</code> + subscribe <em>messages</em></li>'
+  + '<li>Page 10 Camp Store subscribe ke app</li>'
+  + '</ol>'
+  + '<div style="margin-top:10px; font-size:12px; color:#6B7280;">Sehingga itu, balas customer terus di app FB/IG macam biasa.</div>'
+  + '</div>';
+};
+window.__chatLoadMeta = function(list, ch) {
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ const label = ch === 'ig' ? 'Instagram' : 'FB Messenger';
+ const color = ch === 'ig' ? '#C13584' : '#1877F2';
+ list.innerHTML = '<p style="color:#9CA3AF; padding:18px;">Memuatkan perbualan ' + esc(label) + '…</p>';
+ fetch('/.netlify/functions/messenger-chat?mode=conversations&channel=' + encodeURIComponent(ch), { headers: window.__authHeaderSync({}) }).then(r=>r.json()).then(r => {
+  if(r && r.error) { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">' + esc(label) + ': ' + esc(r.error) + '</p>'; return; }
+  const convs = (r && r.conversations) || [];
+  if(!convs.length) { list.innerHTML = window.__chatMetaSetupMsg(ch); if(typeof lucide!=='undefined') try{lucide.createIcons();}catch(e){} return; }
+  list.innerHTML = convs.map(c => {
+   const nm = c.name || c.thread_id || 'Pelanggan';
+   const snippet = c.last_text || '[lampiran]';
+   const ts = c.last_at ? new Date(c.last_at) : null;
+   const t = ts ? ts.toLocaleString('en-MY',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+   return `<div onclick="window.__chatOpen('${esc(c.thread_id)}', '${esc(c.thread_id)}', '${esc(String(nm).replace(/'/g,"\\'"))}')" style="padding:12px 14px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background='#fff'">
+     <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;"><strong style="font-size:13px;">${esc(nm)}</strong></div>
+     <div style="font-size:12px; color:#6B7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px;">${esc(snippet)}</div>
+     <div style="font-size:10px; color:#9CA3AF; margin-top:3px;"><span style="color:${color}; font-weight:700;">${esc(label)}</span> · ${t}</div>
+    </div>`;
+  }).join('');
+ }).catch(e => { list.innerHTML = '<p style="color:#B23A2E; padding:18px;">Error: '+esc(e.message)+'</p>'; });
+};
+window.__chatOpenMeta = function(cid, buyerId, name, ch) {
+ const thread = document.getElementById('chatThread'); if(!thread) return;
+ const esc = (typeof hesc === 'function') ? hesc : (x)=>String(x==null?'':x);
+ const label = ch === 'ig' ? 'Instagram' : 'FB Messenger';
+ window.__chatCur = { cid: cid, buyerId: buyerId, name: name, channel: ch }; // p1_1079 — konteks utk __chatSend
+ thread.innerHTML = '<p style="color:#9CA3AF; margin:auto;">Memuatkan mesej…</p>';
+ const composer = `<div style="position:sticky; bottom:0; background:#FAFAFA; padding:10px 0 2px; margin-top:10px; border-top:1px solid #E5E7EB; display:flex; gap:8px;">
+   <input id="chatReplyInput" type="text" maxlength="1000" placeholder="Balas ${esc(name||'pelanggan')}…" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.__chatSend();}" style="flex:1; padding:10px 13px; border:1px solid #E5E7EB; border-radius:10px; font-size:13px; font-family:var(--font-main,Poppins),sans-serif; background:#fff;">
+   <button id="chatReplyBtn" onclick="window.__chatSend()" style="padding:10px 18px; border:none; border-radius:10px; background:var(--primary-500,#CD7C32); color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font-main,Poppins),sans-serif; white-space:nowrap;">Hantar</button>
+  </div>`;
+ fetch('/.netlify/functions/messenger-chat?mode=messages&channel=' + encodeURIComponent(ch) + '&conversation_id=' + encodeURIComponent(cid), { headers: window.__authHeaderSync({}) }).then(r=>r.json()).then(r => {
+  if(r && r.error) { thread.innerHTML = '<p style="color:#B23A2E;">' + esc(label) + ': ' + esc(r.error) + '</p>'; return; }
+  const msgs = (r && r.messages) || [];
+  const head = `<div style="font-weight:800; padding-bottom:10px; border-bottom:1px solid #E5E7EB; margin-bottom:12px; position:sticky; top:0; background:#FAFAFA;">${esc(name||'Pelanggan')} <span style="font-size:11px; color:#9CA3AF; font-weight:600;">· ${esc(label)}</span></div>`;
+  if(!msgs.length) { thread.innerHTML = head + '<p style="color:#9CA3AF; margin:auto;">Tiada mesej.</p>' + composer; return; }
+  thread.innerHTML = head + msgs.map(m => {
+   const fromCust = m.direction === 'in';
+   const body = m.text != null ? esc(m.text) : '<em style="opacity:0.7;">[lampiran]</em>';
+   const ts = m.created_at ? new Date(m.created_at) : null;
+   const t = ts ? ts.toLocaleString('en-MY',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+   const align = fromCust ? 'flex-start' : 'flex-end';
+   const bg = fromCust ? '#fff' : 'var(--primary-500,#CD7C32)'; const col = fromCust ? '#111827' : '#fff';
+   const brd = fromCust ? 'border:1px solid #E5E7EB;' : '';
+   return `<div style="align-self:${align}; max-width:75%; margin-bottom:8px;"><div style="background:${bg}; color:${col}; ${brd} padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word;">${body}</div><div style="font-size:10px; color:#9CA3AF; margin-top:2px; text-align:${fromCust?'left':'right'};">${t}</div></div>`;
+  }).join('') + composer;
   thread.scrollTop = thread.scrollHeight;
  }).catch(e => { thread.innerHTML = '<p style="color:#B23A2E;">Error: '+esc(e.message)+'</p>'; });
 };

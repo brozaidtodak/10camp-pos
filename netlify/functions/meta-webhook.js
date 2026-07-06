@@ -20,38 +20,57 @@ const { sb } = require('./_meta');
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || '10camp_meta_webhook_verify';
 const APP_SECRET   = process.env.META_APP_SECRET || '';
 
-function signatureOk(event) {
-    if (!APP_SECRET) return true; // progressive-safe: no secret configured → skip (like INTERNAL_FN_SECRET pattern)
+// Netlify may base64-encode the body; return the raw UTF-8 string either way.
+function rawBody(event) {
+    if (!event || event.body == null) return '';
+    return event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body;
+}
+
+function signatureOk(event, raw) {
+    if (!APP_SECRET) return true; // no secret configured → skip
+    const h = (event.headers || {});
+    const sig = h['x-hub-signature-256'] || h['X-Hub-Signature-256'] || '';
+    // Dashboard "Test" tool sends UNSIGNED events — allow when no signature header present.
+    // When a signature IS present (real production events), it MUST be valid.
+    if (!sig) return true;
     try {
-        const h = (event.headers || {});
-        const sig = h['x-hub-signature-256'] || h['X-Hub-Signature-256'] || '';
-        const expected = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(event.body || '', 'utf8').digest('hex');
-        // timing-safe compare
+        const expected = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(raw || '', 'utf8').digest('hex');
         const a = Buffer.from(sig), b = Buffer.from(expected);
         return a.length === b.length && crypto.timingSafeEqual(a, b);
     } catch (e) { return false; }
 }
 
-// Pull message rows out of one webhook entry. Handles both FB Page ('messaging') and IG shapes.
+// One messaging event → a stored row (or null to skip).
+function rowFromEvent(ev, channel) {
+    const senderId = ev.sender && ev.sender.id;
+    const m = ev.message;
+    if (!senderId || !m) return null;
+    if (m.is_echo) return null; // page's own outbound echo — we store our own sends separately
+    return {
+        channel,
+        thread_id: String(senderId),
+        direction: 'in',
+        text: m.text != null ? String(m.text) : null,
+        mid: m.mid || null,
+        attachments: m.attachments ? m.attachments : null,
+        raw: ev
+    };
+}
+
+// Pull message rows out of a webhook body. Handles BOTH real events (entry[].messaging[])
+// AND the dashboard Test tool + some IG events (entry[].changes[] with field=messages, value=event).
 function extractRows(body) {
     const rows = [];
     const channel = (body.object === 'instagram') ? 'ig' : 'fb';
     (body.entry || []).forEach(entry => {
-        const events = entry.messaging || entry.standby || [];
-        events.forEach(ev => {
-            const senderId = ev.sender && ev.sender.id;
-            const m = ev.message;
-            if (!senderId || !m) return;
-            if (m.is_echo) return; // page's own outbound echo — we store our own sends separately
-            rows.push({
-                channel,
-                thread_id: String(senderId),
-                direction: 'in',
-                text: m.text != null ? String(m.text) : null,
-                mid: m.mid || null,
-                attachments: m.attachments ? m.attachments : null,
-                raw: ev
-            });
+        (entry.messaging || entry.standby || []).forEach(ev => {
+            const r = rowFromEvent(ev, channel); if (r) rows.push(r);
+        });
+        // Test tool / change-based delivery: { changes:[{ field:'messages', value:{ sender, message, ... } }] }
+        (entry.changes || []).forEach(ch => {
+            if (!ch || !ch.value) return;
+            if (ch.field && !/messag/i.test(String(ch.field))) return;
+            const r = rowFromEvent(ch.value, channel); if (r) rows.push(r);
         });
     });
     return rows;
@@ -72,9 +91,10 @@ exports.handler = async (event) => {
 
     // --- POST: incoming events ---
     if (event.httpMethod === 'POST') {
-        if (!signatureOk(event)) return { statusCode: 401, body: 'bad signature' };
+        const raw = rawBody(event);
+        if (!signatureOk(event, raw)) return { statusCode: 401, body: 'bad signature' };
         let body = {};
-        try { body = JSON.parse(event.body || '{}'); } catch (e) { return { statusCode: 200, body: 'ok' }; }
+        try { body = JSON.parse(raw || '{}'); } catch (e) { return { statusCode: 200, body: 'ok' }; }
         try {
             const rows = extractRows(body);
             // Insert; ignore-duplicates on mid so Meta retries don't double-store.

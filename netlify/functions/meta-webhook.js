@@ -92,6 +92,17 @@ exports.handler = async (event) => {
     // --- POST: incoming events ---
     if (event.httpMethod === 'POST') {
         const raw = rawBody(event);
+        // p1_1082 DEBUG (temporary): capture EVERY POST (raw + whether signed) BEFORE any check,
+        // so we can see exactly what Meta's Test tool sends. Remove after diagnosis.
+        try {
+            const hh = event.headers || {};
+            const sigHdr = hh['x-hub-signature-256'] || hh['X-Hub-Signature-256'] || '(none)';
+            await sb('POST', '/meta_messages', {
+                channel: '_debug', thread_id: 'raw_capture', direction: 'in',
+                text: 'sig=' + String(sigHdr).slice(0, 24) + ' b64=' + (event.isBase64Encoded ? 'Y' : 'N') + ' | ' + String(raw).slice(0, 300),
+                mid: null, raw: (function () { try { return JSON.parse(raw); } catch (e) { return { unparseable: String(raw).slice(0, 500) }; } })()
+            }, { Prefer: 'return=minimal' });
+        } catch (e) { /* ignore debug errors */ }
         if (!signatureOk(event, raw)) return { statusCode: 401, body: 'bad signature' };
         let body = {};
         try { body = JSON.parse(raw || '{}'); } catch (e) { return { statusCode: 200, body: 'ok' }; }

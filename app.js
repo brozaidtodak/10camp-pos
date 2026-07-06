@@ -43278,6 +43278,108 @@ window.__marginTagHtml = function(price, cost){
     set('webTrafficBody', shell('activity','Web Traffic','Mata kau untuk landing + blog. Tengok berapa orang masuk, dari mana, dan berapa klik ke marketplace. Tanpa ni semua keputusan marketing jadi tekaan.',body));
   };
 
+  // 3b) Meta / FB & IG insights (p1_1078) — followers/reach/posts dari Graph API.
+  //     Backend: meta-settings (simpan token, owner) + meta-insights (baca). Token TAK sampai browser.
+  function mesc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+  function metaHdr(h){ return (window.__authHeaderSync ? window.__authHeaderSync(h||{}) : (h||{})); }
+  function statTile(label,val,sub){
+    return '<div style="flex:1;min-width:120px;background:#fff;border:1px solid #ECECEC;border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm,0 2px 4px rgba(0,0,0,.06));">'
+      +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);font-weight:700;">'+label+'</div>'
+      +'<div style="font-size:24px;font-weight:800;color:var(--text-main);margin-top:3px;">'+val+'</div>'
+      +(sub?'<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">'+sub+'</div>':'')+'</div>';
+  }
+  window.__metaConnectSave = function(btn){
+    var pid=(document.getElementById('metaPageId')||{}).value||'';
+    var tok=(document.getElementById('metaToken')||{}).value||'';
+    var ig=(document.getElementById('metaIgId')||{}).value||'';
+    if(!tok.trim()){ window.showToast && showToast('Tampal Page Access Token dulu','warn'); return; }
+    if(btn){ btn.disabled=true; btn.textContent='Menyambung…'; }
+    fetch('/.netlify/functions/meta-settings', { method:'POST', headers: metaHdr({'Content-Type':'application/json'}), body: JSON.stringify({ page_id:pid.trim(), page_access_token:tok.trim(), ig_user_id:ig.trim() }) })
+      .then(function(r){ return r.json(); })
+      .then(function(r){
+        if(r && r.ok){ window.showToast && showToast('Meta tersambung: '+(r.page_name||r.page_id||'OK'),'success'); window.renderMetaInsights(); }
+        else { window.showToast && showToast('Gagal: '+((r&&(r.detail||r.error))||'token ditolak Meta'),'error'); if(btn){ btn.disabled=false; btn.textContent='Sambung Meta'; } }
+      })
+      .catch(function(e){ window.showToast && showToast('Ralat: '+e,'error'); if(btn){ btn.disabled=false; btn.textContent='Sambung Meta'; } });
+  };
+  window.renderMetaInsights = function(){
+    var u = window.currentUser || {};
+    var isBoss = !!(typeof window.isBoss==='function' && window.isBoss(u));
+    set('metaInsightsBody', shell('thumbs-up','Meta / FB & IG','Prestasi Page Facebook & Instagram 10 CAMP — followers, jangkauan, post terkini. Terus dari Meta, tak perlu buka FB.', card('','<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px;"><i data-lucide="loader" style="width:18px;height:18px;"></i> Menyemak sambungan Meta…</div>')));
+    if(window.lucide&&lucide.createIcons){try{lucide.createIcons();}catch(e){}}
+    fetch('/.netlify/functions/meta-settings', { headers: metaHdr({}) })
+      .then(function(r){ return r.json(); })
+      .then(function(st){
+        if(!st || !st.connected){
+          // BELUM SAMBUNG — kad panduan + (owner sahaja) borang tampal token.
+          var connectForm = isBoss
+            ? card('Sambung Meta (owner)',
+                todo('Buka business.facebook.com → Business Settings → System Users → jana token untuk Page 10 CAMP (scope: pages_read_engagement, pages_show_list, read_insights; +instagram_basic kalau nak IG)')
+                +'<div style="margin-top:10px;display:grid;gap:8px;max-width:520px;">'
+                +'<input id="metaPageId" placeholder="Page ID (nombor)" style="padding:9px 12px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-main,Poppins);">'
+                +'<input id="metaIgId" placeholder="Instagram User ID (pilihan)" style="padding:9px 12px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-main,Poppins);">'
+                +'<textarea id="metaToken" placeholder="Page Access Token (tampal di sini)" rows="3" style="padding:9px 12px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-family:monospace;resize:vertical;"></textarea>'
+                +'<button onclick="window.__metaConnectSave(this)" style="justify-self:start;font-size:13px;font-weight:700;color:#fff;background:var(--primary);border:none;padding:9px 18px;border-radius:8px;cursor:pointer;">Sambung Meta</button>'
+                +'</div>'
+                +'<p style="margin:10px 0 0;font-size:11.5px;color:var(--text-muted);line-height:1.5;">Token disimpan server-side (RLS terkunci) — tak didedah balik ke skrin. Guna token PAGE (long-lived) supaya tak cepat luput.</p>')
+            : card('Belum tersambung','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.6;">Page Facebook belum disambungkan ke Graph API. Minta owner (Bos) sambungkan di skrin ni — lepas tu followers, jangkauan & post akan muncul di sini automatik.</p>');
+          set('metaInsightsBody', shell('thumbs-up','Meta / FB & IG','Prestasi Page Facebook & Instagram 10 CAMP — followers, jangkauan, post terkini. Terus dari Meta, tak perlu buka FB.',
+            card('Kenapa berguna','<p style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.6;">Nampak prestasi FB/IG dalam POS tanpa buka app lain. Bila dah sambung, halaman ni tarik data live dari Meta.</p>')
+            + connectForm
+            + card('Pautan',ext('https://business.facebook.com/latest/settings/system_users','System Users (jana token)')+ext('https://business.facebook.com','Business Suite'))));
+          if(window.lucide&&lucide.createIcons){try{lucide.createIcons();}catch(e){}}
+          return;
+        }
+        // TERSAMBUNG — tarik page insights + posts + ig serentak.
+        var head = card('Status', '<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;"><span style="font-weight:700;color:var(--text-main);">Tersambung: '+mesc(st.page_name||st.page_id||'Page')+'</span><span style="font-size:11px;font-weight:800;color:#fff;background:#2e7d32;padding:2px 9px;border-radius:50px;">LIVE</span></div>');
+        set('metaInsightsBody', shell('thumbs-up','Meta / FB & IG','Prestasi Page Facebook & Instagram 10 CAMP — data live dari Meta.', head + '<div id="metaLiveBody"><div style="padding:14px;color:var(--text-muted);font-size:13px;"><i data-lucide="loader" style="width:16px;height:16px;"></i> Memuatkan insights…</div></div>'));
+        if(window.lucide&&lucide.createIcons){try{lucide.createIcons();}catch(e){}}
+        Promise.all([
+          fetch('/.netlify/functions/meta-insights?mode=page', { headers: metaHdr({}) }).then(function(r){return r.json();}).catch(function(){return null;}),
+          fetch('/.netlify/functions/meta-insights?mode=posts', { headers: metaHdr({}) }).then(function(r){return r.json();}).catch(function(){return null;}),
+          st.ig_user_id ? fetch('/.netlify/functions/meta-insights?mode=ig', { headers: metaHdr({}) }).then(function(r){return r.json();}).catch(function(){return null;}) : Promise.resolve(null)
+        ]).then(function(res){
+          var pg=res[0], po=res[1], ig=res[2];
+          var html='';
+          var num=function(n){ return (n==null)?'—':Number(n).toLocaleString('en-MY'); };
+          if(pg && pg.page){
+            var tiles='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+              +statTile('Followers FB',num(pg.page.followers))
+              +statTile('Jangkauan 28 hari', pg.reach_28d==null?'—':num(pg.reach_28d), pg.reach_28d==null?'perlu izin read_insights':'orang unik')
+              +statTile('Tayangan 28 hari', pg.impressions_28d==null?'—':num(pg.impressions_28d))
+              +(ig&&ig.ig?statTile('Followers IG',num(ig.ig.followers_count),'@'+mesc(ig.ig.username||'')):'')
+              +'</div>';
+            html+=tiles;
+          } else if(pg && pg.error){
+            html+=card('Nota Meta','<p style="margin:0;font-size:12.5px;color:#b45309;line-height:1.5;">'+mesc(pg.error)+'</p><p style="margin:6px 0 0;font-size:11.5px;color:var(--text-muted);">Selalunya token perlu scope tambahan (read_insights / pages_read_engagement) atau Page ID belum diset.</p>');
+          }
+          if(po && po.posts && po.posts.length){
+            var rows=po.posts.map(function(x){
+              var msg=(x.message||'').slice(0,90);
+              var dt=x.created_time?new Date(x.created_time).toLocaleDateString('en-MY'):'';
+              return '<div style="padding:10px 0;border-bottom:1px solid #F1F1F1;">'
+                +'<div style="font-size:12.5px;color:var(--text-main);line-height:1.4;">'+(x.permalink_url?'<a href="'+mesc(x.permalink_url)+'" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">':'')+mesc(msg||'(tiada teks)')+(x.permalink_url?'</a>':'')+'</div>'
+                +'<div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">'+dt+' &middot; '+num(x.likes)+' suka &middot; '+num(x.comments)+' komen &middot; '+num(x.shares)+' kongsi</div>'
+                +'</div>';
+            }).join('');
+            html+=card('Post FB terkini',rows);
+          }
+          if(ig && ig.media && ig.media.length){
+            var ir=ig.media.slice(0,6).map(function(m){
+              var cap=(m.caption||'').slice(0,70);
+              return '<div style="padding:9px 0;border-bottom:1px solid #F1F1F1;font-size:12.5px;color:var(--text-main);">'+(m.permalink?'<a href="'+mesc(m.permalink)+'" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;">':'')+mesc(cap||'(tiada caption)')+(m.permalink?'</a>':'')+' <span style="color:var(--text-muted);font-size:11px;">'+num(m.like_count)+' suka &middot; '+num(m.comments_count)+' komen</span></div>';
+            }).join('');
+            html+=card('Post Instagram terkini',ir);
+          }
+          html+=card('Pautan',ext('https://business.facebook.com','Business Suite')+ext('https://business.facebook.com/latest/insights','Meta Insights')+(isBoss?ext('https://business.facebook.com/latest/settings/system_users','Tukar token'):''));
+          var el=document.getElementById('metaLiveBody'); if(el){ el.innerHTML=html; if(window.lucide&&lucide.createIcons){try{lucide.createIcons();}catch(e){}} }
+        });
+      })
+      .catch(function(e){
+        set('metaInsightsBody', shell('thumbs-up','Meta / FB & IG','', card('Ralat','<p style="margin:0;font-size:13px;color:#b91c1c;">Gagal semak sambungan Meta: '+mesc(e)+'</p>')));
+      });
+  };
+
   // 4) Referrals
   window.renderReferrals = function(){
     var msg='Aku beli gear camping dari 10 CAMP, memang berbaloi. Kalau kau nak start camping, cuba tengok stok diorang (Naturehike, Mobi Garden, Blackdog & lebih) di Shopee/TikTok atau kedai Cyberjaya: '+SHOP;

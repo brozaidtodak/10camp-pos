@@ -2145,6 +2145,10 @@
  <div class="menu-item" data-tab="nav_web_traffic" onclick="event.stopPropagation(); switchHub(['webTrafficSection'], 'Web Traffic', this); if(typeof renderWebTraffic==='function') renderWebTraffic();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="activity" style="width:15px; height:15px;"></i> <span>Web Traffic</span>
  </div>
+ <!-- p1_1078 — Meta (FB + IG) insights: followers/reach/posts dari Graph API -->
+ <div class="menu-item" data-tab="nav_meta_insights" onclick="event.stopPropagation(); switchHub(['metaInsightsSection'], 'Meta / FB &amp; IG', this); if(typeof renderMetaInsights==='function') renderMetaInsights();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="thumbs-up" style="width:15px; height:15px;"></i> <span>Meta / FB &amp; IG</span>
+ </div>
  <div class="menu-item" data-tab="nav_local_seo" onclick="event.stopPropagation(); switchHub(['localSeoSection'], 'Local & Google', this); if(typeof renderLocalSeo==='function') renderLocalSeo();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="map-pin" style="width:15px; height:15px;"></i> <span>Local &amp; Google</span>
  </div>
@@ -5112,6 +5116,7 @@
  <div id="reviewsHubSection" class="tab-section" style="display:none;"><div id="reviewsHubBody"></div></div>
  <div id="contentSeoSection" class="tab-section" style="display:none;"><div id="contentSeoBody"></div></div>
  <div id="webTrafficSection" class="tab-section" style="display:none;"><div id="webTrafficBody"></div></div>
+ <div id="metaInsightsSection" class="tab-section" style="display:none;"><div id="metaInsightsBody"></div></div>
  <div id="referralsSection" class="tab-section" style="display:none;"><div id="referralsBody"></div></div>
  <div id="audiencesSection" class="tab-section" style="display:none;"><div id="audiencesBody"></div></div>
  <div id="localSeoSection" class="tab-section" style="display:none;"><div id="localSeoBody"></div></div>
@@ -13191,7 +13196,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1057"></script>
+ <script src="app.js?v=1058"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

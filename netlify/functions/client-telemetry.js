@@ -27,15 +27,22 @@ exports.handler = async (event) => {
     if (!events.length) return json(400, { error: 'no events' });
 
     const rows = events.map(ev => {
-        let dataStr = null;
-        try { dataStr = ev.data != null ? JSON.stringify(ev.data).slice(0, 4096) : null; } catch (e) { dataStr = null; }
+        // p1_1088 — .slice(4096) boleh potong JSON jadi tak sah → JSON.parse throw → SELURUH batch 500.
+        // Kini: kalau stringified > 4KB, simpan sebagai {truncated:"..."} (string selamat), bukan parse semula.
+        let dataVal = null;
+        try {
+            if (ev.data != null) {
+                const s = JSON.stringify(ev.data);
+                dataVal = s.length <= 4096 ? ev.data : { truncated: s.slice(0, 4000) };
+            }
+        } catch (e) { dataVal = null; }
         return {
             staff_name: String(ev.staff || '').slice(0, 60) || null,
             event_type: String(ev.type || 'unknown').slice(0, 40),
             app_version: String(ev.app_version || '').slice(0, 20) || null,
             device: String(ev.device || '').slice(0, 200) || null,
             online: typeof ev.online === 'boolean' ? ev.online : null,
-            data: dataStr ? JSON.parse(dataStr) : null
+            data: dataVal
         };
     });
 

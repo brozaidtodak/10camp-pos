@@ -149,6 +149,9 @@ window.__isPOSAppPreview = /[?&]posapp=1/.test(location.search || '') && !/TenCa
   if(suppress && (Date.now()-suppressT) < 90000){ suppress=false; return; } // baru balik dari picker
   suppress=false;
   if(!window.currentUser) return;                                          // belum login → PIN dah ada
+  // p1_1089 — peranti peribadi (staf sama yang sedang login): JANGAN auto-lock.
+  try { var pd=(typeof window.__getPersonalDevice==='function')?window.__getPersonalDevice():null;
+   if(pd && window.currentUser && pd.staff_id===window.currentUser.staff_id) return; } catch(e){}
   var ov=document.getElementById('pinLoginOverlay');
   if(ov && ov.style.display && ov.style.display!=='none') return;          // dah terkunci
   if(typeof handleLogin==='function') try{ handleLogin(); }catch(e){}       // KUNCI + minta PIN
@@ -342,7 +345,12 @@ window.__restoreSession = async function() {
  // p1_1030 — MOBILE app (peranti kongsi): JANGAN silent-restore → wajib PIN setiap launch.
  // Sesi Supabase kekal sah (PIN login guna semula = laju); cuma tak auto-buka tanpa PIN.
  // Boot (baris ~34) akan panggil handleLogin() bila restored=false + posapp. Web/desktop kekal stay-login.
- if(window.__isPOSApp) return false;
+ // p1_1089 — KECUALI peranti peribadi: kalau device ni ditanda milik staf yang SAMA dengan
+ // sesi yang tersimpan, benarkan silent-restore (tak tanya PIN). Staf lain / tiada flag = PIN.
+ if(window.__isPOSApp) {
+ const pd = (typeof window.__getPersonalDevice === 'function') ? window.__getPersonalDevice() : null;
+ if(!pd || pd.staff_id !== user.staff_id) return false;
+ }
  // Hide any lingering login overlay, then boot user session silently.
  const overlay = document.getElementById('pinLoginOverlay');
  if(overlay) overlay.style.display = 'none';
@@ -16130,6 +16138,43 @@ window.__pinKey = function(k) {
  if(typeof window.__pinAutoSubmit === 'function') window.__pinAutoSubmit(v);
 };
 
+// p1_1089 — PERANTI PERIBADI (khas staf tertentu, cth. Fahmi CMP009): selepas SATU login PIN
+// pada telefon sendiri, staf boleh tandakan device tu "peranti peribadi" — lepas tu app tak
+// tanya PIN lagi (silent-restore + auto-lock p1_1030 dilangkau). iPad kedai TIDAK terjejas:
+// flag hanya wujud pada device di mana staf tekan "OK" pada tawaran; Log Keluar / Tukar Staf
+// buang flag serta-merta (device balik jadi kongsi). Laporan Sulit PIN 1999 kekal berasingan.
+const PERSONAL_DEVICE_KEY = 'posPersonalDevice_v1';
+const PERSONAL_DEVICE_ASKED_KEY = 'posPersonalDeviceAsked_v1';
+const PERSONAL_DEVICE_ALLOW = ['CMP009']; // Fahmi — tambah staff_id lain di sini kalau Zaid lulus
+window.__getPersonalDevice = function() {
+ try { const o = JSON.parse(localStorage.getItem(PERSONAL_DEVICE_KEY) || 'null'); return (o && o.staff_id) ? o : null; } catch(e){ return null; }
+};
+window.__clearPersonalDevice = function() {
+ try { localStorage.removeItem(PERSONAL_DEVICE_KEY); } catch(e){}
+};
+window.__maybeOfferPersonalDevice = function(user) {
+ try {
+ if(!user || PERSONAL_DEVICE_ALLOW.indexOf(user.staff_id) === -1) return;
+ if(window.__getPersonalDevice()) return;
+ let asked = {};
+ try { asked = JSON.parse(localStorage.getItem(PERSONAL_DEVICE_ASKED_KEY) || '{}') || {}; } catch(e){}
+ if(asked[user.staff_id]) return; // dah tolak pada device ni — jangan ganggu lagi (iPad kedai)
+ setTimeout(function() {
+ let yes = false;
+ try { yes = confirm('Jadikan ini PERANTI PERIBADI ' + (user.name || '') + '?\n\nLepas ni app TAK tanya PIN lagi pada device ni.\n\nTekan OK HANYA pada telefon anda sendiri.\nJANGAN tekan OK pada iPad kedai.'); } catch(e){}
+ try {
+ if(yes) {
+ localStorage.setItem(PERSONAL_DEVICE_KEY, JSON.stringify({ staff_id: user.staff_id, name: user.name || '', enabled_at: new Date().toISOString() }));
+ if(window.showToast) showToast('Peranti peribadi diaktifkan — tak perlu PIN lagi pada device ni. Log Keluar akan batalkannya.', 'success');
+ } else {
+ asked[user.staff_id] = true;
+ localStorage.setItem(PERSONAL_DEVICE_ASKED_KEY, JSON.stringify(asked));
+ }
+ } catch(e){}
+ }, 900);
+ } catch(e){}
+};
+
 // p1_1010 — Tukar Staf (iPad kongsi): log keluar orang sekarang + terus buka pad PIN untuk orang seterusnya.
 window.__switchStaff = function() {
  try { if(typeof handleLogout === 'function') handleLogout(); } catch(e){}
@@ -16196,6 +16241,7 @@ window.submitPinLogin = async function() {
  const overlay = document.getElementById('pinLoginOverlay');
  if(overlay) overlay.style.display = 'none';
  loginAs(user);
+ try { window.__maybeOfferPersonalDevice(user); } catch(e){} // p1_1089 — tawaran peranti peribadi (staf tertentu shj)
 };
 
 // p1_72: Email-only login + Supabase Auth password reset.
@@ -16897,6 +16943,8 @@ window.backToPOS = function() {
 function handleLogout() {
  // p1_71: also sign out of Supabase Auth so email/password session cleared
  try { if(db && db.auth && db.auth.signOut) db.auth.signOut(); } catch(e){}
+ // p1_1089 — logout = batal status peranti peribadi (device balik jadi kongsi, wajib PIN)
+ try { if(typeof window.__clearPersonalDevice === 'function') window.__clearPersonalDevice(); } catch(e){}
  try { if(typeof window.__saShow === 'function') { window.__saShow(false); window.__saHistory = []; } } catch(e){} // p1_795 — sorok widget AI + reset bila logout
  try { if(typeof window.__caShow === 'function') window.__caShow(true); } catch(e){} // p1_812 — landing balik = tunjuk widget AI customer
  currentUser = null;

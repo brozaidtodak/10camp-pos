@@ -17,6 +17,7 @@ try {
 // p1_75: Also auto-restore session on refresh so staff tak perlu login balik.
 document.addEventListener('DOMContentLoaded', () => {
  try { if(typeof window.__initPasswordRecovery === 'function') window.__initPasswordRecovery(); } catch(e){}
+ try { if(typeof window.__initSessionGuardian === 'function') window.__initSessionGuardian(); } catch(e){} // p1_1090
  // p1_439: await restore so the mobile-app deep-link below only fires when nobody is logged in.
  (async () => {
  let restored = false;
@@ -339,7 +340,7 @@ window.__restoreSession = async function() {
  const user = (typeof authUsers !== 'undefined' ? authUsers : []).find(u => (u.email || '').toLowerCase() === email);
  if(!user) {
  // Stale Supabase session for an unknown email — sign out to avoid loops.
- try { await db.auth.signOut(); } catch(e){}
+ try { await db.auth.signOut({ scope: 'local' }); } catch(e){}
  return false;
  }
  // p1_1030 — MOBILE app (peranti kongsi): JANGAN silent-restore → wajib PIN setiap launch.
@@ -16375,6 +16376,46 @@ window.__initPasswordRecovery = function() {
  });
 };
 
+// p1_1090 — PENGAWAL SESI: bila sesi Supabase mati semasa staf masih "login" di UI (token
+// gagal refresh / di-revoke dari tempat lain), query data mula gagal senyap ("permission
+// denied" sebagai anon) dan app nampak macam rosak/down. Daripada biar skrin kosong,
+// terus bawa staf ke skrin kunci PIN dengan mesej jelas. Logout sengaja (handleLogout)
+// dikecualikan melalui __expectSignOut.
+window.__forceRelogin = function(why){
+ if(window.__reloginInFlight) return;
+ window.__reloginInFlight = true;
+ try { console.warn('[auth] sesi mati — paksa login semula:', why || ''); } catch(e){}
+ try { if(typeof handleLogout === 'function') handleLogout(); } catch(e){}
+ try { if(typeof handleLogin === 'function') handleLogin(); } catch(e){}
+ try {
+  const errEl = document.getElementById('pinLoginError');
+  if(errEl) { errEl.textContent = 'Sesi tamat — sila masukkan PIN semula.'; errEl.style.color = '#B23A2E'; }
+ } catch(e){}
+ setTimeout(function(){ window.__reloginInFlight = false; }, 3000);
+};
+window.__initSessionGuardian = function(){
+ try {
+  if(!db || !db.auth) return;
+  if(typeof db.auth.onAuthStateChange === 'function'){
+   db.auth.onAuthStateChange(function(event){
+    if(event !== 'SIGNED_OUT') return;
+    if(!window.currentUser) return; // dah kat skrin login/landing — tiada apa nak selamatkan
+    if(window.__expectSignOut && (Date.now() - window.__expectSignOut) < 5000) return; // logout sengaja
+    window.__forceRelogin('SIGNED_OUT');
+   });
+  }
+  // Jaring keselamatan berkala (60s): tangkap kes tanpa event (cth. iPad tidur lama,
+  // refresh gagal masa offline). getSession() sahaja — murah, tiada network kalau sesi sihat.
+  setInterval(async function(){
+   try {
+    if(!window.currentUser) return;
+    const { data } = await db.auth.getSession();
+    if(!data || !data.session) window.__forceRelogin('sesi hilang (semakan berkala)');
+   } catch(e){}
+  }, 60000);
+ } catch(e){}
+};
+
 window.__openSetPasswordModal = function(opts) {
  opts = opts || {};
  const modal = document.getElementById('setPasswordModal');
@@ -16406,7 +16447,8 @@ window.__submitSetPassword = async function() {
  if(error) { if(err) { err.textContent = 'Gagal tukar password: ' + error.message; err.style.color = '#B23A2E'; } return; }
  if(err) { err.textContent = 'Password ditetapkan. Sila login.'; err.style.color = '#4E7C4A'; }
  // Sign out so user can re-login fresh
- try { await db.auth.signOut(); } catch(e){}
+ try { window.__expectSignOut = Date.now(); } catch(e){} // p1_1090 — logout sengaja, jangan trigger pengawal sesi
+ try { await db.auth.signOut({ scope: 'local' }); } catch(e){}
  setTimeout(() => {
  if(modal) modal.style.display = 'none';
  const overlay = document.getElementById('pinLoginOverlay');
@@ -16455,7 +16497,7 @@ window.submitEmailLogin = async function() {
  if(!user) {
  errEl.textContent = 'Akaun ini bukan staff berdaftar. Hubungi Bos.';
  errEl.style.color = '#B23A2E';
- try { await db.auth.signOut(); } catch(e){}
+ try { await db.auth.signOut({ scope: 'local' }); } catch(e){}
  return;
  }
  // p1_72: Force password change on first login if admin set must_change_password=true
@@ -16942,13 +16984,18 @@ window.backToPOS = function() {
 
 function handleLogout() {
  // p1_71: also sign out of Supabase Auth so email/password session cleared
- try { if(db && db.auth && db.auth.signOut) db.auth.signOut(); } catch(e){}
+ // p1_1090 — scope 'local' WAJIB: default supabase-js ialah 'global' yang revoke sesi akaun
+ // yang sama di SEMUA device (Tukar Staf kat iPad = staf tercampak keluar kat phone sendiri,
+ // nampak macam "site down"). 'local' padam sesi device ini sahaja.
+ try { window.__expectSignOut = Date.now(); } catch(e){}
+ try { if(db && db.auth && db.auth.signOut) db.auth.signOut({ scope: 'local' }); } catch(e){}
  // p1_1089 — logout = batal status peranti peribadi (device balik jadi kongsi, wajib PIN)
  try { if(typeof window.__clearPersonalDevice === 'function') window.__clearPersonalDevice(); } catch(e){}
  try { if(typeof window.__saShow === 'function') { window.__saShow(false); window.__saHistory = []; } } catch(e){} // p1_795 — sorok widget AI + reset bila logout
  try { if(typeof window.__caShow === 'function') window.__caShow(true); } catch(e){} // p1_812 — landing balik = tunjuk widget AI customer
  currentUser = null;
  currentUserRole = null;
+ try { window.currentUser = null; } catch(e){} // p1_1090 — jangan tinggal rujukan basi selepas logout
  // p1_1011 — dalam app (iPad kaunter): JANGAN hempas ke storefront customer. Sorok kedua-dua
  // layout, biar skrin kunci PIN (dibuka di hujung fungsi) yang jadi paparan. Web/desktop kekal.
  if(window.__isPOSApp) {

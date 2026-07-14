@@ -151,15 +151,37 @@ window.renderSocialMedia = async function(){
  const trend = window.__smWeekViews(rows, 8);
  let posted = [];
  try { const r = await db.from('marketing_content').select('*').eq('status','posted').order('posted_at',{ascending:false}).limit(60); posted = r.data||[]; } catch(e){}
+ // p1_1109 — AUTO-TARIK FB Page dari Meta Graph (token kekal p1_1081 dah hidup): followers live
+ // + post/likes/komen terkini. IG tunggu App Review (parked); TikTok/Threads/Shopee tiada API stats
+ // organik utk SME — kekal manual. Gagal/tak connect → senyap, kad kekal manual.
+ let fbLive = null;
+ try {
+  const H = (typeof window.__authHeaderSync==='function') ? window.__authHeaderSync({}) : {};
+  const pg = await fetch('/.netlify/functions/meta-insights?mode=page', { headers:H }).then(function(r){return r.json();});
+  if(pg && pg.page && pg.page.followers != null) fbLive = { followers:Number(pg.page.followers)||0, reach:pg.reach_28d };
+  const po = await fetch('/.netlify/functions/meta-insights?mode=posts', { headers:H }).then(function(r){return r.json();});
+  if(po && Array.isArray(po.posts) && po.posts.length){
+   fbLive = fbLive || {};
+   fbLive.posts = po.posts.length;
+   fbLive.likes = po.posts.reduce(function(t,x){ return t+(Number(x.likes)||0); },0);
+   fbLive.comments = po.posts.reduce(function(t,x){ return t+(Number(x.comments)||0); },0);
+  }
+ } catch(e){}
  const acc = window.__mktGetAccounts();
  const E = window.__mktEsc;
  const cards = ['tiktok','instagram','facebook'].map(function(pl){
   const m = window.__mktPlat[pl]; const c = cur[pl]; const p = prev[pl];
   const eng = c.views>0 ? ((c.likes/c.views)*100).toFixed(1)+'%' : '—';
   const sv = trend.map(function(d){ return d[pl]; });
+  // p1_1109 — FB: followers LIVE dari Meta (auto); posts/likes live dipakai bila manual kosong
+  const isFbAuto = (pl==='facebook' && fbLive);
+  const follVal = isFbAuto ? fbLive.followers : (fCur[pl]||0);
+  const autoBadge = isFbAuto ? ' <span title="Auto-tarik live dari Meta Graph API" style="font-size:8.5px;font-weight:800;color:#fff;background:#2e7d32;padding:1px 7px;border-radius:50px;vertical-align:2px;">AUTO</span>' : '';
+  const fbStrip = isFbAuto ? '<div style="margin:-2px 0 8px;font-size:10px;color:#2e7d32;font-weight:600;">Live dari Meta: '+(fbLive.posts!=null?fbLive.posts+' post terkini · '+(fbLive.likes||0).toLocaleString()+' likes · '+(fbLive.comments||0).toLocaleString()+' komen':'followers sahaja')+(fbLive.reach!=null?' · reach 28hr '+Number(fbLive.reach).toLocaleString():'')+'</div>' : '';
   return '<div class="admin-card" style="padding:16px;border-top:3px solid '+m.color+';">'
-   + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><strong style="font-size:14px;">'+m.label+'</strong>'+window.__mktDelta(c.views,p.views)+'</div>'
-   + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;"><div><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">Followers</div><div style="font-size:22px;font-weight:800;">'+(fCur[pl]||0).toLocaleString()+'</div></div>'+window.__mktDelta(fCur[pl],fPrev[pl])+'</div>'
+   + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><strong style="font-size:14px;">'+m.label+autoBadge+'</strong>'+window.__mktDelta(c.views,p.views)+'</div>'
+   + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;"><div><div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">Followers</div><div style="font-size:22px;font-weight:800;">'+follVal.toLocaleString()+'</div></div>'+(isFbAuto?'':window.__mktDelta(fCur[pl],fPrev[pl]))+'</div>'
+   + fbStrip
    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
    + '<div><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;">Posts</div><div style="font-size:15px;font-weight:800;">'+c.posts+'</div></div>'
    + '<div><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;">Views</div><div style="font-size:15px;font-weight:800;">'+c.views.toLocaleString()+'</div></div>'
@@ -183,7 +205,7 @@ window.renderSocialMedia = async function(){
   + '<div style="display:flex;align-items:center;gap:8px;"><label style="font-size:11px;color:#6B7280;">Minggu mula</label><input type="date" id="smWeek" style="padding:5px 8px;border:1px solid var(--border-color);border-radius:6px;font-size:12px;"><button onclick="window.__smSaveWeek()" style="padding:7px 18px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">Simpan</button></div></div>'
   + '<div style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:6px;margin-bottom:4px;"><span></span>'+hdr('Posts')+hdr('Views')+hdr('Likes')+hdr('Leads')+hdr('Followers')+'</div>'
   + inRow('TikTok','Tt','#111') + inRow('Instagram','Ig','#C13584') + inRow('Facebook','Fb','#1877F2')
-  + '<p style="font-size:10.5px;color:#9CA3AF;margin-top:8px;">Isi nombor dari analytics app sosial → pilih minggu → Simpan. Kad &amp; graf atas auto-update.</p>'
+  + '<p style="font-size:10.5px;color:#9CA3AF;margin-top:8px;">Isi nombor dari analytics app sosial → pilih minggu → Simpan. Kad &amp; graf atas auto-update. NOTA: Followers FB dah AUTO dari Meta (tak perlu isi); views/leads FB + semua TikTok &amp; IG masih manual — TikTok tak bagi API stats, IG menunggu kelulusan Meta App Review.</p>'
   + '</div>';
  const accRow = ['tiktok','instagram','facebook','threads','shopee'].map(function(pl){
   const m = window.__mktPlat[pl];

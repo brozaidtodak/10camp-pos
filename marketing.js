@@ -6,7 +6,7 @@
 // p1_467 — MARKETING MODULE (Social Media / Content Schedule / Ads / Reports)
 // ============================================================================
 window.__mktEsc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-window.__mktPlat = { tiktok:{label:'TikTok',color:'#111'}, instagram:{label:'Instagram',color:'#C13584'}, facebook:{label:'Facebook',color:'#1877F2'}, shopee:{label:'Shopee',color:'#EE4D2D'} };
+window.__mktPlat = { tiktok:{label:'TikTok',color:'#111'}, instagram:{label:'Instagram',color:'#C13584'}, facebook:{label:'FB Page',color:'#1877F2'}, threads:{label:'Threads',color:'#5C5C5C'}, shopee:{label:'Shopee Reels',color:'#EE4D2D'} }; // p1_1102 — 5 saluran rasmi 10 CAMP
 window.__mktContentTypes = ['reel','post','story','live','carousel','video'];
 // p1_1094 — PIPELINE PRODUKSI penuh (Zaid: "schedule marketing — record, editing, copywriting,
 // post, ads, analytics"). Aliran: Idea → Rakam → Edit → Copywriting → Dijadual → Disiarkan → Ads → Selesai.
@@ -85,7 +85,7 @@ window.__mktSetSocialRange = function(r){ window.__mktRangeSocial = r; window.re
 window.__mktGetAccounts = function(){ try { return JSON.parse(localStorage.getItem('mktSocialAccounts_v1')||'{}')||{}; } catch(e){ return {}; } };
 window.__mktSaveAccounts = function(){
  const acc = {};
- ['tiktok','instagram','facebook','shopee'].forEach(function(pl){ const el=document.getElementById('mktAcc_'+pl); if(el) acc[pl]=el.value.trim(); });
+ ['tiktok','instagram','facebook','threads','shopee'].forEach(function(pl){ const el=document.getElementById('mktAcc_'+pl); if(el) acc[pl]=el.value.trim(); });
  try { localStorage.setItem('mktSocialAccounts_v1', JSON.stringify(acc)); } catch(e){}
  if(typeof showToast==='function') showToast('Akaun sosial disimpan.', 'success');
 };
@@ -185,7 +185,7 @@ window.renderSocialMedia = async function(){
   + inRow('TikTok','Tt','#111') + inRow('Instagram','Ig','#C13584') + inRow('Facebook','Fb','#1877F2')
   + '<p style="font-size:10.5px;color:#9CA3AF;margin-top:8px;">Isi nombor dari analytics app sosial → pilih minggu → Simpan. Kad &amp; graf atas auto-update.</p>'
   + '</div>';
- const accRow = ['tiktok','instagram','facebook','shopee'].map(function(pl){
+ const accRow = ['tiktok','instagram','facebook','threads','shopee'].map(function(pl){
   const m = window.__mktPlat[pl];
   return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="width:78px;font-size:12px;font-weight:700;color:'+m.color+';">'+m.label+'</span>'
    + '<input id="mktAcc_'+pl+'" value="'+E(acc[pl]||'')+'" placeholder="@handle atau link" style="flex:1;padding:7px 10px;border:1px solid var(--border-color);border-radius:7px;font-size:12px;">'
@@ -349,7 +349,7 @@ window.renderContentSchedule = async function(){
   const statusPills = '<button onclick="window.__mktSetContentFilter(\'status\',\'all\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(window.__mktContentFilter.status==='all'?'var(--primary)':'var(--border-color)')+';background:'+(window.__mktContentFilter.status==='all'?'var(--primary)':'#fff')+';color:'+(window.__mktContentFilter.status==='all'?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">Semua ('+all.length+')</button>'
    + window.__mktContentStatuses.map(function(s){ const on=window.__mktContentFilter.status===s[0]; return '<button onclick="window.__mktSetContentFilter(\'status\',\''+s[0]+'\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(on?'var(--primary)':'var(--border-color)')+';background:'+(on?'var(--primary)':'#fff')+';color:'+(on?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">'+s[1]+' ('+counts[s[0]]+')</button>'; }).join('');
   const platPills = '<button onclick="window.__mktSetContentFilter(\'platform\',\'all\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(window.__mktContentFilter.platform==='all'?'var(--primary)':'var(--border-color)')+';background:'+(window.__mktContentFilter.platform==='all'?'var(--primary)':'#fff')+';color:'+(window.__mktContentFilter.platform==='all'?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">Semua platform</button>'
-   + ['tiktok','instagram','facebook','shopee'].map(function(pl){ const on=window.__mktContentFilter.platform===pl; const mm=window.__mktPlat[pl]; return '<button onclick="window.__mktSetContentFilter(\'platform\',\''+pl+'\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(on?mm.color:'var(--border-color)')+';background:'+(on?mm.color:'#fff')+';color:'+(on?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">'+mm.label+'</button>'; }).join('');
+   + ['tiktok','instagram','facebook','threads','shopee'].map(function(pl){ const on=window.__mktContentFilter.platform===pl; const mm=window.__mktPlat[pl]; return '<button onclick="window.__mktSetContentFilter(\'platform\',\''+pl+'\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(on?mm.color:'var(--border-color)')+';background:'+(on?mm.color:'#fff')+';color:'+(on?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">'+mm.label+'</button>'; }).join('');
   const list = rows.length ? rows.map(window.__mktContentCard).join('') : '<p style="color:#9CA3AF;padding:30px;text-align:center;">Tiada kandungan padan tapisan. Tekan "Tambah Kandungan".</p>';
   main = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+statusPills+'</div>'
    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">'+platPills+'</div>' + list;
@@ -407,7 +407,7 @@ window.__mktContentModal = function(id, presetDate){
  const E = window.__mktEsc;
  const old = document.getElementById('mktContentModal'); if(old) old.remove();
  const selPlats = (c.platforms||'').split(',').filter(Boolean);
- const platChecks = ['tiktok','instagram','facebook','shopee'].map(function(pl){ const m=window.__mktPlat[pl]; return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:12px;cursor:pointer;"><input type="checkbox" class="mktCPlat" value="'+pl+'"'+(selPlats.indexOf(pl)!==-1?' checked':'')+'> '+m.label+'</label>'; }).join('');
+ const platChecks = ['tiktok','instagram','facebook','threads','shopee'].map(function(pl){ const m=window.__mktPlat[pl]; return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:12px;cursor:pointer;"><input type="checkbox" class="mktCPlat" value="'+pl+'"'+(selPlats.indexOf(pl)!==-1?' checked':'')+'> '+m.label+'</label>'; }).join('');
  const typeOpts = window.__mktContentTypes.map(function(t){ return '<option value="'+t+'"'+(c.content_type===t?' selected':'')+'>'+t+'</option>'; }).join('');
  const statusOpts = window.__mktContentStatuses.map(function(s){ return '<option value="'+s[0]+'"'+(c.status===s[0]?' selected':'')+'>'+s[1]+'</option>'; }).join('');
  const staffOpts = '<option value="">— pilih staf —</option>'+(typeof authUsers!=='undefined'?authUsers:[]).map(function(u){ return '<option value="'+E(u.name)+'"'+(c.assigned_to_name===u.name?' selected':'')+'>'+E(u.name)+'</option>'; }).join('');

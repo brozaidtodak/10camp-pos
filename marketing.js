@@ -282,6 +282,34 @@ window.__mktCalNav = function(d){
  window.renderContentSchedule();
 };
 window.__mktCalPick = function(iso){ window.__mktCalSel = iso; window.renderContentSchedule(); };
+// p1_1106 — JANA RENTAK MINGGU: 1 klik cipta 5 kad aktiviti mingguan Irfan utk minggu tarikh dipilih.
+// Skip kalau minggu tu dah ada kad [PLAN] (elak duplicate).
+window.__mktGenWeek = async function(){
+ const selIso = window.__mktCalSel; if(!selIso) return;
+ const d = new Date(selIso + 'T00:00:00'); if(isNaN(d.getTime())) return;
+ const mon = new Date(d); mon.setDate(mon.getDate() - ((mon.getDay()+6)%7));
+ const iso = function(x){ return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+ const day = function(off){ const x = new Date(mon); x.setDate(x.getDate()+off); return iso(x); };
+ const wkLbl = mon.toLocaleDateString('ms-MY',{day:'numeric',month:'short'});
+ const exists = (window.__mktContentCache||[]).some(function(c){ const dd=(c.scheduled_date||'').slice(0,10); return dd >= day(0) && dd <= day(6) && (c.title||'').indexOf('[PLAN]')===0; });
+ if(exists){ if(typeof showToast==='function') showToast('Rentak minggu '+wkLbl+' dah wujud — tak jana dua kali.','warn'); return; }
+ if(!confirm('Cipta 5 kad aktiviti mingguan (PLAN/RAKAM/EDIT/COPY/REVIEW) untuk minggu bermula Isnin '+wkLbl+'? Semua auto-assign Irfan.')) return;
+ const P = 'tiktok,facebook,instagram';
+ const rows = [
+  { title:'[PLAN] Planning mingguan — semak prestasi minggu lepas, pilih 3 idea + script', scheduled_date:day(0), status:'idea',  content_type:'post',  caption:'Duduk 1 jam: tengok review Ahad lepas (format mana menang?), sahkan 3 konten minggu ni, tulis script pendek + shot list + pilih TALENT tiap satu.' },
+  { title:'[RAKAM] Batch shoot konten minggu ini', scheduled_date:day(1), status:'rakam', content_type:'video', caption:'Shoot 3 konten berturut di kedai (Irfan arah, talent ikut plan Isnin). Phone + gimbal, lighting tepi tingkap. 2-3 jam.' },
+  { title:'[EDIT] Edit video — potong, subtitle, thumbnail', scheduled_date:day(2), status:'edit', content_type:'video', caption:'CapCut: hook 3 saat pertama, subtitle BM, logo hujung. Simpan 9:16 (TikTok/IG) + 1:1 (FB). Thumbnail teks besar.' },
+  { title:'[COPY] Caption semua konten + jadualkan', scheduled_date:day(3), status:'copy', content_type:'post', caption:'Guna butang AI Copy pada tiap kad konten, edit ikut suara 10 CAMP, sertakan harga + CTA. Lepas siap gerakkan kad ke Dijadual.' },
+  { title:'[REVIEW] Review mingguan — isi analitik + calon boost', scheduled_date:day(6), status:'done', content_type:'post', caption:'Isi views/likes/leads semua post minggu ni (butang Edit). Post terbaik = calon boost Ads (rekod di tab Ads, minta approve Bos). Sedia idea minggu depan.' }
+ ].map(function(r){ r.platforms = P; r.assigned_to_name = 'Irfan'; r.created_by = 'rentak_mingguan'; r.created_by_name = 'Jana Rentak'; r.updated_at = new Date().toISOString(); return r; });
+ try {
+  const res = await db.from('marketing_content').insert(rows);
+  if(res.error) throw res.error;
+  if(typeof showToast==='function') showToast('5 kad aktiviti minggu '+wkLbl+' dicipta — semua assign Irfan.','success');
+  window.__mktCalSel = day(0); window.__mktCalMonth = day(0).slice(0,7);
+  await window.__mktLoadContent(); window.renderContentSchedule();
+ } catch(e){ if(typeof showToast==='function') showToast('Gagal jana: '+e.message,'error'); }
+};
 window.renderContentSchedule = async function(){
  const body = document.getElementById('contentScheduleBody');
  if(!body) return;
@@ -298,7 +326,8 @@ window.renderContentSchedule = async function(){
   + [['cal','Kalendar','calendar-days'],['list','Senarai','list']].map(function(v){
     const on = (isCal && v[0]==='cal') || (!isCal && v[0]==='list');
     return '<button onclick="window.__mktSetView(\''+v[0]+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid '+(on?'var(--primary)':'var(--border-color)')+';background:'+(on?'var(--primary)':'#fff')+';color:'+(on?'#fff':'#6B7280')+';"><i data-lucide="'+v[2]+'" style="width:12px;height:12px;"></i>'+v[1]+'</button>';
-   }).join('') + '</div>';
+   }).join('')
+  + '<button onclick="window.__mktGenWeek()" title="Cipta 5 kad aktiviti mingguan (PLAN Isnin / RAKAM Selasa / EDIT Rabu / COPY Khamis / REVIEW Ahad) untuk minggu tarikh yang dipilih" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px dashed var(--primary);background:#fff;color:var(--primary);margin-left:auto;"><i data-lucide="repeat" style="width:12px;height:12px;"></i> Jana Rentak Minggu</button></div>';
  const header = '<div class="rp-header"><div><h2 class="rp-title"><i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--primary);"></i> Jadual Marketing</h2><p class="rp-subtitle">Tekan tarikh untuk lihat semua planning hari tu. Pipeline: Idea → Rakam → Edit → Copy → Jadual → Siar → Ads → Analitik.</p></div><button onclick="window.__mktContentModal(null, window.__mktCalSel)" style="padding:9px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Tambah Kandungan</button></div>';
  let main = '';
  if(isCal){
@@ -310,6 +339,25 @@ window.renderContentSchedule = async function(){
   const byDay = {};
   all.forEach(function(c){ const d=(c.scheduled_date||'').slice(0,10); if(d) (byDay[d]=byDay[d]||[]).push(c); });
   const undated = all.filter(function(c){ return !(c.scheduled_date||'').slice(0,10); });
+  // p1_1106 — audit "mudahkan Irfan": (a) TERTUNGGAK dijerit atas sekali, (b) ringkasan minggu sekali pandang
+  const preLive = ['idea','rakam','edit','copy','scheduled'];
+  const overdue = all.filter(function(c){ const d=(c.scheduled_date||'').slice(0,10); return d && d < todayIso && preLive.indexOf(c.status)!==-1; });
+  const wkStart = new Date(now); wkStart.setHours(0,0,0,0); wkStart.setDate(wkStart.getDate() - ((wkStart.getDay()+6)%7));
+  const isoOf = function(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); };
+  const wkS = isoOf(wkStart), wkE = isoOf(new Date(wkStart.getTime()+6*86400000));
+  const wkItems = all.filter(function(c){ const d=(c.scheduled_date||'').slice(0,10); return d>=wkS && d<=wkE; });
+  const wkPending = wkItems.filter(function(c){ return preLive.indexOf(c.status)!==-1; }).length;
+  const chip = function(lbl,val,warn){ return '<div style="flex:1;min-width:110px;background:'+(warn?'#FCF6F4':'#fff')+';border:1px solid '+(warn?'#E0B3A9':'var(--border-color)')+';border-radius:10px;padding:9px 13px;"><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:'+(warn?'#7C2A20':'#9CA3AF')+';">'+lbl+'</div><div style="font-size:18px;font-weight:900;color:'+(warn?'#7C2A20':'var(--text-main)')+';">'+val+'</div></div>'; };
+  const summary = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+   + chip('Hari ini', (byDay[todayIso]||[]).length+' planning', false)
+   + chip('Minggu ini belum siap', wkPending+' / '+wkItems.length, wkPending>0)
+   + chip('Tertunggak', overdue.length, overdue.length>0)
+   + '</div>';
+  const overdueHtml = overdue.length
+   ? '<div style="border:1.5px solid #E0B3A9;background:#FCF6F4;border-radius:12px;padding:12px 12px 4px;margin-bottom:14px;">'
+     + '<div style="font-size:12px;font-weight:800;color:#7C2A20;margin-bottom:8px;"><i data-lucide="alert-triangle" style="width:13px;height:13px;vertical-align:-2px;"></i> TERTUNGGAK ('+overdue.length+') — tarikh dah lepas tapi belum disiar. Siapkan atau tukar tarikh (klik kad).</div>'
+     + overdue.map(window.__mktContentCard).join('') + '</div>'
+   : '';
   const monthLbl = first.toLocaleDateString('ms-MY',{month:'long',year:'numeric'});
   const dows = ['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'];
   let cells = dows.map(function(d){ return '<div style="text-align:center;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#9CA3AF;padding:4px 0;">'+d+'</div>'; }).join('');
@@ -341,7 +389,7 @@ window.renderContentSchedule = async function(){
   const undatedHtml = undated.length
    ? '<div style="margin-top:20px;"><div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#9CA3AF;margin-bottom:8px;">Tiada tarikh ('+undated.length+') — set tarikh melalui Edit</div>'+undated.map(window.__mktContentCard).join('')+'</div>'
    : '';
-  main = cal + dayPanel + undatedHtml;
+  main = summary + overdueHtml + cal + dayPanel + undatedHtml;
  } else {
   let rows = all.slice();
   if(window.__mktContentFilter.status!=='all') rows = rows.filter(function(r){ return r.status===window.__mktContentFilter.status; });

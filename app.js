@@ -2983,7 +2983,7 @@ window.__mwSubmit = async function() {
 window.__ensureMarketing = function(){
  if(window.__mktLoaded) return Promise.resolve();
  return window.__mktLoading || (window.__mktLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='marketing.js?v=8'; // p1_1105
+  var s=document.createElement('script'); s.src='marketing.js?v=9'; // p1_1106
   s.onload=function(){ window.__mktLoaded=true; res(); };
   s.onerror=function(){ window.__mktLoading=null; rej(new Error('marketing.js gagal muat')); };
   document.head.appendChild(s);

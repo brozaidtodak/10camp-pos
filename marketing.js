@@ -349,14 +349,14 @@ window.__mktGenWeek = async function(){
  const wkLbl = mon.toLocaleDateString('ms-MY',{day:'numeric',month:'short'});
  const exists = (window.__mktContentCache||[]).some(function(c){ const dd=(c.scheduled_date||'').slice(0,10); return dd >= day(0) && dd <= day(6) && (c.title||'').indexOf('[PLAN]')===0; });
  if(exists){ if(typeof showToast==='function') showToast('Rentak minggu '+wkLbl+' dah wujud — tak jana dua kali.','warn'); return; }
- if(!confirm('Cipta 5 kad aktiviti mingguan (PLAN/RAKAM/EDIT/COPY/REVIEW) untuk minggu bermula Isnin '+wkLbl+'? Semua auto-assign Irfan.')) return;
+ if(!confirm('Cipta 5 kad aktiviti mingguan (PLAN Isnin / RAKAM Selasa / EDIT Rabu / COPY Khamis / REVIEW Sabtu — Ahad Irfan OFF) untuk minggu bermula Isnin '+wkLbl+'? Semua auto-assign Irfan.')) return;
  const P = 'tiktok,facebook,instagram';
  const rows = [
   { title:'[PLAN] Planning mingguan — semak prestasi minggu lepas, pilih 3 idea + script', scheduled_date:day(0), status:'idea',  content_type:'post',  caption:'Duduk 1 jam: tengok review Ahad lepas (format mana menang?), sahkan 3 konten minggu ni, tulis script pendek + shot list + pilih TALENT tiap satu.' },
   { title:'[RAKAM] Batch shoot konten minggu ini', scheduled_date:day(1), status:'rakam', content_type:'video', caption:'Shoot 3 konten berturut di kedai (Irfan arah, talent ikut plan Isnin). Phone + gimbal, lighting tepi tingkap. 2-3 jam.' },
   { title:'[EDIT] Edit video — potong, subtitle, thumbnail', scheduled_date:day(2), status:'edit', content_type:'video', caption:'CapCut: hook 3 saat pertama, subtitle BM, logo hujung. Simpan 9:16 (TikTok/IG) + 1:1 (FB). Thumbnail teks besar.' },
   { title:'[COPY] Caption semua konten + jadualkan', scheduled_date:day(3), status:'copy', content_type:'post', caption:'Guna butang AI Copy pada tiap kad konten, edit ikut suara 10 CAMP, sertakan harga + CTA. Lepas siap gerakkan kad ke Dijadual.' },
-  { title:'[REVIEW] Review mingguan — isi analitik + calon boost', scheduled_date:day(6), status:'done', content_type:'post', caption:'Isi views/likes/leads semua post minggu ni (butang Edit). Post terbaik = calon boost Ads (rekod di tab Ads, minta approve Bos). Sedia idea minggu depan.' }
+  { title:'[REVIEW] Review mingguan — isi analitik + calon boost', scheduled_date:day(5), status:'done', content_type:'post', caption:'SABTU (Ahad Irfan OFF): isi views/likes/leads semua post minggu ni (butang Edit). Post terbaik = calon boost Ads (rekod di tab Ads, minta approve Bos). Post Ahad? Jadualkan awal via Business Suite. Sedia idea minggu depan.' }
  ].map(function(r){ r.platforms = P; r.assigned_to_name = 'Irfan'; r.created_by = 'rentak_mingguan'; r.created_by_name = 'Jana Rentak'; r.updated_at = new Date().toISOString(); return r; });
  try {
   const res = await db.from('marketing_content').insert(rows);

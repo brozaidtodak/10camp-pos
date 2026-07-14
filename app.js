@@ -2983,13 +2983,13 @@ window.__mwSubmit = async function() {
 window.__ensureMarketing = function(){
  if(window.__mktLoaded) return Promise.resolve();
  return window.__mktLoading || (window.__mktLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='marketing.js?v=12'; // p1_1109
+  var s=document.createElement('script'); s.src='marketing.js?v=13'; // p1_1111
   s.onload=function(){ window.__mktLoaded=true; res(); };
   s.onerror=function(){ window.__mktLoading=null; rej(new Error('marketing.js gagal muat')); };
   document.head.appendChild(s);
  }));
 };
-['renderSocialMedia','renderContentSchedule','renderAds','renderMarketingReports'].forEach(function(fn){
+['renderSocialMedia','renderContentSchedule','renderAds','renderMarketingReports','renderTikTokLive'].forEach(function(fn){
  window[fn] = function(){ window.__ensureMarketing().then(function(){ if(window[fn] && window[fn].__isMktStub!==true) window[fn](); }); };
  window[fn].__isMktStub = true;
 });
@@ -3014,7 +3014,8 @@ window.__MKT_HUBS = {
  content: { label: 'Kandungan', tabs: [
   { key:'schedule', label:'Jadual Marketing', icon:'calendar-days', section:'contentScheduleSection', render:'renderContentSchedule' }, // p1_1094 — pipeline produksi
   { key:'social',   label:'Social Media',     icon:'share-2',       section:'socialMediaSection',     render:'renderSocialMedia' },
-  { key:'seo',      label:'Blog & SEO',       icon:'file-text',     section:'contentSeoSection',      render:'renderContentSeo' }
+  { key:'seo',      label:'Blog & SEO',       icon:'file-text',     section:'contentSeoSection',      render:'renderContentSeo' },
+  { key:'live',     label:'TikTok LIVE',      icon:'radio',         section:'tiktokLiveSection',      render:'renderTikTokLive' } // p1_1111
  ]},
  digital: { label: 'Digital Hub', tabs: [
   { key:'webtraffic', label:'Web Traffic',    icon:'activity',   section:'webTrafficSection',   render:'renderWebTraffic' },

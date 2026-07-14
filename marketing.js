@@ -594,6 +594,104 @@ window.__mktDeleteContent = async function(id){
  } catch(e){ if(typeof showToast==='function') showToast('Padam gagal: '+e.message, 'error'); }
 };
 
+// =================== 2b) TIKTOK LIVE (p1_1111) ===================
+// Ariff (atau mana-mana staf) log masa sesi LIVE TikTok → sistem kira order channel
+// "TikTok Shop" yang masuk DALAM tempoh tu → komisen 5% dari MARGIN (SKIM — rasmi Bos/Aliff).
+window.__liveSessCache = [];
+window.__liveLoadSess = async function(){ try { const r = await db.from('live_sessions').select('*').order('start_at',{ascending:false}).limit(120); window.__liveSessCache = r.data||[]; } catch(e){ window.__liveSessCache=[]; } return window.__liveSessCache; };
+window.__liveKomisenPct = 5;
+window.__liveCalc = function(sess){
+ const out = { orders:0, jualan:0, margin:0, adaKosSemua:true };
+ if(typeof salesHistory==='undefined' || !Array.isArray(salesHistory)) return out;
+ const t0 = new Date(sess.start_at).getTime(), t1 = new Date(sess.end_at).getTime();
+ const kosOf = {};
+ ((typeof masterProducts!=='undefined' && masterProducts)||[]).forEach(function(p){ kosOf[p.sku] = parseFloat(p.cost_price)||0; });
+ salesHistory.forEach(function(sale){
+  if(String(sale.channel||'') !== 'TikTok Shop') return;
+  const ts = new Date(sale.created_at).getTime();
+  if(!(ts>=t0 && ts<=t1)) return;
+  if(typeof window.__isRealSale==='function' && !window.__isRealSale(sale)) return;
+  out.orders++;
+  let items=[]; try{ items = typeof sale.items==='string' ? JSON.parse(sale.items||'[]') : (sale.items||[]); }catch(e){}
+  items.forEach(function(it){
+   const q = parseInt(it.qty!=null?it.qty:(it.quantity!=null?it.quantity:1))||0;
+   const pr = parseFloat(it.price!=null?it.price:it.unit_price)||0;
+   out.jualan += q*pr;
+   const kos = kosOf[it.sku]||0;
+   if(kos) out.margin += q*Math.max(0, pr-kos); else out.adaKosSemua = false;
+  });
+ });
+ return out;
+};
+window.__liveSaveSess = async function(){
+ const g = function(id){ const el=document.getElementById(id); return el?el.value:''; };
+ const tarikh = g('lvDate'), mula = g('lvStart'), tamat = g('lvEnd');
+ if(!tarikh || !mula || !tamat){ if(window.showToast) showToast('Isi tarikh + masa mula + masa tamat.','warn'); return; }
+ let start = new Date(tarikh+'T'+mula), end = new Date(tarikh+'T'+tamat);
+ if(end <= start) end = new Date(end.getTime() + 86400000); // live lepas tengah malam
+ const u = window.currentUser||{};
+ const staf = g('lvStaff') || u.name || 'Unknown';
+ try {
+  const r = await db.from('live_sessions').insert([{ staff_name:staf, platform:'tiktok', start_at:start.toISOString(), end_at:end.toISOString(), notes:(g('lvNotes')||'').trim()||null, created_by:u.name||null }]);
+  if(r.error) throw r.error;
+  if(window.showToast) showToast('Sesi LIVE '+staf+' direkod.','success');
+  window.renderTikTokLive();
+ } catch(e){ if(window.showToast) showToast('Gagal simpan: '+e.message,'error'); }
+};
+window.__liveDelSess = async function(id){
+ if(!confirm('Padam sesi live ni?')) return;
+ try { const r = await db.from('live_sessions').delete().eq('id',id); if(r.error) throw r.error; window.renderTikTokLive(); }
+ catch(e){ if(window.showToast) showToast('Gagal padam: '+e.message,'error'); }
+};
+window.renderTikTokLive = async function(){
+ const body = document.getElementById('tiktokLiveBody');
+ if(!body) return;
+ body.innerHTML = '<p style="color:#9CA3AF;padding:30px;text-align:center;">Memuatkan…</p>';
+ const sess = await window.__liveLoadSess();
+ const u = window.currentUser||{};
+ const boss = (typeof window.isBoss==='function' && window.isBoss(u));
+ const E = window.__mktEsc;
+ const staffOpts = ((typeof authUsers!=='undefined'&&authUsers)||[]).filter(function(x){return (x.dept||'').indexOf('External')===-1;}).map(function(x){ return '<option value="'+E(x.name)+'"'+(x.name===(u.name||'')?' selected':'')+'>'+E(x.name)+'</option>'; }).join('');
+ const form = '<div class="admin-card" style="padding:16px;margin-bottom:16px;">'
+  + '<strong style="font-size:13.5px;"><i data-lucide="radio" style="width:15px;height:15px;vertical-align:-2px;color:var(--primary);"></i> Rekod Sesi LIVE</strong>'
+  + '<p style="font-size:11.5px;color:var(--text-muted);margin:4px 0 12px;">Lepas habis live, masukkan masa mula & tamat. Sistem sendiri kira order TikTok Shop yang masuk DALAM tempoh tu dan komisen '+window.__liveKomisenPct+'% dari margin. Live lepas tengah malam? Sistem faham (tamat < mula = esok).</p>'
+  + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end;">'
+  + '<div><label style="font-size:10.5px;font-weight:700;color:#374151;">Staf</label><select id="lvStaff" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:7px;font-size:12.5px;">'+staffOpts+'</select></div>'
+  + '<div><label style="font-size:10.5px;font-weight:700;color:#374151;">Tarikh</label><input type="date" id="lvDate" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:7px;font-size:12.5px;"></div>'
+  + '<div><label style="font-size:10.5px;font-weight:700;color:#374151;">Mula</label><input type="time" id="lvStart" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:7px;font-size:12.5px;"></div>'
+  + '<div><label style="font-size:10.5px;font-weight:700;color:#374151;">Tamat</label><input type="time" id="lvEnd" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:7px;font-size:12.5px;"></div>'
+  + '<div style="grid-column:span 2;"><label style="font-size:10.5px;font-weight:700;color:#374151;">Nota (produk fokus, optional)</label><input id="lvNotes" placeholder="cth: push lampu BD085 + khemah BD063" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--border-color);border-radius:7px;font-size:12.5px;"></div>'
+  + '<button onclick="window.__liveSaveSess()" style="padding:9px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;">Simpan Sesi</button>'
+  + '</div></div>';
+ let totKom = 0;
+ const rows = sess.map(function(x){
+  const c = window.__liveCalc(x);
+  const kom = Math.round(c.margin * (window.__liveKomisenPct/100) * 100)/100;
+  const boleh = boss || x.staff_name === (u.name||'');
+  if(boleh) totKom += (x.staff_name===(u.name||'')||boss) ? kom : 0;
+  const d0 = new Date(x.start_at), d1 = new Date(x.end_at);
+  const masa = d0.toLocaleDateString('ms-MY',{day:'numeric',month:'short'})+' '+d0.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})+' – '+d1.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'});
+  return '<tr style="border-bottom:1px solid #F3F4F6;">'
+   + '<td style="padding:8px 10px;font-size:12px;font-weight:700;">'+E(x.staff_name)+'</td>'
+   + '<td style="padding:8px 10px;font-size:12px;">'+masa+(x.notes?('<div style="font-size:10.5px;color:#9CA3AF;">'+E(x.notes.slice(0,50))+'</div>'):'')+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+c.orders+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">RM '+Math.round(c.jualan).toLocaleString()+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:800;color:'+(boleh?'#345E43':'#9CA3AF')+';">'+(boleh?('RM '+kom.toFixed(2)+(c.adaKosSemua?'':' *')):'—')+'</td>'
+   + '<td style="padding:8px 10px;text-align:center;">'+((boss||x.created_by===(u.name||''))?('<button onclick="window.__liveDelSess('+x.id+')" style="background:none;border:1px solid #E0B3A9;color:#7C2A20;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Padam</button>'):'')+'</td>'
+   + '</tr>';
+ }).join('');
+ const table = sess.length
+  ? '<div class="admin-card" style="padding:16px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="font-size:13px;">Sesi LIVE ('+sess.length+')</strong>'+((boss||sess.some(function(x){return x.staff_name===(u.name||'');}))?('<span style="font-size:12px;font-weight:800;color:#345E43;">Jumlah komisen anggaran: RM '+totKom.toFixed(2)+'</span>'):'')+'</div>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#FAFAFA;"><th style="text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Staf</th><th style="text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Masa LIVE</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Order TikTok</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Jualan</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Komisen 5% margin</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    + '<p style="font-size:10.5px;color:#9CA3AF;margin:8px 0 0;">Komisen = '+window.__liveKomisenPct+'% dari MARGIN (jualan − kos) order channel TikTok Shop dalam tempoh live. Tanda * = ada item tanpa kos (margin dikira kurang). SKIM ANGGARAN — bayaran rasmi keputusan Bos / Aliff. Nota: order TikTok sync masuk POS berkala — angka mungkin ambil masa sikit untuk penuh.</p></div>'
+  : '<div class="admin-card" style="padding:24px;text-align:center;color:#9CA3AF;font-size:12.5px;">Belum ada sesi direkod. Lepas habis live TikTok, rekod masa kat atas — komisen dikira automatik.</div>';
+ body.innerHTML = '<div class="rp-wrap">'
+  + '<div class="rp-header"><div><h2 class="rp-title"><i data-lucide="radio" style="width:22px;height:22px;color:var(--primary);"></i> TikTok LIVE</h2><p class="rp-subtitle">Rekod masa sesi live — order TikTok Shop dalam tempoh tu dikira, komisen '+window.__liveKomisenPct+'% dari margin untuk host.</p></div></div>'
+  + form + table + '</div>';
+ try { const d=document.getElementById('lvDate'); if(d && !d.value){ const n=new Date(); d.value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); } } catch(e){}
+ if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+
 // =================== 3) ADS (money behind PIN) ===================
 window.__mktAdsFilter = { status:'all', platform:'all' };
 window.__mktSetAdsFilter = function(k,v){ window.__mktAdsFilter[k]=v; window.renderAds(); };

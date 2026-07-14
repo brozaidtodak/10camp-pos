@@ -284,6 +284,62 @@ window.__mktCalNav = function(d){
 window.__mktCalPick = function(iso){ window.__mktCalSel = iso; window.renderContentSchedule(); };
 // p1_1106 — JANA RENTAK MINGGU: 1 klik cipta 5 kad aktiviti mingguan Irfan utk minggu tarikh dipilih.
 // Skip kalau minggu tu dah ada kad [PLAN] (elak duplicate).
+// p1_1107 — GANJARAN KONTEN IRFAN (SKIM CADANGAN — angka final keputusan Bos, bayar ikut Aliff).
+// (a) Bonus views per konten (tier), (b) komisen % dari MARGIN jualan SKU berkaitan
+// dalam 7 hari selepas siar (auto-anggar dari salesHistory; SKU mesti diisi pada kad).
+window.__mktBonusTiers = [[500000,300],[100000,150],[50000,80],[10000,30]]; // [views, RM]
+window.__mktKomisenPct = 5; // % dari margin
+window.__mktGanjaranHtml = function(all){
+ const u = window.currentUser || {};
+ const boss = (typeof window.isBoss==='function' && window.isBoss(u));
+ if(!(boss || u.name==='Irfan')) return '';
+ const E = window.__mktEsc;
+ const posted = all.filter(function(c){ return ['posted','ads','done'].indexOf(c.status)!==-1 && (c.title||'').indexOf('[')!==0; });
+ const tierOf = function(v){ const t=(window.__mktBonusTiers||[]).find(function(x){return v>=x[0];}); return t?t[1]:0; };
+ let totBonus=0, totKom=0;
+ const rows = posted.map(function(c){
+  const views = Number(c.views)||0;
+  const bonus = tierOf(views); totBonus += bonus;
+  let salesRM=0, marginRM=0, adaKos=true;
+  if(c.product_sku && c.posted_at && typeof salesHistory!=='undefined' && Array.isArray(salesHistory)){
+   const t0 = new Date(c.posted_at).getTime(), t1 = t0 + 7*86400000;
+   const prod = (typeof masterProducts!=='undefined' && masterProducts) ? masterProducts.find(function(p){return p.sku===c.product_sku;}) : null;
+   const kos = prod ? (parseFloat(prod.cost_price)||0) : 0;
+   if(!kos) adaKos=false;
+   salesHistory.forEach(function(sale){
+    const ts = new Date(sale.created_at).getTime();
+    if(!(ts>=t0 && ts<=t1)) return;
+    if(typeof window.__isRealSale==='function' && !window.__isRealSale(sale)) return;
+    let items=[]; try{ items = typeof sale.items==='string' ? JSON.parse(sale.items||'[]') : (sale.items||[]); }catch(e){}
+    items.forEach(function(it){
+     if((it.sku||'')!==c.product_sku) return;
+     const q = parseInt(it.qty!=null?it.qty:(it.quantity!=null?it.quantity:1))||0;
+     const pr = parseFloat(it.price!=null?it.price:it.unit_price)||0;
+     salesRM += q*pr;
+     if(kos) marginRM += q*Math.max(0, pr-kos);
+    });
+   });
+  }
+  const kom = Math.round(marginRM * (window.__mktKomisenPct/100) * 100)/100; totKom += kom;
+  return '<tr style="border-bottom:1px solid #F3F4F6;">'
+   + '<td style="padding:7px 9px;font-size:12px;">'+E((c.title||'').slice(0,45))+'</td>'
+   + '<td style="padding:7px 9px;text-align:right;font-size:12px;">'+views.toLocaleString()+'</td>'
+   + '<td style="padding:7px 9px;text-align:right;font-size:12px;font-weight:700;color:'+(bonus?'#345E43':'#9CA3AF')+';">'+(bonus?('RM '+bonus):'—')+'</td>'
+   + '<td style="padding:7px 9px;text-align:right;font-size:12px;">'+(c.product_sku?('RM '+Math.round(salesRM).toLocaleString()):'—')+'</td>'
+   + '<td style="padding:7px 9px;text-align:right;font-size:12px;font-weight:700;color:'+(kom?'#345E43':'#9CA3AF')+';">'+(kom?('RM '+kom.toFixed(2)):(adaKos?'—':'kos SKU belum diisi'))+'</td>'
+   + '</tr>';
+ }).join('');
+ const tiersTxt = (window.__mktBonusTiers||[]).slice().reverse().map(function(t){ return (t[0]/1000)+'k views = RM'+t[1]; }).join(' · ');
+ return '<div style="background:#fff;border:1.5px solid var(--primary-100,#FFEDD5);border-radius:14px;padding:14px 16px;margin-top:20px;">'
+  + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">'
+  + '<div style="font-size:13.5px;font-weight:800;color:var(--text-main);"><i data-lucide="award" style="width:15px;height:15px;vertical-align:-2px;color:var(--primary);"></i> Ganjaran Konten — Irfan <span style="font-size:10px;font-weight:800;color:#fff;background:#CE9420;padding:2px 8px;border-radius:50px;vertical-align:1px;">SKIM CADANGAN</span></div>'
+  + '<div style="font-size:12.5px;font-weight:800;color:#345E43;">Anggaran bulan ini: RM '+(totBonus+totKom).toFixed(2)+'</div></div>'
+  + '<p style="margin:0 0 10px;font-size:11.5px;color:var(--text-muted);line-height:1.5;">Bonus views: '+tiersTxt+' (per konten). Komisen: '+window.__mktKomisenPct+'% dari MARGIN jualan SKU berkaitan dalam 7 hari selepas siar (auto-anggar — isi SKU pada kad!). Angka rasmi & bayaran: keputusan Bos / Aliff.</p>'
+  + (posted.length
+    ? '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#FAFAFA;"><th style="text-align:left;padding:7px 9px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Konten</th><th style="text-align:right;padding:7px 9px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Views</th><th style="text-align:right;padding:7px 9px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Bonus</th><th style="text-align:right;padding:7px 9px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Jualan SKU 7hr</th><th style="text-align:right;padding:7px 9px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Komisen</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    : '<p style="margin:0;font-size:12px;color:#9CA3AF;padding:8px;border:1.5px dashed var(--border-color);border-radius:9px;text-align:center;">Belum ada konten Disiarkan. Bila post pertama naik & views diisi, ganjaran terpapar di sini automatik.</p>')
+  + '</div>';
+};
 window.__mktGenWeek = async function(){
  const selIso = window.__mktCalSel; if(!selIso) return;
  const d = new Date(selIso + 'T00:00:00'); if(isNaN(d.getTime())) return;
@@ -389,7 +445,7 @@ window.renderContentSchedule = async function(){
   const undatedHtml = undated.length
    ? '<div style="margin-top:20px;"><div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#9CA3AF;margin-bottom:8px;">Tiada tarikh ('+undated.length+') — set tarikh melalui Edit</div>'+undated.map(window.__mktContentCard).join('')+'</div>'
    : '';
-  main = summary + overdueHtml + cal + dayPanel + undatedHtml;
+  main = summary + overdueHtml + cal + dayPanel + window.__mktGanjaranHtml(all) + undatedHtml;
  } else {
   let rows = all.slice();
   if(window.__mktContentFilter.status!=='all') rows = rows.filter(function(r){ return r.status===window.__mktContentFilter.status; });

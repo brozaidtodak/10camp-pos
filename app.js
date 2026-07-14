@@ -11052,15 +11052,7 @@ window.__scsToggleSkuList = async function(sessionId) {
  const checked = items.filter(i => i.counted_qty != null);
  const pending = items.filter(i => i.counted_qty == null);
  const totalPct = items.length ? Math.round(checked.length / items.length * 100) : 0;
- // p1_914 — lokasi stok (table stock_locations, multi-lokasi + qty, sama macam Notify) untuk SKU sesi ni
- const __scsLocMap = {};
- try {
-  const __scsSkus = Array.from(new Set(items.map(i => i.sku).filter(Boolean)));
-  if(__scsSkus.length){
-   const { data: __locs } = await db.from('stock_locations').select('sku,location,qty').in('sku', __scsSkus);
-   (__locs || []).forEach(l => { if(l.location) (__scsLocMap[l.sku] = __scsLocMap[l.sku] || []).push({ location: l.location, qty: Number(l.qty) || 0 }); });
-  }
- } catch(e){ /* senyap — fallback location_bin */ }
+ // p1_1096 — SATU sistem lokasi: location_bin produk (i.__locNow). Fetch stock_locations DIBUANG.
  const rows = items.map(i => {
  const isChecked = i.counted_qty != null;
  const variance = (i.variance != null) ? Number(i.variance) : null;
@@ -11081,13 +11073,9 @@ window.__scsToggleSkuList = async function(sessionId) {
  const __scsBcProd = (typeof masterProducts !== 'undefined' && masterProducts) ? masterProducts.find(p => p.sku === i.sku) : null;
  const scsBc = (__scsBcProd && (__scsBcProd.erp_barcode || __scsBcProd.barcode)) ? String(__scsBcProd.erp_barcode || __scsBcProd.barcode).trim() : '';
  const scsBcJs = scsBc.replace(/[\\']/g, ''); const scsNameJs = String(productName).replace(/[\\']/g, '');
- // p1_1095 — TERBALIK dari p1_914: lokasi utama = location_bin produk TERKINI (i.__locNow — sumber
- // sama dgn popup, yang staf memang update). Table stock_locations dah BASI → fallback terakhir shj.
+ // p1_1095/p1_1096 — lokasi = location_bin produk TERKINI (i.__locNow), satu-satunya sistem lokasi.
  const __locChip = (txt) => `<span style="background:#F8EFD7; color:#7A5410; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px; display:inline-block; margin:1px 3px 1px 0;">${txt}</span>`;
- const scsLocs = __scsLocMap[i.sku] || [];
- const scsLocHtml = i.__locNow
-  ? __locChip(escHtml(i.__locNow))
-  : (scsLocs.length ? scsLocs.map(l => __locChip(escHtml(l.location) + (l.qty ? ' · ' + l.qty : ''))).join('') : '<span style="color:#D1D5DB;">—</span>');
+ const scsLocHtml = i.__locNow ? __locChip(escHtml(i.__locNow)) : '<span style="color:#D1D5DB;">—</span>';
  // p1_915 — gambar: fallback ke masterProducts.images[0] bila item sesi tiada image_url
  const scsImg = i.image_url || (__scsBcProd && __scsBcProd.images && __scsBcProd.images[0]) || '';
  const thumbHtml = scsImg
@@ -44601,56 +44589,54 @@ window.__rcvSaveDamage = async function(poId){
   } catch(e){ const s = document.getElementById('niBcSvg'); if(s) s.outerHTML = `<div style="font-family:monospace; font-size:24px; font-weight:700; padding:10px;">${esc(barcode)}</div>`; }
  };
 
- // ---- Stock Locations (cache + load) ----
+ // ---- Stock Location (SATU sistem — p1_1096) ----
+ // Zaid: "daripada 2 sistem lokasi, jadikan 1 sahaja". Sumber tunggal = products_master.location_bin
+ // (yang dipapar di page Stock Location & stock take). Table stock_locations DIPENCEN — tiada
+ // baca/tulis lagi (data lama kekal dlm DB sebagai arkib; 0 SKU perlu migrate, semua dah ada bin).
  window.__stockLocCache = window.__stockLocCache || {};
  window.__loadStockLocs = async function(skus){
-  const need = (skus||[]).filter(Boolean);
-  if(!need.length) return;
-  try {
-   const { data } = await db.from('stock_locations').select('*').in('sku', need);
-   need.forEach(s => { window.__stockLocCache[s] = []; });
-   (data||[]).forEach(r => { (window.__stockLocCache[r.sku] = window.__stockLocCache[r.sku] || []).push(r); });
-  } catch(e){ /* senyap */ }
+  (skus||[]).filter(Boolean).forEach(s => {
+   const p = __niProd(s);
+   const l = (p && p.location_bin ? String(p.location_bin).trim() : '');
+   window.__stockLocCache[s] = l ? [{ sku:s, location:l, qty:null }] : [];
+  });
  };
  window.__skuLocModal = async function(sku, name){
   if(!sku){ _toast('Barang custom — tiada SKU untuk set lokasi.', 'warn'); return; }
   const old = document.getElementById('skuLocOverlay'); if(old) old.remove();
+  const p = __niProd(sku);
+  const cur = (p && p.location_bin) ? String(p.location_bin).trim() : '';
+  const bins = Array.from(new Set(((typeof masterProducts !== 'undefined' && masterProducts) || []).map(x => (x.location_bin || '').trim()).filter(Boolean))).sort();
+  window.__skuLocSku = sku;
   const ov = document.createElement('div'); ov.id = 'skuLocOverlay';
   ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9800; display:flex; align-items:center; justify-content:center; padding:16px;';
   ov.onclick = (e)=>{ if(e.target === ov) ov.remove(); };
-  ov.innerHTML = '<div style="background:#fff; border-radius:16px; max-width:440px; width:100%; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.35);"><div id="skuLocBody" style="text-align:center; color:#9CA3AF;">Memuatkan…</div></div>';
+  ov.innerHTML = `<div style="background:#fff; border-radius:16px; max-width:440px; width:100%; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.35);">
+   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><strong style="font-size:15px; color:#101010;"><i data-lucide="map-pin" style="width:15px;height:15px;vertical-align:-2px;"></i> Stock Location</strong><button onclick="document.getElementById('skuLocOverlay').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; line-height:1;">×</button></div>
+   <div style="font-size:12px; color:#9CA3AF; margin-bottom:14px;">${esc(name || sku)} · ${esc(sku)}</div>
+   <label style="font-size:11.5px; font-weight:700; color:#374151;">Lokasi / Bin</label>
+   <input id="skuLocInput" list="skuLocBins" value="${esc(cur)}" placeholder="cth A-F1" style="width:100%; box-sizing:border-box; margin:6px 0 4px; padding:11px; border:1.5px solid #E5E7EB; border-radius:9px; font-size:14px; font-weight:700; font-family:'SF Mono',Menlo,monospace;">
+   <datalist id="skuLocBins">${bins.map(b => `<option value="${esc(b)}">`).join('')}</datalist>
+   <div style="font-size:11px; color:#9CA3AF; margin-bottom:14px;">Satu lokasi rasmi per SKU — sama dengan page Stock Location & Stock Take. Kosongkan untuk buang lokasi.</div>
+   <button onclick="window.__skuLocSave()" style="background:var(--primary-500,#CD7C32); color:#fff; border:none; padding:13px; border-radius:11px; width:100%; font-weight:800; font-size:14px; cursor:pointer;">Simpan</button></div>`;
   document.body.appendChild(ov);
-  await window.__loadStockLocs([sku]);
-  window.__skuLocCur = (window.__stockLocCache[sku]||[]).map(r => ({ location:r.location, qty:r.qty, note:r.note||'' }));
-  window.__skuLocSku = sku; window.__skuLocName = name || sku;
-  window.__skuLocRender();
- };
- window.__skuLocRender = function(){
-  const body = document.getElementById('skuLocBody'); if(!body) return;
-  const rows = (window.__skuLocCur||[]).map((r,i)=>`<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-    <input value="${esc(r.location)}" oninput="window.__skuLocCur[${i}].location=this.value" placeholder="Lokasi (cth Gudang B · Rak 3)" style="flex:1; min-width:0; padding:9px; border:1px solid #E5E7EB; border-radius:9px; font-size:13px;">
-    <input type="number" value="${r.qty}" min="0" oninput="window.__skuLocCur[${i}].qty=parseInt(this.value)||0" title="Kuantiti di lokasi ni" style="width:64px; padding:9px; border:1px solid #E5E7EB; border-radius:9px; text-align:center; font-size:13px;">
-    <button onclick="window.__skuLocCur.splice(${i},1); window.__skuLocRender();" title="Buang" style="background:#FDECEA; border:1px solid #F5C6C0; color:#B23A2E; width:34px; height:34px; border-radius:9px; cursor:pointer; font-weight:800; flex:0 0 auto;">×</button>
-  </div>`).join('');
-  body.style.textAlign = 'left'; body.style.color = '';
-  body.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><strong style="font-size:15px; color:#101010;"><i data-lucide="map-pin" style="width:15px;height:15px;vertical-align:-2px;"></i> Lokasi Stok</strong><button onclick="document.getElementById('skuLocOverlay').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; line-height:1;">×</button></div>
-   <div style="font-size:12px; color:#9CA3AF; margin-bottom:14px;">${esc(window.__skuLocName)} · ${esc(window.__skuLocSku)}</div>
-   ${rows || '<div style="font-size:12.5px; color:#9CA3AF; margin-bottom:10px;">Belum ada lokasi. Tambah di bawah.</div>'}
-   <button onclick="window.__skuLocCur.push({location:'',qty:0,note:''}); window.__skuLocRender();" style="background:#FAF1E6; border:1px dashed var(--primary-500,#CD7C32); color:#7A5410; padding:9px; border-radius:9px; width:100%; font-weight:700; cursor:pointer; margin:4px 0 14px;">+ Tambah Lokasi</button>
-   <button onclick="window.__skuLocSave()" style="background:var(--primary-500,#CD7C32); color:#fff; border:none; padding:13px; border-radius:11px; width:100%; font-weight:800; font-size:14px; cursor:pointer;">Simpan</button>`;
   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+  try { const i = document.getElementById('skuLocInput'); if(i) i.focus(); } catch(e){}
  };
  window.__skuLocSave = async function(){
   const sku = window.__skuLocSku;
-  const rows = (window.__skuLocCur||[]).filter(r => (r.location||'').trim());
+  const val = (((document.getElementById('skuLocInput')||{}).value)||'').trim();
   try {
-   await db.from('stock_locations').delete().eq('sku', sku);
-   if(rows.length) await db.from('stock_locations').insert(rows.map(r => ({ sku, location:r.location.trim(), qty:r.qty||0, note:r.note||null })));
-   window.__stockLocCache[sku] = rows.map(r => ({ sku, location:r.location.trim(), qty:r.qty||0 }));
-   _toast('Lokasi disimpan.', 'success');
+   const r = await db.from('products_master').update({ location_bin: val || null }).eq('sku', sku);
+   if(r.error) throw r.error;
+   const p = __niProd(sku); if(p) p.location_bin = val || null;
+   window.__stockLocCache[sku] = val ? [{ sku, location: val, qty: null }] : [];
+   _toast('Lokasi disimpan: ' + (val || '(dibuang)'), 'success');
    const ov = document.getElementById('skuLocOverlay'); if(ov) ov.remove();
    const sec = document.getElementById('notifyInvSection');
    if(sec && sec.style.display !== 'none' && typeof window.renderNotifyInventory === 'function') window.renderNotifyInventory();
+   const bs = document.getElementById('binsSection');
+   if(bs && bs.style.display !== 'none' && typeof window.renderBinsLocations === 'function') window.renderBinsLocations();
   } catch(e){ _toast('Gagal simpan: ' + e.message, 'error'); }
  };
 
@@ -44858,7 +44844,7 @@ window.__rcvSaveDamage = async function(poId){
    const itemsHtml = items.map((it, idx) => {
     const locs = window.__stockLocCache[it.sku] || [];
     const locHtml = locs.length
-     ? locs.map(l => `<span style="display:inline-flex; align-items:center; gap:4px; background:#FAF1E6; border:1px solid #E7C66A; color:#7A5410; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; margin:2px 4px 2px 0;"><i data-lucide="map-pin" style="width:11px;height:11px;"></i> ${esc(l.location)} · ${l.qty}</span>`).join('')
+     ? locs.map(l => `<span style="display:inline-flex; align-items:center; gap:4px; background:#FAF1E6; border:1px solid #E7C66A; color:#7A5410; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; margin:2px 4px 2px 0;"><i data-lucide="map-pin" style="width:11px;height:11px;"></i> ${esc(l.location)}${l.qty != null ? (' · ' + l.qty) : ''}</span>`).join('')
      : '<span style="font-size:11px; color:#B23A2E; font-weight:600;">Tiada lokasi</span>';
     // p1_898 — barcode + stok sistem + gambar dari master (untuk picker)
     const prod = __niProd(it.sku);

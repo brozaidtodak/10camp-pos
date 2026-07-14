@@ -8693,7 +8693,7 @@
     if (window.__rmDataLoading) { window.__rmDataLoading.push(cb); return; }
     window.__rmDataLoading = [cb];
     var s = document.createElement('script');
-    s.src = 'roadmap-data.js?v=1021';
+    s.src = 'roadmap-data.js?v=1022';
     s.onload = function(){ var q = window.__rmDataLoading || []; window.__rmDataLoading = null; q.forEach(function(f){ if (f){ try { f(); } catch(e){} } }); };
     s.onerror = function(){ window.__rmDataLoading = null; console.warn('roadmap-data.js gagal dimuat'); };
     document.head.appendChild(s);
@@ -13174,7 +13174,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1073"></script>
+ <script src="app.js?v=1074"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

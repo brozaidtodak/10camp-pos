@@ -68,20 +68,17 @@ async function runTool(name, args, caller) {
             if (!q) return { error: 'query kosong / tak sah' };
             const qe = encodeURIComponent(q);
             // match by sku OR name; NO cost columns selected. + barcode (erp_barcode/barcode) utk staf padan sticker
-            const rows = await sb('GET', `/products_master?select=sku,name,price,is_published,erp_barcode&or=(sku.ilike.*${qe}*,name.ilike.*${qe}*)&limit=8`);
+            const rows = await sb('GET', `/products_master?select=sku,name,price,is_published,erp_barcode,location_bin&or=(sku.ilike.*${qe}*,name.ilike.*${qe}*)&limit=8`);
             if (!rows || !rows.length) return { found: 0, note: 'Tiada produk padan.' };
             const skus = rows.map(r => r.sku).filter(Boolean);
             const stockMap = {};
-            const locMap = {};
             if (skus.length) {
                 const inList = skus.map(esc).join(',');
                 const batches = await sb('GET', `/inventory_batches?select=sku,qty_remaining&sku=in.(${inList})`);
                 (batches || []).forEach(b => { stockMap[b.sku] = (stockMap[b.sku] || 0) + (Number(b.qty_remaining) || 0); });
-                // lokasi stok (di mana barang disimpan) — table stock_locations, multi-lokasi
-                const locs = await sb('GET', `/stock_locations?select=sku,location,qty&sku=in.(${inList})`);
-                (locs || []).forEach(l => { if (l.location) (locMap[l.sku] = locMap[l.sku] || []).push({ location: l.location, qty: Number(l.qty) || 0 }); });
             }
-            return { found: rows.length, products: rows.map(r => ({ sku: r.sku, name: r.name, barcode: (r.erp_barcode || null), price_rm: Number(r.price) || 0, stock: stockMap[r.sku] || 0, locations: locMap[r.sku] || [], published: !!r.is_published })) };
+            // p1_1096 — SATU sistem lokasi: location_bin produk. Table stock_locations dipencen.
+            return { found: rows.length, products: rows.map(r => ({ sku: r.sku, name: r.name, barcode: (r.erp_barcode || null), price_rm: Number(r.price) || 0, stock: stockMap[r.sku] || 0, locations: r.location_bin ? [{ location: r.location_bin }] : [], published: !!r.is_published })) };
         }
         if (name === 'my_sales') {
             if (!caller) return { error: 'Tak dapat sahkan siapa anda — cuba log keluar/masuk.' };
@@ -96,7 +93,13 @@ async function runTool(name, args, caller) {
             const th = Math.max(0, Math.min(parseInt((args && args.threshold) || 5, 10) || 5, 50));
             // sum stock per sku, then filter <= threshold among published products
             const prods = await sb('GET', `/products_master?select=sku,name&is_published=eq.true&limit=5000`);
-            const batches = await sb('GET', `/inventory_batches?select=sku,qty_remaining&limit=20000`);
+            // p1_1096 — PostgREST potong pada 1000 baris walau limit besar; inventory_batches dah >1000 → page
+            let batches = [];
+            for (let off = 0; ; off += 1000) {
+                const page = await sb('GET', `/inventory_batches?select=sku,qty_remaining&order=id.asc&limit=1000&offset=${off}`);
+                batches = batches.concat(page || []);
+                if (!page || page.length < 1000) break;
+            }
             const stockMap = {};
             (batches || []).forEach(b => { if (b.sku) stockMap[b.sku] = (stockMap[b.sku] || 0) + (Number(b.qty_remaining) || 0); });
             const low = (prods || []).map(p => ({ sku: p.sku, name: p.name, stock: stockMap[p.sku] || 0 })).filter(p => p.stock <= th).sort((a, b) => a.stock - b.stock).slice(0, 25);

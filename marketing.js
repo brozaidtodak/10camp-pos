@@ -637,6 +637,7 @@ window.__liveSaveSess = async function(){
   const r = await db.from('live_sessions').insert([{ host_name:staf, channel:'TikTok', session_date:tarikh, start_at:start.toISOString(), end_at:end.toISOString(), note:(g('lvNotes')||'').trim()||null, created_by:u.name||null }]);
   if(r.error) throw r.error;
   if(window.showToast) showToast('Sesi LIVE '+staf+' direkod.','success');
+  try { localStorage.setItem('posLiveNudge_' + tarikh, 'done'); } catch(e){} // p1_1112 — nudge tak ganggu lagi hari tu
   window.renderTikTokLive();
  } catch(e){ if(window.showToast) showToast('Gagal simpan: '+e.message,'error'); }
 };

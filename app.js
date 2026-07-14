@@ -258,7 +258,60 @@ window.__applyPosAppScope = function(){
  // p1_865 — kemas kini layout (sidebar tablet / mobile) sebaik pos-app-scoped diset (resize tak fire selepas login)
  if(typeof window.__autoPosLayout === 'function'){ window.__autoPosLayout(); setTimeout(window.__autoPosLayout, 80); }
  } catch(e){ console.warn('applyPosAppScope failed', e); }
+ // p1_1112 — tab LIVE (Ariff shj) + nudge rekod-sebelum-balik
+ try { window.__posAppApplyLiveTab(); } catch(e){}
+ try { setTimeout(window.__liveNudgeCheck, 4000); } catch(e){}
 };
+// p1_1112 — TAB "LIVE" DALAM APK UTK ARIFF SAHAJA (Zaid: "set dekat APK Ariff sahaja").
+// Staf lain tak nampak tab ni; web/back-office kekal akses via Marketing → Kandungan.
+window.__posAppApplyLiveTab = function(){
+ try {
+  const u = window.currentUser || {};
+  if(!window.__isPOSApp || u.name !== 'Ariff') return;
+  if(!(window.__POS_APP_TABS||[]).some(function(t){ return t.key==='live'; }))
+   window.__POS_APP_TABS.push({ key:'live', icon:'radio', label:'LIVE', sections:['tiktokLiveSection'], title:'TikTok LIVE', render:'renderTikTokLive' });
+  const bar = document.getElementById('posAppTabBar');
+  if(bar && !bar.querySelector('[data-key="live"]')){
+   const b = document.createElement('button');
+   b.className = 'posAppTab'; b.setAttribute('data-key','live'); b.title = 'LIVE';
+   b.setAttribute('onclick', "window.__posAppGo('live')");
+   b.innerHTML = '<i data-lucide="radio"></i><span>LIVE</span>';
+   bar.appendChild(b);
+   if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+  }
+ } catch(e){}
+};
+// p1_1112 — NUDGE "rekod sesi LIVE sebelum balik" (Zaid: "dia kena key in setiap kali before balik").
+// Syarat: APK + Ariff + selepas 5 petang + hari ni belum ada rekod live + belum dijawab hari ni.
+// Muncul waktu login petang & tiap kali app dibuka semula dari latar (sampai dia jawab).
+window.__liveNudgeCheck = async function(){
+ try {
+  const u = window.currentUser || {};
+  if(!window.__isPOSApp || u.name !== 'Ariff') return;
+  if(typeof db === 'undefined' || !db) return;
+  const now = new Date();
+  if(now.getHours() < 17) return;
+  const today = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  try { if(localStorage.getItem('posLiveNudge_' + today)) return; } catch(e){}
+  if(document.getElementById('liveNudgeOverlay')) return;
+  const { data } = await db.from('live_sessions').select('id').eq('host_name','Ariff').eq('session_date', today).limit(1);
+  if(data && data.length){ try { localStorage.setItem('posLiveNudge_' + today, 'done'); } catch(e){} return; }
+  const ov = document.createElement('div');
+  ov.id = 'liveNudgeOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.4);font-family:var(--font-main,Poppins),sans-serif;text-align:center;">'
+   + '<i data-lucide="radio" style="width:34px;height:34px;color:var(--primary);"></i>'
+   + '<div style="font-size:16px;font-weight:800;color:#101010;margin:10px 0 6px;">Rekod sesi LIVE sebelum balik</div>'
+   + '<p style="font-size:12.5px;color:#6B7280;line-height:1.6;margin:0 0 16px;">Ariff, kalau hari ni ada buat LIVE TikTok, masukkan masa mula &amp; tamat SEKARANG — komisen 5% margin dikira dari rekod ni. Tak rekod = tak dikira.</p>'
+   + '<button onclick="document.getElementById(\'liveNudgeOverlay\').remove(); window.__posAppGo(\'live\');" style="width:100%;background:var(--primary);color:#fff;border:none;padding:13px;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;">Rekod Sekarang</button>'
+   + '<button onclick="try{localStorage.setItem(\'posLiveNudge_' + today + '\',\'tiada\')}catch(e){}; document.getElementById(\'liveNudgeOverlay\').remove();" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--border-color,#E5E7EB);color:#374151;padding:11px;border-radius:11px;font-size:12.5px;font-weight:700;cursor:pointer;">Tiada LIVE hari ni</button>'
+   + '<button onclick="document.getElementById(\'liveNudgeOverlay\').remove();" style="width:100%;margin-top:6px;background:none;border:none;color:#9CA3AF;padding:6px;font-size:11.5px;font-weight:600;cursor:pointer;">Ingatkan lagi nanti</button>'
+   + '</div>';
+  document.body.appendChild(ov);
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ } catch(e){}
+};
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') { try { window.__liveNudgeCheck(); } catch(e){} } });
 
 // p1_786 (C1) — attach the staff Supabase session token so gated mutating functions
 // (shopee-disconnect, marketplace-settings write) can verify the caller is a logged-in staff.
@@ -2983,7 +3036,7 @@ window.__mwSubmit = async function() {
 window.__ensureMarketing = function(){
  if(window.__mktLoaded) return Promise.resolve();
  return window.__mktLoading || (window.__mktLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='marketing.js?v=14'; // p1_1111b
+  var s=document.createElement('script'); s.src='marketing.js?v=15'; // p1_1112
   s.onload=function(){ window.__mktLoaded=true; res(); };
   s.onerror=function(){ window.__mktLoading=null; rej(new Error('marketing.js gagal muat')); };
   document.head.appendChild(s);

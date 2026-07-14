@@ -598,7 +598,7 @@ window.__mktDeleteContent = async function(id){
 // Ariff (atau mana-mana staf) log masa sesi LIVE TikTok → sistem kira order channel
 // "TikTok Shop" yang masuk DALAM tempoh tu → komisen 5% dari MARGIN (SKIM — rasmi Bos/Aliff).
 window.__liveSessCache = [];
-window.__liveLoadSess = async function(){ try { const r = await db.from('live_sessions').select('*').order('start_at',{ascending:false}).limit(120); window.__liveSessCache = r.data||[]; } catch(e){ window.__liveSessCache=[]; } return window.__liveSessCache; };
+window.__liveLoadSess = async function(){ try { const r = await db.from('live_sessions').select('*').order('session_date',{ascending:false}).order('start_at',{ascending:false}).limit(120); window.__liveSessCache = r.data||[]; } catch(e){ window.__liveSessCache=[]; } return window.__liveSessCache; };
 window.__liveKomisenPct = 5;
 window.__liveCalc = function(sess){
  const out = { orders:0, jualan:0, margin:0, adaKosSemua:true };
@@ -632,7 +632,9 @@ window.__liveSaveSess = async function(){
  const u = window.currentUser||{};
  const staf = g('lvStaff') || u.name || 'Unknown';
  try {
-  const r = await db.from('live_sessions').insert([{ staff_name:staf, platform:'tiktok', start_at:start.toISOString(), end_at:end.toISOString(), notes:(g('lvNotes')||'').trim()||null, created_by:u.name||null }]);
+  // p1_1111b — table live_sessions DAH WUJUD (p1_733 Kaedah B, import Jun); guna skema sedia ada:
+  // host_name / note / channel 'TikTok' / session_date; start_at+end_at (sedia ada, tak pernah dipakai) kini diisi.
+  const r = await db.from('live_sessions').insert([{ host_name:staf, channel:'TikTok', session_date:tarikh, start_at:start.toISOString(), end_at:end.toISOString(), note:(g('lvNotes')||'').trim()||null, created_by:u.name||null }]);
   if(r.error) throw r.error;
   if(window.showToast) showToast('Sesi LIVE '+staf+' direkod.','success');
   window.renderTikTokLive();
@@ -665,23 +667,38 @@ window.renderTikTokLive = async function(){
   + '</div></div>';
  let totKom = 0;
  const rows = sess.map(function(x){
-  const c = window.__liveCalc(x);
-  const kom = Math.round(c.margin * (window.__liveKomisenPct/100) * 100)/100;
-  const boleh = boss || x.staff_name === (u.name||'');
-  if(boleh) totKom += (x.staff_name===(u.name||'')||boss) ? kom : 0;
-  const d0 = new Date(x.start_at), d1 = new Date(x.end_at);
-  const masa = d0.toLocaleDateString('ms-MY',{day:'numeric',month:'short'})+' '+d0.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})+' – '+d1.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'});
-  return '<tr style="border-bottom:1px solid #F3F4F6;">'
-   + '<td style="padding:8px 10px;font-size:12px;font-weight:700;">'+E(x.staff_name)+'</td>'
-   + '<td style="padding:8px 10px;font-size:12px;">'+masa+(x.notes?('<div style="font-size:10.5px;color:#9CA3AF;">'+E(x.notes.slice(0,50))+'</div>'):'')+'</td>'
-   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+c.orders+'</td>'
-   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">RM '+Math.round(c.jualan).toLocaleString()+'</td>'
-   + '<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:800;color:'+(boleh?'#345E43':'#9CA3AF')+';">'+(boleh?('RM '+kom.toFixed(2)+(c.adaKosSemua?'':' *')):'—')+'</td>'
+  const namaHost = x.host_name || x.staff_name || '?';
+  const boleh = boss || namaHost === (u.name||'');
+  const adaMasa = !!(x.start_at && x.end_at);
+  let masa, ordersTxt, jualanTxt, komTxt;
+  if(adaMasa){
+   const c = window.__liveCalc(x);
+   const kom = Math.round(c.margin * (window.__liveKomisenPct/100) * 100)/100;
+   if(boleh) totKom += kom;
+   const d0 = new Date(x.start_at), d1 = new Date(x.end_at);
+   masa = d0.toLocaleDateString('ms-MY',{day:'numeric',month:'short'})+' '+d0.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})+' – '+d1.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'});
+   ordersTxt = String(c.orders);
+   jualanTxt = 'RM '+Math.round(c.jualan).toLocaleString();
+   komTxt = boleh ? ('RM '+kom.toFixed(2)+(c.adaKosSemua?'':' *')) : '—';
+  } else {
+   // rekod lama (import Jun / Kaedah B manual): tiada masa mula-tamat, GMV diisi tangan
+   masa = (x.session_date ? new Date(x.session_date+'T00:00').toLocaleDateString('ms-MY',{day:'numeric',month:'short'}) : '?')+' <span style="font-size:10px;color:#9CA3AF;">(rekod lama — GMV manual, tiada masa)</span>';
+   ordersTxt = x.items_sold != null ? (x.items_sold+' item') : '—';
+   jualanTxt = x.live_sales_rm != null ? ('RM '+Math.round(x.live_sales_rm).toLocaleString()) : '—';
+   komTxt = '—';
+  }
+  const nota = x.note || x.notes;
+  return '<tr style="border-bottom:1px solid #F3F4F6;'+(adaMasa?'':'opacity:.7;')+'">'
+   + '<td style="padding:8px 10px;font-size:12px;font-weight:700;">'+E(namaHost)+'</td>'
+   + '<td style="padding:8px 10px;font-size:12px;">'+masa+(nota?('<div style="font-size:10.5px;color:#9CA3AF;">'+E(String(nota).slice(0,50))+'</div>'):'')+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+ordersTxt+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+jualanTxt+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:800;color:'+(boleh?'#345E43':'#9CA3AF')+';">'+komTxt+'</td>'
    + '<td style="padding:8px 10px;text-align:center;">'+((boss||x.created_by===(u.name||''))?('<button onclick="window.__liveDelSess('+x.id+')" style="background:none;border:1px solid #E0B3A9;color:#7C2A20;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Padam</button>'):'')+'</td>'
    + '</tr>';
  }).join('');
  const table = sess.length
-  ? '<div class="admin-card" style="padding:16px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="font-size:13px;">Sesi LIVE ('+sess.length+')</strong>'+((boss||sess.some(function(x){return x.staff_name===(u.name||'');}))?('<span style="font-size:12px;font-weight:800;color:#345E43;">Jumlah komisen anggaran: RM '+totKom.toFixed(2)+'</span>'):'')+'</div>'
+  ? '<div class="admin-card" style="padding:16px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="font-size:13px;">Sesi LIVE ('+sess.length+')</strong>'+((boss||sess.some(function(x){return (x.host_name||x.staff_name)===(u.name||'');}))?('<span style="font-size:12px;font-weight:800;color:#345E43;">Jumlah komisen anggaran: RM '+totKom.toFixed(2)+'</span>'):'')+'</div>'
     + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#FAFAFA;"><th style="text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Staf</th><th style="text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Masa LIVE</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Order TikTok</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Jualan</th><th style="text-align:right;padding:8px 10px;font-size:10px;text-transform:uppercase;color:#9CA3AF;">Komisen 5% margin</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
     + '<p style="font-size:10.5px;color:#9CA3AF;margin:8px 0 0;">Komisen = '+window.__liveKomisenPct+'% dari MARGIN (jualan − kos) order channel TikTok Shop dalam tempoh live. Tanda * = ada item tanpa kos (margin dikira kurang). SKIM ANGGARAN — bayaran rasmi keputusan Bos / Aliff. Nota: order TikTok sync masuk POS berkala — angka mungkin ambil masa sikit untuk penuh.</p></div>'
   : '<div class="admin-card" style="padding:24px;text-align:center;color:#9CA3AF;font-size:12.5px;">Belum ada sesi direkod. Lepas habis live TikTok, rekod masa kat atas — komisen dikira automatik.</div>';

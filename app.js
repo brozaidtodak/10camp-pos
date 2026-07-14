@@ -2910,7 +2910,7 @@ window.__mwSubmit = async function() {
 window.__ensureMarketing = function(){
  if(window.__mktLoaded) return Promise.resolve();
  return window.__mktLoading || (window.__mktLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='marketing.js?v=3';
+  var s=document.createElement('script'); s.src='marketing.js?v=4'; // p1_1094
   s.onload=function(){ window.__mktLoaded=true; res(); };
   s.onerror=function(){ window.__mktLoading=null; rej(new Error('marketing.js gagal muat')); };
   document.head.appendChild(s);
@@ -2939,7 +2939,7 @@ window.__NAV_HUBS = {
 };
 window.__MKT_HUBS = {
  content: { label: 'Kandungan', tabs: [
-  { key:'schedule', label:'Content Schedule', icon:'calendar-days', section:'contentScheduleSection', render:'renderContentSchedule' },
+  { key:'schedule', label:'Jadual Marketing', icon:'calendar-days', section:'contentScheduleSection', render:'renderContentSchedule' }, // p1_1094 — pipeline produksi
   { key:'social',   label:'Social Media',     icon:'share-2',       section:'socialMediaSection',     render:'renderSocialMedia' },
   { key:'seo',      label:'Blog & SEO',       icon:'file-text',     section:'contentSeoSection',      render:'renderContentSeo' }
  ]},
@@ -38867,7 +38867,7 @@ window.__SIDEBAR_I18N = {
   nav_vouchers:{bm:'Baucar',en:'Vouchers'},
   nav_engagement:{bm:'Penglibatan',en:'Engagement'},
   nav_social_media:{bm:'Media Sosial',en:'Social Media'},
-  nav_content_schedule:{bm:'Jadual Kandungan',en:'Content Schedule'},
+  nav_content_schedule:{bm:'Jadual Marketing',en:'Marketing Schedule'},
   nav_mktweekly:{bm:'Data Marketing (Mingguan)',en:'Marketing Data (Weekly)'},
   nav_ads:{bm:'Iklan',en:'Ads'},
   nav_mkt_reports:{bm:'Laporan',en:'Reports'},

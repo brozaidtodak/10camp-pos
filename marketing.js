@@ -8,7 +8,26 @@
 window.__mktEsc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 window.__mktPlat = { tiktok:{label:'TikTok',color:'#111'}, instagram:{label:'Instagram',color:'#C13584'}, facebook:{label:'Facebook',color:'#1877F2'}, shopee:{label:'Shopee',color:'#EE4D2D'} };
 window.__mktContentTypes = ['reel','post','story','live','carousel','video'];
-window.__mktContentStatuses = [['idea','Idea','#F3F4F6','#6B7280'],['draft','Draft','#F8EFD7','#7A5410'],['scheduled','Dijadual','var(--primary-100,#FFEDD5)','var(--primary-800,#7C4A1A)'],['posted','Disiarkan','#E4EFE2','#345E43']];
+// p1_1094 — PIPELINE PRODUKSI penuh (Zaid: "schedule marketing — record, editing, copywriting,
+// post, ads, analytics"). Aliran: Idea → Rakam → Edit → Copywriting → Dijadual → Disiarkan → Ads → Selesai.
+// Warna ikut brand-lock: neutral/amber/bronze/green shj (status exception). 'draft' lama dipetakan ke 'copy'.
+window.__mktContentStatuses = [
+ ['idea',      'Idea',        '#F3F4F6',                        '#6B7280'],
+ ['rakam',     'Rakaman',     '#F8EFD7',                        '#7A5410'],
+ ['edit',      'Editing',     '#F8EFD7',                        '#7A5410'],
+ ['copy',      'Copywriting', 'var(--primary-100,#FFEDD5)',     'var(--primary-800,#7C4A1A)'],
+ ['scheduled', 'Dijadual',    'var(--primary-100,#FFEDD5)',     'var(--primary-800,#7C4A1A)'],
+ ['posted',    'Disiarkan',   '#E4EFE2',                        '#345E43'],
+ ['ads',       'Ads / Boost', '#F8EFD7',                        '#7A5410'],
+ ['done',      'Selesai',     '#E4EFE2',                        '#345E43']
+];
+window.__mktStageFlow = ['idea','rakam','edit','copy','scheduled','posted','ads','done'];
+window.__mktStageHints = {
+ idea:'Tulis idea + pilih produk & platform', rakam:'Shoot video/gambar — nota dlm kad',
+ edit:'Potong video, subtitle, thumbnail', copy:'Tulis caption + hook (guna butang AI)',
+ scheduled:'Siap semua — tunggu tarikh siar', posted:'Dah siar — tampal link + isi views',
+ ads:'Boost post berprestasi — rekod di tab Ads', done:'Analitik diisi — siap!'
+};
 window.__mktAdPlatforms = [['tiktok_ads','TikTok Ads'],['meta','Meta (FB/IG)'],['shopee_ads','Shopee Ads'],['google','Google']];
 window.__mktAdStatuses = [['active','Aktif','#E4EFE2','#345E43'],['paused','Dijeda','#F8EFD7','#7A5410'],['ended','Tamat','#F3F4F6','#6B7280']];
 
@@ -220,7 +239,7 @@ window.renderSocialMedia = async function(){
 };
 
 // =================== 2) CONTENT SCHEDULE ===================
-window.__mktContentFilter = { status:'all', platform:'all' };
+window.__mktContentFilter = { status:'all', platform:'all', date:'all' };
 window.__mktSetContentFilter = function(k,v){ window.__mktContentFilter[k]=v; window.renderContentSchedule(); };
 window.renderContentSchedule = async function(){
  const body = document.getElementById('contentScheduleBody');
@@ -229,37 +248,106 @@ window.renderContentSchedule = async function(){
  const all = await window.__mktLoadContent();
  const E = window.__mktEsc;
  let rows = all.slice();
+ // p1_1094 — 'draft' lama = 'copy' baru (petakan on-the-fly, tiada migrasi perlu; table kosong masa tukar)
+ rows.forEach(function(r){ if(r.status==='draft') r.status='copy'; });
  if(window.__mktContentFilter.status!=='all') rows = rows.filter(function(r){ return r.status===window.__mktContentFilter.status; });
  if(window.__mktContentFilter.platform!=='all') rows = rows.filter(function(r){ return (r.platforms||'').indexOf(window.__mktContentFilter.platform)!==-1; });
+ if(window.__mktContentFilter.date!=='all') rows = rows.filter(function(r){ return (r.scheduled_date||'').slice(0,10)===window.__mktContentFilter.date; });
  const counts = {}; window.__mktContentStatuses.forEach(function(s){ counts[s[0]] = all.filter(function(r){return r.status===s[0];}).length; });
  const statusPills = '<button onclick="window.__mktSetContentFilter(\'status\',\'all\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(window.__mktContentFilter.status==='all'?'var(--primary)':'var(--border-color)')+';background:'+(window.__mktContentFilter.status==='all'?'var(--primary)':'#fff')+';color:'+(window.__mktContentFilter.status==='all'?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">Semua ('+all.length+')</button>'
   + window.__mktContentStatuses.map(function(s){ const on=window.__mktContentFilter.status===s[0]; return '<button onclick="window.__mktSetContentFilter(\'status\',\''+s[0]+'\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(on?'var(--primary)':'var(--border-color)')+';background:'+(on?'var(--primary)':'#fff')+';color:'+(on?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">'+s[1]+' ('+counts[s[0]]+')</button>'; }).join('');
  const platPills = '<button onclick="window.__mktSetContentFilter(\'platform\',\'all\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(window.__mktContentFilter.platform==='all'?'var(--primary)':'var(--border-color)')+';background:'+(window.__mktContentFilter.platform==='all'?'var(--primary)':'#fff')+';color:'+(window.__mktContentFilter.platform==='all'?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">Semua platform</button>'
   + ['tiktok','instagram','facebook','shopee'].map(function(pl){ const on=window.__mktContentFilter.platform===pl; const m=window.__mktPlat[pl]; return '<button onclick="window.__mktSetContentFilter(\'platform\',\''+pl+'\')" style="padding:5px 12px;border-radius:50px;border:1px solid '+(on?m.color:'var(--border-color)')+';background:'+(on?m.color:'#fff')+';color:'+(on?'#fff':'#6B7280')+';font-size:12px;font-weight:700;cursor:pointer;">'+m.label+'</button>'; }).join('');
+ // p1_1094 — jalur MINGGU INI: 7 hari akan datang, klik hari = tapis ikut tarikh siar
+ const wk = [];
+ const today = new Date(); today.setHours(0,0,0,0);
+ for(let d=0; d<7; d++){
+  const day = new Date(today.getTime() + d*86400000);
+  const iso = day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
+  const n = all.filter(function(r){ return (r.scheduled_date||'').slice(0,10)===iso; }).length;
+  const on = window.__mktContentFilter.date===iso;
+  const lbl = d===0 ? 'Hari ini' : day.toLocaleDateString('ms-MY',{weekday:'short', day:'numeric', month:'short'});
+  wk.push('<button onclick="window.__mktSetContentFilter(\'date\',\''+(on?'all':iso)+'\')" style="flex:1;min-width:76px;padding:7px 4px;border-radius:9px;border:1.5px solid '+(on?'var(--primary)':'var(--border-color)')+';background:'+(on?'var(--primary)':'#fff')+';color:'+(on?'#fff':(n?'#374151':'#B9BEC7'))+';font-size:11px;font-weight:700;cursor:pointer;text-align:center;">'+lbl+'<div style="font-size:15px;margin-top:1px;">'+(n||'·')+'</div></button>');
+ }
  const list = rows.length ? rows.map(function(c){
   const st = window.__mktContentStatuses.find(function(s){return s[0]===c.status;}) || ['idea','Idea','#F3F4F6','#6B7280'];
+  const flowIdx = window.__mktStageFlow.indexOf(c.status);
+  const nextKey = flowIdx >= 0 && flowIdx < window.__mktStageFlow.length-1 ? window.__mktStageFlow[flowIdx+1] : null;
+  const nextSt = nextKey ? window.__mktContentStatuses.find(function(s){return s[0]===nextKey;}) : null;
   const plats = (c.platforms||'').split(',').filter(Boolean).map(function(pl){ const m=window.__mktPlat[pl]; return m?('<span style="font-size:9px;font-weight:700;color:'+m.color+';border:1px solid '+m.color+';padding:1px 5px;border-radius:4px;">'+m.label+'</span>'):''; }).join(' ');
   const dt = c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'}) : 'tiada tarikh';
+  const metrics = (c.views||c.likes||c.leads) ? ('<div style="font-size:11px;color:#345E43;margin-top:4px;font-weight:600;"><i data-lucide="bar-chart-2" style="width:10px;height:10px;vertical-align:-1px;"></i> '+Number(c.views||0).toLocaleString()+' views · '+Number(c.likes||0).toLocaleString()+' likes · '+Number(c.leads||0).toLocaleString()+' leads</div>') : '';
+  const preCopy = ['idea','rakam','edit','copy'].indexOf(c.status)!==-1;
   return '<div style="display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border-color);border-radius:9px;margin-bottom:8px;">'+window.__mktThumb(c.product_sku,48)
    + '<div style="flex:1;min-width:0;">'
    + '<div style="font-size:13px;font-weight:700;">'+E((c.title||'').slice(0,70))+'</div>'
    + '<div style="font-size:11px;color:#9CA3AF;margin-top:3px;">'+plats+' · '+E(c.content_type||'')+' · <i data-lucide="calendar" style="width:10px;height:10px;vertical-align:-1px;"></i> '+dt+(c.assigned_to_name?(' · '+E(c.assigned_to_name)):'')+'</div>'
    + (c.caption?('<div style="font-size:11px;color:#6B7280;margin-top:4px;font-style:italic;">'+E((c.caption||'').slice(0,90))+'</div>'):'')
+   + metrics
    + '</div>'
    + '<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">'
-   + '<span style="padding:3px 9px;border-radius:50px;background:'+st[2]+';color:'+st[3]+';font-size:10px;font-weight:700;">'+st[1]+'</span>'
-   + '<div style="display:flex;gap:4px;">'
-   + (c.status!=='posted'?('<button onclick="window.__mktMarkPosted('+c.id+')" title="Tandai disiarkan" style="background:#E4EFE2;border:none;color:#345E43;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Siar</button>'):(c.link?('<a href="'+E(c.link)+'" target="_blank" style="background:#F3F4F6;color:#374151;padding:4px 8px;border-radius:5px;font-size:10px;font-weight:700;text-decoration:none;">Link</a>'):''))
+   + '<span title="'+E(window.__mktStageHints[c.status]||'')+'" style="padding:3px 9px;border-radius:50px;background:'+st[2]+';color:'+st[3]+';font-size:10px;font-weight:700;">'+(flowIdx>=0?(flowIdx+1)+'/'+window.__mktStageFlow.length+' · ':'')+st[1]+'</span>'
+   + '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">'
+   + (nextSt?('<button onclick="window.__mktAdvanceStage('+c.id+')" title="'+E(window.__mktStageHints[nextKey]||'')+'" style="background:var(--primary);border:none;color:#fff;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;"><i data-lucide="arrow-right" style="width:10px;height:10px;vertical-align:-1px;"></i> '+nextSt[1]+'</button>'):'')
+   + (preCopy?('<button onclick="window.__mktAiCopy('+c.id+')" title="Minta Tanya AI draf caption" style="background:none;border:1px solid var(--primary);color:var(--primary);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">AI Copy</button>'):'')
+   + (c.status==='scheduled' && (c.platforms||'').indexOf('facebook')!==-1?('<button onclick="window.__mktSendToAutoPost('+c.id+')" title="Prefill Auto-Post FB" style="background:none;border:1px solid var(--primary);color:var(--primary);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Post FB</button>'):'')
+   + (c.status==='ads'?('<button onclick="window.__mktHubGo(\'playbook\',\'ads\')" title="Rekod kempen di tab Ads" style="background:none;border:1px solid var(--primary);color:var(--primary);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Buka Ads</button>'):'')
+   + (c.link?('<a href="'+E(c.link)+'" target="_blank" style="background:#F3F4F6;color:#374151;padding:4px 8px;border-radius:5px;font-size:10px;font-weight:700;text-decoration:none;">Link</a>'):'')
    + '<button onclick="window.__mktContentModal('+c.id+')" title="Edit" style="background:none;border:1px solid var(--border-color);color:#6B7280;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Edit</button>'
    + '<button onclick="window.__mktDeleteContent('+c.id+')" title="Padam" style="background:none;border:1px solid #E0B3A9;color:#7C2A20;padding:4px 7px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;"><i data-lucide="trash-2" style="width:11px;height:11px;"></i></button>'
    + '</div></div></div>';
  }).join('') : '<p style="color:#9CA3AF;padding:30px;text-align:center;">Tiada kandungan padan tapisan. Tekan "Tambah Kandungan".</p>';
  body.innerHTML = '<div class="rp-wrap">'
-  + '<div class="rp-header"><div><h2 class="rp-title"><i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--primary);"></i> Content Schedule</h2><p class="rp-subtitle">Rancang kandungan sosial: apa nak post, bila, platform mana, produk mana.</p></div><button onclick="window.__mktContentModal()" style="padding:9px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Tambah Kandungan</button></div>'
+  + '<div class="rp-header"><div><h2 class="rp-title"><i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--primary);"></i> Jadual Marketing</h2><p class="rp-subtitle">Pipeline produksi kandungan: Idea → Rakam → Edit → Copywriting → Jadual → Siar → Ads → Analitik. Tekan butang oren pada kad untuk gerak ke tahap seterusnya.</p></div><button onclick="window.__mktContentModal()" style="padding:9px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Tambah Kandungan</button></div>'
+  + '<div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;">'+wk.join('')+'</div>'
   + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+statusPills+'</div>'
   + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">'+platPills+'</div>'
   + list + '</div>';
  if(window.lucide && lucide.createIcons) try{ lucide.createIcons(); }catch(e){}
+};
+// p1_1094 — gerak kad ke tahap seterusnya dlm pipeline (posted → cap posted_at automatik)
+window.__mktAdvanceStage = async function(id){
+ const c = (window.__mktContentCache||[]).find(function(x){return x.id===id;}); if(!c) return;
+ const cur = c.status==='draft' ? 'copy' : c.status;
+ const i = window.__mktStageFlow.indexOf(cur);
+ if(i < 0 || i >= window.__mktStageFlow.length-1) return;
+ const next = window.__mktStageFlow[i+1];
+ const patch = { status: next, updated_at: new Date().toISOString() };
+ if(next==='posted' && !c.posted_at) patch.posted_at = new Date().toISOString();
+ try {
+  const r = await db.from('marketing_content').update(patch).eq('id', id); if(r.error) throw r.error;
+  const lbl = (window.__mktContentStatuses.find(function(s){return s[0]===next;})||[])[1]||next;
+  if(typeof showToast==='function') showToast('"'+(c.title||'').slice(0,40)+'" → '+lbl+'. '+(window.__mktStageHints[next]||''), 'success');
+  await window.__mktLoadContent(); window.renderContentSchedule();
+ } catch(e){ if(typeof showToast==='function') showToast('Gagal: '+e.message, 'error'); }
+};
+// p1_1094 — Tanya AI draf caption: buka panel AI + prefill soalan (staf tekan hantar je)
+window.__mktAiCopy = function(id){
+ const c = (window.__mktContentCache||[]).find(function(x){return x.id===id;}); if(!c) return;
+ const p = (typeof masterProducts!=='undefined' && c.product_sku) ? (masterProducts.find(function(x){return x.sku===c.product_sku;})||{}) : {};
+ const plat = (c.platforms||'').split(',').filter(Boolean).join('/') || 'sosial media';
+ const q = 'Tolong draf 3 pilihan caption '+plat+' dalam BM santai untuk '+(c.content_type||'post')
+  + ' bertajuk "'+(c.title||'')+'"'
+  + (p.name?(' — produk: '+p.name+(p.price?(' (RM'+p.price+')'):'')):'')
+  + '. Ada hook kuat baris pertama + CTA ke kedai/Shopee. Emoji jangan.';
+ try {
+  if(typeof window.__posAppOpenAI==='function') window.__posAppOpenAI();
+  else if(typeof window.__saToggle==='function' && !window.__saOpen) window.__saToggle();
+  setTimeout(function(){ const i=document.getElementById('saInput'); if(i){ i.value=q; i.focus(); } }, 400);
+ } catch(e){}
+};
+// p1_1094 — hantar kad ke Auto-Post FB: navigate + prefill caption/link
+window.__mktSendToAutoPost = function(id){
+ const c = (window.__mktContentCache||[]).find(function(x){return x.id===id;}); if(!c) return;
+ try {
+  window.__mktHubGo('digital','autopost');
+  setTimeout(function(){
+   const cap=document.getElementById('apCaption'), lnk=document.getElementById('apLink');
+   if(cap) cap.value = (c.caption || c.title || '');
+   if(lnk && c.link) lnk.value = c.link;
+   if(typeof showToast==='function') showToast('Caption diisi dari Jadual Marketing — semak & tekan post. Lepas siar, balik tandai kad → Disiarkan.', 'info');
+  }, 700);
+ } catch(e){}
 };
 window.__mktContentModal = function(id){
  const c = id ? (window.__mktContentCache.find(function(x){return x.id===id;})||{}) : {};

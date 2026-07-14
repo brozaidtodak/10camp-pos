@@ -5,6 +5,7 @@
  { id:'p0', num:'PHASE 0', name:'Foundation', status:'done', goal:'Core POS & Inventory MVP', eta:'Q1 2026 · Shipped',
  desc:'Single-store POS dengan flow jualan asas, master inventory, dan basic admin. Goal: replace manual cash register sepenuhnya.',
  deliverables:[
+ { id:'p1_1105', label:'MARKETING — Irfan PIC tunggal, staf lain TALENT (Zaid: "staff yang incharge marketing adalah irfan seorang, semua staff lain akan dijadikan talent"). (1) Semua 16 kad pelan 20 Jul-2 Ogos di-assign Irfan; (2) nota kad [RAKAM] dikemaskini dgn talent dinamakan: W1 Ariff (AutoDome) + Fahmi (lampu) + Tarmizi/team (BTS), W2 Tarmizi (gear hujan) + Zack (butane — dia daftar barang tu); (3) modal Tambah Kandungan auto-assign Irfan utk kad baru (marketing.js v8); (4) KB Tanya AI: soalan konten/posting → rujuk Irfan, staf lain talent shj. app.js v1082->1083.', d:'done' },
  { id:'p0_1', label:'Cashier mode (POS + cart)', d:'done' },
  { id:'p0_2', label:'Master product database', d:'done' },
  { id:'p0_3', label:'Barcode scanner support', d:'done' },

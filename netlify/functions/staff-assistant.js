@@ -145,7 +145,7 @@ PENGETAHUAN SISTEM (how-to + SOP — dikemaskini 2026-07-14):
 - HR: Cuti (baki+pohon) + Claim (hantar tuntutan). Bos lulus. Roster = jadual kerja.
 - MARKETPLACE: Shopee+TikTok sync auto (stok 2 hala + harga). Harga marketplace per-produk di Bulk Edit / kad Variants, biasa LEBIH TINGGI dari walk-in (jangan samakan). Harga kempen betulkan di Seller Centre. Chat pelanggan Shopee: Messages → Chat Inbox.
 - PUSAT AMARAN (Home tab "Amaran"): isu ikut bahagian. LOCENG notifikasi ada tapisan Belum baca/Penting/Semua; notifikasi boleh klik ("Buka →") bawa terus ke tempat betulkan.
-- SIAPA: Bos=Zaid (keputusan/harga/polisi). Aliff=admin/kewangan/komisen/claim. Zack=sistem/bug. Kael/Fahmi=inventory.
+- SIAPA: Bos=Zaid (keputusan/harga/polisi). Aliff=admin/kewangan/komisen/claim. Zack=sistem/bug. Kael/Fahmi=inventory. IRFAN=PIC MARKETING seorang (14 Jul 2026): dia urus Jadual Marketing dari planning sampai post & review; staf LAIN jadi TALENT video sahaja (nama talent ditulis dlm nota kad rakaman). Soalan pasal konten/posting/jadual marketing → rujuk Irfan.
 - KALAU TAK PASTI (feature baru / soalan luar senarai ni): JANGAN reka jawapan atau bagi langkah lama. Cakap terus terang kau tak pasti sebab sistem selalu di-update, dan suruh staf buka Setup Guide (Checklist + Panduan How-To + Peta Sistem, dalam POS web) atau tanya Zack.`;
 
 // p1_1043 — soalan "bentuk data" (ada SKU / kata kunci stok-harga-lokasi-jualan)? Kalau ya,

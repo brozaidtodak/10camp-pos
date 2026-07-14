@@ -411,7 +411,9 @@ window.__mktContentModal = function(id, presetDate){
  const platChecks = ['tiktok','instagram','facebook','threads','shopee'].map(function(pl){ const m=window.__mktPlat[pl]; return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:12px;cursor:pointer;"><input type="checkbox" class="mktCPlat" value="'+pl+'"'+(selPlats.indexOf(pl)!==-1?' checked':'')+'> '+m.label+'</label>'; }).join('');
  const typeOpts = window.__mktContentTypes.map(function(t){ return '<option value="'+t+'"'+(c.content_type===t?' selected':'')+'>'+t+'</option>'; }).join('');
  const statusOpts = window.__mktContentStatuses.map(function(s){ return '<option value="'+s[0]+'"'+(c.status===s[0]?' selected':'')+'>'+s[1]+'</option>'; }).join('');
- const staffOpts = '<option value="">— pilih staf —</option>'+(typeof authUsers!=='undefined'?authUsers:[]).map(function(u){ return '<option value="'+E(u.name)+'"'+(c.assigned_to_name===u.name?' selected':'')+'>'+E(u.name)+'</option>'; }).join('');
+ // p1_1105 — PIC marketing = Irfan (Zaid 14 Jul): kad BARU auto-assign Irfan; staf lain = talent (tulis dlm caption)
+ const selStaff = c.assigned_to_name || (!id ? 'Irfan' : '');
+ const staffOpts = '<option value="">— pilih staf —</option>'+(typeof authUsers!=='undefined'?authUsers:[]).map(function(u){ return '<option value="'+E(u.name)+'"'+(selStaff===u.name?' selected':'')+'>'+E(u.name)+'</option>'; }).join('');
  const ov = document.createElement('div');
  ov.id = 'mktContentModal';
  ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);overflow:auto;';

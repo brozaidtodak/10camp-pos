@@ -1,6 +1,10 @@
 node_modules/
 *.log
 .DS_Store
+
+# Local project notes/secrets — never deploy (whole repo goes live on Netlify)
+CLAUDE.md
+supabase.env
 test-*.js
 check-db.js
 scripts/products_master.json

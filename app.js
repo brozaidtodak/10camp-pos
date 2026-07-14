@@ -37139,6 +37139,8 @@ window.renderProductDatabase = function() {
  if(fStatus === 'draft' && (isPublished(p) || disc)) return false;
  if(fStatus === 'oos' && (stock > 0 || disc)) return false;
  if(fStatus === 'low' && (stock === 0 || stock > reorder || disc)) return false;
+ // Zack — stok di bawah 10 unit (had tetap 10, tak ikut reorder_point per-produk)
+ if(fStatus === 'under10' && (stock === 0 || stock >= 10 || disc)) return false;
  if(fStatus === 'noimage') {
    const hasImg = (Array.isArray(p.images) && p.images[0]) || (typeof p.images === 'string' && p.images);
    if(hasImg) return false;
@@ -37206,7 +37208,7 @@ window.renderProductDatabase = function() {
  if(fCat) chips.push({label: 'Category: ' + fCat, clear: "document.getElementById('pdCategory').value=''; window.renderProductDatabase();"});
  if(window.__pdbCollectionFilter) chips.push({label: 'Collection: ' + window.__pdbCollectionFilter, clear: "window.__pdbCollectionFilter=''; window.renderProductDatabase();"});
  if(fStatus) {
-   const map = { published:'Live', draft:'Draft', oos:'Out of Stock', low:'Low Stock', noimage:'No Image', discontinued:'Discontinued', not_tiktok:'Belum di TikTok' };
+   const map = { published:'Live', draft:'Draft', oos:'Out of Stock', low:'Low Stock', noimage:'No Image', discontinued:'Discontinued', not_tiktok:'Belum di TikTok', under10:'Stok < 10' };
    const allPill = "document.querySelectorAll('#pdbStatusPills .pdb-pill').forEach(b=>b.classList.remove('pdb-pill--active'));document.querySelector('#pdbStatusPills .pdb-pill[data-status=\\\"\\\"]').classList.add('pdb-pill--active');document.getElementById('pdStatus').value='';window.renderProductDatabase();";
    chips.push({label: 'Status: ' + (map[fStatus] || fStatus), clear: allPill});
  }
@@ -38300,6 +38302,7 @@ window.I18N = {
  db_pill_oos: { bm: 'Habis Stok', en: 'Out of Stock' },
  db_pill_low: { bm: 'Stok Rendah', en: 'Low Stock' },
  db_pill_noimage: { bm: 'Tiada Gambar', en: 'No Image' },
+ db_pill_under10: { bm: 'Stok < 10', en: 'Stock < 10' },
  db_quick_edit_ph: { bm: 'Buka SKU →', en: 'Open SKU →' },
  db_th_product: { bm: 'Produk', en: 'Product' },
  db_th_brand: { bm: 'Jenama', en: 'Brand' },

@@ -3109,7 +3109,7 @@ window.__navHubGo = window.__mktHubGo; // p1_1087 — alias generic (hub bukan m
 window.__ensureBackofficeDash = function(){
  if(window.__bodLoaded) return Promise.resolve();
  return window.__bodLoading || (window.__bodLoading = new Promise(function(res,rej){
-  var s=document.createElement('script'); s.src='backoffice-dash.js?v=6'; // p1_1057
+  var s=document.createElement('script'); s.src='backoffice-dash.js?v=7'; // p1_1116
   s.onload=function(){ window.__bodLoaded=true; res(); };
   s.onerror=function(){ window.__bodLoading=null; rej(new Error('backoffice-dash.js gagal muat')); };
   document.head.appendChild(s);

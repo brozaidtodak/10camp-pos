@@ -725,6 +725,7 @@ window.renderReorderSuggest = function() {
  const estCost = suggestedQty * cost;
  rows.push({
  sku, name: p.name || '', brand: p.brand || '', category: p.category || '',
+ supplier: (typeof window.__skuSupplierOf === 'function' ? window.__skuSupplierOf(sku) : '') || '',
  location_bin: p.location_bin || '',
  currentStock: cur,
  sold, dailyAvg,
@@ -738,6 +739,17 @@ window.renderReorderSuggest = function() {
  });
 
  window.__rsAllRows = rows;
+
+ // p1_1116 — dropdown pembekal (nama diambil dari PO lepas via __skuSupplierOf)
+ const supSel = document.getElementById('rsSupplier');
+ if(supSel) {
+ const cur = supSel.value;
+ const sups = [...new Set(rows.map(r => r.supplier).filter(Boolean))].sort();
+ supSel.innerHTML = '<option value="">Pembekal: Semua</option>'
+ + sups.map(s => `<option value="${s.replace(/"/g,'&quot;')}"${s === cur ? ' selected' : ''}>${s}</option>`).join('')
+ + `<option value="__none"${cur === '__none' ? ' selected' : ''}>Tiada rekod pembekal</option>`;
+ }
+
  window.__rsApplyFilter();
  } catch(e) {
  wrap.innerHTML = '<p style="color:#B23A2E; padding:20px;">Error: ' + e.message + '</p>';
@@ -751,6 +763,10 @@ window.__rsApplyFilter = function() {
  const sortBy = document.getElementById('rsSortBy').value || 'urgency';
  let rows = window.__rsAllRows.slice();
  if(search) rows = rows.filter(r => r.sku.includes(search) || r.brand.toUpperCase().includes(search) || r.name.toUpperCase().includes(search));
+ // p1_1116 — tapis ikut pembekal (satu PO biasanya satu pembekal)
+ const supFilter = (document.getElementById('rsSupplier') || {}).value || '';
+ if(supFilter === '__none') rows = rows.filter(r => !r.supplier);
+ else if(supFilter) rows = rows.filter(r => r.supplier === supFilter);
  // Sort
  if(sortBy === 'urgency') rows.sort((a, b) => a.daysTillStockout - b.daysTillStockout);
  else if(sortBy === 'qty') rows.sort((a, b) => b.suggestedQty - a.suggestedQty);
@@ -779,41 +795,130 @@ window.__rsApplyFilter = function() {
  }
  const escAttr = (s) => String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
  const fmtRM = (n) => 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
- wrap.innerHTML = `<table class="rp-comm-table">
+ // p1_1116 — senarai yang sedang dipapar (dipakai oleh "pilih semua")
+ window.__rsViewRows = rows.slice(0, 100);
+ const sel = window.__rsSel || {};
+ wrap.innerHTML = `
+ <div id="rsSelBar" style="display:none; align-items:center; gap:12px; flex-wrap:wrap; background:var(--primary-50,#FBF3EA); border:1px solid var(--primary-200,#EAD3B8); border-radius:10px; padding:10px 14px; margin-bottom:10px;">
+ <span style="font-size:13px; font-weight:700; color:var(--text-main,#101010);"><span id="rsSelCount">0</span> SKU dipilih &middot; Anggaran <span id="rsSelCost">RM 0.00</span></span>
+ <button class="sy-btn" style="margin-left:auto;" onclick="window.__rsSendToPO()"><i data-lucide="file-plus" style="width:13px;height:13px;"></i> Hantar ke Draf PO</button>
+ <button class="sy-btn secondary" onclick="window.__rsSel={}; window.__rsApplyFilter();">Kosongkan</button>
+ </div>
+ <table class="rp-comm-table">
  <thead>
  <tr>
+ <th style="width:34px; text-align:center;"><input type="checkbox" id="rsSelAll" onchange="window.__rsToggleAll(this.checked)" style="width:auto; margin:0;" title="Pilih semua yang dipapar"></th>
  <th>SKU</th>
  <th>Brand / Nama</th>
+ <th>Pembekal</th>
  <th>Lokasi</th>
  <th style="text-align:right;">Stok</th>
  <th style="text-align:right;">Sold (${parseInt(document.getElementById('rsWindow').value || '30', 10)}d)</th>
  <th style="text-align:right;">Avg/Hari</th>
  <th style="text-align:right;">Risk</th>
- <th style="text-align:right;">Reorder Qty</th>
+ <th style="text-align:right;">Order Qty</th>
  <th style="text-align:right;">Anggaran Cost</th>
  </tr>
  </thead>
  <tbody>
- ${rows.slice(0, 100).map(r => {
+ ${window.__rsViewRows.map(r => {
  const riskColor = r.isOutOfStock ? '#7C2A20' : (r.isUrgent ? '#B23A2E' : (r.daysTillStockout < 14 ? '#C68A1A' : '#101010'));
  const riskLabel = r.isOutOfStock ? 'OUT' : (r.daysTillStockout >= 999 ? '—' : r.daysTillStockout + 'd');
  const rowBg = r.isOutOfStock ? 'background:#F4E4DF;' : (r.isUrgent ? 'background:#FAF0EE;' : '');
  const locPill = r.location_bin ? `<span style="background:#F8EFD7; color:#7A5410; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; font-family:'SF Mono',Menlo,monospace; letter-spacing:0.3px;">${escAttr(r.location_bin)}</span>` : '<span style="color:#D1D5DB; font-size:11px;">—</span>';
+ const picked = sel[r.sku];
+ const qtyVal = picked ? picked.qty : r.suggestedQty;
  return `<tr style="${rowBg}">
+ <td style="text-align:center;"><input type="checkbox" ${picked ? 'checked' : ''} onchange="window.__rsToggle('${escAttr(r.sku)}', this.checked)" style="width:auto; margin:0;"></td>
  <td><div style="display:flex; align-items:center; gap:8px;">${window.__skuThumbHtml ? window.__skuThumbHtml(r.sku) : ''}<strong>${escAttr(r.sku)}</strong></div></td>
  <td style="font-size:12px;"><strong>${escAttr(r.brand)}</strong><br><span style="color:#6B7280;">${escAttr(r.name).slice(0, 60)}</span></td>
+ <td style="font-size:11.5px; color:#374151;">${r.supplier ? escAttr(r.supplier) : '<span style="color:#D1D5DB;">—</span>'}</td>
  <td>${locPill}</td>
  <td style="text-align:right; color:${r.isOutOfStock ? '#7C2A20' : '#374151'}; font-weight:${r.isOutOfStock ? 700 : 400};">${r.currentStock}</td>
  <td style="text-align:right;">${r.sold}</td>
  <td style="text-align:right;">${r.dailyAvg.toFixed(2)}</td>
  <td style="text-align:right; color:${riskColor}; font-weight:700;">${riskLabel}</td>
- <td style="text-align:right; font-weight:700; color:#1F2937;">${r.suggestedQty}</td>
+ <td style="text-align:right;"><input type="number" data-rsqty="${escAttr(r.sku)}" value="${qtyVal}" min="1" onchange="window.__rsQtyEdit('${escAttr(r.sku)}', this.value)" style="width:72px; padding:4px 6px; border:1px solid #ECECEC; border-radius:6px; font-size:12px; text-align:right; margin:0;"></td>
  <td style="text-align:right;">${fmtRM(r.estCost)}</td>
  </tr>`;
  }).join('')}
  </tbody>
  </table>
  ${rows.length > 100 ? `<p style="font-size:11px; color:#9CA3AF; text-align:center; margin-top:10px;">Papar 100 pertama dari ${rows.length} rows. Narrow filter untuk lihat selebihnya.</p>` : ''}`;
+ window.__rsUpdateBar();
+ if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+// ============= p1_1116 — REORDER → DRAF PO (tick, adjust qty, hantar) =============
+window.__rsSel = window.__rsSel || {};
+
+window.__rsToggle = function(sku, checked) {
+ const r = (window.__rsAllRows || []).find(x => x.sku === sku);
+ if(!r) return;
+ if(checked) {
+ const inp = document.querySelector(`input[data-rsqty="${sku}"]`);
+ const qty = Math.max(1, parseInt(inp && inp.value, 10) || r.suggestedQty || 1);
+ window.__rsSel[sku] = { qty, cost: r.cost || 0, supplier: r.supplier || '' };
+ } else {
+ delete window.__rsSel[sku];
+ }
+ window.__rsUpdateBar();
+};
+
+window.__rsToggleAll = function(checked) {
+ (window.__rsViewRows || []).forEach(r => {
+ if(checked) {
+ const inp = document.querySelector(`input[data-rsqty="${r.sku}"]`);
+ const qty = Math.max(1, parseInt(inp && inp.value, 10) || r.suggestedQty || 1);
+ window.__rsSel[r.sku] = { qty, cost: r.cost || 0, supplier: r.supplier || '' };
+ } else {
+ delete window.__rsSel[r.sku];
+ }
+ });
+ window.__rsApplyFilter();
+};
+
+window.__rsQtyEdit = function(sku, val) {
+ const q = Math.max(1, parseInt(val, 10) || 1);
+ if(window.__rsSel[sku]) { window.__rsSel[sku].qty = q; window.__rsUpdateBar(); }
+};
+
+window.__rsUpdateBar = function() {
+ const bar = document.getElementById('rsSelBar');
+ if(!bar) return;
+ const skus = Object.keys(window.__rsSel || {});
+ if(!skus.length) { bar.style.display = 'none'; return; }
+ const total = skus.reduce((s, k) => s + (window.__rsSel[k].qty * (window.__rsSel[k].cost || 0)), 0);
+ bar.style.display = 'flex';
+ const cEl = document.getElementById('rsSelCount');
+ const tEl = document.getElementById('rsSelCost');
+ if(cEl) cEl.textContent = skus.length;
+ if(tEl) tEl.textContent = 'RM ' + total.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+window.__rsSendToPO = function() {
+ const skus = Object.keys(window.__rsSel || {});
+ if(!skus.length) { if(typeof showToast === 'function') showToast('Tiada SKU dipilih lagi — tick dulu barang yang nak diorder.', 'warn'); return; }
+ if(typeof poDraftItems === 'undefined') { if(typeof showToast === 'function') showToast('Draf PO tak tersedia — refresh page dulu.', 'error'); return; }
+ skus.forEach(sku => {
+ const s = window.__rsSel[sku];
+ const qty = Math.max(1, parseInt(s.qty, 10) || 1);
+ const cost = Number(s.cost) || 0;
+ const ex = poDraftItems.find(i => i.sku === sku);
+ if(ex) { ex.qty = qty; ex.cost = cost; ex.total = qty * cost; }
+ else poDraftItems.push({ sku, qty, cost, total: qty * cost });
+ });
+ // Kalau semua pilihan satu pembekal & field kosong — auto-isi nama pembekal
+ const sups = [...new Set(skus.map(k => window.__rsSel[k].supplier).filter(Boolean))];
+ const supEl = document.getElementById('poSupplier');
+ if(supEl && !supEl.value.trim() && sups.length === 1) supEl.value = sups[0];
+ const n = skus.length;
+ window.__rsSel = {};
+ const nav = document.querySelector('[data-tab="nav_purchase_orders"]');
+ if(nav) nav.click();
+ else if(typeof switchHub === 'function') { switchHub(['poSection'], 'Purchase Orders', null); if(typeof renderPoSection === 'function') renderPoSection(); }
+ if(typeof renderPoDraftTable === 'function') renderPoDraftTable();
+ if(typeof showToast === 'function') showToast(n + ' SKU masuk Draf PO — semak qty & kos, lepas tu tekan "Hantar Tempahan PO Rasmi".', 'success');
 };
 
 // ============= p1_478 — INVENTORY HISTORY (log masuk/keluar stok) =============

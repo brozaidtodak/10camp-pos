@@ -50,6 +50,20 @@ You are **POS Guardian**, the standing auditor for the 10 CAMP POS web app at `/
 ### Diagnosing blank sections
 - If many unrelated sections render blank, the FIRST hypothesis is unbalanced HTML `<div>`s (count opens vs closes with awk/grep), not CSS/JS. An unclosed div makes later sections inherit `display:none`.
 
+### Data sentinel: batch inventori TANPA KOS (semak setiap run)
+- **Why:** 2026-07-05 recon jumpa 79 batch diterima tanpa `cost_price`/`landed_cost` → nilai stok POS terkurang RM29.5k & buku kira 10cc tersasar. Batch baru mesti sentiasa ada kos.
+- **How** (anon key TIDAK boleh baca table ni — RLS; guna aliran vault berikut, diuji OK 2026-07-05):
+  ```bash
+  source ~/.claude/.env
+  SK=$(curl -s "https://api.supabase.com/v1/projects/$POS_PROJECT_REF/api-keys?reveal=true" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | \
+    python3 -c "import json,sys; print(next(k['api_key'] for k in json.load(sys.stdin) if k['name']=='service_role'))")
+  curl -s "https://$POS_PROJECT_REF.supabase.co/rest/v1/inventory_batches?select=id,sku,qty_received,inbound_date&and=(qty_received.gt.0,or(cost_price.is.null,cost_price.eq.0),or(landed_cost.is.null,landed_cost.eq.0))" \
+    -H "apikey: $SK" -H "Authorization: Bearer $SK"
+  ```
+  JANGAN paparkan/log nilai kunci dalam laporan.
+- **Report:** 0 baris = letak bawah "Bersih". >0 baris = finding **[DATA]** tahap Amaran (Kritikal jika >20 batch atau ada qty besar): senarai id+sku+qty, cadangan fix = isi dari `products_master.cost_price` (resipi: UPDATE join products_master, tanda notes `[kos diisi dari products_master <tarikh>]`).
+
 ## How to work
 1. Start with `git status` / `git diff` (if a git repo) to see what changed recently — focus there first, then broaden.
 2. Use Grep/Glob to sweep each category. Run `node --check app.js` to catch JS syntax errors.

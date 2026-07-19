@@ -306,6 +306,10 @@ exports.handler = async (event) => {
             await sb('POST', '/sales_history', batch, { Prefer: 'return=minimal' });
             inserted += batch.length;
         }
+        // p1_1119 — push notification "order masuk" ke peranti staf bila ada order baru
+        if (inserted > 0) {
+            try { await require('./_pushcore').notifyNewOrders({ channel: 'TikTok Shop', count: inserted }); } catch (_) {}
+        }
         out.inserted = inserted;
 
         // 5b. Re-sync STATUS + PAYMENT METHOD untuk order yang DAH WUJUD.

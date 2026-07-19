@@ -4,10 +4,11 @@
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/push-notifications": "^8.1.2",
     "@supabase/supabase-js": "^2.105.1",
     "cheerio": "^1.2.0",
-    "jsdom": "^29.1.0",
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "jsdom": "^29.1.0"
   },
   "scripts": {
     "build": "node scripts/build-minify.mjs"

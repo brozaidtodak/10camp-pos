@@ -15756,6 +15756,7 @@ window.processNewCheckout = async function() {
  if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
  saleCommitted = true; // sale dah selamat dalam DB — selepas ni jangan rollback stok
+ try { if(window.__pushOrderNotify) window.__pushOrderNotify(cn, finalTotal); } catch(_){} // p1_1119 — push order masuk
  // p1_559 — masukkan jualan ke salesHistory dalam-memori supaya banner Sasaran + Orders kemas-kini serta-merta
  try {
  if(Array.isArray(salesHistory) && insertedSaleId != null) {
@@ -32647,6 +32648,7 @@ window.submitOnlineOrder = async function() {
  const { data, error } = await db.from('sales_history').insert([payload]).select().single();
  if(error) throw error;
  if(typeof salesHistory !== 'undefined') salesHistory.unshift(data);
+ try { if(window.__pushOrderNotify) window.__pushOrderNotify(channel, total); } catch(_){} // p1_1119 — push order masuk
  if(typeof showToast === 'function') showToast(`Order ${channel} #${data.id} disimpan.`, 'success');
  document.getElementById('aoOnlineOverlay')?.remove();
  window.renderAllOrders();
@@ -45495,5 +45497,118 @@ window.__pdbRefresh = async function(btn){
    if(el){ el.classList.add('open'); el.scrollIntoView({ behavior:'smooth', block:'center' }); el.style.boxShadow = '0 0 0 3px var(--primary-500,#CD7C32)'; setTimeout(function(){ el.style.boxShadow = ''; }, 2200); }
    else if(typeof showToast === 'function') showToast('DO ' + first + ' tak dijumpai dalam senarai.', 'warn');
   }, 60);
+ };
+})();
+
+// ============================================================
+// p1_1119 — PUSH NOTIFICATION ORDER MASUK + MINI DASHBOARD LOGO
+// ============================================================
+(function(){
+ // ---------- Push registration (dalam app Capacitor sahaja) ----------
+ async function __pushRegister(){
+  try {
+   const Cap = window.Capacitor;
+   if(!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform()) return; // web biasa: skip
+   const PN = Cap.Plugins && Cap.Plugins.PushNotifications;
+   if(!PN) return;
+   const perm = await PN.requestPermissions();
+   if(perm.receive !== 'granted') return;
+   // Android 8+: channel WAJIB wujud, kalau tak notification senyap
+   if(Cap.getPlatform() === 'android' && typeof PN.createChannel === 'function') {
+    try { await PN.createChannel({ id:'orders', name:'Order Masuk', description:'Notifikasi order baru masuk', importance:5, sound:'default', visibility:1 }); } catch(_){}
+   }
+   PN.addListener('registration', async function(t){
+    try {
+     const headers = await (window.__authHeader ? window.__authHeader({'Content-Type':'application/json'}) : {'Content-Type':'application/json'});
+     await fetch('/.netlify/functions/push-register', {
+      method:'POST', headers,
+      body: JSON.stringify({
+       token: t.value,
+       platform: Cap.getPlatform(), // 'ios' | 'android'
+       staff_id: (window.currentUser && (window.currentUser.staff_id || window.currentUser.id)) || null,
+       staff_name: (window.currentUser && window.currentUser.name) || null
+      })
+     });
+    } catch(_){}
+   });
+   // Notification masuk masa app TERBUKA — toast + loceng dalaman
+   PN.addListener('pushNotificationReceived', function(n){
+    try {
+     const msg = (n.title ? n.title + ' — ' : '') + (n.body || '');
+     if(typeof showToast === 'function') showToast(msg, 'success');
+     if(window.notify && typeof window.notify.add === 'function') window.notify.add({ title: n.title || 'Notifikasi', body: n.body || '', icon: 'bell-ring' });
+    } catch(_){}
+   });
+   await PN.register();
+  } catch(_){}
+ }
+ // Daftar bila user dah login (poll ringan sebab login flow ada banyak pintu)
+ let __pushTries = 0;
+ const __pushTimer = setInterval(function(){
+  __pushTries++;
+  if(window.currentUser){ clearInterval(__pushTimer); __pushRegister(); }
+  else if(__pushTries > 120) clearInterval(__pushTimer); // give up lepas ~10 min
+ }, 5000);
+
+ // Dipanggil selepas checkout kasir / order manual — hantar push ke semua peranti (best-effort)
+ window.__pushOrderNotify = async function(channel, total){
+  try {
+   const headers = await (window.__authHeader ? window.__authHeader({'Content-Type':'application/json'}) : {'Content-Type':'application/json'});
+   fetch('/.netlify/functions/push-notify', { method:'POST', headers, body: JSON.stringify({ channel: channel || 'POS', total: total }) }).catch(function(){});
+  } catch(_){}
+ };
+
+ // ---------- Mini Dashboard (klik logo kiri atas) ----------
+ window.__miniDash = async function(){
+  const u = window.currentUser;
+  if(!u){ return; }
+  const isMgmt = (typeof window.isBoss === 'function' && window.isBoss(u)) || u.role === 'mgmt';
+  const old = document.getElementById('miniDashOverlay'); if(old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'miniDashOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto;';
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
+  ov.innerHTML = '<div style="background:var(--bg,#FAF6EF);border-radius:16px;max-width:520px;width:100%;padding:20px;margin-top:30px;">'
+   + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">'
+   + '<img src="assets/brand/logo/10camp-logo-color.png" style="width:28px;height:28px;object-fit:contain;">'
+   + '<b style="font-size:16px;">Dashboard Hari Ini</b>'
+   + '<button onclick="document.getElementById(\'miniDashOverlay\').remove()" style="margin-left:auto;border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-muted,#888);">×</button></div>'
+   + '<div id="miniDashBody" style="font-size:13px;color:var(--text-muted,#777);">Memuatkan…</div></div>';
+  document.body.appendChild(ov);
+  try {
+   // Jualan hari ini (MYT) — kira dari DB terus, ringan (aggregate client-side atas rows hari ini sahaja)
+   const now = new Date();
+   const myt = new Date(now.getTime() + (8*60 + now.getTimezoneOffset())*60000);
+   const t0 = new Date(myt.getFullYear(), myt.getMonth(), myt.getDate());
+   const utcStart = new Date(t0.getTime() - (8*60 + now.getTimezoneOffset())*60000).toISOString();
+   const { data: rows } = await db.from('sales_history')
+    .select('id,channel,status,total_amount,total,customer_name,created_at')
+    .gte('created_at', utcStart)
+    .order('created_at', { ascending:false })
+    .limit(500);
+   const all = (rows||[]).filter(function(r){ return r.status !== 'Cancelled' && r.status !== 'Voided' && r.status !== 'Refund'; });
+   let totalRm = 0; const byCh = {};
+   all.forEach(function(r){ const amt = Number(r.total_amount != null ? r.total_amount : r.total) || 0; totalRm += amt; byCh[r.channel || '?'] = (byCh[r.channel || '?'] || 0) + 1; });
+   const chHtml = Object.keys(byCh).sort().map(function(c){ return '<span style="display:inline-block;background:rgba(205,124,50,0.12);border-radius:20px;padding:3px 10px;margin:2px;font-size:12px;">' + c + ' · <b>' + byCh[c] + '</b></span>'; }).join('');
+   const latest = all.slice(0,5).map(function(r){
+    const t = new Date(r.created_at); const hm = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+    const amt = Number(r.total_amount != null ? r.total_amount : r.total) || 0;
+    return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:12.5px;">'
+     + '<span>' + hm + ' · ' + (r.channel || '?') + (r.customer_name ? ' · ' + String(r.customer_name).slice(0,18) : '') + '</span>'
+     + '<b>' + (isMgmt ? 'RM' + amt.toFixed(2) : '#' + r.id) + '</b></div>';
+   }).join('') || '<div style="padding:8px 0;">Belum ada order hari ini.</div>';
+   document.getElementById('miniDashBody').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;">'
+    + '<div style="background:#FFF;border:1px solid rgba(0,0,0,0.07);border-radius:12px;padding:12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:900;color:var(--primary,#CD7C32);">' + (isMgmt ? 'RM' + totalRm.toFixed(0) : all.length) + '</div>'
+    + '<div style="font-size:11px;">' + (isMgmt ? 'Jualan hari ini' : 'Order hari ini') + '</div></div>'
+    + '<div style="background:#FFF;border:1px solid rgba(0,0,0,0.07);border-radius:12px;padding:12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:900;color:var(--primary,#CD7C32);">' + all.length + '</div>'
+    + '<div style="font-size:11px;">Jumlah order</div></div></div>'
+    + '<div style="margin-bottom:10px;">' + chHtml + '</div>'
+    + '<div style="font-weight:700;font-size:13px;color:var(--text,#333);margin-bottom:2px;">Order terkini</div>' + latest;
+  } catch(e){
+   const b = document.getElementById('miniDashBody'); if(b) b.textContent = 'Tak dapat muatkan data. Cuba lagi.';
+  }
  };
 })();

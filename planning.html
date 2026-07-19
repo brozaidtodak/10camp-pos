@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 CAMP POS — planning.html</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0c; --bg2:#0e0e11;
+    --panel:rgba(255,255,255,.028); --panel-hi:rgba(255,255,255,.05);
+    --line:rgba(255,255,255,.09); --line-hi:rgba(227,184,90,.35);
+    --gold:#E3B85A; --gold-bright:#F1D179; --bronze:#CD7C32;
+    --ink:#ECEAE3; --muted:#8f8d87; --dim:#63625e;
+    --green:#57b06e; --amber:#d6a23e; --red:#c6603f;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  html,body{overflow-x:hidden;max-width:100%}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 78% -10%, rgba(227,184,90,.06), transparent 60%),
+      radial-gradient(900px 500px at 0% 100%, rgba(205,124,50,.05), transparent 55%), var(--bg);
+    color:var(--ink);font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-wrap:break-word;}
+  .mono{font-family:var(--mono)}
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 26px 80px}
+  .topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);
+    padding-bottom:16px;margin-bottom:34px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .badge{display:inline-flex;align-items:center;gap:9px;font-weight:600;color:var(--ink)}
+  .num{border:1px solid var(--line-hi);color:var(--gold);border-radius:7px;padding:2px 8px;font-family:var(--mono);font-size:12px;letter-spacing:0}
+  .topright{color:var(--dim)}
+  h1{font-size:clamp(26px,4.6vw,46px);font-weight:700;letter-spacing:-.02em;margin:0 0 14px;overflow-wrap:anywhere}
+  h1 .mono{color:var(--gold);font-weight:500}
+  .lede{max-width:660px;color:#b9b7b0;font-size:16px;font-weight:300;margin:0 0 34px}
+  .lede b{color:var(--ink);font-weight:600}
+  .lede code{font-family:var(--mono);color:var(--gold-bright);font-size:.9em}
+  .flow{display:flex;align-items:flex-start;justify-content:center;gap:8px;flex-wrap:wrap;margin:8px 0 26px}
+  .node{width:150px;text-align:center}
+  .glyph{width:96px;height:96px;margin:0 auto 14px;border-radius:24px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line)}
+  .glyph.mid{background:radial-gradient(circle at 50% 35%,rgba(227,184,90,.18),rgba(227,184,90,.02));border-color:var(--line-hi);box-shadow:0 0 46px rgba(227,184,90,.14)}
+  .glyph svg{width:38px;height:38px;stroke:var(--muted);fill:none;stroke-width:1.6}
+  .glyph.mid svg{stroke:var(--gold)}
+  .node .t{font-weight:600;font-size:16px}
+  .node.mid .t{font-family:var(--mono);color:var(--gold);font-size:15px}
+  .node .s{color:var(--dim);font-size:12.5px;margin-top:3px}
+  .arrow{color:var(--gold);opacity:.55;padding-top:38px;font-size:20px;line-height:1}
+  .tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+  .tag{border:1px solid var(--line-hi);color:var(--gold-bright);border-radius:99px;padding:7px 16px;font-size:13px;font-weight:500;background:rgba(227,184,90,.04)}
+  .canput{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:30px}
+  .canput .lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-right:4px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 11px;font-size:12.5px;color:var(--muted);background:var(--panel)}
+  .chip svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:1.7}
+  .banner{border:1px solid var(--line-hi);border-radius:20px;padding:22px 26px;text-align:center;background:linear-gradient(180deg,rgba(227,184,90,.06),rgba(227,184,90,.015));margin-bottom:46px}
+  .banner .k{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:8px}
+  .banner .m{font-size:clamp(18px,2.6vw,26px);font-weight:600}
+  .banner .m b{color:var(--gold-bright)}
+  .overall{display:flex;gap:26px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;margin-bottom:14px}
+  .ring{width:118px;height:118px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(var(--gold) calc(var(--p)*1%), rgba(255,255,255,.07) 0);position:relative}
+  .ring::before{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--bg2)}
+  .ring .v{position:relative;font-family:var(--mono);font-size:26px;font-weight:600;color:var(--gold)}
+  .overall .info{min-width:0}
+  .overall .info .lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .overall .info h2{margin:4px 0 6px;font-size:22px;font-weight:600}
+  .overall .info p{margin:0;color:var(--muted);font-size:14px}
+  section{margin-top:46px}
+  .sechead{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .sechead .i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line)}
+  .sechead .i svg{width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:1.7}
+  .sechead h3{margin:0;font-size:19px;font-weight:600}
+  .sechead .c{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;transition:border-color .2s,background .2s}
+  .card+.card{margin-top:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  @media(max-width:560px){.arrow{display:none}.wrap{padding:36px 18px 70px}.flow{gap:14px 18px}.node{width:130px}.sechead .c{display:none}}
+  .note li{margin:6px 0;color:#c3c1ba;font-size:14.5px} .note b{color:var(--ink)}
+  .phase .ph-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .phase .ph-name{font-weight:500;font-size:14.5px}
+  .phase .ph-pct{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .track{height:8px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+  .fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .tl{position:relative;padding-left:26px}
+  .tl::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;background:var(--line)}
+  .ms{position:relative;padding:2px 0 18px}
+  .ms::before{content:"";position:absolute;left:-23px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(227,184,90,.12)}
+  .ms .d{font-family:var(--mono);font-size:12px;color:var(--gold)}
+  .ms .h{font-weight:500;font-size:14.5px;margin:2px 0 2px}
+  .ms .x{color:var(--muted);font-size:13.5px}
+  .check{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;transition:.15s}
+  .check+.check{margin-top:9px}
+  .check:hover{border-color:var(--line-hi);background:var(--panel-hi)}
+  .box{flex:none;width:20px;height:20px;border-radius:6px;border:1.6px solid var(--muted);margin-top:1px;display:grid;place-items:center;transition:.15s}
+  .box svg{width:12px;height:12px;stroke:#0a0a0c;stroke-width:3;fill:none;opacity:0}
+  .check .txt{font-size:14.5px;color:#c9c7c0}
+  .check.done .box{background:var(--gold);border-color:var(--gold)}
+  .check.done .box svg{opacity:1}
+  .check.done .txt{color:var(--dim);text-decoration:line-through}
+  .cbar{margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  footer{margin-top:56px;border-top:1px solid var(--line);padding-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--dim)}
+  .edit{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topline">
+    <span class="badge"><span class="num">01</span> PROJECT</span>
+    <span class="topright">10 CAMP · POS SYSTEM</span>
+  </div>
+  <h1><span class="mono">planning.html</span> — 10 CAMP POS</h1>
+  <p class="lede">Pelan hidup untuk sistem POS 10 CAMP. Semua <b>perbincangan, research, fasa, milestone &amp; checklist</b> divisualkan dalam satu tempat — <i>interactive notes</i> yang <b>Kita &amp; AI faham sama</b>. Edit fail <code>planning.html</code> ini bila-bila.</p>
+
+  <div class="flow">
+    <div class="node"><div class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="t">Kita</div><div class="s">Idea · keputusan · taste</div></div>
+    <div class="arrow">⇄</div>
+    <div class="node mid"><div class="glyph mid"><svg viewBox="0 0 24 24"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M9 13l-2 2 2 2"/><path d="M14 13l2 2-2 2"/></svg></div><div class="t">planning.html</div><div class="s">Pelan bersama</div></div>
+    <div class="arrow">⇄</div>
+    <div class="node"><div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V6z"/><path d="M9 12l2 2 4-4"/></svg></div><div class="t">Claude</div><div class="s">Research · struktur · bina</div></div>
+  </div>
+
+  <div class="tags"><span class="tag">Perbincangan</span><span class="tag">Research</span><span class="tag">Fasa</span><span class="tag">Milestone</span><span class="tag">Checklist</span></div>
+  <div class="canput"><span class="lab">Boleh letak</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Gambar</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg>Animasi</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg>Chart / Flow</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M9 2h6"/></svg>Timer</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><path d="M9 3L3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/></svg>Google Map</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Graph</span>
+    <span class="chip"><svg viewBox="0 0 24 24"><path d="M12 2l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg>3D</span>
+  </div>
+
+  <div class="banner"><div class="k">Hidup, bukan kertas</div><div class="m">Interaktif · klik &amp; main — <b>ganti PDF/kertas</b> untuk patrikan plan</div></div>
+
+  <div class="overall">
+    <div class="ring" style="--p:91"><span class="v">91%</span></div>
+    <div class="info"><div class="lab">Progress keseluruhan</div><h2>Live — penambahbaikan berterusan</h2><p>Produk matang: teras jualan, inventori & marketplace kukuh; Tanya AI kini free + berpengawal (watchdog harian). Baki kerja = pelancaran Android, cutoff komisen & polish.</p></div>
+  </div>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><h3>Perbincangan &amp; Konteks</h3><span class="c">// nota keputusan</span></div>
+    <div class="card note"><ul style="margin:0;padding-left:18px">
+      <li><b>Peranan:</b> POS = sistem staf (cashier + back office). Owner-only hal di 10cc Command Centre — audiens dipisahkan.</li>
+      <li><b>Sumber kebenaran:</b> app di POS-System-Test (Supabase). Auto-deploy ke Netlify bila push (~1–2 min).</li>
+      <li><b>Marketplace:</b> Shopee & TikTok direct (EasyStore dah cutover). Stok auto 2-hala; harga auto-push ON.</li>
+      <li><b>Brand lock:</b> back office = 3 warna sahaja (bronze #CD7C32 / hitam #101010 / krim) + Poppins.</li>
+      <li><b>Prinsip duit/stok:</b> mesti tepat & idempotent — tak boleh main agak (FIFO, dedup deduct).</li>
+      <li><b>Home simplify — SIAP MALAM SAMA (p1_1050):</b> Home = Hari Ini, 2 tab, hero 4 kad baru (delta/sasaran/channel), Analytics → sidebar Dashboard.</li>
+      <li><b>PEMBERSIHAN ZOMBIE FASA 2 (audit 5 Jul, p1_1063 fasa 1 siap):</b> 14 section "zombie" dlm index.html — tiada laluan nav TAPI renderer masih tulis ke dalamnya masa boot (bazir kitaran): inventorySection (renderWMS!), fulfillmentSection (renderFulfillment), pickingSection, stockCheck×2, aging/snapshot/valuation, supplierPerf, productSales, salesAnalytics, rosterRecon, reservations, staffMgmt (341 baris), hubShift. Pembersihan = padam FN + SECTION serentak, verify satu-satu (bahaya: fn populate elemen kongsi cth inboundSkuSelect). Senarai penuh dlm guardian ORPHAN_OK. Fasa 1 siap: buang 2 placeholder + Notify Inventory disorok (0 guna) + butang cashier sekali (elak lubang hitam).</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Research</h3><span class="c">// apa yang bentuk keputusan</span></div>
+    <div class="grid2">
+      <div class="card note"><ul style="margin:0;padding-left:18px">
+      <li><b>WMS:</b> idea dilombong dari GreaterWMS — 4 fasa (Stock Levels ✓, Receiving, Cycle Count, Bins).</li>
+      <li><b>Landed cost:</b> goods+SF 5%+shipping by value+part-timer by qty; Google Sheet = sumber.</li>
+      </ul></div>
+      <div class="card note"><ul style="margin:0;padding-left:18px">
+      <li><b>Audit:</b> 3 pusingan audit (Jun–Jul 2026) — 37+ penemuan, semua medium fixed & deployed.</li>
+      <li><b>Pricing tiers:</b> POS = harga walk-in (terendah); marketplace lebih tinggi tampung fi.</li>
+      <li><b>Smoothness (2026-07-04):</b> audit on-device iPhone → SIAP gelombang p1_1024-1036: defer libs, code-split, 2 bulan data, boot cache, auto-lock PIN. Petang: Fasa 5 pre-warm login (p1_1039) + fix beku lepas checkout iPad (p1_1045). Baki: app.js split penuh + index.html.</li>
+      <li><b>Tanya AI (2026-07-04):</b> otak → Gemini free (RM0/bln, fallback OpenAI cap RM50). PENGAJARAN hallucination BD057: prompt saja tak cukup — soalan data PAKSA tool call server-side. Jaring: self-test automatik tiap pagi 06:45 lawan database → kad merah Pusat Amaran kalau gagal. KB = teks statik; tiap ship feature staf, kemaskini KB sekali.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="9" height="20" rx="2"/><path d="M14 6h5a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2h-4"/><path d="M9.5 18.5h.01"/></svg></span><h3>Back Office vs Mobile App Shell</h3><span class="c">// siapa nampak apa</span></div>
+    <div class="grid2">
+      <div class="card note">
+        <div style="font-weight:600;color:var(--ink);font-size:14.5px;margin-bottom:2px">Mobile App Shell</div>
+        <div style="color:var(--gold);font-size:11.5px;font-family:var(--mono);margin-bottom:9px">Staf · iPhone/iPad · ringan · 4 fungsi teras</div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:10px">Wrap Capacitor / ?posapp=1. Data 2 BULAN terakhir (p1_1028). BACK TO BASICS (p1_1029): rekod jualan, komisen, order, stock check — itu sahaja.</div>
+        <ul style="margin:0;padding-left:18px"><li>Cashier — rekod jualan (POS, bakul, checkout, split, baki)</li><li>Orders — check order</li><li>Komisen — check komisen sendiri</li><li>Stok — Stock Take (session stock check per lokasi)</li><li>Top bar: Tanya AI (sparkles, p1_1040 — Zack minta balik; ~0 berat) · Tukar Staf · Log Keluar</li><li>KESELAMATAN: kunci PIN setiap kali app (re)masuk (p1_1030, peranti kongsi)</li><li>LAJU: boot cache (p1_1034) + pre-warm login — tiada lag lepas PIN (p1_1039 Fasa 5)</li><li>Satu splash branded sahaja; option tempoh >2 bulan dibuang (p1_1031/1033)</li></ul>
+      </div>
+      <div class="card note">
+        <div style="font-weight:600;color:var(--ink);font-size:14.5px;margin-bottom:2px">Back Office</div>
+        <div style="color:var(--gold);font-size:11.5px;font-family:var(--mono);margin-bottom:9px">Owner/mgmt · laptop/browser · PENUH</div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:10px">www.10camp.com penuh. SEMUA sejarah all-time (tiada cap). Sidebar penuh. (Notify, Rewards/Apa Baru = DI SINI; Tanya AI ada dua-dua tempat sejak p1_1040.)</div>
+        <ul style="margin:0;padding-left:18px"><li>Semua ciri mobile, +</li><li>Notify Inventory · Rewards/Loyalty (dibuang dari mobile) · Tanya AI (ada dua-dua)</li><li>Jual: All Orders, Customers</li><li>Katalog: Products, Bundles, Event</li><li>Inventory: History, Rekonsiliasi, Notify, Purchase/Delivery Orders</li><li>Tools: Calculator (procurement), Backfill</li><li>Pemasaran: Messages (chat), Marketing (Social/Ads/Reports), Channels</li><li>Analisis: Analytics, Inventory Analytics, Reports, Commission Report</li><li>HR: Roster/Jadual, Memo</li><li>Setup: Settings, Cashier config</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 20h16M4 20V8l6-4 6 4v12M9 20v-6h2v6"/></svg></span><h3>Fasa</h3><span class="c">// 8 blok kerja</span></div>
+    <div id="phases"></div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><path d="M5 3v18M5 4h11l-2 3 2 3H5"/></svg></span><h3>Milestone</h3><span class="c">// dah dihantar</span></div>
+    <div class="card"><div class="tl">
+      <div class="ms"><div class="d">Jun 2026</div><div class="h">Shopee LIVE + cutover EasyStore</div><div class="x">Stok auto 2-hala penuh, guard & reconcile cron.</div></div>
+      <div class="ms"><div class="d">Jun 2026</div><div class="h">TikTok direct + finance settlement</div><div class="x">483 payout (net RM279k) masuk 10cc; OAuth & stock sync.</div></div>
+      <div class="ms"><div class="d">Jun 2026</div><div class="h">Mobile app iOS LIVE</div><div class="x">Capacitor wrap, dipasang iPhone 15 Pro Max; Android internal testing.</div></div>
+      <div class="ms"><div class="d">Jul 2026</div><div class="h">Audit 3-permukaan + governance</div><div class="x">Semua fix shipped; SYSTEM_GOVERNANCE.md; approval isBoss.</div></div>
+      <div class="ms"><div class="d">4 Jul 2026</div><div class="h">Perf wave mobile (p1_1024-1036)</div><div class="x">Defer 4 lib (~1.1MB off boot) + code-split marketing.js & 6 dashboard backoffice-dash.js (~118KB) + preconnect + data 2 bulan + BOOT CACHE: kaunter serta-merta dari cache peranti.</div></div>
+      <div class="ms"><div class="d">4 Jul 2026</div><div class="h">Mobile back-to-basics + auto-lock PIN</div><div class="x">4 tab teras sahaja (Cashier/Orders/Komisen/Stock Take); wajib PIN setiap masuk; option tempoh >2 bulan dibuang; fix bar Bakul atas keypad.</div></div>
+      <div class="ms"><div class="d">4 Jul 2026 (ptg)</div><div class="h">Tanya AI: free + tepat + berpengawal (p1_1040-1044)</div><div class="x">Pulih dlm app (Zack) · otak Gemini FREE RM0 (fallback OpenAI) · KB refresh (Bulk Edit dll) · fix hallucination BD057 (paksa tool call) · watchdog self-test tiap pagi 06:45 → kad merah Pusat Amaran kalau gagal.</div></div>
+      <div class="ms"><div class="d">4 Jul 2026 (ptg)</div><div class="h">Fasa 5 pre-warm + fix aduan Ariff (p1_1039/1045)</div><div class="x">Tiada lag lepas PIN (pra-panas staff-auth) · total BAYAR muncul semula (i18n wipe sejak p1_947) · tiada beku lepas checkout (refresh sasaran ganti full reload). Zack PIN → 3001.</div></div>
+    </div></div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="i"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><h3>Checklist — langkah seterusnya</h3><span class="c">// klik untuk tanda</span></div>
+    <div id="checklist"></div>
+    <div class="cbar" id="cbar"></div>
+  </section>
+
+  <footer><span>Dijana automatik · <span class="mono">2026-07-04</span> · peratus = anggaran</span><span class="edit mono">edit: planning.html</span></footer>
+</div>
+
+<script>
+const PHASES = [["Teras jualan & inventori",100],["Integrasi marketplace (Shopee / TikTok)",95],["Kewangan, kos & komisen",85],["Analitik & WMS (gudang)",80],["Mobile app (iOS live · Android testing)",78],["Polish UI/UX & audit keselamatan",72],["Prestasi & smoothness (iOS + iPad web)",93],["Tanya AI (free · tepat · berpengawal)",90]];
+const CHECK = ["Semak run pertama watchdog Tanya AI (5 Jul 06:45) — app_settings ai_selftest_last mesti segar & pass","Tunggu feedback Zack (PIN 3001, jawapan AI) + Ariff (total & checkout dah lancar lepas refresh)","ZAID: test on-device — boot cache (launch ke-2 serta-merta), auto-lock PIN, 4 tab, snap resit tak kunci","Android → Play Store (iOS dah live; Android internal testing)","Tetapkan tarikh cutoff komisen (tunggu link kiraan Aliff)","Selesai item audit low L1–L12 (kosmetik, tak kritikal)","DONE ✓ 4 Jul: perf wave p1_1024-1036 · Fasa 5 pre-warm · Tanya AI free+KB+anti-hallucination+watchdog · fix Ariff (total + beku checkout)","WONTFIX: C1 PIN (kekal, terima risiko) · kos produk dalam cache = OK kekal"];
+const KEY = 'plan_pos_v1';
+const col = p => p>=80?'var(--green)':p>=40?'var(--amber)':'var(--red)';
+const ph = document.getElementById('phases');
+PHASES.forEach(([n,p])=>{
+  const d=document.createElement('div'); d.className='card phase';
+  d.innerHTML='<div class="ph-top"><span class="ph-name">'+n+'</span><span class="ph-pct">'+p+'%</span></div><div class="track"><div class="fill" style="width:0;background:'+col(p)+'"></div></div>';
+  ph.appendChild(d);
+  requestAnimationFrame(()=>setTimeout(()=>{d.querySelector('.fill').style.width=p+'%';},60));
+});
+const state=JSON.parse(localStorage.getItem(KEY)||'{}');
+const cl=document.getElementById('checklist'), cbar=document.getElementById('cbar');
+function refresh(){const done=CHECK.filter((_,i)=>state[i]).length; cbar.textContent=done+'/'+CHECK.length+' selesai · disimpan dalam browser ini';}
+CHECK.forEach((t,i)=>{
+  const el=document.createElement('div'); el.className='check'+(state[i]?' done':'');
+  el.innerHTML='<span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5 11-11"/></svg></span><span class="txt">'+t+'</span>';
+  el.onclick=()=>{state[i]=!state[i];localStorage.setItem(KEY,JSON.stringify(state));el.classList.toggle('done',state[i]);refresh();};
+  cl.appendChild(el);
+});
+refresh();
+</script>
+</body>
+</html>

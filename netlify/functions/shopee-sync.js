@@ -371,6 +371,10 @@ exports.handler = async (event) => {
         }
         out.status_updated = statusUpdated;
         if (caughtUp) out.stock_caught_up = caughtUp;
+        // p1_1119 — push notification "order masuk" ke peranti staf bila ada order baru
+        if (inserted > 0) {
+            try { await require('./_pushcore').notifyNewOrders({ channel: 'Shopee', count: inserted }); } catch (_) {}
+        }
         out.inserted = inserted;
         out.dupes_skipped = dupes;
         out.stock = stock;

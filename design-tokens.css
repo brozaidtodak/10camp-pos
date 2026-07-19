@@ -4601,7 +4601,7 @@ body:has(#saPanel:not([hidden])) #mobileCartFloatingBar { display: none !importa
    menimpa var ini ikut tema AKTIF dlm design_themes. Fallback
    dlm setiap var() = nilai asal, jadi gagal-selamat.
    ============================================================ */
-.lp-root {
+:root {
   --lp-accent: #CD7C32;
   --lp-accent-2: #A05F22;
   --lp-accent-text: #FFFFFF;
@@ -4617,6 +4617,6 @@ body:has(#saPanel:not([hidden])) #mobileCartFloatingBar { display: none !importa
   --lp-font-body: inherit;
   --lp-radius-btn: 10px;
   --lp-radius-card: 14px;
-  font-family: var(--lp-font-body, inherit);
 }
+.lp-root { font-family: var(--lp-font-body, inherit); }
 .lp-root h1, .lp-root h2, .lp-root h3, .lp-root .lp-h { font-family: var(--lp-font-display, inherit); }

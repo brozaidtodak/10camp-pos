@@ -26746,8 +26746,10 @@ window.pdpPickVariantImage = function(sku) {
  window.__pvpSel = (Array.isArray(prod.images) && prod.images[0]) ? prod.images[0] : null;
  const grid = pool.map(u => {
   const seld = (u === window.__pvpSel);
-  return `<div onclick="window.__pvpSelect('${escJs(u)}')" data-pvp-url="${esc(u)}" style="position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid ${seld ? 'var(--primary-500,#CD7C32)' : '#E5E7EB'}; box-shadow:${seld ? '0 0 0 2px rgba(var(--primary-rgb,205,124,50),0.25)' : 'none'};">
+  const uJs = escJs(u);
+  return `<div onclick="window.__pvpSelect('${uJs}')" data-pvp-url="${esc(u)}" style="position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid ${seld ? 'var(--primary-500,#CD7C32)' : '#E5E7EB'}; box-shadow:${seld ? '0 0 0 2px rgba(var(--primary-rgb,205,124,50),0.25)' : 'none'};">
    <img src="${window.__thumbUrl ? window.__thumbUrl(u, 200) : esc(u)}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.opacity='0.25';">
+   <div onclick="event.stopPropagation(); window.__ppOpenImg && window.__ppOpenImg('${uJs}')" title="Zoom gambar" style="position:absolute; bottom:4px; right:4px; background:rgba(16,16,16,.72); color:#fff; width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:zoom-in;"><i data-lucide="zoom-in" style="width:12px;height:12px;"></i></div>
    ${seld ? '<div style="position:absolute; top:4px; right:4px; background:var(--primary-500,#CD7C32); color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:11px;">&#10003;</div>' : ''}
   </div>`;
  }).join('');

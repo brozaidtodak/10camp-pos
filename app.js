@@ -599,12 +599,26 @@ window.LOYALTY_TIERS = [
 // staf rekod di panel checkout (table loyalty_shirt_claims, unique customer+tahun).
 // Voucher RM / free gift LAMA DIBUANG (tak realistik tanpa gateway).
 window.LOYALTY_REDEEMS = {
- bronze: [ { type:'tier_disc', label:'Diskaun 3% — item terpilih', pct:3, minMargin:35, cost:0 } ],
+ bronze: [ { type:'tier_disc', label:'Diskaun 3% — item terpilih', pct:3, minMargin:35, cost:0 },
+           { type:'deadstock', label:'Tebus barang (mata)', rate:0.40, cost:0 } ],
  silver: [ { type:'tier_disc', label:'Diskaun 5% — item terpilih', pct:5, minMargin:40, cost:0 },
-           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 } ],
+           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 },
+           { type:'deadstock', label:'Tebus barang (mata)', rate:0.50, cost:0 } ],
  vip:    [ { type:'tier_disc', label:'Diskaun 10% — item terpilih', pct:10, minMargin:45, cost:0 },
-           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 } ]
+           { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 },
+           { type:'deadstock', label:'Tebus barang (mata)', rate:0.60, cost:0 } ]
 };
+// p1_1129 — TEBUS MATA → BARANG DEAD STOCK (Zaid setuju 20 Jul): mata dapat nilai tebusan,
+// dibayar dengan barang stok mati (kos sebenar = kos modal, bukan harga jual). Kadar ikut tier
+// (dorong naik tier). PAGAR: walk-in shj + troli ada belian ≥ RM50 dulu + mata BEKU kalau tiada
+// belian 12 bulan + satu tebusan per resit (kongsi medan diskaun dgn tier_disc = auto-eksklusif).
+// Katalog = definisi Ejen Dead Stock: published, stok>0, 0 jualan 60 hari, margin asal ≥ 35%.
+// NOTA SYNC: kadar & peraturan DIDUPLIKAT di netlify/functions/loyalty-otp.js (payload portal) —
+// ubah sini, ubah sana sekali.
+window.LOYALTY_REDEEM_MIN_PURCHASE = 50;
+window.LOYALTY_REDEEM_FREEZE_MONTHS = 12;
+window.LOYALTY_REDEEM_MIN_MARGIN = 35;
+window.LOYALTY_REDEEM_DEAD_DAYS = 60;
 // Tier ikut total_spent (senarai disusun tinggi→rendah; ambil yang pertama layak)
 window.__custTier = function(totalSpent){
  const s = Number(totalSpent) || 0;
@@ -636,7 +650,7 @@ window.__cpRedeemPanelHtml = function(match, tier, pct){
  + '</div>';
  const btns = redeems.map((r, i) => {
  const isPend = pend && pend.idx === i && pend.tier === tk;
- const costTxt = r.cost > 0 ? (r.cost + ' mata') : 'percuma';
+ const costTxt = r.type === 'deadstock' ? 'mata ikut barang' : (r.cost > 0 ? (r.cost + ' mata') : 'percuma');
  const afford = r.cost <= 0 || avail >= r.cost;
  const bg = isPend ? '#4E7C4A' : (afford ? '#fff' : '#F3F4F6');
  const fg = isPend ? '#fff' : (afford ? '#374151' : '#9CA3AF');
@@ -655,9 +669,33 @@ window.__cpApplyRedeem = function(idx){
  const avail = window.__custPointsAvail(match);
  if(r.cost > 0 && avail < r.cost){ if(typeof showToast === 'function') showToast('Mata tak cukup — perlu ' + r.cost + ', ada ' + avail + '.', 'warn'); return; }
  // p1_1060 — semua ganjaran tier = WALK-IN sahaja (tiada gateway online)
- if(r.type === 'tier_disc' || r.type === 'shirt'){
+ if(r.type === 'tier_disc' || r.type === 'shirt' || r.type === 'deadstock'){
  const ch = (document.getElementById('cpChannel') || {}).value || 'POS Cashier';
  if(ch !== 'POS Cashier'){ if(typeof showToast === 'function') showToast('Ganjaran tier untuk WALK-IN sahaja (channel POS Cashier).', 'warn'); return; }
+ }
+ if(r.type === 'deadstock'){
+ // p1_1129 — Tebus mata → barang dead stock. Pagar dulu, baru buka picker.
+ (async function(){
+ // Pagar 1: troli mesti dah ada belian ≥ RM50 (tebusan MESTI tarik jualan sekali)
+ const cartTotal = (Array.isArray(cart) ? cart : []).reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
+ if(cartTotal < (window.LOYALTY_REDEEM_MIN_PURCHASE || 50)){
+ if(typeof showToast === 'function') showToast('Tebusan mata perlukan belian RM' + (window.LOYALTY_REDEEM_MIN_PURCHASE || 50) + '+ dalam resit sama (troli sekarang RM ' + cartTotal.toFixed(2) + ').', 'warn');
+ return;
+ }
+ // Pagar 2: mata beku kalau tiada belian 12 bulan
+ const fr = await window.__dsLastPurchaseOk(match);
+ if(!fr.ok){
+ if(typeof showToast === 'function') showToast('Mata ' + (match.name || 'customer') + ' BEKU — ' + fr.why + '. Belian hari ini akan aktifkan semula (tebus lain kali).', 'warn');
+ return;
+ }
+ // Pagar 3: data jualan cukup untuk kira dead stock (60 hari)
+ if(!window.__fullSalesLoaded && !window.__isAppDataCapped()){
+ if(typeof showToast === 'function') showToast('Data jualan penuh masih dimuat — cuba lagi dalam beberapa saat.', 'warn');
+ return;
+ }
+ window.__dsOpenRedeemPicker(match, tk, r.rate || 0.5, avail);
+ })();
+ return;
  }
  if(r.type === 'tier_disc'){
  // p1_1060 — diskaun HANYA pada item terpilih = margin semasa >= minMargin (kira dari cost_price).
@@ -715,6 +753,113 @@ window.__cpClearRedeem = function(){
  if(typeof cpRecomputeTotal === 'function') cpRecomputeTotal();
  if(typeof window.cpVipLookup === 'function') window.cpVipLookup();
 };
+
+// ============ p1_1129 — TEBUS MATA → BARANG DEAD STOCK ============
+// Pagar 2: mata beku kalau customer tiada belian 12 bulan (proksi luput tanpa lejar mata —
+// customers cuma simpan agregat points/points_redeemed, tiada tarikh per-mata).
+window.__dsLastPurchaseOk = async function(match){
+ try {
+ let q = db.from('sales_history').select('created_at,status').order('created_at', { ascending: false }).limit(5);
+ if(match.phone) q = q.eq('customer_phone', match.phone);
+ else if(match.name && match.name.toLowerCase() !== 'walk-in') q = q.eq('customer_name', match.name);
+ else return { ok: false, why: 'tiada telefon/nama utk semak sejarah' };
+ const { data } = await withTimeout(q, 8000, 'semak belian terakhir');
+ const VOIDS = ['voided','cancelled','canceled','refunded'];
+ const live = (data || []).find(s => !VOIDS.includes(String(s.status || '').toLowerCase()));
+ if(!live) return { ok: false, why: 'tiada rekod belian' };
+ const days = Math.round((Date.now() - new Date(live.created_at).getTime()) / 86400000);
+ const maxDays = (window.LOYALTY_REDEEM_FREEZE_MONTHS || 12) * 30;
+ return days <= maxDays ? { ok: true } : { ok: false, why: 'belian terakhir ' + days + ' hari lalu (had ' + maxDays + ')' };
+ } catch(e){ return { ok: true }; } // rangkaian gagal — jangan blok kaunter, staf yang nilai
+};
+// Katalog client-side — definisi SAMA dgn Ejen Dead Stock (deadstock-agent-background.js):
+// published, stok>0, harga & kos wujud, margin asal >= 35%, 0 jualan 60 hari.
+window.__dsRedeemCatalog = function(){
+ const cutoff = Date.now() - (window.LOYALTY_REDEEM_DEAD_DAYS || 60) * 86400000;
+ const VOIDS = ['voided','cancelled','canceled','refunded'];
+ const sold = {};
+ (Array.isArray(salesHistory) ? salesHistory : []).forEach(s => {
+ if(!s || s.is_test) return;
+ if(VOIDS.includes(String(s.status || '').toLowerCase())) return;
+ if(!s.created_at || new Date(s.created_at).getTime() < cutoff) return;
+ let items = s.items; if(typeof items === 'string'){ try { items = JSON.parse(items); } catch(e){ items = []; } }
+ if(!Array.isArray(items)) return;
+ items.forEach(it => { const k = String(it && it.sku || '').toUpperCase(); if(k) sold[k] = true; });
+ });
+ const stock = {};
+ (Array.isArray(inventoryBatches) ? inventoryBatches : []).forEach(b => { if(b.sku) stock[String(b.sku).toUpperCase()] = (stock[String(b.sku).toUpperCase()] || 0) + (Number(b.qty_remaining) || 0); });
+ const minM = window.LOYALTY_REDEEM_MIN_MARGIN || 35;
+ return (Array.isArray(masterProducts) ? masterProducts : []).filter(p => {
+ if(typeof isPublished === 'function' && !isPublished(p)) return false;
+ const k = String(p.sku || '').toUpperCase();
+ const price = parseFloat(p.price) || 0, cost = parseFloat(p.cost_price) || 0;
+ if(!k || sold[k] || (stock[k] || 0) <= 0 || price <= 0 || cost <= 0) return false;
+ return ((price - cost) / price * 100) >= minM;
+ }).map(p => ({ sku: p.sku, name: p.name || p.sku, price: parseFloat(p.price) || 0, stok: stock[String(p.sku).toUpperCase()] || 0 }))
+ .sort((a, b) => a.price - b.price);
+};
+window.__dsPickerCtx = null;
+window.__dsOpenRedeemPicker = function(match, tierKey, rate, avail){
+ const all = window.__dsRedeemCatalog();
+ if(!all.length){ if(typeof showToast === 'function') showToast('Tiada barang dead stock layak dalam katalog sekarang.', 'warn'); return; }
+ window.__dsPickerCtx = { match: match, tier: tierKey, rate: rate, avail: avail, all: all };
+ const old = document.getElementById('dsRedeemOverlay'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'dsRedeemOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3800; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;';
+ ov.onclick = function(e){ if(e.target === ov) window.__dsCloseRedeemPicker(); };
+ ov.innerHTML = '<div style="background:#fff; max-width:560px; width:100%; border-radius:12px; padding:20px; margin:auto; font-family:var(--font-main,Poppins),sans-serif;">'
+ + '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px;">'
+ + '<h2 style="margin:0; font-size:17px;">Tebus Mata — ' + (match.name ? String(match.name).replace(/</g,'&lt;') : 'Customer') + '</h2>'
+ + '<button onclick="window.__dsCloseRedeemPicker()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:4px 8px;">×</button></div>'
+ + '<div style="font-size:12px; color:#6B7280; margin-bottom:10px;">' + avail + ' mata boleh guna · kadar tier: 1 mata = RM ' + Number(rate).toFixed(2) + ' · <b>1 tebusan per resit</b></div>'
+ + '<input id="dsRedeemSearch" type="search" placeholder="Cari SKU / nama…" oninput="window.__dsRenderPickerList(this.value)" style="width:100%; padding:10px 12px; border:1px solid var(--primary-300,#FDBA74); border-radius:8px; font-size:13px; margin-bottom:10px; font-family:inherit;">'
+ + '<div id="dsRedeemList" style="max-height:52vh; overflow-y:auto; border:1px solid #F3F4F6; border-radius:8px;"></div>'
+ + '</div>';
+ document.body.appendChild(ov);
+ window.__dsRenderPickerList('');
+};
+window.__dsRenderPickerList = function(q){
+ const ctx = window.__dsPickerCtx, el = document.getElementById('dsRedeemList');
+ if(!ctx || !el) return;
+ q = String(q || '').trim().toLowerCase();
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ let shown = 0;
+ const rows = ctx.all.filter(it => !q || (it.sku + ' ' + it.name).toLowerCase().indexOf(q) > -1).map(it => {
+ const mata = Math.ceil(it.price / ctx.rate);
+ const afford = mata <= ctx.avail;
+ if(shown >= 80) return ''; shown++;
+ return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid #F3F4F6; ' + (afford ? '' : 'opacity:.45;') + '">'
+ + '<div style="min-width:0;"><div style="font-size:12.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(it.name) + '</div>'
+ + '<div style="font-size:10.5px; color:#9CA3AF;">' + esc(it.sku) + ' · RM ' + it.price.toFixed(2) + ' · stok ' + it.stok + '</div></div>'
+ + (afford
+ ? '<button onclick="window.__dsPickRedeem(\'' + String(it.sku).replace(/'/g, "\\'") + '\')" style="flex-shrink:0; background:var(--primary-500,#CD7C32); color:#fff; border:0; border-radius:8px; padding:8px 12px; font-size:11.5px; font-weight:800; cursor:pointer; font-family:inherit;">' + mata.toLocaleString() + ' mata</button>'
+ : '<span style="flex-shrink:0; font-size:11px; font-weight:700; color:#9CA3AF;">' + mata.toLocaleString() + ' mata</span>')
+ + '</div>';
+ }).join('');
+ el.innerHTML = rows || '<div style="padding:14px; text-align:center; color:#9CA3AF; font-size:12px;">Tiada padanan.</div>';
+};
+window.__dsCloseRedeemPicker = function(){ const ov = document.getElementById('dsRedeemOverlay'); if(ov) ov.remove(); window.__dsPickerCtx = null; };
+window.__dsPickRedeem = function(sku){
+ const ctx = window.__dsPickerCtx; if(!ctx) return;
+ const it = ctx.all.find(x => x.sku === sku); if(!it) return;
+ const mata = Math.ceil(it.price / ctx.rate);
+ if(mata > ctx.avail){ if(typeof showToast === 'function') showToast('Mata tak cukup.', 'warn'); return; }
+ window.addToCart(sku);
+ // Zerokan harga barang tebusan guna medan diskaun resit (nilai = harga unit SEBENAR dlm cart,
+ // jaga-jaga B2B repricing). Kongsi medan dgn tier_disc → auto satu-tebusan-per-resit.
+ const line = (Array.isArray(cart) ? cart : []).find(c => c.sku === sku);
+ const unitRm = line ? (Number(line.price) || it.price) : it.price;
+ const dt = document.getElementById('cpDiscType'); if(dt) dt.value = 'rm';
+ const da = document.getElementById('cpDiscAmt'); if(da) da.value = unitRm.toFixed(2);
+ const dr = document.getElementById('cpDiscReason'); if(dr) dr.value = 'Tebus mata: ' + sku + ' (' + mata + ' mata)';
+ window.__pendingRedeem = { customer_id: ctx.match.id, tier: ctx.tier, type: 'deadstock', label: 'Tebus ' + sku + ' — ' + (it.name || ''), cost: mata, rm: unitRm, sku: sku };
+ window.__dsCloseRedeemPicker();
+ if(typeof cpRecomputeTotal === 'function') cpRecomputeTotal();
+ if(typeof window.cpVipLookup === 'function') window.cpVipLookup();
+ if(typeof showToast === 'function') showToast('Tebus ' + sku + ': −' + mata + ' mata bila bayar, barang RM ' + unitRm.toFixed(2) + ' percuma. Pastikan serahkan barang!', 'success');
+};
+// ============ tamat p1_1129 ============
 
 // Loading overlay: full-screen translucent block during long ops.
 window.showLoading = function(msg) {
@@ -1774,7 +1919,12 @@ window.setActiveRail = function(railId, navigateDirect) {
 window.renderSettingsHub = function() {
  try {
  const el = document.getElementById('setHubBuild');
- if(el) el.textContent = 'www.10camp.com';
+ // p1_1129 — versi sebenar dari query param app.js (dulu hardcode "v0.91" — basi sejak lama)
+ if(el) {
+  let v = '';
+  try { v = (document.querySelector('script[src^="app.js"]')?.src.match(/[?&]v=(\d+)/) || [])[1] || ''; } catch(e){}
+  el.textContent = (v ? 'build ' + v + ' · ' : '') + 'www.10camp.com';
+ }
  // p1_1071 — tanda swatch tema yang aktif
  try {
  const tk = localStorage.getItem('posTheme_v1') || 'official';
@@ -38341,6 +38491,11 @@ window.I18N = {
  sb_supplier_perf: { bm: 'Prestasi Pembekal', en: 'Supplier Performance' },
  sb_returns: { bm: 'Pulangan / Rosak', en: 'Returns / Damage' },
  sb_mkt_weekly: { bm: 'Data Pemasaran (Mingguan)', en: 'Marketing Data (Weekly)' },
+ // p1_1129 — BUGFIX i18n: 4 key sidebar Marketing (p1_467) tertinggal dari dict — label render kunci mentah "sb_social_media" dll
+ sb_social_media: { bm: 'Media Sosial', en: 'Social Media' },
+ sb_content_schedule: { bm: 'Jadual Kandungan', en: 'Content Schedule' },
+ sb_ads: { bm: 'Iklan', en: 'Ads' },
+ sb_mkt_reports: { bm: 'Laporan Pemasaran', en: 'Marketing Reports' },
  sb_all_customers: { bm: 'Semua Pelanggan', en: 'All Customers' },
  sb_b2b_accounts: { bm: 'Akaun B2B', en: 'B2B Accounts' },
  sb_cuti: { bm: 'Cuti', en: 'Leave' },

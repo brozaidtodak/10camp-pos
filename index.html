@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=172">
+ <link rel="stylesheet" href="design-tokens.css?v=173">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -6232,7 +6232,7 @@
  <div style="flex:1;">
  <div class="set-hub__status-title" data-i18n="set_build_label">System Version</div>
  <div class="set-hub__status-pill" data-i18n="set_build_pill">Operational</div>
- <div class="set-hub__status-sub">v0.91 · <span id="setHubBuild">www.10camp.com</span></div>
+ <div class="set-hub__status-sub"><span id="setHubBuild">www.10camp.com</span></div>
  </div>
  </div>
  </div>
@@ -6797,10 +6797,11 @@
  <textarea id="quoteTerms" style="display:none;"></textarea>
 
  <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
- <button onclick="saveAndPreviewQuotationParams('Sales', 'QUOTATION')" style="background:#fff; color:#333; border:1px solid #ccc; padding:12px 20px; border-radius:50px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_quo">JANA PDF QUOTATION</button>
- <button onclick="saveAndPreviewQuotationParams('Rental', 'RENTAL QUO.')" style="background:#fff; color:#D98A52; border:1px solid #D98A52; padding:12px 20px; border-radius:50px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_quo_sewa">JANA PDF QUO. SEWA</button>
- <button onclick="saveAndPreviewQuotationParams('Sales', 'INVOICE')" style="background:#D98A52; color:white; border:none; padding:12px 20px; border-radius:50px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_inv">JANA PDF INVOICE</button>
- <button onclick="saveAndPreviewQuotationParams('Rental', 'RENTAL INVOICE')" style="background:#b36b3b; color:white; border:none; padding:12px 20px; border-radius:50px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_inv_sewa">JANA PDF INV. SEWA</button>
+ <!-- p1_1129 — 4 butang jana dulunya 4 gaya berbeza (2 hex bronze hardcode); kini 2 gaya konsisten: quotation=outline, invois=solid, warna ikut tema -->
+ <button onclick="saveAndPreviewQuotationParams('Sales', 'QUOTATION')" style="background:#fff; color:var(--primary-700,#A05F22); border:1.5px solid var(--primary-500,#CD7C32); padding:12px 20px; border-radius:10px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_quo">JANA PDF QUOTATION</button>
+ <button onclick="saveAndPreviewQuotationParams('Rental', 'RENTAL QUO.')" style="background:#fff; color:var(--primary-700,#A05F22); border:1.5px solid var(--primary-500,#CD7C32); padding:12px 20px; border-radius:10px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_quo_sewa">JANA PDF QUO. SEWA</button>
+ <button onclick="saveAndPreviewQuotationParams('Sales', 'INVOICE')" style="background:var(--primary-500,#CD7C32); color:#fff; border:none; padding:12px 20px; border-radius:10px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_inv">JANA PDF INVOICE</button>
+ <button onclick="saveAndPreviewQuotationParams('Rental', 'RENTAL INVOICE')" style="background:var(--primary-500,#CD7C32); color:#fff; border:none; padding:12px 20px; border-radius:10px; font-weight:bold; font-size:11px; cursor:pointer;" data-i18n="inv_btn_inv_sewa">JANA PDF INV. SEWA</button>
  </div>
  </div>
  </div>
@@ -13241,7 +13242,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1102"></script>
+ <script src="app.js?v=1103"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

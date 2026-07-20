@@ -524,7 +524,7 @@
 /* Memo cards */
 .memo-list { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 900px) {.memo-list { grid-template-columns: repeat(2, 1fr); } }
-.memo-empty { padding: 40px; text-align: center; color: #9CA3AF; font-size: 13px; }
+.memo-empty { padding: 30px 20px; text-align: center; color: #9CA3AF; font-size: 13px; background: #fff; border: 1px dashed #E3D8C6; border-radius: 12px; } /* p1_1129 — dulu teks terapung tanpa bekas, kini kotak sepadan .memo-detail-empty */
 
 .memo-card { background: #FFF; border: 1px solid #E5E7EB; border-radius: 10px; padding: 14px 16px; transition: 0.15s; position: relative; }
 .memo-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
@@ -2610,6 +2610,12 @@ a:focus-visible {
  .pos-prodsearch-row > button { flex: 1 1 calc(50% - 5px) !important; min-width: 0 !important; padding-left: 10px !important; padding-right: 10px !important; }
 }
 [data-theme="dark"].table-responsive,
+/* p1_1129 — base style .data-table: sebelum ni TIADA langsung (th/td padding 0, table kuncup rapat
+   — paling ketara di Purchase Orders). Section dgn gaya sendiri (id-selector/inline) tetap menang. */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #6B7280; border-bottom: 1px solid var(--border-color, #E5E7EB); white-space: nowrap; }
+.data-table td { padding: 8px 10px; border-bottom: 1px solid #F0EDE6; vertical-align: middle; }
+.data-table tfoot td { border-bottom: none; }
 [data-theme="dark"].data-table thead { background: #18181B; }
 [data-theme="dark"].mode-bar { background: #27272A; border-color: #3F3F46; }
 [data-theme="dark"].mode-tab { color: #A1A1AA; }

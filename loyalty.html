@@ -167,7 +167,7 @@
  if(d && d.ok){
  // p1_1059 — simpan sesi 90 hari: lain kali buka, terus masuk tanpa OTP
  try { if(d.session_token) localStorage.setItem(SESS_KEY, d.session_token); } catch(e){}
- renderDash(d.customer, d.purchases||[]); show('stepDash');
+ renderDash(d.customer, d.purchases||[], d.redeem||null); show('stepDash');
  }
  else { $('errCode').textContent = (d && d.error) || 'Kod salah.'; }
  } catch(e){ $('errCode').textContent = 'Ralat rangkaian. Cuba lagi.'; }
@@ -203,7 +203,41 @@
  + (qrHtml ? '<div class="mc-hint">Tunjuk QR ni di kaunter &mdash; staf scan, mata &amp; diskaun anda terus naik.</div>' : '')
  + '</div></div>';
  }
- function renderDash(c, purchases){
+ // p1_1130 — seksyen "Tebus Mata → Barang Percuma": katalog dead stock dari server,
+ // mata perlu = harga ÷ kadar tier member. Peraturan papar terus terang.
+ function redeemSectionHtml(c, t, avail, purchases, redeem){
+ if(!redeem || !Array.isArray(redeem.catalog) || !redeem.catalog.length) return '';
+ var rate = (redeem.rates && redeem.rates[t.name]) || 0.5;
+ var rules = redeem.rules || {};
+ // mata beku: belian terakhir > 12 bulan (purchases dah exclude apa-apa? guna yg ada)
+ var frozen = false;
+ if(purchases && purchases.length && purchases[0].date){
+ frozen = (Date.now() - new Date(purchases[0].date).getTime()) > ((rules.freeze_months||12) * 30 * 86400000);
+ } else if(!purchases || !purchases.length){ frozen = true; }
+ var afford = [], locked = [];
+ redeem.catalog.forEach(function(it){
+ var mata = Math.ceil(it.price / rate);
+ (mata <= avail ? afford : locked).push({ it: it, mata: mata });
+ });
+ var rows = '';
+ afford.slice(0, 25).forEach(function(x){
+ rows += '<div class="reward"><span>'+esc(x.it.name)+'<br><span style="font-size:10.5px;color:#8A847B;">RM '+x.it.price.toFixed(2)+'</span></span><span class="cost" style="color:#6EE7B7;font-weight:800;">'+x.mata.toLocaleString()+' mata ✓</span></div>';
+ });
+ locked.slice(0, 5).forEach(function(x){
+ rows += '<div class="reward" style="opacity:.5;"><span>'+esc(x.it.name)+'<br><span style="font-size:10.5px;color:#8A847B;">RM '+x.it.price.toFixed(2)+'</span></span><span class="cost">'+x.mata.toLocaleString()+' mata</span></div>';
+ });
+ var more = Math.max(0, afford.length - 25) + Math.max(0, locked.length - 5);
+ var head = '<div class="sec-title">Tebus Mata &rarr; Barang Percuma</div>'
+ + '<div class="note" style="margin-top:0;margin-bottom:8px;">Kadar tier '+t.name+': <b style="color:#FAF6EF;">1 mata = RM '+rate.toFixed(2)+'</b>. '
+ + 'Tebus di kedai sahaja, dengan belian RM '+(rules.min_purchase||50)+'+ dalam resit sama. 1 tebusan per resit.</div>';
+ if(frozen) head += '<div class="note" style="border:1px solid #7f1d1d;color:#FCA5A5;margin-top:0;margin-bottom:8px;">Mata anda <b>beku</b> — tiada belian dalam '+(rules.freeze_months||12)+' bulan. Buat belian untuk aktifkan semula.</div>';
+ if(!afford.length){
+ var cheapest = redeem.catalog.length ? Math.ceil(redeem.catalog[0].price / rate) : 0;
+ head += '<div class="note" style="margin-top:0;margin-bottom:8px;">Kumpul <b style="color:#FAF6EF;">'+Math.max(0,cheapest-avail)+' mata lagi</b> untuk barang termurah (belanja RM'+(Math.max(0,cheapest-avail)*10).toLocaleString()+').</div>';
+ }
+ return head + rows + (more > 0 ? '<div class="note" style="margin-top:8px;">&hellip;dan '+more+' lagi barang dalam katalog &mdash; tanya staf di kedai.</div>' : '');
+ }
+ function renderDash(c, purchases, redeem){
  var t = tierOf(c.total_spent);
  var avail = Math.max(0, (Number(c.points)||0) - (Number(c.points_redeemed)||0));
  var rewards = REDEEMS[t.name] || [];
@@ -232,6 +266,7 @@
  + progress
  + '<div class="sec-title">Ganjaran tier '+t.name+'</div>' + rewardsHtml
  + '<div class="note" style="margin-top:10px;">Ganjaran ditebus di kedai 10 CAMP Cyberjaya sahaja (walk-in). Tunjuk skrin ni pada staf — diskaun '+t.pct+'% diberi pada item terpilih masa bayar; baju percuma ikut stok saiz yang ada.</div>'
+ + redeemSectionHtml(c, t, avail, purchases, redeem)
  + '<div class="sec-title">Pembelian terkini</div>' + pHtml
  + '<button class="btn-ghost" style="margin-top:18px;" onclick="try{localStorage.removeItem(\'loy_sess\');}catch(e){} location.reload()">Log keluar</button>';
  }
@@ -243,7 +278,7 @@
  if(!tok) return;
  try {
  var d = await post({ action:'session', token: tok });
- if(d && d.ok){ renderDash(d.customer, d.purchases||[]); show('stepDash'); }
+ if(d && d.ok){ renderDash(d.customer, d.purchases||[], d.redeem||null); show('stepDash'); }
  else { try { localStorage.removeItem(SESS_KEY); } catch(e){} }
  } catch(e){ /* rangkaian gagal — biar borang email */ }
  })();

@@ -608,7 +608,7 @@ window.LOYALTY_REDEEMS = {
            { type:'shirt', label:'Baju percuma (1×/tahun · saiz terhad)', cost:0 },
            { type:'deadstock', label:'Tebus barang (mata)', rate:0.60, cost:0 } ]
 };
-// p1_1129 — TEBUS MATA → BARANG DEAD STOCK (Zaid setuju 20 Jul): mata dapat nilai tebusan,
+// p1_1130 — TEBUS MATA → BARANG DEAD STOCK (Zaid setuju 20 Jul): mata dapat nilai tebusan,
 // dibayar dengan barang stok mati (kos sebenar = kos modal, bukan harga jual). Kadar ikut tier
 // (dorong naik tier). PAGAR: walk-in shj + troli ada belian ≥ RM50 dulu + mata BEKU kalau tiada
 // belian 12 bulan + satu tebusan per resit (kongsi medan diskaun dgn tier_disc = auto-eksklusif).
@@ -674,7 +674,7 @@ window.__cpApplyRedeem = function(idx){
  if(ch !== 'POS Cashier'){ if(typeof showToast === 'function') showToast('Ganjaran tier untuk WALK-IN sahaja (channel POS Cashier).', 'warn'); return; }
  }
  if(r.type === 'deadstock'){
- // p1_1129 — Tebus mata → barang dead stock. Pagar dulu, baru buka picker.
+ // p1_1130 — Tebus mata → barang dead stock. Pagar dulu, baru buka picker.
  (async function(){
  // Pagar 1: troli mesti dah ada belian ≥ RM50 (tebusan MESTI tarik jualan sekali)
  const cartTotal = (Array.isArray(cart) ? cart : []).reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
@@ -754,7 +754,7 @@ window.__cpClearRedeem = function(){
  if(typeof window.cpVipLookup === 'function') window.cpVipLookup();
 };
 
-// ============ p1_1129 — TEBUS MATA → BARANG DEAD STOCK ============
+// ============ p1_1130 — TEBUS MATA → BARANG DEAD STOCK ============
 // Pagar 2: mata beku kalau customer tiada belian 12 bulan (proksi luput tanpa lejar mata —
 // customers cuma simpan agregat points/points_redeemed, tiada tarikh per-mata).
 window.__dsLastPurchaseOk = async function(match){
@@ -859,7 +859,7 @@ window.__dsPickRedeem = function(sku){
  if(typeof window.cpVipLookup === 'function') window.cpVipLookup();
  if(typeof showToast === 'function') showToast('Tebus ' + sku + ': −' + mata + ' mata bila bayar, barang RM ' + unitRm.toFixed(2) + ' percuma. Pastikan serahkan barang!', 'success');
 };
-// ============ tamat p1_1129 ============
+// ============ tamat p1_1130 ============
 
 // Loading overlay: full-screen translucent block during long ops.
 window.showLoading = function(msg) {

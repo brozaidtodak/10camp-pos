@@ -74,6 +74,59 @@ function checkSession(token) {
   } catch (_) { return null; }
 }
 
+// ---- p1_1130: katalog tebus mata → barang dead stock (utk papar dlm portal) ----
+// Kadar & peraturan SYNC dgn app.js (LOYALTY_MATA_RM dll) — ubah sana, ubah sini sekali.
+const REDEEM_RATES = { Bronze: 0.40, Silver: 0.50, VIP: 0.60 };
+const REDEEM_RULES = { min_purchase: 50, freeze_months: 12, min_margin: 35, dead_days: 60 };
+const CATALOG_KEY = 'deadstock_reward_catalog';
+const CATALOG_TTL_MS = 6 * 3600 * 1000;
+
+// PostgREST max-rows cap: JANGAN percaya limit besar — page manual 1000-1000.
+async function sbPaged(basePath, pageSize, maxPages) {
+  const out = [];
+  for (let i = 0; i < (maxPages || 30); i++) {
+    const page = await sb(`${basePath}&limit=${pageSize}&offset=${i * pageSize}`);
+    if (Array.isArray(page)) out.push(...page);
+    if (!Array.isArray(page) || page.length < pageSize) break;
+  }
+  return out;
+}
+
+async function getRedeemCatalog() {
+  try {
+    // cache 6 jam dlm app_settings (kira penuh agak berat: 3 sweep berpage)
+    try {
+      const cached = await sb(`/app_settings?key=eq.${CATALOG_KEY}&select=value&limit=1`);
+      const v = cached && cached[0] && cached[0].value;
+      if (v && v.at && (Date.now() - new Date(v.at).getTime()) < CATALOG_TTL_MS && Array.isArray(v.items)) return v.items;
+    } catch (_) {}
+    const prods = await sbPaged('/products_master?select=sku,name,price,cost_price&is_published=eq.true&order=sku.asc', 1000, 5);
+    const batches = await sbPaged('/inventory_batches?select=sku,qty_remaining&qty_remaining=gt.0&order=id.asc', 1000, 25);
+    const since = new Date(Date.now() - REDEEM_RULES.dead_days * 86400000).toISOString();
+    const sales = await sbPaged(`/sales_history?select=status,is_test,items&created_at=gte.${encodeURIComponent(since)}&order=id.asc`, 1000, 10);
+    const stock = {};
+    batches.forEach(b => { if (b.sku) { const k = String(b.sku).toUpperCase(); stock[k] = (stock[k] || 0) + (Number(b.qty_remaining) || 0); } });
+    const VOIDS = ['voided', 'cancelled', 'canceled', 'refunded'];
+    const sold = {};
+    sales.forEach(s => {
+      if (!s || s.is_test || VOIDS.includes(String(s.status || '').toLowerCase())) return;
+      let items = s.items; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
+      if (Array.isArray(items)) items.forEach(it => { const k = String(it && it.sku || '').toUpperCase(); if (k) sold[k] = true; });
+    });
+    const items = prods.filter(p => {
+      const k = String(p.sku || '').toUpperCase();
+      const price = Number(p.price) || 0, cost = Number(p.cost_price) || 0;
+      if (!k || sold[k] || (stock[k] || 0) <= 0 || price <= 0 || cost <= 0) return false;
+      return ((price - cost) / price * 100) >= REDEEM_RULES.min_margin;
+    }).map(p => ({ sku: p.sku, name: p.name || p.sku, price: Number(p.price) || 0 }))
+      .sort((a, b) => a.price - b.price);
+    try {
+      await sb(`/app_settings?on_conflict=key`, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ key: CATALOG_KEY, value: { at: new Date().toISOString(), items } }]) });
+    } catch (_) {}
+    return items;
+  } catch (e) { return []; } // katalog gagal — portal cuma tak papar senarai, login tetap jalan
+}
+
 // ---- p1_1059: payload loyalti dikongsi (verify + session) ----
 async function loyaltyPayload(email) {
   const custs = await sb(`/customers?email=eq.${encodeURIComponent(email)}&select=id,name,phone,points,points_redeemed,total_spent,total_orders,created_at&limit=1`);
@@ -98,7 +151,9 @@ async function loyaltyPayload(email) {
   return {
     // p1_1128 — phone utk QR Kad Ahli (staf scan di kaunter), member_since + shirt_claimed utk paparan kad
     customer: { name: c.name || '', phone: c.phone || '', points: Number(c.points) || 0, points_redeemed: Number(c.points_redeemed) || 0, total_spent: Number(c.total_spent) || 0, total_orders: Number(c.total_orders) || 0, member_since: c.created_at || null, shirt_claimed: shirtClaimed },
-    purchases: pSlim
+    purchases: pSlim,
+    // p1_1130 — katalog tebus mata + kadar/peraturan (portal papar "Barang Boleh Tebus")
+    redeem: { rates: REDEEM_RATES, rules: REDEEM_RULES, catalog: await getRedeemCatalog() }
   };
 }
 

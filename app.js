@@ -15907,6 +15907,7 @@ window.processNewCheckout = async function() {
  // p1_554 — Supabase insert pulang {error} (tak throw); kalau gagal, lempar supaya catch pulihkan stok (#1)
  if(insertRes && insertRes.error) throw new Error('Sale insert gagal: ' + (insertRes.error.message || insertRes.error));
  const insertedSaleId = insertRes && insertRes.data ? insertRes.data.id : null;
+ window.__lastSaleId = insertedSaleId; // p1_1135 — utk daftar ahli selepas belian (skrin success)
  saleCommitted = true; // sale dah selamat dalam DB — selepas ni jangan rollback stok
  try { if(window.__pushOrderNotify) window.__pushOrderNotify(cn, finalTotal); } catch(_){} // p1_1119 — push order masuk
  // p1_559 — masukkan jualan ke salesHistory dalam-memori supaya banner Sasaran + Orders kemas-kini serta-merta
@@ -36962,6 +36963,7 @@ window.cpConfirmSale = async function() {
  // Save last sale for receipt actions
  __cpLastSale = {
  invId: invIdCaptured || ('INV-' + Date.now().toString(36).toUpperCase()),
+ sale_id: window.__lastSaleId || null, // p1_1135 — utk attach customer selepas belian
  customer_name: document.getElementById('cpCustName').value || 'Walk-In',
  customer_phone: document.getElementById('cpCustPhone').value || '',
  customer_email: document.getElementById('cpCustEmail').value || '',
@@ -36983,6 +36985,8 @@ window.cpConfirmSale = async function() {
  // kalau ada email ATAU phone; walk-in tanpa contact kekal mesej biasa.
  document.getElementById('cpSuccessSub').innerHTML =
  `${__T('cp_receipt_word')} <strong>${__cpLastSale.invId}</strong> ${__T('cp_saved_suffix')} ${(__cpLastSale.customer_email || __cpLastSale.customer_phone) ? __T('cp_email_can_send') : __T('cp_walkin_customer')}`;
+
+ try { window.__psRenderOffer(); } catch(e){} // p1_1135 — kad Daftar Ahli / baki mata
 
  if(typeof lucide !== 'undefined') lucide.createIcons();
 };
@@ -42823,6 +42827,117 @@ window.__mwSendOne = function(i){
  // rekod audit ringan (best-effort, sama pattern re-engage)
  try { db.from('audit_logs').insert([{ action_type: 'loyalty_wa_campaign', actor_name: (window.currentUser || {}).name || 'Unknown', details: JSON.stringify({ phone: t.phone, name: t.name, mata: t.mata }), created_at: new Date().toISOString() }]).then(function(){}); } catch(e){}
  window.__mwRefresh();
+};
+
+/* ============================================================================
+ * p1_1135 — DAFTAR AHLI SELEPAS BELIAN (skrin "Bayaran Berjaya", mesra mobile app).
+ * Zaid: "mudahkan staff register customer & bagi mata selepas pembelian".
+ * Kes: customer bayar dulu (walk-in tanpa maklumat), LEPAS tu nak join member.
+ * Dulu: staf kena pergi CRM, daftar manual, mata resit tu hangus. Kini: kad terus
+ * atas skrin success — isi telefon+nama (borang besar, sesuai iPad/telefon),
+ * sistem cipta/jumpa customer, BERI MATA resit ini, attach resit pada customer
+ * (customer_email diisi → belian nampak dlm Loyalty Portal). Idempotent per sale.
+ * Kalau sale DAH ada customer: kad papar baki mata + tier (bukan borang).
+ * ==========================================================================*/
+window.__psDone = {};
+window.__psRenderOffer = function(){
+ const el = document.getElementById('cpPostRegWrap'); if(!el) return;
+ el.innerHTML = '';
+ const s = (typeof __cpLastSale !== 'undefined') ? __cpLastSale : null; if(!s) return;
+ const esc = (x) => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ const nm = String(s.customer_name || '').trim();
+ const hasCust = String(s.customer_phone || '').trim() || (nm && nm.toLowerCase() !== 'walk-in');
+ if(hasCust){
+ // Dah ada customer — papar baki mata + tier (mata resit ni dah diberi masa checkout)
+ const norm = (typeof normalisePhoneForMatch === 'function') ? normalisePhoneForMatch(s.customer_phone) : null;
+ let c = null;
+ if(Array.isArray(customersData)){
+ if(norm) c = customersData.find(x => x.phone === norm);
+ if(!c && nm) c = customersData.find(x => (x.name || '').toLowerCase() === nm.toLowerCase());
+ }
+ if(!c) return;
+ const t = window.__custTier(c.total_spent);
+ const avail = window.__custPointsAvail(c);
+ el.innerHTML = '<div style="background:var(--primary-50,#FFF8F0); border:1px solid var(--primary-300,#FDBA74); border-radius:12px; padding:14px 16px; font-size:13px;">'
+ + '<b>' + esc(c.name || 'Member') + '</b> ' + (typeof window.__tierBadgeHtml === 'function' ? window.__tierBadgeHtml(c) : '')
+ + '<div style="margin-top:4px; color:#6B7280;">Mata boleh guna sekarang: <b style="color:var(--primary-800,#7C4A1A);">' + avail + '</b> — boleh tebus barang pada belian seterusnya.</div></div>';
+ return;
+ }
+ // Walk-in tanpa maklumat → tawaran daftar
+ if(s.sale_id && window.__psDone[s.sale_id]) return;
+ const earned = window.__pointsForSpend(s.total);
+ el.innerHTML = '<button onclick="window.__psOpenForm()" style="width:100%; background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:12px; padding:16px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; min-height:52px;">'
+ + '<i data-lucide="user-plus" style="width:18px;height:18px;"></i> Customer nak jadi member? Daftar & beri ' + earned + ' mata</button>';
+};
+window.__psOpenForm = function(){
+ const el = document.getElementById('cpPostRegWrap'); if(!el) return;
+ const s = __cpLastSale; if(!s) return;
+ const earned = window.__pointsForSpend(s.total);
+ // font-size 16px pada input = elak auto-zoom iOS (penting utk app/iPad)
+ el.innerHTML = '<div style="background:#FFF; border:2px solid var(--primary-300,#FDBA74); border-radius:12px; padding:16px;">'
+ + '<div style="font-size:14px; font-weight:800; margin-bottom:10px;">Daftar Ahli — resit ini beri <span style="color:var(--primary-800,#7C4A1A);">' + earned + ' mata</span> (RM ' + Number(s.total).toFixed(2) + ')</div>'
+ + '<input id="psPhone" type="tel" inputmode="tel" placeholder="No. telefon (wajib)" style="width:100%; padding:13px 14px; border:1px solid #DDD; border-radius:10px; font-size:16px; font-family:inherit; margin-bottom:8px;">'
+ + '<input id="psName" type="text" placeholder="Nama (wajib)" style="width:100%; padding:13px 14px; border:1px solid #DDD; border-radius:10px; font-size:16px; font-family:inherit; margin-bottom:8px;">'
+ + '<input id="psEmail" type="email" inputmode="email" placeholder="Email (untuk portal & resit — elok isi)" style="width:100%; padding:13px 14px; border:1px solid #DDD; border-radius:10px; font-size:16px; font-family:inherit; margin-bottom:8px;">'
+ + '<label style="display:flex; align-items:center; gap:8px; font-size:12.5px; margin:2px 0 12px; cursor:pointer;"><input id="psConsent" type="checkbox" checked style="width:18px; height:18px; flex:0 0 auto; margin:0;"> Customer setuju terima promo (email/WhatsApp) — tanya dia dulu</label>'
+ + '<div style="display:flex; gap:8px;">'
+ + '<button onclick="window.__psRenderOffer()" style="flex:0 0 auto; background:#F3F4F6; border:0; border-radius:10px; padding:13px 16px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">Batal</button>'
+ + '<button id="psSaveBtn" onclick="window.__psRegister()" style="flex:1; background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:10px; padding:13px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; min-height:48px;">Daftar & Beri Mata</button>'
+ + '</div></div>';
+ setTimeout(function(){ const p = document.getElementById('psPhone'); if(p) p.focus(); }, 80);
+};
+window.__psRegister = async function(){
+ const s = __cpLastSale; if(!s) return;
+ const btn = document.getElementById('psSaveBtn');
+ const phoneRaw = (document.getElementById('psPhone') || {}).value || '';
+ const name = String((document.getElementById('psName') || {}).value || '').trim();
+ const email = String((document.getElementById('psEmail') || {}).value || '').trim().toLowerCase();
+ const consent = !!((document.getElementById('psConsent') || {}).checked);
+ const norm = (typeof normalisePhoneForMatch === 'function') ? normalisePhoneForMatch(phoneRaw) : null;
+ if(!norm){ if(typeof showToast === 'function') showToast('No. telefon tak sah.', 'warn'); return; }
+ if(name.length < 2){ if(typeof showToast === 'function') showToast('Nama terlalu pendek.', 'warn'); return; }
+ if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ if(typeof showToast === 'function') showToast('Email tak sah — kosongkan kalau tiada.', 'warn'); return; }
+ if(s.sale_id && window.__psDone[s.sale_id]){ if(typeof showToast === 'function') showToast('Resit ini dah didaftarkan.', 'warn'); return; }
+ if(btn){ btn.disabled = true; btn.textContent = 'Menyimpan…'; }
+ const earned = window.__pointsForSpend(s.total);
+ try {
+ let cust = Array.isArray(customersData) ? customersData.find(x => x.phone === norm) : null;
+ if(cust){
+ // Member sedia ada (checkout tadi tak attach) — beri mata resit ini
+ const upd = { points: (Number(cust.points) || 0) + earned, total_spent: (Number(cust.total_spent) || 0) + Number(s.total), total_orders: (Number(cust.total_orders) || 0) + 1 };
+ const { error } = await withTimeout(db.from('customers').update(upd).eq('id', cust.id), 10000, 'award mata');
+ if(error) throw error;
+ Object.assign(cust, upd);
+ } else {
+ const row = { name: name, phone: norm, email: email || null, points: earned, points_redeemed: 0, total_spent: Number(s.total), total_orders: 1,
+ accepts_email_marketing: consent, accepts_sms_marketing: consent, note: 'Daftar selepas belian di kaunter (p1_1135)' };
+ const ins = await withTimeout(db.from('customers').insert([row]).select('id').single(), 10000, 'daftar customer');
+ if(ins && ins.error) throw ins.error;
+ cust = Object.assign({ id: ins && ins.data ? ins.data.id : null }, row);
+ if(Array.isArray(customersData)) customersData.unshift(cust);
+ }
+ // Attach resit pada customer (customer_email diisi → belian nampak dlm Loyalty Portal)
+ if(s.sale_id){
+ try { await withTimeout(db.from('sales_history').update({ customer_name: cust.name || name, customer_phone: norm, customer_email: cust.email || email || null }).eq('id', s.sale_id), 10000, 'attach resit');
+ const sh = Array.isArray(salesHistory) ? salesHistory.find(x => x.id === s.sale_id) : null;
+ if(sh){ sh.customer_name = cust.name || name; sh.customer_phone = norm; sh.customer_email = cust.email || email || null; }
+ } catch(e){ console.warn('attach resit gagal (mata tetap diberi):', e); }
+ window.__psDone[s.sale_id] = true;
+ }
+ try { db.from('audit_logs').insert([{ action_type: 'post_sale_member_reg', actor_name: (window.currentUser || {}).name || 'Unknown', details: JSON.stringify({ sale_id: s.sale_id, phone: norm, earned: earned, existing: !!cust.id && !!customersData }), created_at: new Date().toISOString() }]).then(function(){}); } catch(e){}
+ const t = window.__custTier(cust.total_spent);
+ const avail = window.__custPointsAvail(cust);
+ const wamsg = 'Hai ' + (name.split(' ')[0]) + '! Selamat datang ke 10 CAMP Rewards \u{1F3D5}️ Anda dah ada ' + avail + ' mata (ahli ' + t.name + '). Semak mata & ganjaran bila-bila: https://www.10camp.com/loyalty.html';
+ const el = document.getElementById('cpPostRegWrap');
+ if(el) el.innerHTML = '<div style="background:#EEF3EC; border:1px solid #ABC6A0; border-radius:12px; padding:14px 16px; font-size:13px;">'
+ + '<b style="color:#168C50;">✓ ' + String(name).replace(/</g,'&lt;') + ' didaftarkan</b> — ' + earned + ' mata diberi (tier ' + t.name + ', baki ' + avail + ' mata).'
+ + '<a href="https://wa.me/' + norm + '?text=' + encodeURIComponent(wamsg) + '" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:10px; background:#128C7E; color:#FFF; border-radius:10px; padding:12px; font-size:13.5px; font-weight:800; text-decoration:none; min-height:44px;"><i data-lucide="message-circle" style="width:15px;height:15px;"></i> Hantar link portal via WhatsApp</a></div>';
+ if(typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+ if(typeof showToast === 'function') showToast('Member didaftarkan + ' + earned + ' mata diberi.', 'success');
+ } catch(e){
+ if(typeof showToast === 'function') showToast('Gagal daftar: ' + (e.message || e), 'error');
+ if(btn){ btn.disabled = false; btn.textContent = 'Daftar & Beri Mata'; }
+ }
 };
 
 /* ============================================================================

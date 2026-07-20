@@ -816,6 +816,8 @@
  <div class="cp-success__title" data-i18n="cp_payment_success">Bayaran Berjaya!</div>
  <div class="cp-success__amount">RM <span id="cpSuccessAmount">0.00</span></div>
  <div class="cp-success__sub" id="cpSuccessSub">Resit dah disimpan dalam sistem.</div>
+ <!-- p1_1135 — kad Daftar Ahli selepas belian (walk-in) / baki mata (member). Diisi __psRenderOffer. -->
+ <div id="cpPostRegWrap" style="margin-top:16px; text-align:left;"></div>
  <!-- p1_757 — butang Print/WhatsApp/Email dibuang (Zaid): e-receipt dah auto-hantar masa checkout. Resend manual masih ada di All Orders / Reports. -->
  <div class="cp-success-actions">
  <button class="btn btn--primary" onclick="window.closeCheckoutPanel()"><i data-lucide="check" style="width:14px; height:14px;"></i> Selesai</button>
@@ -13242,7 +13244,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1107"></script>
+ <script src="app.js?v=1108"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

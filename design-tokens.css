@@ -839,6 +839,8 @@
     color: rgba(255,255,255,0.92); font-weight: 600;
     text-decoration: none;
     transition: color 0.16s ease;
+    /* p1_1124 — tap area ≥44px tanpa ubah layout (padding + margin negatif) */
+    padding: 12px 6px; margin: -12px -6px;
 }
 .lp-hero__channel-link i[data-lucide] { width: 14px; height: 14px; stroke-width: 2.1; }
 .lp-hero__channel-link:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }

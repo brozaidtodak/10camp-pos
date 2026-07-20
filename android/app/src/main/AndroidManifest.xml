@@ -34,6 +34,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- p1_1154 — Scan QR Kad Ahli guna kamera (getUserMedia dlm WebView; Capacitor urus runtime prompt) -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- p1_1155 — kamera OPTIONAL: tanpa baris ni, permission CAMERA tersirat "wajib ada kamera"
+         → Play buang 416 peranti tanpa kamera (TV/kereta/Chromebook) dari sokongan build v2.
+         required=false = peranti tanpa kamera boleh install; ciri scan sahaja tak berfungsi. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <!-- getaran maklum balas scan (navigator.vibrate) -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- p1_1117 — push notification (FCM; aktif penuh bila google-services.json ditambah) -->

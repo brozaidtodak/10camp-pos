@@ -38780,7 +38780,8 @@ window.I18N = {
  lp_btn_staff_login: { bm: 'Log Masuk Staf', en: 'Staff Login' },
 
  lp_hero_eyebrow: { bm: 'Kelengkapan Camping & Outdoor · Malaysia', en: 'Camping & Outdoor Gear · Malaysia' },
- lp_hero_title_pre: { bm: 'Healing in style with', en: 'Healing in style with' },
+ lp_hero_title_pre: { bm: 'Datang. Angkat.', en: 'Show up. Gear up.' },
+ lp_hero_title_mark: { bm: 'Gerak.', en: 'Go.' },
  lp_hero_sub: { bm: 'Gear camping & outdoor premium, terus dari 11 jenama pilihan.', en: 'Premium camping & outdoor gear, supplied directly from 11 trusted brands.' },
  lp_hero_cta_activity: { bm: 'Pilih Aktiviti Kau', en: 'Pick Your Activity' },
  lp_hero_cta_shop: { bm: 'Tengok Semua Gear', en: 'Shop All Gear' },

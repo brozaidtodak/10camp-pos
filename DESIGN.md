@@ -64,3 +64,4 @@
 | 19 Jul 2026 | Buang sistem lama (bronze/Poppins) | Arahan Zaid — mahu arah segar |
 | 19 Jul 2026 | Tolak "Malam di Kem" (gelap malam-dulu) | Zaid tak berkenan gelap |
 | 19 Jul 2026 | Pilih ARAH V "Ekspedisi Peta" dari 27 arah | Zaid suka B+P; V = gabungan terus. Grounded ui-ux-pro-max + /design-consultation |
+| 20 Jul 2026 | DI-APPLY ke landing (Fasa A: token + hero poster + butang misi + koordinat GPS) — p1_1125 | Arahan Zaid via /design-consultation "Apply ke landing". Teks butang = ink atas oren (kontras 5.6:1 > putih 3.5:1). Fasa B belum: manifest bernombor, kontur topo radial. Back office/app belum |

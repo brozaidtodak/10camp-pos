@@ -42576,7 +42576,7 @@ window.renderPointsMembership = function(){
   </div>
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px;">${tierCards}</div>
   <p class="soft-note" style="margin-top:14px;">Nota: nilai tier &amp; kadar mata diselaraskan dalam kod supaya konsisten merentas Cashier, portal pelanggan, dan laporan. Nak ubah syarat/diskaun/redeem? Beritahu je, aku update.</p>
-  <h3 class="section-title" data-skip-title-sync style="margin-top:22px; font-size:17px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;"><span><i data-lucide="users" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"></i> Senarai Ahli</span><button onclick="window.__mbOpen()" style="background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="mail" style="width:14px;height:14px;"></i> Kempen E-mel Mata</button></h3>
+  <h3 class="section-title" data-skip-title-sync style="margin-top:22px; font-size:17px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;"><span><i data-lucide="users" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"></i> Senarai Ahli</span><span style="display:inline-flex; gap:8px;"><button onclick="window.__mbOpen()" style="background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="mail" style="width:14px;height:14px;"></i> Kempen E-mel Mata</button><button onclick="window.__mwOpen()" style="background:#128C7E; color:#FFF; border:0; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="message-circle" style="width:14px;height:14px;"></i> Kempen WA Mata</button></span></h3>
   <p class="soft-note" style="margin-top:2px;">Siapa ahli kau, tier, mata boleh guna, dan beli terakhir. Susun ikut belanja tertinggi. Cari nama atau telefon untuk ahli tertentu.</p>
   <div style="margin:8px 0 10px;"><input id="pmSearch" oninput="window.__pmRender(this.value)" placeholder="Cari nama atau nombor telefon..." style="width:100%; max-width:340px; padding:9px 12px; border:1px solid #DDD; border-radius:8px; font-size:13px; font-family:inherit;" /></div>
   <div id="pmTableWrap"></div>`;
@@ -42727,6 +42727,102 @@ window.__mbSend = async function(){
  if(typeof showToast === 'function') showToast('Ralat rangkaian: ' + e.message, 'error');
  if(btn){ btn.disabled = false; btn.textContent = 'Sahkan & Hantar ' + st.chosen.length + ' email'; }
  }
+};
+
+/* ============================================================================
+ * p1_1134 — KEMPEN WHATSAPP MATA (Zaid: "untuk whatsapp pulak, tapi kena send 1 per 1").
+ * WhatsApp TIADA API blast (tanpa WA Business API) → aliran GILIRAN SATU-SATU:
+ * senarai target (mata >= ambang + ada telefon), mesej template token sama email,
+ * tiap baris butang "Hantar →" buka wa.me dgn mesej peribadi member tu — staf tekan
+ * send dlm WhatsApp sendiri, sistem tanda DAH + progress. Status disimpan
+ * localStorage mataWaSent_v1 (per peranti) supaya boleh sambung esok; guard 30 hari
+ * elak spam (pattern sama re-engage p7_2). Poster: URL PNG diselit dlm mesej
+ * (WhatsApp buat preview) — staf juga boleh attach manual dari Desktop.
+ * ==========================================================================*/
+window.__mwState = null;
+window.__mwDefaultMsg = 'Hai {name}! Dari 10 CAMP \u{1F3D5}️\n\nMata Rewards anda dah boleh tukar barang PERCUMA — anda ada {mata} mata (ahli {tier}, 1 mata = {kadar}).\n\nClaim sebelum 31 Disember 2026. Singgah kedai Cyberjaya, beli macam biasa (RM50+), pilih barang anda terus di kaunter.\n\nSemak mata & senarai barang: https://www.10camp.com/loyalty.html\n\nPoster penuh: https://www.10camp.com/assets/promo/poster-claim-point-2026.png';
+window.__mwSentLog = function(){ try { return JSON.parse(localStorage.getItem('mataWaSent_v1') || '{}'); } catch(e){ return {}; } };
+window.__mwPhone60 = function(raw){
+ const d = String(raw || '').replace(/\D/g, '');
+ if(!d || d.length < 9) return null;
+ if(d.indexOf('60') === 0) return d;
+ if(d.indexOf('0') === 0) return '60' + d.slice(1);
+ return d;
+};
+window.__mwTargets = function(minMata, consentOnly){
+ const custs = Array.isArray(customersData) ? customersData : [];
+ return custs.filter(c => {
+ if(!c || !window.__mwPhone60(c.phone)) return false;
+ if(consentOnly && !c.accepts_sms_marketing) return false;
+ return (typeof window.__custPointsAvail === 'function' ? window.__custPointsAvail(c) : 0) >= minMata;
+ }).map(c => {
+ const t = window.__custTier(c.total_spent);
+ return { name: c.name || '', phone: window.__mwPhone60(c.phone), mata: window.__custPointsAvail(c), tier: t.name,
+ kadar: (window.LOYALTY_REDEEMS && window.LOYALTY_REDEEMS[t.key] || []).reduce((r, x) => x.type === 'deadstock' ? (x.rate || r) : r, 0.4) };
+ }).sort((a, b) => b.mata - a.mata);
+};
+window.__mwOpen = function(){
+ const old = document.getElementById('mwOverlay'); if(old) old.remove();
+ window.__mwState = { min: 100, consent: true };
+ const ov = document.createElement('div');
+ ov.id = 'mwOverlay';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3800; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;';
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ ov.innerHTML = '<div style="background:#fff; max-width:680px; width:100%; border-radius:12px; padding:22px; margin:auto; font-family:var(--font-main,Poppins),sans-serif;">'
+ + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;"><h2 style="margin:0; font-size:17px;">Kempen WhatsApp Mata <span style="font-size:11px; font-weight:700; color:#128C7E;">1-PER-1</span></h2>'
+ + '<button onclick="document.getElementById(\'mwOverlay\').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:4px 8px;">×</button></div>'
+ + '<div style="font-size:11.5px; color:#6B7280; margin-bottom:12px;">Tekan <b>Hantar →</b> satu-satu: WhatsApp terbuka dgn mesej siap-taip untuk member tu — <b>semak, lepas tu tekan send dlm WhatsApp</b>. Sistem tanda siapa dah dihantar (ingat sampai esok, peranti ni).</div>'
+ + '<div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; font-size:12.5px;">'
+ + '<label>Mata minimum <input id="mwMin" type="number" value="100" min="0" style="width:70px; padding:6px 8px; border:1px solid #DDD; border-radius:7px; font-family:inherit;" onchange="window.__mwRefresh()"></label>'
+ + '<label style="display:inline-flex; align-items:center; gap:5px;"><input id="mwConsent" type="checkbox" checked style="width:16px; height:16px; flex:0 0 auto; margin:0;" onchange="window.__mwRefresh()"> Hanya yang setuju terima mesej (consent)</label>'
+ + '<span id="mwCount" style="font-weight:800; color:#128C7E;"></span></div>'
+ + '<label style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase;">Mesej — token: {name} {mata} {tier} {kadar}</label>'
+ + '<textarea id="mwMsg" rows="7" style="width:100%; padding:10px 12px; border:1px solid #DDD; border-radius:8px; font-size:12.5px; font-family:inherit; margin:4px 0 10px; resize:vertical;"></textarea>'
+ + '<div id="mwList" style="max-height:300px; overflow-y:auto; border:1px solid #EEE; border-radius:8px;"></div>'
+ + '<div style="font-size:11px; color:#9CA3AF; margin-top:8px;">Tip: nak hantar poster sebagai GAMBAR (bukan link), attach manual dlm WhatsApp — fail kat Desktop &rsaquo; poster-claim-point. Guard: member yg dah dihantar dlm 30 hari ditanda &amp; butang dikunci.</div>'
+ + '</div>';
+ document.body.appendChild(ov);
+ document.getElementById('mwMsg').value = window.__mwDefaultMsg;
+ window.__mwRefresh();
+};
+window.__mwRefresh = function(){
+ const st = window.__mwState; if(!st) return;
+ st.min = Math.max(0, parseInt((document.getElementById('mwMin') || {}).value, 10) || 0);
+ st.consent = !!((document.getElementById('mwConsent') || {}).checked);
+ st.targets = window.__mwTargets(st.min, st.consent);
+ const sent = window.__mwSentLog();
+ const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+ let done = 0;
+ const rows = st.targets.map(function(t, i){
+ const sentAt = sent[t.phone] ? new Date(sent[t.phone]) : null;
+ const recent = sentAt && (Date.now() - sentAt.getTime()) < 30 * 86400000;
+ if(recent) done++;
+ return '<div style="display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid #F7F7F7; font-size:12.5px; ' + (recent ? 'background:#F0FAF4;' : '') + '">'
+ + '<span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(t.name || '(tanpa nama)') + ' <span style="color:#9CA3AF;">' + esc(t.phone) + '</span></span>'
+ + '<span style="flex-shrink:0; font-weight:700; font-size:11.5px;">' + t.tier + ' · ' + t.mata + ' mata</span>'
+ + (recent
+ ? '<span style="flex-shrink:0; font-size:10.5px; font-weight:800; color:#168C50;">DAH &middot; ' + sentAt.toLocaleDateString('en-MY', {day:'2-digit', month:'short'}) + '</span>'
+ : '<button onclick="window.__mwSendOne(' + i + ')" style="flex-shrink:0; background:#128C7E; color:#FFF; border:0; border-radius:7px; padding:7px 13px; font-size:11.5px; font-weight:800; cursor:pointer; font-family:inherit;">Hantar &rarr;</button>')
+ + '</div>';
+ }).join('');
+ const el = document.getElementById('mwList');
+ if(el) el.innerHTML = rows || '<div style="padding:14px; text-align:center; color:#9CA3AF; font-size:12px;">Tiada member padan tapisan ni.</div>';
+ const c = document.getElementById('mwCount'); if(c) c.textContent = done + '/' + st.targets.length + ' dihantar';
+};
+window.__mwSendOne = function(i){
+ const st = window.__mwState; if(!st || !st.targets || !st.targets[i]) return;
+ const t = st.targets[i];
+ const tpl = (document.getElementById('mwMsg') || {}).value || window.__mwDefaultMsg;
+ const msg = tpl.replace(/\{name\}/g, String(t.name || 'kawan').split(' ')[0]).replace(/\{mata\}/g, t.mata).replace(/\{tier\}/g, t.tier).replace(/\{kadar\}/g, 'RM ' + Number(t.kadar).toFixed(2));
+ window.open('https://wa.me/' + t.phone + '?text=' + encodeURIComponent(msg), '_blank');
+ try {
+ const log = window.__mwSentLog();
+ log[t.phone] = new Date().toISOString();
+ localStorage.setItem('mataWaSent_v1', JSON.stringify(log));
+ } catch(e){}
+ // rekod audit ringan (best-effort, sama pattern re-engage)
+ try { db.from('audit_logs').insert([{ action_type: 'loyalty_wa_campaign', actor_name: (window.currentUser || {}).name || 'Unknown', details: JSON.stringify({ phone: t.phone, name: t.name, mata: t.mata }), created_at: new Date().toISOString() }]).then(function(){}); } catch(e){}
+ window.__mwRefresh();
 };
 
 /* ============================================================================

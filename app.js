@@ -841,7 +841,7 @@ window.__dsOpenRedeemPicker = function(match, tierKey, rate, avail){
  const old = document.getElementById('dsRedeemOverlay'); if(old) old.remove();
  const ov = document.createElement('div');
  ov.id = 'dsRedeemOverlay';
- ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3800; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:6010; display:flex; align-items:flex-start; justify-content:center; padding:20px; padding-top:calc(20px + env(safe-area-inset-top)); overflow-y:auto;';
  ov.onclick = function(e){ if(e.target === ov) window.__dsCloseRedeemPicker(); };
  ov.innerHTML = '<div style="background:#fff; max-width:560px; width:100%; border-radius:12px; padding:20px; margin:auto; font-family:var(--font-main,Poppins),sans-serif;">'
  + '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px;">'
@@ -15319,7 +15319,7 @@ window.__posRedeemSheetRefresh = function(){
  if(!ov){
  ov = document.createElement('div');
  ov.id = 'posRedeemSheet';
- ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3750; display:flex; align-items:flex-end; justify-content:center;';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:6000; display:flex; align-items:flex-end; justify-content:center;'; // p1_1140 — MESTI atas .cart-section mobile (z5001); dulu 3750 = sheet terbuka DI BELAKANG skrin cart
  ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
  document.body.appendChild(ov);
  }

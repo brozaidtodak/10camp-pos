@@ -15257,7 +15257,8 @@ window.posSetCustomer = function(c) {
  // p1_79 fix #3: recompute cart so VIP discount preview updates immediately
  try { if(typeof renderCart === 'function') renderCart(); } catch(e){}
  const widget = document.getElementById('posCustomerWidget');
- const addBtn = document.getElementById('posCustAddBtn');
+ // p1_1141 — toggle SELURUH baris (butang tambah + Scan Kad), bukan butang tambah shj
+ const addBtn = document.getElementById('posCustAddRow') || document.getElementById('posCustAddBtn');
  const detail = document.getElementById('posCustDetail');
  if(!widget) return;
  if(c) {
@@ -15288,7 +15289,7 @@ window.posSetCustomer = function(c) {
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  }
  } else {
- if(addBtn) addBtn.style.display = '';
+ if(addBtn) addBtn.style.display = (addBtn.id === 'posCustAddRow') ? 'flex' : ''; // p1_1141 — row = flex
  if(detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
  }
 };
@@ -15311,6 +15312,126 @@ window.__posOpenRedeemSheet = function(){
  window.__cpRedeemCustomer = m; // konteks utk __cpApplyRedeem
  window.__posRedeemSheetRefresh();
 };
+/* ============================================================================
+ * p1_1141 — SCAN QR KAD AHLI GUNA KAMERA (Zaid: "teruskan dengan scan QR kad ahli
+ * guna kamera"). Kad Ahli portal (p1_1128) QR = no. telefon format 60. Dulu hanya
+ * scanner fizikal (keyboard-wedge) boleh baca; kini kamera peranti (app/telefon)
+ * pun boleh: butang "Scan Kad" di widget customer → getUserMedia (kamera belakang)
+ * → jsQR decode setiap frame → digit telefon → cari member → posSetCustomer.
+ * Lib vendor/jsqr.js (256KB) dimuat LAZY hanya bila scanner dibuka. iOS WKWebView
+ * sokong getUserMedia (Capacitor app OK); kalau kamera ditolak/tiada → toast +
+ * fallback: taip no. atau guna scanner fizikal macam biasa.
+ * ==========================================================================*/
+window.__qrScanStream = null;
+window.__qrScanRAF = null;
+window.__qrLibLoad = function(){
+ return new Promise(function(res, rej){
+ if(typeof jsQR === 'function') return res();
+ const s = document.createElement('script');
+ s.src = 'vendor/jsqr.js';
+ s.onload = function(){ res(); };
+ s.onerror = function(){ rej(new Error('jsqr.js gagal dimuat')); };
+ document.head.appendChild(s);
+ });
+};
+window.__qrScanOpen = async function(){
+ const old = document.getElementById('qrScanOverlay'); if(old) old.remove();
+ const ov = document.createElement('div');
+ ov.id = 'qrScanOverlay';
+ // z6020 — atas skrin cart mobile (z5001) + sheet tebusan (z6000); iktibar p1_1140
+ ov.style.cssText = 'position:fixed; inset:0; background:#000; z-index:6020; display:flex; flex-direction:column;';
+ ov.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; padding-top:calc(14px + env(safe-area-inset-top)); color:#FFF; font-family:var(--font-main,Poppins),sans-serif;">'
+ + '<b style="font-size:15px;">Scan QR Kad Ahli</b>'
+ + '<button onclick="window.__qrScanClose()" style="background:rgba(255,255,255,0.15); border:0; color:#FFF; font-size:20px; border-radius:50px; width:38px; height:38px; cursor:pointer;">×</button></div>'
+ + '<div style="flex:1; position:relative; overflow:hidden;">'
+ + '<video id="qrScanVideo" playsinline autoplay muted style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"></video>'
+ + '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;"><div style="width:230px; height:230px; border:3px solid rgba(255,255,255,0.9); border-radius:18px; box-shadow:0 0 0 2000px rgba(0,0,0,0.45);"></div></div>'
+ + '<div id="qrScanHint" style="position:absolute; bottom:calc(24px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:#FFF; font-size:13px; font-family:var(--font-main,Poppins),sans-serif; text-shadow:0 1px 4px #000;">Halakan kamera ke QR pada Kad Ahli customer</div>'
+ + '</div>';
+ document.body.appendChild(ov);
+ try {
+ await window.__qrLibLoad();
+ const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+ window.__qrScanStream = stream;
+ const video = document.getElementById('qrScanVideo');
+ if(!video){ window.__qrScanClose(); return; }
+ video.srcObject = stream;
+ await video.play();
+ const canvas = document.createElement('canvas');
+ const ctx = canvas.getContext('2d', { willReadFrequently: true });
+ const tick = function(){
+ if(!document.getElementById('qrScanOverlay')) return; // dah tutup
+ try {
+ if(video.readyState === video.HAVE_ENOUGH_DATA){
+ canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+ ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+ const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+ const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+ if(code && code.data){ window.__qrScanHit(String(code.data)); return; }
+ }
+ } catch(e){}
+ window.__qrScanRAF = requestAnimationFrame(tick);
+ };
+ window.__qrScanRAF = requestAnimationFrame(tick);
+ } catch(e){
+ window.__qrScanClose();
+ const msg = /NotAllowed|Permission/i.test(String(e && e.name || e)) ? 'Akses kamera ditolak — benarkan kamera utk app ni dlm Settings.' : 'Kamera tak tersedia: ' + (e.message || e);
+ if(typeof showToast === 'function') showToast(msg + ' Guna scanner fizikal / taip no. telefon.', 'warn');
+ }
+};
+window.__qrScanHit = function(text){
+ // Kad Ahli QR = digit telefon (60...). QR "Jom Join" (URL portal) pun dikenali — bagi mesej sesuai.
+ if(/loyalty\.html/i.test(text)){
+ window.__qrScanClose();
+ if(typeof showToast === 'function') showToast('Itu QR pendaftaran portal (untuk customer scan) — bukan Kad Ahli. Minta customer buka Kad Ahli dlm portal.', 'warn');
+ return;
+ }
+ const digits = String(text).replace(/\D/g, '');
+ const norm = (typeof normalisePhoneForMatch === 'function') ? normalisePhoneForMatch(digits) : digits;
+ if(!norm){
+ // QR bukan telefon — jangan tutup; papar hint & sambung scan (mungkin tersasar ke QR lain)
+ const h = document.getElementById('qrScanHint'); if(h) h.textContent = 'QR tu bukan Kad Ahli — cuba lagi';
+ try { const v = document.getElementById('qrScanVideo'); if(v) window.__qrScanResume(v); } catch(e){}
+ return;
+ }
+ window.__qrScanClose();
+ try { if(navigator.vibrate) navigator.vibrate(80); } catch(e){}
+ const m = (Array.isArray(customersData) ? customersData : []).find(c => c.phone === norm);
+ if(m){
+ window.posSetCustomer(m);
+ const avail = window.__custPointsAvail(m);
+ if(typeof showToast === 'function') showToast('Kad Ahli: ' + (m.name || norm) + ' — ' + avail + ' mata (' + window.getCustomerTier(m) + ').', 'success');
+ } else {
+ if(typeof showToast === 'function') showToast('No. ' + norm + ' tak dijumpai dlm senarai member. Semak ejaan / daftar dulu.', 'warn');
+ }
+};
+window.__qrScanResume = function(video){
+ // sambung semula loop selepas QR bukan-telefon dikesan
+ const canvas = document.createElement('canvas');
+ const ctx = canvas.getContext('2d', { willReadFrequently: true });
+ const tick = function(){
+ if(!document.getElementById('qrScanOverlay')) return;
+ try {
+ if(video.readyState === video.HAVE_ENOUGH_DATA){
+ canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+ ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+ const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+ const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+ if(code && code.data){ window.__qrScanHit(String(code.data)); return; }
+ }
+ } catch(e){}
+ window.__qrScanRAF = requestAnimationFrame(tick);
+ };
+ window.__qrScanRAF = requestAnimationFrame(tick);
+};
+window.__qrScanClose = function(){
+ try { if(window.__qrScanRAF) cancelAnimationFrame(window.__qrScanRAF); } catch(e){}
+ window.__qrScanRAF = null;
+ try { if(window.__qrScanStream) window.__qrScanStream.getTracks().forEach(t => t.stop()); } catch(e){}
+ window.__qrScanStream = null;
+ const ov = document.getElementById('qrScanOverlay'); if(ov) ov.remove();
+};
+
 window.__posRedeemSheetRefresh = function(){
  const m = window.__cpRedeemCustomer; if(!m) return;
  const tier = window.getCustomerTier(m);

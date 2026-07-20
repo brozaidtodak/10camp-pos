@@ -3224,7 +3224,11 @@
  </div>
  <!-- p1_79 fix #2: Customer Attach widget — link customer ke sale sebelum checkout -->
  <div id="posCustomerWidget" style="margin:12px 0 14px; padding:10px 12px; background:#FEFCF8; border:1px dashed var(--border-color); border-radius:10px;">
- <button id="posCustAddBtn" onclick="window.posAttachCustomer()" style="width:100%; padding:8px 12px; background:transparent; border:none; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; text-align:left;" data-i18n="cs_add_customer">+ Tambah Pelanggan</button>
+ <!-- p1_1141 — Scan Kad Ahli: kamera peranti baca QR kad (QR = no. telefon) → attach member terus -->
+ <div id="posCustAddRow" style="display:flex; align-items:center; gap:8px;">
+ <button id="posCustAddBtn" onclick="window.posAttachCustomer()" style="flex:1; padding:8px 12px; background:transparent; border:none; color:var(--primary); font-size:13px; font-weight:600; cursor:pointer; text-align:left;" data-i18n="cs_add_customer">+ Tambah Pelanggan</button>
+ <button onclick="window.__qrScanOpen()" style="flex:0 0 auto; background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:8px; padding:9px 13px; font-size:12.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; min-height:40px;" title="Scan QR Kad Ahli guna kamera"><i data-lucide="scan-line" style="width:15px;height:15px;"></i> Scan Kad</button>
+ </div>
  <div id="posCustDetail" style="display:none; align-items:center; gap:10px;"></div>
  </div>
  <div id="cartItems" class="cart-items" style="max-height: calc(100vh - 420px); min-height: 200px; overflow-y:auto; padding-right:10px; margin-bottom:15px;"><p class="empty-cart-message" data-i18n="cs_empty_cart">Imbas barcode atau klik produk dari katalog untuk mulakan jualan.</p></div>
@@ -13246,7 +13250,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1113"></script>
+ <script src="app.js?v=1114"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

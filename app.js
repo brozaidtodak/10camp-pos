@@ -36295,15 +36295,20 @@ window.cpSetPayment = function(method) {
  if(typeof window.cpRefreshProofBadge === 'function') window.cpRefreshProofBadge();
  // p1_1150 — iOS WKWebView (Zaid: "pilih pembayaran QR je... tak boleh scroll, indicator je
  // bergerak"): tukar dari Tunai sorok cpCashPanel (keypad tinggi) → kandungan MENGECUT tapi
- // scrollTop lama > max baru → scroller sangkut, content tak repaint. Clamp ke had baru +
- // nudge 1px utk paksa repaint. Jalan utk semua tukar method (selamat, no-op bila tak perlu).
+ // scrollTop lama > max baru → scroller sangkut, content tak repaint.
+ // p1_1151 — clamp+nudge TAK CUKUP (Zaid: kali ke-3 tukar ke QR sangkut lagi — lapisan scroll
+ // WebKit sendiri rosak selepas beberapa kali ubah tinggi). Kini BINA SEMULA scroll layer:
+ // overflow hidden → paksa reflow (WebKit buang layer lama) → auto semula → pulih kedudukan.
  requestAnimationFrame(function(){
  try {
  const sc = document.querySelector('#checkoutPanel .checkout-panel__body:not(.is-hidden)');
  if(!sc) return;
  const max = Math.max(0, sc.scrollHeight - sc.clientHeight);
- if(sc.scrollTop > max) sc.scrollTop = max;
- else if(sc.scrollTop > 0) { sc.scrollTop -= 1; sc.scrollTop += 1; }
+ const keep = Math.min(sc.scrollTop, max);
+ sc.style.overflowY = 'hidden';
+ void sc.offsetHeight; // reflow — buang scroll layer rosak
+ sc.style.overflowY = 'auto';
+ sc.scrollTop = keep;
  } catch(e){}
  });
 };

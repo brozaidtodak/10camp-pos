@@ -32,4 +32,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- p1_1154 — Scan QR Kad Ahli guna kamera (getUserMedia dlm WebView; Capacitor urus runtime prompt) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- getaran maklum balas scan (navigator.vibrate) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- p1_1117 — push notification (FCM; aktif penuh bila google-services.json ditambah) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

@@ -15275,6 +15275,16 @@ window.posSetCustomer = function(c) {
  + '<div style="font-size:11px; color:#666;">' + hesc(phone) + ' · ' + pts + ' ' + ptsLbl + '</div>'
  + '</div>'
  + '<button onclick="window.posDetachCustomer()" title="' + (typeof window.t === 'function' ? window.t('cs_remove') : 'Remove') + '" style="background:none; border:none; color:#B23A2E; font-size:18px; cursor:pointer; padding:4px 8px; flex-shrink:0;">×</button>';
+ // p1_1139 — butang TEBUS MATA terus di chip customer (Zaid: skrin staf mobile "tak nampak
+ // button redeem" — dulu tebusan tersorok dlm panel checkout selepas tekan BAYAR)
+ try {
+ const __m = window.__posFindMember(c);
+ if(__m){
+ const __avail = window.__custPointsAvail(__m);
+ detail.innerHTML += '<button onclick="window.__posOpenRedeemSheet()" style="flex-basis:100%; margin-top:8px; background:var(--primary-500,#CD7C32); color:#FFF; border:0; border-radius:10px; padding:12px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px;"><i data-lucide="gift" style="width:15px;height:15px;"></i> Tebus Mata / Ganjaran (' + __avail + ' mata)</button>';
+ detail.style.flexWrap = 'wrap';
+ }
+ } catch(e){}
  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
  }
  } else {
@@ -15284,6 +15294,44 @@ window.posSetCustomer = function(c) {
 };
 
 window.posDetachCustomer = function() { window.posSetCustomer(null); };
+
+// p1_1139 — sheet Tebus Mata dari skrin cart (guna panel ganjaran & aliran __cpApplyRedeem
+// sedia ada; pilihan kekal bila panel BAYAR dibuka — lihat restore dlm openCheckoutPanel).
+window.__posFindMember = function(c){
+ if(!c || !Array.isArray(customersData)) return null;
+ if(c.id != null){ const byId = customersData.find(x => x.id === c.id); if(byId) return byId; }
+ const norm = (typeof normalisePhoneForMatch === 'function') ? normalisePhoneForMatch(c.phone) : null;
+ if(norm){ const byPh = customersData.find(x => x.phone === norm); if(byPh) return byPh; }
+ if(c.email){ const byEm = customersData.find(x => (x.email || '').toLowerCase() === String(c.email).toLowerCase()); if(byEm) return byEm; }
+ return null;
+};
+window.__posOpenRedeemSheet = function(){
+ const m = window.__posFindMember(window.posCustomer);
+ if(!m){ if(typeof showToast === 'function') showToast('Customer ni belum member berdaftar.', 'warn'); return; }
+ window.__cpRedeemCustomer = m; // konteks utk __cpApplyRedeem
+ window.__posRedeemSheetRefresh();
+};
+window.__posRedeemSheetRefresh = function(){
+ const m = window.__cpRedeemCustomer; if(!m) return;
+ const tier = window.getCustomerTier(m);
+ const pct = (typeof getTierDiscount === 'function') ? getTierDiscount(tier) : 0;
+ let ov = document.getElementById('posRedeemSheet');
+ if(!ov){
+ ov = document.createElement('div');
+ ov.id = 'posRedeemSheet';
+ ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:3750; display:flex; align-items:flex-end; justify-content:center;';
+ ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+ document.body.appendChild(ov);
+ }
+ ov.innerHTML = '<div style="background:#FFF; width:100%; max-width:560px; border-radius:16px 16px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom)); font-family:var(--font-main,Poppins),sans-serif; max-height:80vh; overflow-y:auto;">'
+ + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'
+ + '<h3 style="margin:0; font-size:16px;">Ganjaran ' + String(m.name || '').replace(/</g,'&lt;') + '</h3>'
+ + '<button onclick="document.getElementById(\'posRedeemSheet\').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:4px 8px;">×</button></div>'
+ + window.__cpRedeemPanelHtml(m, tier, pct)
+ + '<div style="font-size:11px; color:#9CA3AF; margin-top:10px;">Pilihan kekal bila tekan BAYAR SEKARANG — diskaun/mata dikira masa bayar.</div>'
+ + '</div>';
+ if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+};
 
 // p1_79 fix #7: Keyboard shortcuts for cashier speed.
 // F9 = Open Payment, F10 = Clear Cart (with confirm), Esc = close active modal,
@@ -35968,6 +36016,18 @@ window.openCheckoutPanel = function() {
  const el = document.getElementById(id); if(el) el.value = '';
  });
  const dType = document.getElementById('cpDiscType'); if(dType) dType.value = 'rm';
+ // p1_1139 — KEKALKAN tebusan yg dipilih dari skrin cart (sheet Tebus Mata): reset atas padam
+ // cpDiscAmt, jadi pulihkan dari __pendingRedeem kalau customer sama masih attached.
+ try {
+ const __pr = window.__pendingRedeem;
+ const __pm = window.__posFindMember ? window.__posFindMember(window.posCustomer) : null;
+ if(__pr && __pr.rm > 0 && __pm && __pr.customer_id === __pm.id){
+ const da = document.getElementById('cpDiscAmt'); if(da) da.value = Number(__pr.rm).toFixed(2);
+ const dr = document.getElementById('cpDiscReason'); if(dr) dr.value = (__pr.type === 'deadstock' ? 'Tebus mata: ' + (__pr.sku || '') + ' (' + (__pr.cost || 0) + ' mata)' : 'Diskaun tier ' + (__pr.pct || 0) + '% (walk-in)');
+ } else if(__pr && (!__pm || __pr.customer_id !== (__pm && __pm.id))){
+ window.__pendingRedeem = null; // customer dah tukar/detach — jangan bawa tebusan orang lain
+ }
+ } catch(e){}
  // p1_231 — Pre-fill customer fields from window.posCustomer (attached via picker) — no redundant typing
  const pc = window.posCustomer;
  const setIf = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : String(v)); };
@@ -36767,6 +36827,7 @@ window.cpVipLookup = function() {
  }
  cpRecomputeTotal();
  try { window.writeCustomerDisplayCart(); } catch(e){} // p1_1137 — skrin customer: mata + boleh tebus
+ try { if(document.getElementById('posRedeemSheet')) window.__posRedeemSheetRefresh(); } catch(e){} // p1_1139 — sheet cart ikut status terkini
 };
 
 // Customer autocomplete (UX-3.2)

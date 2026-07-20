@@ -16137,6 +16137,9 @@ window.processNewCheckout = async function() {
  const earlyEmail = (document.getElementById("customerEmail").value || '').trim();
  __ckStep('customer', 'Menyimpan jualan…'); // p1_1085
  const insertRes = await withTimeout(db.from('sales_history').insert([{
+ // p1_1152 — jualan oleh akaun demo (Tester/Reviewer) AUTO is_test (Zaid buat 3 jualan test
+ // 21 Jul → kena cleanup manual: restock + reverse mata + padam customer junk; kini automatik keluar analitik)
+ is_test: (currentUser && (currentUser.staff_id === 'TST001' || currentUser.staff_id === 'REV001')) ? true : false,
  customer_name: custNameText, customer_phone: custPhoneText, customer_email: earlyEmail || null, payment_method: pm, channel: cn, status: cst,
  total: finalTotal, total_amount: finalTotal, items: cart,
  staff_name: currentUser ? currentUser.name : 'Unknown',

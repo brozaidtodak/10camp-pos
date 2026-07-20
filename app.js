@@ -42627,7 +42627,7 @@ window.__mbOpen = function(){
  + '<div style="font-size:11.5px; color:#6B7280; margin-bottom:12px;">Dari: <b>admin@10camp.com</b> · penerima ikut tapisan di bawah · <b>pratonton wajib sebelum hantar</b></div>'
  + '<div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; font-size:12.5px;">'
  + '<label>Mata minimum <input id="mbMin" type="number" value="100" min="0" style="width:70px; padding:6px 8px; border:1px solid #DDD; border-radius:7px; font-family:inherit;" onchange="window.__mbRefresh()"></label>'
- + '<label style="display:inline-flex; align-items:center; gap:5px;"><input id="mbConsent" type="checkbox" checked onchange="window.__mbRefresh()"> Hanya yang setuju terima email (consent)</label>'
+ + '<label style="display:inline-flex; align-items:center; gap:5px;"><input id="mbConsent" type="checkbox" checked onchange="window.__mbRefresh()" style="width:16px; height:16px; flex:0 0 auto; margin:0;"> Hanya yang setuju terima email (consent)</label>'
  + '<span id="mbCount" style="font-weight:800; color:var(--primary-800,#7C4A1A);"></span></div>'
  + '<div id="mbList" style="max-height:200px; overflow-y:auto; border:1px solid #EEE; border-radius:8px; margin-bottom:14px;"></div>'
  + '<label style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase;">Subjek</label>'
@@ -42654,7 +42654,8 @@ window.__mbRefresh = function(){
  const el = document.getElementById('mbList');
  if(el) el.innerHTML = targets.length ? targets.map(t =>
  '<label style="display:flex; align-items:center; gap:8px; padding:6px 12px; border-bottom:1px solid #F7F7F7; font-size:12px; cursor:pointer;">'
- + '<input type="checkbox" ' + (st.unchecked[t.email] ? '' : 'checked') + ' onchange="window.__mbState.unchecked[\'' + t.email.replace(/'/g, "\\'") + '\'] = !this.checked; window.__mbCountUpd();">'
+ // p1_1132 — CSS global POS regang input ke 100% → checkbox 506px, nama terhimpit hilang. Kunci saiz inline.
+ + '<input type="checkbox" ' + (st.unchecked[t.email] ? '' : 'checked') + ' style="width:16px; height:16px; flex:0 0 auto; margin:0;" onchange="window.__mbState.unchecked[\'' + t.email.replace(/'/g, "\\'") + '\'] = !this.checked; window.__mbCountUpd();">'
  + '<span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(t.name || '(tanpa nama)') + ' <span style="color:#9CA3AF;">' + esc(t.email) + '</span></span>'
  + '<span style="flex-shrink:0; font-weight:700;">' + t.tier + ' · ' + t.mata + ' mata</span></label>').join('')
  : '<div style="padding:14px; text-align:center; color:#9CA3AF; font-size:12px;">Tiada member padan tapisan ni.</div>';

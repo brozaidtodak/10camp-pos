@@ -46419,6 +46419,12 @@ window.__pdbRefresh = async function(btn){
    if(!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform()) return; // web biasa: skip
    const PN = Cap.Plugins && Cap.Plugins.PushNotifications;
    if(!PN) return;
+   // p1_1159 — ANDROID CRASH FIX (report Fahmi, APK v2): PN.register() memicu FirebaseMessaging
+   // native; build Android BELUM ada google-services.json → IllegalStateException "Default
+   // FirebaseApp is not initialized" = app terus tertutup SEBAIK lepas login. try/catch JS TAK
+   // dapat tangkap crash native. Skip push di Android sehingga Firebase siap (flip flag ni +
+   // build v3 dgn google-services.json). iOS kekal jalan (APNs terus, tanpa Firebase).
+   if(Cap.getPlatform() === 'android' && !window.__ANDROID_PUSH_READY) return;
    const perm = await PN.requestPermissions();
    if(perm.receive !== 'granted') return;
    // Android 8+: channel WAJIB wujud, kalau tak notification senyap

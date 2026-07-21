@@ -600,10 +600,16 @@ window.__mktDeleteContent = async function(id){
 window.__liveSessCache = [];
 window.__liveLoadSess = async function(){ try { const r = await db.from('live_sessions').select('*').order('session_date',{ascending:false}).order('start_at',{ascending:false}).limit(120); window.__liveSessCache = r.data||[]; } catch(e){ window.__liveSessCache=[]; } return window.__liveSessCache; };
 window.__liveKomisenPct = 5;
+// p1_1165 — Pilihan A (Zaid): sistem padan order ikut tetingkap masa TAPI terlebih kira — ada order
+// TikTok Shop dlm tempoh live yang BUKAN dari live (customer beli via carian/video lain). TikTok tahu
+// tepat, kita teka. FIX: pulangkan SENARAI order dipadan; komisen kira dari order DISERTAKAN sahaja
+// (excluded_order_ids = order yg staf/pengurus untick sbb bukan dari live). Rujuk GMV TikTok utk untick.
 window.__liveCalc = function(sess){
- const out = { orders:0, jualan:0, margin:0, adaKosSemua:true };
+ const out = { orders:0, jualan:0, margin:0, adaKosSemua:true, list:[] };
  if(typeof salesHistory==='undefined' || !Array.isArray(salesHistory)) return out;
  const t0 = new Date(sess.start_at).getTime(), t1 = new Date(sess.end_at).getTime();
+ let excl = sess.excluded_order_ids; if(typeof excl==='string'){ try{ excl=JSON.parse(excl); }catch(e){ excl=[]; } }
+ const exclSet = new Set((Array.isArray(excl)?excl:[]).map(String));
  const kosOf = {};
  ((typeof masterProducts!=='undefined' && masterProducts)||[]).forEach(function(p){ kosOf[p.sku] = parseFloat(p.cost_price)||0; });
  salesHistory.forEach(function(sale){
@@ -611,17 +617,38 @@ window.__liveCalc = function(sess){
   const ts = new Date(sale.created_at).getTime();
   if(!(ts>=t0 && ts<=t1)) return;
   if(typeof window.__isRealSale==='function' && !window.__isRealSale(sale)) return;
-  out.orders++;
   let items=[]; try{ items = typeof sale.items==='string' ? JSON.parse(sale.items||'[]') : (sale.items||[]); }catch(e){}
+  let oJualan=0, oMargin=0, oKosPenuh=true, nItem=0;
   items.forEach(function(it){
    const q = parseInt(it.qty!=null?it.qty:(it.quantity!=null?it.quantity:1))||0;
    const pr = parseFloat(it.price!=null?it.price:it.unit_price)||0;
-   out.jualan += q*pr;
+   oJualan += q*pr; nItem += q;
    const kos = kosOf[it.sku]||0;
-   if(kos) out.margin += q*Math.max(0, pr-kos); else out.adaKosSemua = false;
+   if(kos) oMargin += q*Math.max(0, pr-kos); else oKosPenuh = false;
   });
+  const excluded = exclSet.has(String(sale.id));
+  out.list.push({ id: sale.id, at: sale.created_at, jualan: oJualan, margin: oMargin, kosPenuh: oKosPenuh, nItem: nItem, excluded: excluded });
+  if(excluded) return; // dikecualikan — tak masuk kiraan komisen
+  out.orders++; out.jualan += oJualan; out.margin += oMargin; if(!oKosPenuh) out.adaKosSemua = false;
  });
+ out.list.sort(function(a,b){ return new Date(a.at)-new Date(b.at); });
  return out;
+};
+// p1_1165 — tick/untick order dari kiraan komisen live (simpan excluded_order_ids ke DB, render semula)
+window.__liveToggleOrder = async function(sessId, orderId){
+ const sess = (window.__liveSessCache||[]).find(function(s){ return String(s.id)===String(sessId); });
+ if(!sess) return;
+ let excl = sess.excluded_order_ids; if(typeof excl==='string'){ try{ excl=JSON.parse(excl); }catch(e){ excl=[]; } }
+ excl = Array.isArray(excl)?excl.map(String):[];
+ const oid = String(orderId), i = excl.indexOf(oid);
+ if(i===-1) excl.push(oid); else excl.splice(i,1);
+ try {
+  const r = await db.from('live_sessions').update({ excluded_order_ids: excl }).eq('id', sessId);
+  if(r.error) throw r.error;
+  sess.excluded_order_ids = excl; // update cache supaya render segera
+  window.renderTikTokLive();
+  if(window.showToast) showToast(i===-1?'Order dikeluarkan dari komisen live.':'Order dimasukkan semula.', 'success');
+ } catch(e){ if(window.showToast) showToast('Gagal kemas kini: '+e.message, 'error'); }
 };
 window.__liveSaveSess = async function(){
  const g = function(id){ const el=document.getElementById(id); return el?el.value:''; };
@@ -690,14 +717,35 @@ window.renderTikTokLive = async function(){
    komTxt = '—';
   }
   const nota = x.note || x.notes;
+  // p1_1165 — baris order boleh-buka (Pilihan A): tick/untick order dari komisen live
+  let detailRow = '';
+  if(adaMasa){
+   const c2 = window.__liveCalc(x);
+   if(c2.list.length){
+    const orderRows = c2.list.map(function(o){
+     const tm = new Date(o.at).toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'});
+     const cb = boleh ? '<input type="checkbox" '+(o.excluded?'':'checked')+' onclick="window.__liveToggleOrder('+x.id+','+o.id+')" style="width:15px;height:15px;flex:0 0 auto;margin:0;accent-color:var(--primary);cursor:pointer;">' : (o.excluded?'✗':'✓');
+     return '<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid #F3F4F6;font-size:11.5px;'+(o.excluded?'opacity:.5;':'')+'">'
+      + '<span style="flex:0 0 auto;">'+cb+'</span>'
+      + '<span style="flex:1;color:#6B7280;">#'+o.id+' &middot; '+tm+' &middot; '+o.nItem+' item</span>'
+      + '<span style="font-weight:700;'+(o.excluded?'text-decoration:line-through;':'')+'">RM '+o.jualan.toFixed(2)+'</span>'
+      + '<span style="width:74px;text-align:right;color:#9CA3AF;font-size:10.5px;">komisen '+(o.excluded?'—':('RM '+(o.margin*window.__liveKomisenPct/100).toFixed(2)))+'</span>'
+      + '</div>';
+    }).join('');
+    detailRow = '<tr id="liveDet-'+x.id+'" style="display:none;background:#FBFAF7;"><td colspan="6" style="padding:6px 14px 12px;">'
+     + '<div style="font-size:11px;color:#6B7280;margin:4px 0 6px;font-weight:700;">Order TikTok Shop dalam tempoh live — untick yang BUKAN dari live (rujuk GMV di TikTok Data Analysis):</div>'
+     + orderRows + '</td></tr>';
+   }
+  }
+  const canExpand = adaMasa && detailRow;
   return '<tr style="border-bottom:1px solid #F3F4F6;'+(adaMasa?'':'opacity:.7;')+'">'
    + '<td style="padding:8px 10px;font-size:12px;font-weight:700;">'+E(namaHost)+'</td>'
    + '<td style="padding:8px 10px;font-size:12px;">'+masa+(nota?('<div style="font-size:10.5px;color:#9CA3AF;">'+E(String(nota).slice(0,50))+'</div>'):'')+'</td>'
-   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+ordersTxt+'</td>'
+   + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+ordersTxt+(canExpand?(' <button onclick="var d=document.getElementById(\'liveDet-'+x.id+'\');d.style.display=d.style.display===\'none\'?\'table-row\':\'none\';this.textContent=d.style.display===\'none\'?\'semak\':\'tutup\';" style="margin-left:4px;background:none;border:1px solid var(--primary-300,#FDBA74);color:var(--primary-800,#7C4A1A);border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700;cursor:pointer;">semak</button>'):'')+'</td>'
    + '<td style="padding:8px 10px;text-align:right;font-size:12px;">'+jualanTxt+'</td>'
    + '<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:800;color:'+(boleh?'#345E43':'#9CA3AF')+';">'+komTxt+'</td>'
    + '<td style="padding:8px 10px;text-align:center;">'+((boss||x.created_by===(u.name||''))?('<button onclick="window.__liveDelSess('+x.id+')" style="background:none;border:1px solid #E0B3A9;color:#7C2A20;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;">Padam</button>'):'')+'</td>'
-   + '</tr>';
+   + '</tr>' + detailRow;
  }).join('');
  const table = sess.length
   ? '<div class="admin-card" style="padding:16px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="font-size:13px;">Sesi LIVE ('+sess.length+')</strong>'+((boss||sess.some(function(x){return (x.host_name||x.staff_name)===(u.name||'');}))?('<span style="font-size:12px;font-weight:800;color:#345E43;">Jumlah komisen anggaran: RM '+totKom.toFixed(2)+'</span>'):'')+'</div>'

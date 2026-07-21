@@ -32355,10 +32355,19 @@ window.renderAllOrders = function() {
  const _iq = window.__aoItemQty(it);
  const _iimg = (typeof window.__aoImgFor === 'function') ? window.__aoImgFor(it.sku) : '';
  const _inm = String(it.name || it.sku || '-');
+ const _up = parseFloat(it.price != null ? it.price : (it.unit_price != null ? it.unit_price : 0)) || 0; // harga seunit
+ const _lt = _up * _iq; // jumlah baris
+ const _mono = "font-family:'SF Mono',Menlo,monospace;";
  const _ithumb = _iimg
- ? `<img src="${escHtml(_iimg)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #E5E7EB;flex:0 0 auto;display:block;"><span style="display:none;width:40px;height:40px;border:1px dashed #D1D5DB;border-radius:6px;align-items:center;justify-content:center;font-size:7.5px;color:#9CA3AF;flex:0 0 auto;">No Img</span>`
- : `<span style="display:flex;width:40px;height:40px;border:1px dashed #D1D5DB;border-radius:6px;align-items:center;justify-content:center;font-size:7.5px;color:#9CA3AF;flex:0 0 auto;">No Img</span>`;
- return `<div style="display:flex;align-items:center;gap:11px;padding:6px 2px;border-bottom:1px solid #F1EFEA;">${_ithumb}<span style="flex:1;font-size:11.5px;color:#374151;line-height:1.35;">${escHtml(_inm.slice(0,90))}${it.sku?` <span style="color:#9CA3AF;font-size:10px;font-family:'SF Mono',Menlo,monospace;">${escHtml(it.sku)}</span>`:''}</span><span style="flex:0 0 auto;font-weight:800;color:var(--primary-600,#B86A26);font-size:13px;">&times;${_iq}</span></div>`;
+ ? `<img src="${escHtml(_iimg)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #E5E7EB;flex:0 0 auto;display:block;"><span style="display:none;width:56px;height:56px;border:1px dashed #D1D5DB;border-radius:8px;align-items:center;justify-content:center;font-size:8px;color:#9CA3AF;flex:0 0 auto;">No Img</span>`
+ : `<span style="display:flex;width:56px;height:56px;border:1px dashed #D1D5DB;border-radius:8px;align-items:center;justify-content:center;font-size:8px;color:#9CA3AF;flex:0 0 auto;">No Img</span>`;
+ return `<div style="display:flex;align-items:center;gap:13px;padding:8px 2px;border-bottom:1px solid #F1EFEA;">`
+ + _ithumb
+ + `<span style="flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.35;">${escHtml(_inm.slice(0,110))}${it.sku?` <span style="color:#9CA3AF;font-size:10px;${_mono}">${escHtml(it.sku)}</span>`:''}</span>`
+ + `<span style="flex:0 0 auto;width:80px;text-align:right;font-size:11.5px;color:#6B7280;${_mono}">RM ${_up.toFixed(2)}</span>`
+ + `<span style="flex:0 0 auto;width:38px;text-align:center;font-weight:800;color:var(--primary-600,#B86A26);font-size:13px;">&times;${_iq}</span>`
+ + `<span style="flex:0 0 auto;width:92px;text-align:right;font-weight:800;color:#101010;font-size:12.5px;${_mono}">RM ${_lt.toFixed(2)}</span>`
+ + `</div>`;
  }).join('') : '<div style="color:#9CA3AF;font-size:11.5px;padding:6px 2px;">Tiada barang direkod.</div>';
  const ch = (s.channel || '').toLowerCase();
  const chIcon = (ch.includes('walk') || ch.includes('cashier')) ? 'store' : (ch.includes('shopee') ? 'shopping-cart' : (ch.includes('tiktok') ? 'video' : (ch.includes('whatsapp') ? 'message-circle' : (ch.includes('easystore') ? 'globe' : 'package'))));
@@ -32423,6 +32432,7 @@ window.renderAllOrders = function() {
  </tr>
  <tr id="aoItems-${s.id}" style="display:none; background:#FBFAF7;"><td colspan="11" style="padding:6px 16px 12px;">
  <div style="font-size:10px; color:#9CA3AF; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin:4px 0 6px;">${_itemsArr.length} jenis &middot; ${itemsCount} unit — tekan no. order (oren) untuk detail penuh</div>
+ <div style="display:flex; align-items:center; gap:13px; padding:0 2px 5px; font-size:9px; color:#B0A597; text-transform:uppercase; letter-spacing:.5px; font-weight:700; border-bottom:1px solid #EDEAE3;"><span style="width:56px; flex:0 0 auto;"></span><span style="flex:1; min-width:0;">Barang</span><span style="width:80px; text-align:right; flex:0 0 auto;">Harga</span><span style="width:38px; text-align:center; flex:0 0 auto;">Qty</span><span style="width:92px; text-align:right; flex:0 0 auto;">Jumlah</span></div>
  ${_itemsPreview}
  </td></tr>`;
  }).join('');

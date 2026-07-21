@@ -810,11 +810,17 @@
 .lp-staff-btn:hover { background: var(--lp-ink, #111827); transform: translateY(-1px); }
 @media (max-width: 768px) { .lp-nav { display: none; } .lp-brand__logo { height: 36px; } .lp-staff-btn { padding: 7px 10px; font-size: 11px; } }
 
-.lp-hero { position: relative; height: 600px; overflow: hidden; background: #0F172A; }
+.lp-hero { position: relative; height: 600px; overflow: hidden; background: #0B0B0D; }
+/* p1_1163 — canvas gradient shader (WebGL) di belakang; .lp-hero__grad z0, content z2 */
+.lp-hero__grad { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
 /* p1_836 — signature topographic contour (10 Camp outdoor identity) — sama bahasa visual dgn kad Jualan Overview */
 /* p1_1127 — corak garis (beralun/kontur) DIBUANG atas arahan Zaid: graphic bersih tanpa hiasan garis */
-.lp-hero__bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(0.55) saturate(1.1); }
-.lp-hero__overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,23,42,0.45) 0%, rgba(15,23,42,0.7) 60%, rgba(15,23,42,0.85) 100%); }
+/* p1_1163 — .lp-hero__bg kini FALLBACK gradient CSS (bukan foto) — muncul bila WebGL tiada; canvas menutupinya bila hidup */
+.lp-hero__bg { position: absolute; inset: 0; z-index: 0; background: radial-gradient(130% 110% at 72% 44%, #FF4D00 0%, #8a3010 20%, #2a0f12 46%, #0B0B0D 78%); }
+/* p1_1163 — legibiliti: gelapkan kiri (di mana teks) + bawah; oren glow kekal di kanan */
+.lp-hero__overlay { position: absolute; inset: 0; z-index: 1; background:
+    linear-gradient(90deg, rgba(11,11,13,0.72) 0%, rgba(11,11,13,0.34) 34%, transparent 60%),
+    linear-gradient(180deg, transparent 55%, rgba(11,11,13,0.55) 100%); }
 /* p1_1125 — Ekspedisi Peta: hero = komposisi poster jajar-KIRI (DESIGN.md) */
 .lp-hero__content { position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; padding: 72px 24px; color: #FFF; text-align: left; }
 .lp-hero__eyebrow { font-family: var(--lp-font-mono, monospace); font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #FF6B33; margin-bottom: 18px; }

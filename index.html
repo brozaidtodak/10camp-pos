@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=173">
+ <link rel="stylesheet" href="design-tokens.css?v=174">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -1190,7 +1190,9 @@
 
  <!-- HERO with hikers background -->
  <section class="lp-hero" id="hero">
- <div class="lp-hero__bg" style="background-image:url('assets/brand/hero/hero-hikers-1500x600.png');"></div>
+ <!-- p1_1163 — gradient shader hidup (WebGL) ganti foto pendaki (Zaid pilih); .lp-hero__bg kekal jadi fallback CSS bila WebGL tiada -->
+ <canvas class="lp-hero__grad" id="lpHeroGrad"></canvas>
+ <div class="lp-hero__bg"></div>
  <div class="lp-hero__overlay"></div>
  <div class="lp-hero__content">
  <p class="lp-hero__eyebrow" data-i18n="lp_hero_eyebrow">Kelengkapan Camping &amp; Outdoor · Malaysia</p>
@@ -13256,7 +13258,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1129"></script>
+ <script src="app.js?v=1130"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

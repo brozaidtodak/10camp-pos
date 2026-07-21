@@ -18,6 +18,7 @@ try {
 document.addEventListener('DOMContentLoaded', () => {
  try { if(typeof window.__initPasswordRecovery === 'function') window.__initPasswordRecovery(); } catch(e){}
  try { if(typeof window.__initSessionGuardian === 'function') window.__initSessionGuardian(); } catch(e){} // p1_1090
+ try { if(typeof window.__initLpHeroGrad === 'function') window.__initLpHeroGrad(); } catch(e){} // p1_1163 — gradient shader hero landing
  // p1_439: await restore so the mobile-app deep-link below only fires when nobody is logged in.
  (async () => {
  let restored = false;
@@ -41,6 +42,51 @@ document.addEventListener('DOMContentLoaded', () => {
  // p1_956 — paste a section link while already logged in → navigate live.
  window.addEventListener('hashchange', function(){ try { if(window.currentUser && typeof window.__navGoHash === 'function') window.__navGoHash(); } catch(e){} });
 });
+
+// p1_1163 — GRADIENT SHADER HERO LANDING (Zaid pilih ganti foto pendaki). WebGL fragment shader
+// aliran ink→oren FF4D00, glow tumpu kanan (teks kiri kekal jelas). LAZY: IntersectionObserver
+// start bila hero kelihatan, stop bila keluar (0 kos dlm POS mode / preview tutup). Hormati
+// prefers-reduced-motion (bekukan 1 frame). Gagal/WebGL tiada → .lp-hero__bg CSS gradient jadi fallback.
+window.__initLpHeroGrad = function(){
+ const cv = document.getElementById('lpHeroGrad'); if(!cv) return; // hanya storefront landing
+ const gl = cv.getContext('webgl') || cv.getContext('experimental-webgl');
+ if(!gl) return; // WebGL tiada → biar fallback CSS .lp-hero__bg
+ const PAL = [[0.05,0.048,0.055],[1.0,0.30,0.0],[0.24,0.09,0.13]];
+ const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+ const fs = 'precision highp float;uniform vec2 res;uniform float t;uniform vec3 cA;uniform vec3 cB;uniform vec3 cC;'
+  +'vec2 hash(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453)*2.-1.;}'
+  +'float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);return mix(mix(dot(hash(i),f),dot(hash(i+vec2(1,0)),f-vec2(1,0)),u.x),mix(dot(hash(i+vec2(0,1)),f-vec2(0,1)),dot(hash(i+vec2(1,1)),f-vec2(1,1)),u.x),u.y);}'
+  +'float fbm(vec2 p){float v=0.,a=.55;for(int i=0;i<6;i++){v+=a*noise(p);p=p*2.02+vec2(3.1,1.7);a*=.5;}return v;}'
+  +'void main(){vec2 uv=gl_FragCoord.xy/res.xy;vec2 q=uv;q.x*=res.x/res.y;'
+  +'float n=fbm(q*1.7+vec2(t*.055,t*.04));float m=fbm(q*1.05+vec2(-t*.045,t*.035)+n*.75);'
+  +'float g=smoothstep(.12,.95,m*.5+.5);float band=smoothstep(.32,.86,n*.5+.5);'
+  +'vec3 col=mix(cA,cC,g);float side=smoothstep(.2,1.0,uv.x);col=mix(col,cB,pow(band,1.5)*.8*side);'
+  +'float glow=pow(max(0.,1.-length((uv-vec2(.72,.44))*vec2(1.0,1.15))*1.05),2.2);col+=cB*glow*.6;'
+  +'col=col*1.06+0.015;col=pow(col,vec3(.90));gl_FragColor=vec4(col,1.);}';
+ let prog, uRes, uT, uA, uB, uC;
+ try {
+  const mk=(ty,sc)=>{const s=gl.createShader(ty);gl.shaderSource(s,sc);gl.compileShader(s);return s;};
+  prog=gl.createProgram();gl.attachShader(prog,mk(gl.VERTEX_SHADER,vs));gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
+  uRes=gl.getUniformLocation(prog,'res');uT=gl.getUniformLocation(prog,'t');uA=gl.getUniformLocation(prog,'cA');uB=gl.getUniformLocation(prog,'cB');uC=gl.getUniformLocation(prog,'cC');
+ } catch(e){ return; } // compile gagal → fallback CSS
+ function resize(){ const d=Math.min(window.devicePixelRatio||1,2); const w=cv.clientWidth||cv.offsetWidth||innerWidth, h=cv.clientHeight||cv.offsetHeight||600; cv.width=w*d;cv.height=h*d;gl.viewport(0,0,cv.width,cv.height); }
+ const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+ let raf=null, t0=performance.now(), running=false;
+ function frame(now){ if(!running) return; const t=reduce?6.0:(now-t0)/1000;
+  gl.uniform2f(uRes,cv.width,cv.height);gl.uniform1f(uT,t);gl.uniform3fv(uA,PAL[0]);gl.uniform3fv(uB,PAL[1]);gl.uniform3fv(uC,PAL[2]);gl.drawArrays(gl.TRIANGLES,0,3);
+  if(reduce){ running=false; return; } raf=requestAnimationFrame(frame); }
+ function start(){ if(running) return; resize(); running=true; t0=performance.now(); raf=requestAnimationFrame(frame); }
+ function stop(){ running=false; if(raf) cancelAnimationFrame(raf); raf=null; }
+ window.addEventListener('resize', ()=>{ if(running) resize(); });
+ // lazy: start hanya bila hero benar-benar kelihatan (storefront ATAU preview mode dibuka)
+ if('IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>{ es.forEach(en=>{ if(en.isIntersecting) start(); else stop(); }); }, { threshold:0.05 });
+  io.observe(cv);
+ } else { start(); }
+};
 
 // p1_440: Mobile app (Cashier-only) scope. The native shell appends "TenCampPOSApp"
 // to the user-agent (capacitor.config.json appendUserAgent). On the web/desktop POS

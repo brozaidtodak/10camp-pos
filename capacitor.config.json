@@ -2,7 +2,7 @@
   "appId": "com.tencamp.pos",
   "appName": "10 CAMP POS",
   "webDir": "mobile-shell",
-  "appendUserAgent": "TenCampPOSApp",
+  "appendUserAgent": "TenCampPOSApp FCMReady",
   "server": {
     "url": "https://www.10camp.com/#staff",
     "hostname": "www.10camp.com",

@@ -46419,12 +46419,12 @@ window.__pdbRefresh = async function(btn){
    if(!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform()) return; // web biasa: skip
    const PN = Cap.Plugins && Cap.Plugins.PushNotifications;
    if(!PN) return;
-   // p1_1159 — ANDROID CRASH FIX (report Fahmi, APK v2): PN.register() memicu FirebaseMessaging
-   // native; build Android BELUM ada google-services.json → IllegalStateException "Default
-   // FirebaseApp is not initialized" = app terus tertutup SEBAIK lepas login. try/catch JS TAK
-   // dapat tangkap crash native. Skip push di Android sehingga Firebase siap (flip flag ni +
-   // build v3 dgn google-services.json). iOS kekal jalan (APNs terus, tanpa Firebase).
-   if(Cap.getPlatform() === 'android' && !window.__ANDROID_PUSH_READY) return;
+   // p1_1159/p1_1161 — ANDROID CRASH FIX: PN.register() memicu FirebaseMessaging native; build
+   // TANPA google-services.json → IllegalStateException = app tertutup lepas login (JS try/catch
+   // tak boleh tangkap crash native). GATE ikut versi build: hanya build v3+ (UA "FCMReady",
+   // ada google-services.json) daftar push. Build v2 (UA "TenCampPOSApp" sahaja) skip → tak crash.
+   // Guna UA-marker bukan flag global sebab app.js dikongsi v2 & v3 (semua muat web live).
+   if(Cap.getPlatform() === 'android' && !/FCMReady/.test(navigator.userAgent || '')) return;
    const perm = await PN.requestPermissions();
    if(perm.receive !== 'granted') return;
    // Android 8+: channel WAJIB wujud, kalau tak notification senyap

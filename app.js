@@ -310,15 +310,17 @@ window.__applyPosAppScope = function(){
  try { window.__posAppApplyLiveTab(); } catch(e){}
  try { setTimeout(window.__liveNudgeCheck, 4000); } catch(e){}
 };
-// p1_1112 — TAB "LIVE" DALAM APK. p1_1164 — Zaid: Tarmizi (Kael) kini LIVE + komisen juga (dulu Ariff sahaja).
-// __LIVE_HOSTS = staf yang buat TikTok LIVE + layak komisen 5% margin dari jualan masa live.
-// Tambah nama di sini bila ada host baru. Komisen auto-attribute ikut host_name === nama staf.
+// p1_1112 — TAB "LIVE" DALAM APK. p1_1170 — Zaid: tab LIVE kini utk SEMUA staf (bukan gate host lagi).
+// __LIVE_HOSTS kini HANYA utk NUDGE "rekod sesi sebelum balik" (host designated yang WAJIB diingatkan) —
+// supaya cashier yang tak buat live tak kena ganggu tiap petang. Komisen auto-attribute ikut host_name;
+// sesiapa yang rekod sesi live dapat komisen. Tambah nama di sini utk masukkan host baru ke senarai nudge.
 window.__LIVE_HOSTS = ['Ariff', 'Tarmizi Kael'];
 window.__isLiveHost = function(u){ return !!(u && window.__LIVE_HOSTS.indexOf(u.name) !== -1); };
 window.__posAppApplyLiveTab = function(){
  try {
-  const u = window.currentUser || {};
-  if(!window.__isPOSApp || !window.__isLiveHost(u)) return;
+  // p1_1170 (Zaid) — tab LIVE utk SEMUA staf app (dulu __LIVE_HOSTS Ariff+Kael sahaja). Sesiapa boleh rekod
+  // sesi live; komisen auto-attribute ikut host_name. Nudge "rekod sebelum balik" kekal host designated sahaja.
+  if(!window.__isPOSApp) return;
   if(!(window.__POS_APP_TABS||[]).some(function(t){ return t.key==='live'; }))
    window.__POS_APP_TABS.push({ key:'live', icon:'radio', label:'LIVE', sections:['tiktokLiveSection'], title:'TikTok LIVE', render:'renderTikTokLive' });
   const bar = document.getElementById('posAppTabBar');

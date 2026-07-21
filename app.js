@@ -32366,7 +32366,7 @@ window.renderAllOrders = function() {
  const isTest = !!s.is_test;
  const testBadge = isTest ? '<span style="background:#CE9420; color:#fff; padding:2px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.3px; margin-left:4px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="flask-conical" style="width:9px;height:9px;"></i> TEST</span>' : '';
  const selChk = window.__aoSelected && window.__aoSelected.has(s.id);
- return `<tr style="border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(184, 106, 38,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
+ return `<tr onclick="if(event.target.closest('a,button,input,select,label,img'))return; var r=document.getElementById('aoItems-${s.id}'); if(r){r.style.display=(r.style.display==='none'?'table-row':'none');}" title="Klik baris untuk lihat barang ringkas" style="cursor:pointer; border-bottom:1px solid #F3F4F6; ${selChk ? 'background:rgba(184, 106, 38,.06);' : (isTest ? 'background:rgba(254,243,199,.18);' : '')}">
  <td style="padding:10px; text-align:center;"><input type="checkbox" onchange="window.__aoToggleSelect(${s.id}, this.checked)" ${selChk ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer;"></td>
  <td data-label="Tarikh" style="padding:10px;">${dt}</td>
  ${(() => {
@@ -32382,7 +32382,7 @@ window.renderAllOrders = function() {
  <td data-label="Pelanggan" style="padding:10px;"><strong>${escHtml((s.customer_name||'Walk-In').slice(0, 30))}</strong>${s.customer_phone ? `<br><span style="font-size:11px; color:#6B7280;">${escHtml(s.customer_phone)}</span>` : ''}</td>
  <td data-label="Channel" style="padding:10px;"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;"><i data-lucide="${chIcon}" style="width:12px;height:12px; color:var(--primary);"></i> ${escHtml(s.channel || '-')}</span></td>
  <td data-label="Status" style="padding:10px;">${statusBadge(s.status)}</td>
- <td style="padding:10px; text-align:right;"><button onclick="(function(){var r=document.getElementById('aoItems-${s.id}'); if(r){r.style.display=(r.style.display==='none'?'table-row':'none');}})()" title="Lihat barang ringkas (gambar + kuantiti)" style="background:none; border:1px solid var(--primary-200,#FED7AA); border-radius:6px; padding:2px 9px; cursor:pointer; font-size:11.5px; font-weight:700; color:var(--primary-800,#7C4A1A); display:inline-flex; align-items:center; gap:4px;">${itemsCount} <i data-lucide="chevron-down" style="width:12px;height:12px;"></i></button></td>
+ <td style="padding:10px; text-align:right; color:#374151; white-space:nowrap;">${itemsCount} <i data-lucide="chevron-down" style="width:12px;height:12px; color:var(--primary-300,#FDBA74); vertical-align:-2px;"></i></td>
  <td data-label="Jumlah" style="padding:10px; text-align:right; font-weight:700;">RM ${(parseFloat(s.total_amount||s.total||0)).toFixed(2)}</td>
  ${(() => {
  // p1_526 — Resit column boleh KLIK → Urus Resit (sehingga 3) untuk SEMUA order.

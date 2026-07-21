@@ -24081,7 +24081,12 @@ window.__crLiveSessionsHtml = function() {
 // amaran (live belum key-in, walk-in tak-ber-staf, anomali A-vs-AI) + kadar per-staf inline.
 window.__crCurrentYm = function() { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0'); };
 window.__crRkMonth = window.__crRkMonth || null;
-window.__crSetRkMonth = function(ym) { window.__crRkMonth = ym || window.__crCurrentYm(); window.renderCommissionReport(); };
+window.__crSetRkMonth = function(ym) {
+ window.__crRkMonth = ym || window.__crCurrentYm();
+ // p1_1171 — render semula view yang sedang tampil: Profil Komisen Staf (app/My Commission) ATAU Commission Report
+ try { const cs = document.getElementById('commissionSection'); if(cs && cs.offsetParent !== null && window.renderPersonalCommission) { window.renderPersonalCommission(); return; } } catch(e){}
+ window.renderCommissionReport();
+};
 window.__crComputeMonth = function(ym) {
  ym = ym || window.__crRkMonth || window.__crCurrentYm();
  const parts = ym.split('-'); const y = Number(parts[0]); const mo = Number(parts[1]);
@@ -24344,9 +24349,9 @@ window.renderPersonalCommission = function() {
  if (!currentUser) return;
  // p1_729 — cashier VIEW SAHAJA: muat kadar dari server (tunjang = Commission Report) dulu
  if(!window.__commissionRatesLoaded && window.__loadCommissionRates) { window.__loadCommissionRates().then(() => window.renderPersonalCommission()); }
- // p1_734 — My Commission ADIL: SEMUA orang (termasuk Bos/mgmt) nampak komisen SENDIRI sahaja.
- // Tiada lagi jadual semua-staf + tiada PIN di sini. View semua-staf kekal di Commission Report (mgmt-only).
- const isManager = false;
+ // p1_734 — My Commission ADIL: SEMUA staf nampak komisen SENDIRI. p1_1171 (Zaid) — KECUALI Bos & Aliff:
+ // hidupkan semula "Profil Komisen Staf" (semua staf) dalam app mobile, di bawah komisen sendiri, PIN-gated.
+ const isManager = (typeof window.isBoss === 'function' && window.isBoss(currentUser)) || (currentUser.role === 'mgmt');
  const range = __cmGetDateRange();
 
  // Filter sales by date range
@@ -24465,45 +24470,25 @@ window.renderPersonalCommission = function() {
  } else { perfEl.textContent = '—'; perfEl.style.color = '#111'; }
  }
 
- // === Manager view: all staff ===
+ // === Profil Komisen Staf (Bos + Aliff) — p1_1171: kad Ringkasan Komisen dlm app, PIN-gated ===
  const mgrWrap = document.getElementById('cmManagerWrap');
  if (mgrWrap) mgrWrap.style.display = isManager ? 'block' : 'none';
- // p1_453 — jadual komisen SEMUA-staff = data sulit (PNC). Personal view kekal terbuka.
- if (isManager && !window.__confIsUnlocked()) {
- const mgrTbody0 = document.getElementById('cmManagerTbody');
- if (mgrTbody0) mgrTbody0.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:26px; color:var(--text-muted);">'
- + '<i data-lucide="lock" style="width:22px;height:22px;color:var(--primary);"></i>'
- + '<div style="margin:8px 0 12px; font-weight:700;">Data komisen semua staf adalah SULIT (PNC).</div>'
- + '<button onclick="window.__confidentialGate(function(){ if(window.renderPersonalCommission) window.renderPersonalCommission(); })" style="padding:10px 18px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Buka dengan PIN</button>'
- + '</td></tr>';
+ if (isManager && mgrWrap) {
+ if (!window.__confIsUnlocked()) {
+ mgrWrap.innerHTML = '<div style="background:#fff; border:1px solid var(--border-color,#E5E7EB); border-radius:12px; padding:26px 18px; text-align:center;">'
+ + '<i data-lucide="lock" style="width:26px;height:26px;color:var(--primary);"></i>'
+ + '<div style="margin:10px 0 4px; font-weight:800; font-size:14px;">Profil Komisen Staf — SULIT</div>'
+ + '<div style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Komisen semua staf. Untuk pengurusan (Bos &amp; Aliff) sahaja.</div>'
+ + '<button onclick="window.__confidentialGate(function(){ if(window.renderPersonalCommission) window.renderPersonalCommission(); })" style="padding:11px 20px; background:var(--primary); color:#fff; border:none; border-radius:9px; font-weight:800; cursor:pointer;">Buka dengan PIN</button>'
+ + '</div>';
+ } else {
+ mgrWrap.innerHTML = '<div style="display:flex; align-items:center; gap:9px; margin:2px 0 12px; padding-top:8px; border-top:1px dashed var(--border-color,#E5E7EB);">'
+ + '<i data-lucide="users" style="width:18px;height:18px;color:var(--primary);"></i>'
+ + '<div><div style="font-weight:800; font-size:14.5px;">Profil Komisen Staf</div>'
+ + '<div style="font-size:11px; color:var(--text-muted);">Semua staf · SULIT (Bos &amp; Aliff) · berapa patut dibayar sebulan.</div></div></div>'
+ + window.__crRenderRingkasan();
+ }
  if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch(e){}
- }
- if (isManager && window.__confIsUnlocked()) {
- const mgrTbody = document.getElementById('cmManagerTbody');
- if (mgrTbody) {
- const allStaff = (typeof authUsers !== 'undefined') ? authUsers : [];
- let inactive = []; try { inactive = JSON.parse(localStorage.getItem('staffInactive_v1')||'[]'); } catch(e){}
- const rows = allStaff
-.filter(u => !inactive.includes(u.staff_id) && u.staff_id !== 'TST001' && u.staff_id !== 'REV001') // p1_554 — singkir akaun demo dari leaderboard komisen
-.map(u => aggregateForStaff(u.name))
-.sort((a,b) => b.earned - a.earned);
- mgrTbody.innerHTML = rows.length ? rows.map(r => {
- const u = allStaff.find(a => a.name === r.staffName) || {};
- const isMe = r.staffName === currentUser.name;
- const nameEsc = String(r.staffName).replace(/'/g, "\\'");
- const rowStyle = isMe ? ' style="background:#FBF7EC; cursor:pointer;"' : ' style="cursor:pointer;"';
- return '<tr class="cm-mgr-row"'+rowStyle+' onclick="window.__cmShowStaffSales && window.__cmShowStaffSales(\''+nameEsc+'\')" title="Klik untuk lihat sales '+nameEsc+'">'
- + '<td style="padding:8px 10px;"><i data-lucide="chevron-right" style="width:12px;height:12px;vertical-align:-2px; color:var(--primary);"></i> <strong>'+r.staffName+'</strong>'+(isMe?' <span style="font-size:10px; color:var(--primary);">(you)</span>':'')+'</td>'
- + '<td style="padding:8px 10px;"><span style="font-size:10.5px; padding:2px 7px; background:#e5e7eb; border-radius:10px; font-weight:700;">'+(u.role||'—')+'</span></td>'
- + '<td style="padding:8px 10px;">'+r.txCount+(r.refundCount?' <span style="color:#B23A2E; font-size:11px;">/'+r.refundCount+'rf</span>':'')+'</td>'
- + '<td style="padding:8px 10px; text-align:right;">'+fmt(r.gross)+'</td>'
- + '<td style="padding:8px 10px; text-align:right; color:#B23A2E;">'+(r.refunds>0?'−'+fmt(r.refunds):'—')+'</td>'
- + '<td style="padding:8px 10px; text-align:right; font-weight:700;">'+fmt(r.net)+'</td>'
- + '<td style="padding:8px 10px; text-align:right;">'+r.rate+'%</td>'
- + '<td style="padding:8px 10px; text-align:right; color:var(--primary); font-weight:800;">'+fmt(r.earned)+'</td>'
- + '</tr>';
- }).join('') : '<tr><td colspan="8" style="text-align:center; padding:18px; color:var(--text-muted);">No staff data in range.</td></tr>';
- }
  }
 
  // === Detail table for current user ===

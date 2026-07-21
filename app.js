@@ -42931,7 +42931,12 @@ window.__mbOpen = function(){
  + '<label style="display:inline-flex; align-items:center; gap:5px;"><input id="mbConsent" type="checkbox" onchange="window.__mbRefresh()" style="width:16px; height:16px; flex:0 0 auto; margin:0;"> Hanya yang ada consent</label>'
  + '<span style="font-size:11px; color:#168C50; font-weight:700;">✓ Email ada butang consent — jawapan customer auto-update sistem</span>'
  + '<span id="mbQuotaNote" style="font-size:11px; color:#B8860B; font-weight:700;">Kuota: max 70 email/hari (30 direzab utk e-resit) — baki auto-sambung esok, yang dah terima dilangkau 30 hari</span>'
- + '<span id="mbCount" style="font-weight:800; color:var(--primary-800,#7C4A1A);"></span></div>'
+ + '<span id="mbCount" style="font-weight:800; color:var(--primary-800,#7C4A1A);"></span>'
+ // p1_1158 — pilih/kosong pukal (Zaid: "jenuh nak untick 1 per 1" — 2,450 checkbox)
+ + '<span style="display:inline-flex; gap:6px;">'
+ + '<button onclick="window.__mbBulk(true)" style="background:#F3F4F6; border:1px solid #D1D5DB; border-radius:7px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;">Tick semua</button>'
+ + '<button onclick="window.__mbBulk(false)" style="background:#F3F4F6; border:1px solid #D1D5DB; border-radius:7px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;">Untick semua</button>'
+ + '</span></div>'
  + '<div id="mbList" style="max-height:200px; overflow-y:auto; border:1px solid #EEE; border-radius:8px; margin-bottom:14px;"></div>'
  + '<label style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase;">Subjek</label>'
  + '<input id="mbSubject" style="width:100%; padding:9px 12px; border:1px solid #DDD; border-radius:8px; font-size:13px; font-family:inherit; margin:4px 0 10px;" value="">'
@@ -42970,6 +42975,12 @@ window.__mbCountUpd = function(){
  const n = (st.targets || []).filter(t => !st.unchecked[t.email]).length;
  const skip = window.__mbSkippedRecent || 0;
  const el = document.getElementById('mbCount'); if(el) el.textContent = n + ' penerima dipilih' + (skip ? ' · ' + skip + ' dah terima (dilangkau)' : '');
+};
+// p1_1158 — tick/untick SEMUA yang sedang dipapar (hormat tapisan semasa)
+window.__mbBulk = function(pilih){
+ const st = window.__mbState; if(!st) return;
+ (st.targets || []).forEach(t => { if(pilih) delete st.unchecked[t.email]; else st.unchecked[t.email] = true; });
+ window.__mbRefresh();
 };
 window.__mbPreview = function(){
  const st = window.__mbState; if(!st) return;

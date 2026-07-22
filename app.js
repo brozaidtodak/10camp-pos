@@ -47028,6 +47028,17 @@ window.__pdbRefresh = async function(btn){
   const m = s.metadata || {};
   return m.shopee_order_sn || m.tiktok_order_sn || m.order_sn || m.tiktok_order_id || m.order_id || null;
  }
+ // p1_1182 (Fasa 2) — lejar payout per-order (marketplace_payouts, diisi cron harian dari
+ // TikTok Finance + Shopee escrow API). Sumber utama remarks; settlement_recon jadi fallback.
+ async function tdFetchPayouts(sns){
+  const map = {};
+  for(let i=0; i<sns.length; i+=100){
+   const { data, error } = await db.from('marketplace_payouts').select('order_sn,net_payout').in('order_sn', sns.slice(i, i+100));
+   if(error){ console.warn('payouts fetch', error); break; }
+   (data||[]).forEach(r => { map[String(r.order_sn)] = r; });
+  }
+  return map;
+ }
  function tdBuildRows(sales, reconMap){
   const rows = [];
   let totGross = 0, totNet = 0, nBelumSettle = 0;
@@ -47106,7 +47117,11 @@ window.__pdbRefresh = async function(btn){
    const sales = await tdFetchSales(start.toISOString(), endMyt.toISOString());
    const lastDay = new Date(Date.UTC(nY, nM-1, 1) - 86400000).toISOString().slice(0,10);
    const reconMap = await tdFetchRecon(mv + '-01', lastDay);
-   const d = tdBuildRows(sales, reconMap);
+   // p1_1182 — payout ledger diutamakan; recon (flag sahaja) jadi fallback
+   const sns = sales.map(tdOrderSn).filter(Boolean).map(String);
+   const payMap = await tdFetchPayouts(sns);
+   const merged = Object.assign({}, reconMap, payMap);
+   const d = tdBuildRows(sales, merged);
    window.__tdData = { month: mv, rows: d.rows, totGross: d.totGross, totNet: d.totNet };
    const monthName = start.toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Kuala_Lumpur' }).toUpperCase();
    window.__tdData.periodLabel = 'END_' + monthName + '_' + start.getUTCFullYear();

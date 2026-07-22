@@ -46883,6 +46883,70 @@ window.__pdbRefresh = async function(btn){
  }
 
  // ---------- VIEW BOS (back office): borang beri + papan semua staf ----------
+ // p1_1184 — syif roster hari ini utk staf (badge pada kad papan Hari Ini). Nama roster beza
+ // sikit dgn authUsers ('Tarmizi' vs 'Tarmizi Kael') → padan ikut perkataan pertama.
+ function stShiftToday(staffName){
+  try {
+   const today = new Date(Date.now() + 8*3600e3).toISOString().slice(0,10);
+   const first = String(staffName||'').split(' ')[0].toLowerCase();
+   const row = (typeof staffSchedules !== 'undefined' && Array.isArray(staffSchedules) ? staffSchedules : [])
+    .find(r => r.date === today && String(r.staff_name||'').split(' ')[0].toLowerCase() === first);
+   return row ? String(row.shift||'').toUpperCase() : null;
+  } catch(e){ return null; }
+ }
+ // p1_1184 — PAPARAN "HARI INI": grid satu kad per staf — Bos nampak SEMUA pasukan sekali
+ // pandang (Zaid: "buatkan paparan supaya aku nampak semua task staff2 aku").
+ window.__stBossView = 'today';
+ window.__stSetView = function(v){ window.__stBossView = v; window.renderStaffTasks(); };
+ function stRenderBossToday(tasks){
+  const todayStart = new Date(new Date(Date.now() + 8*3600e3).toISOString().slice(0,10) + 'T00:00:00+08:00').getTime();
+  const team = stStaffList();
+  const byId = {};
+  tasks.forEach(t => {
+   const doneTs = t.done_at ? new Date(t.done_at).getTime() : 0;
+   if(t.status === 'siap' && doneTs < todayStart) return; // siap hari lepas — tak masuk kad hari ini
+   (byId[t.assigned_to] = byId[t.assigned_to] || []).push(t);
+  });
+  const OFF_CODES = ['OFF','AL','MC','EL','PH'];
+  let cards = '';
+  team.forEach(u => {
+   const list = (byId[u.staff_id] || []).sort((a,b) => ({buat:0, baru:1, siap:2}[a.status] - {buat:0, baru:1, siap:2}[b.status]));
+   const nSiap = list.filter(t=>t.status==='siap').length;
+   const nBuat = list.filter(t=>t.status==='buat').length;
+   const shift = stShiftToday(u.name);
+   const isOff = shift && OFF_CODES.indexOf(shift) !== -1;
+   const ring = list.length ? Math.round(nSiap / list.length * 100) : 0;
+   const border = nBuat ? 'var(--primary, #FF4D00)' : (isOff ? '#B9B4A6' : '#141414');
+   let items = '';
+   list.slice(0, 7).forEach(t => {
+    const dot = t.status === 'siap' ? '#168C50' : (t.status === 'buat' ? 'var(--primary, #FF4D00)' : '#B9B4A6');
+    items += '<div style="display:flex; align-items:flex-start; gap:6px; padding:3px 0; font-size:11.5px; color:' + (t.status==='siap' ? '#9CA3AF' : '#141414') + ';' + (t.status==='siap' ? ' text-decoration:line-through;' : '') + '">'
+     + '<span style="flex:0 0 auto; width:8px; height:8px; border-radius:50%; background:' + dot + '; margin-top:4px;' + (t.status==='buat' ? ' box-shadow:0 0 0 3px rgba(255,77,0,.18);' : '') + '"></span>'
+     + '<span style="flex:1; line-height:1.35;">' + escapeHtml(t.title) + '</span></div>';
+   });
+   if(list.length > 7) items += '<div style="font-size:10.5px; color:#9CA3AF; padding-left:14px;">+' + (list.length - 7) + ' lagi…</div>';
+   if(!list.length) items = '<div style="font-size:11.5px; color:#9CA3AF; padding:6px 0;">' + (isOff ? 'Cuti hari ini' : 'Tiada tugasan hari ini') + '</div>';
+   cards += '<div style="background:' + (isOff ? '#F4F2EC' : '#fff') + '; border:1px solid var(--border-color, #B9B4A6); border-top:3px solid ' + border + '; border-radius:8px; padding:11px 13px;' + (isOff ? ' opacity:.65;' : '') + '">'
+    + '<div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">'
+    + '<span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#141414; color:#F4F2EC; font-weight:800; font-size:11px; flex:0 0 auto;">' + escapeHtml((u.name||'?').charAt(0).toUpperCase()) + '</span>'
+    + '<b style="font-size:13px; color:#141414; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(u.name) + '</b>'
+    + (shift ? '<span style="font-size:9px; font-weight:800; letter-spacing:.5px; padding:1px 7px; border-radius:999px; background:' + (isOff ? '#B23A2E' : '#141414') + '; color:#F4F2EC; flex:0 0 auto;">' + escapeHtml(shift) + '</span>' : '')
+    + '</div>'
+    + (list.length ? '<div style="display:flex; align-items:center; gap:7px; margin-bottom:7px;">'
+      + '<div style="flex:1; height:5px; background:#EEE9DD; border-radius:99px; overflow:hidden;"><div style="width:' + ring + '%; height:100%; background:#168C50;"></div></div>'
+      + '<span style="font-size:10.5px; font-weight:800; color:#6E6A5E; font-family:var(--font-mono, monospace); flex:0 0 auto;">' + nSiap + '/' + list.length + '</span></div>' : '')
+    + items
+    + '</div>';
+  });
+  const all = Object.values(byId).flat();
+  const tot = all.length, totSiap = all.filter(t=>t.status==='siap').length, totBuat = all.filter(t=>t.status==='buat').length;
+  return '<div style="display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:#6E6A5E; margin-bottom:12px;">'
+   + '<span><b style="color:#141414; font-size:15px;">' + tot + '</b> tugasan hari ini</span>'
+   + '<span><b style="color:#168C50; font-size:15px;">' + totSiap + '</b> siap</span>'
+   + '<span><b style="color:var(--primary, #FF4D00); font-size:15px;">' + totBuat + '</b> tengah dibuat</span>'
+   + '</div>'
+   + '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px;">' + cards + '</div>';
+ }
  function stRenderBoss(el, tasks){
   const staffOpts = stStaffList().filter(u => !(typeof window.isBoss === 'function' && window.isBoss(u)))
    .map(u => '<option value="'+u.staff_id+'">'+escapeHtml(u.name)+' ('+u.staff_id+')</option>').join('');
@@ -46894,8 +46958,13 @@ window.__pdbRefresh = async function(btn){
   const groups = Object.keys(byStaff).map(sid => ({ sid, name: byStaff[sid].name, list: byStaff[sid].list }));
   groups.sort((a,b) => (b.list.some(t=>t.status==='buat')?1:0) - (a.list.some(t=>t.status==='buat')?1:0) || a.name.localeCompare(b.name));
   const nBuat = visible.filter(t=>t.status==='buat').length;
+  const view = window.__stBossView || 'today';
+  const pill = function(key, label){
+   const on = view === key;
+   return '<button onclick="window.__stSetView(\'' + key + '\')" style="padding:7px 16px; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; font-family:var(--font-main,inherit); border:2px solid #141414; background:' + (on ? '#141414' : '#fff') + '; color:' + (on ? '#F4F2EC' : '#141414') + ';">' + label + '</button>';
+  };
 
-  let html = '<div style="max-width:860px; margin:0 auto; padding:14px 14px 40px;">'
+  let html = '<div style="max-width:1080px; margin:0 auto; padding:14px 14px 40px;">'
    + '<div style="font-weight:900; font-size:20px; color:#141414;">Tugasan Staf</div>'
    + '<div style="font-size:12.5px; color:#6E6A5E; margin:2px 0 14px;">Papan ni Bos sahaja nampak. Staf hanya nampak tugasan sendiri dalam app (tab Task).</div>'
    // Borang beri tugasan
@@ -46909,24 +46978,29 @@ window.__pdbRefresh = async function(btn){
    + '<input id="stAddNotes" type="text" maxlength="300" placeholder="Nota tambahan (opsional)" style="flex:1; min-width:220px; padding:9px 10px; border:1px solid var(--border-color, #B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:13px;">'
    + '<button onclick="window.__stAdd()" style="border:3px solid #141414; background:var(--primary, #FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:13px; padding:9px 20px; border-radius:4px; cursor:pointer; box-shadow:4px 4px 0 #141414;">Hantar Tugasan</button>'
    + '</div></div>'
-   // Ringkas
-   + '<div style="font-size:12px; color:#6E6A5E; margin-bottom:10px;">'+visible.length+' tugasan aktif/baru siap · <b style="color:var(--primary, #FF4D00);">'+nBuat+' tengah dibuat sekarang</b></div>';
+   // p1_1184 — toggle paparan: Hari Ini (grid sekali pandang) / Senarai Penuh (detail + padam)
+   + '<div style="display:flex; gap:8px; margin-bottom:14px;">' + pill('today', 'Hari Ini') + pill('full', 'Senarai Penuh') + '</div>';
 
-  if(!groups.length){
-   html += '<div style="text-align:center; padding:36px; color:#6E6A5E; font-size:13.5px;">Belum ada tugasan. Beri yang pertama kat atas.</div>';
+  if(view === 'today'){
+   html += stRenderBossToday(tasks);
   } else {
-   groups.forEach(g => {
-    const active = g.list.find(t=>t.status==='buat');
-    html += '<div style="margin-bottom:16px;">'
-     + '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">'
-     + '<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#141414; color:#F4F2EC; font-weight:800; font-size:12px;">'+escapeHtml((g.name||'?').charAt(0).toUpperCase())+'</span>'
-     + '<b style="font-size:14px; color:#141414;">'+escapeHtml(g.name)+'</b>'
-     + '<span style="font-size:11px; color:#6E6A5E; font-family:var(--font-mono, monospace);">'+g.sid+'</span>'
-     + (active ? '<span style="font-size:11.5px; color:var(--primary, #FF4D00); font-weight:700;">— tengah buat: '+escapeHtml(active.title)+'</span>' : '<span style="font-size:11.5px; color:#6E6A5E;">— tiada yang tengah dibuat</span>')
-     + '</div>'
-     + g.list.map(t=>stCard(t,true)).join('')
-     + '</div>';
-   });
+   html += '<div style="font-size:12px; color:#6E6A5E; margin-bottom:10px;">'+visible.length+' tugasan aktif/baru siap · <b style="color:var(--primary, #FF4D00);">'+nBuat+' tengah dibuat sekarang</b></div>';
+   if(!groups.length){
+    html += '<div style="text-align:center; padding:36px; color:#6E6A5E; font-size:13.5px;">Belum ada tugasan. Beri yang pertama kat atas.</div>';
+   } else {
+    groups.forEach(g => {
+     const active = g.list.find(t=>t.status==='buat');
+     html += '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">'
+      + '<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#141414; color:#F4F2EC; font-weight:800; font-size:12px;">'+escapeHtml((g.name||'?').charAt(0).toUpperCase())+'</span>'
+      + '<b style="font-size:14px; color:#141414;">'+escapeHtml(g.name)+'</b>'
+      + '<span style="font-size:11px; color:#6E6A5E; font-family:var(--font-mono, monospace);">'+g.sid+'</span>'
+      + (active ? '<span style="font-size:11.5px; color:var(--primary, #FF4D00); font-weight:700;">— tengah buat: '+escapeHtml(active.title)+'</span>' : '<span style="font-size:11.5px; color:#6E6A5E;">— tiada yang tengah dibuat</span>')
+      + '</div>'
+      + g.list.map(t=>stCard(t,true)).join('')
+      + '</div>';
+    });
+   }
   }
   html += '</div>';
   el.innerHTML = html;

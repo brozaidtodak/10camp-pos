@@ -225,6 +225,10 @@
 [functions."deadstock-agent-cron"]
   schedule = "15 23 * * *"
 
+# p1_1178 — Auto-tugasan jadual kerja Aliff+Farhan (timetable-driven), daily 00:00 UTC = 08:00 MYT.
+[functions."jadual-auto-cron"]
+  schedule = "0 0 * * *"
+
 # p1_681 (#8) — Settlement reconciliation: POS marketplace orders vs Shopee escrow + TikTok
 # finance payouts. Daily 02:00 UTC (after settlements typically finalize). Writes settlement_recon.
 [functions."settlement-recon-background"]

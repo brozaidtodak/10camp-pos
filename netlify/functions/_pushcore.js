@@ -181,4 +181,33 @@ async function notifyNewOrders(info) {
     return sendToAll({ title, body, data: { kind: 'new_order', channel: ch } });
 }
 
-module.exports = { sendToAll, notifyNewOrders };
+/**
+ * p1_1178 — Push ke SEORANG staf sahaja (ikut push_tokens.staff_id).
+ * opts = { title, body, data }
+ */
+async function sendToStaff(staffId, opts) {
+    let rows = [];
+    try {
+        rows = await sbFetch('GET', '/push_tokens?select=token,platform&staff_id=eq.' + encodeURIComponent(staffId) + '&order=last_seen.desc&limit=10') || [];
+    } catch (e) {
+        return { sent: 0, failed: 0, why: 'tokens fetch: ' + e.message };
+    }
+    if (!rows.length) return { sent: 0, failed: 0, why: 'no tokens for ' + staffId };
+    let sent = 0, failed = 0;
+    const deadTokens = [];
+    for (const r of rows) {
+        try {
+            const res = (r.platform === 'ios')
+                ? await sendApns(r.token, opts.title, opts.body, opts.data)
+                : await sendFcm(r.token, opts.title, opts.body, opts.data);
+            if (res.ok) sent++;
+            else { failed++; if (res.dead) deadTokens.push(r.token); }
+        } catch (e) { failed++; }
+    }
+    if (deadTokens.length) {
+        try { await sbFetch('DELETE', '/push_tokens?token=in.(' + deadTokens.map(t => '"' + t + '"').join(',') + ')'); } catch (_) {}
+    }
+    return { sent, failed };
+}
+
+module.exports = { sendToAll, sendToStaff, notifyNewOrders };

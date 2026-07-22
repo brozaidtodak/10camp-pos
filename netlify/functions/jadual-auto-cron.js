@@ -24,8 +24,58 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 const OFF_CODES = ['OFF', 'AL', 'MC', 'EL', 'PH'];
 
-// Jadual dipersetujui Zaid 22 Jul 2026. freq: 'daily' | {dow:[0=Ahad..6=Sabtu]} | 'monthly' (1-5hb).
+// Jadual dipersetujui Zaid 22 Jul 2026; diperluas ke SEMUA staf + CEO 23 Jul (p1_1183).
+// freq: 'daily' | {dow:[0=Ahad..6=Sabtu]} | 'monthly' (1-5hb). Hari OFF/cuti auto-skip ikut roster
+// (Zaid tiada dlm roster → fail-open, tugasan tiap hari — CEO boleh abaikan bila cuti).
 const JADUAL = [
+    {
+        staff_id: 'CMP001', name: 'Zaid', roster_name: 'Zaid',
+        tasks: [
+            { key: 'd-pagi', freq: 'daily', title: 'Semak Laporan Pagi + papan Tugasan Staf', notes: '10 minit — angka semalam (WhatsApp 7:30), siapa tengah buat apa, ada blocker?' },
+            { key: 'w-kelulusan', freq: { dow: [1, 4] }, title: 'Clear kelulusan tertunggak', notes: 'Claim, cuti, PO draf, cadangan harga — jangan biar staf tunggu keputusan.' },
+            { key: 'w-target', freq: { dow: [1] }, title: 'Set target minggu dengan Farhan', notes: '15 minit ~12:30 — slot sama dgn tugasan Farhan. Bawa fokus bulan.' },
+            { key: 'w-review', freq: { dow: [5] }, title: 'Review penutup minggu', notes: 'Laporan Aliff (komisen+admin) + pipeline Farhan + jualan vs Sasaran bulan. 20 minit.' },
+            { key: 'm-payroll', freq: 'monthly', title: 'Semak & lulus payroll + komisen', notes: 'Angka komisen dah auto dlm sistem — semak, lulus, hantar approval ke HR sebelum kitaran gaji.' },
+            { key: 'm-pnl', freq: 'monthly', title: 'Tutup bulan: semak P&L 10cc', notes: 'Buka 10cc Command Centre — untung/rugi bulan lepas, margin, ada anomali? Nota utk mesyuarat.' }
+        ]
+    },
+    {
+        staff_id: 'CMP005', name: 'Zack', roster_name: 'Zack',
+        tasks: [
+            { key: 'd-amaran', freq: 'daily', title: 'Semak Pusat Amaran + Audit Alerts', notes: '11:30 — isu data/sistem: produk tiada kos, stok pelik, jualan tak ditag. Betulkan atau panjangkan.' },
+            { key: 'w-stockcheck', freq: { dow: [1] }, title: 'Semak & approve stock check sessions', notes: 'Queue semakan stok yang staf hantar — review & approve/reject.' },
+            { key: 'w-health', freq: { dow: [4] }, title: 'System health: backup & integrasi', notes: 'Backup harian jalan? Sync Shopee/TikTok sihat? Token tak expired? 15 minit.' }
+        ]
+    },
+    {
+        staff_id: 'CMP006', name: 'Ariff', roster_name: 'Ariff',
+        tasks: [
+            { key: 'd-pack', freq: 'daily', title: 'Pack & ship order marketplace', notes: '11:30 pagi — clear semua order Perlu Pack sebelum kutipan kurier.' },
+            { key: 'd-live', freq: 'daily', title: 'Rekod sesi LIVE hari ini', notes: 'Lepas habis live TERUS rekod dlm tab LIVE — komisen ikut rekod ni. Tiada live hari ni? Tanda siap je.' },
+            { key: 'w-fokus', freq: { dow: [5] }, title: 'Senarai produk fokus live minggu depan', notes: '5 produk — rujuk stok & margin, selaraskan dgn kempen Farhan.' }
+        ]
+    },
+    {
+        staff_id: 'CMP003', name: 'Irfan', roster_name: 'Irfan',
+        tasks: [
+            { key: 'd-pack', freq: 'daily', title: 'Pack & ship order marketplace', notes: '11:30 pagi — kongsi dgn Ariff: clear order Perlu Pack sebelum kutipan kurier.' },
+            { key: 'w-display', freq: { dow: [3] }, title: 'Kemas ruang display kedai', notes: 'Rabu masuk 2ptg — susun display, tanda harga betul, produk fokus depan.' }
+        ]
+    },
+    {
+        staff_id: 'CMP009', name: 'Fahmi', roster_name: 'Fahmi',
+        tasks: [
+            { key: 'd-stok', freq: 'daily', title: 'Terima barang masuk + update stok', notes: 'Ada shipment? Rekod terimaan hari sama. Tiada? Semak stok rendah & restock rak.' },
+            { key: 'w-cycle', freq: { dow: [2] }, title: 'Cycle count satu seksyen', notes: 'Kira fizikal satu seksyen/rak, rekod dlm Stock Take — pusing seksyen lain minggu depan.' }
+        ]
+    },
+    {
+        staff_id: 'CMP011', name: 'Tarmizi Kael', roster_name: 'Tarmizi',
+        tasks: [
+            { key: 'd-picking', freq: 'daily', title: 'Picking & susun stok gudang', notes: 'Picking order + pastikan lokasi bin betul (products_master.location_bin).' },
+            { key: 'w-defect', freq: { dow: [4] }, title: 'Semak barang R&R / Defect', notes: 'Update senarai damaged (R&R + Defect sahaja) — asingkan dari stok boleh jual.' }
+        ]
+    },
     {
         staff_id: 'CMP008', name: 'Aliff', roster_name: 'Aliff',
         tasks: [

@@ -83,7 +83,8 @@ exports.handler = async (event) => {
             const orders = parseInt(t.sales_performance && t.sales_performance.sku_orders, 10) || 0;
             const items = parseInt(t.sales_performance && t.sales_performance.items_sold, 10) || 0;
             if (!best) {
-                out.unmatched_tiktok.push({ title: t.title || '', username: t.username || '', start: new Date(t0).toISOString(), gmv });
+                out.unmatched_tiktok.push({ title: t.title || '', username: t.username || '', start: new Date(t0).toISOString(), gmv,
+                    _t0: t0, _t1: t1, _orders: orders, _items: items });
                 return;
             }
             const slot = assigned[best.id] = assigned[best.id] || { sess: best, gmv: 0, orders: 0, items: 0, tt: 0 };
@@ -106,6 +107,26 @@ exports.handler = async (event) => {
                 out.updated++;
             }
         }
+        // p1_1180b — BACKFILL MANUAL (?backfill_host=Ariff): cipta rekod live_sessions utk sesi
+        // rasmi 10campofficial yang TIADA rekod kita (staf tak rekod — cth lubang 14 Jun-13 Jul).
+        // Host disahkan Zaid dulu (TikTok tak bagitahu siapa host). TIDAK berjalan dlm cron
+        // berjadual (param tiada). Sesi GMV 0 dilangkau (tiada kesan komisen).
+        const bfHost = event && event.queryStringParameters && event.queryStringParameters.backfill_host;
+        if (bfHost && !dry) {
+            out.backfilled = [];
+            for (const u of out.unmatched_tiktok) {
+                if (u.username !== '10campofficial' || !(u.gmv > 0)) continue;
+                const mytDate = new Date(u._t0 + 8 * 3600e3).toISOString().slice(0, 10);
+                await sb('POST', '/live_sessions', {
+                    session_date: mytDate, host_name: bfHost,
+                    start_at: new Date(u._t0).toISOString(), end_at: new Date(u._t1).toISOString(),
+                    live_sales_rm: u.gmv, orders_count: u._orders || null, items_sold: u._items || null,
+                    note: 'Auto-backfill dari TikTok API (p1_1180)', created_by: 'tiktok-live-gmv-cron'
+                }, { Prefer: 'return=minimal' });
+                out.backfilled.push({ date: mytDate, gmv: u.gmv, orders: u._orders });
+            }
+        }
+        out.unmatched_tiktok = out.unmatched_tiktok.map(u => ({ title: u.title, username: u.username, start: u.start, gmv: u.gmv }));
         return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(out) };
     } catch (e) {
         return { statusCode: 200, body: 'tiktok-live-gmv error: ' + String(e.message || e).slice(0, 250) };

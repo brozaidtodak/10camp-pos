@@ -35,7 +35,8 @@ const JADUAL = [
             { key: 'w-recon', freq: { dow: [3] }, title: 'Recon petty cash vs fizikal', notes: '2:30 petang — kira duit fizikal, padankan dengan sistem ke sen. Lari? Lapor terus.' },
             { key: 'w-komisen', freq: { dow: [5] }, title: 'Kira komisen minggu + laporan admin ke Bos', notes: '6:00 petang — WhatsApp ringkas ke Bos: komisen, claim, isu admin.' },
             { key: 'w-roster', freq: { dow: [5] }, title: 'Kemaskini roster minggu depan ke sistem', notes: '7:00 malam — masukkan jadual minggu depan dalam Jadual Tugas back office.' },
-            { key: 'm-komisenfinal', freq: 'monthly', title: 'Komisen bulan lepas FINAL + data payroll', notes: 'Siapkan sebelum 5hb — kiraan komisen muktamad & data cuti/claim/OT untuk gaji bulan+1.' }
+            { key: 'm-komisenfinal', freq: 'monthly', title: 'Komisen bulan lepas FINAL + data payroll', notes: 'Siapkan sebelum 5hb — kiraan komisen muktamad & data cuti/claim/OT untuk gaji bulan+1.' },
+            { key: 'm-todakreport', freq: 'monthly', title: 'Hantar Sales Report ke Finance TODAK', notes: 'Back office → Reports → Laporan TODAK → pilih bulan lepas → Jana → semak (order BELUM SETTLE? tunggu 2-3 hari jana semula) → Cetak/CSV → hantar macam biasa.' }
         ]
     },
     {

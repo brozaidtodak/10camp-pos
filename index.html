@@ -2199,6 +2199,10 @@
  <div class="menu-item" data-tab="nav_exports" onclick="event.stopPropagation(); switchHub(['exportsSection'], 'Exports', this); if(typeof renderExports==='function') renderExports();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="download" style="width:15px; height:15px;"></i> <span>Exports</span>
  </div>
+ <!-- p1_1181 — Laporan Jualan bulanan utk Finance TODAK (kerja Aliff; replicate format Shopify lama) -->
+ <div class="menu-item mgmt-only" data-tab="nav_todak_report" onclick="event.stopPropagation(); switchHub(['todakReportSection'], 'Laporan TODAK', this); if(typeof renderTodakReport==='function') renderTodakReport();" style="display:flex; align-items:center; gap:10px;">
+ <i data-lucide="file-spreadsheet" style="width:15px; height:15px;"></i> <span>Laporan TODAK</span>
+ </div>
  <!-- p1_398 — Roadmap dalam group Reports yang VISIBLE (.menu-list), bukan wrapper legacy tersorok. -->
  <div class="menu-item" data-tab="nav_roadmap" onclick="event.stopPropagation(); switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="target" style="width:15px; height:15px;"></i> <span data-i18n="sb_roadmap">Roadmap &amp; Progress</span>
@@ -6678,6 +6682,10 @@
  <!-- SECTION: TUGASAN STAF (p1_1176) — app tab Task (staf) + papan Bos (back office) -->
  <!-- ============================================== -->
  <div id="staffTasksSection" class="tab-section" style="display:none;"></div>
+ <!-- ============================================== -->
+ <!-- SECTION: LAPORAN JUALAN TODAK (p1_1181) — bulanan, kerja Aliff -->
+ <!-- ============================================== -->
+ <div id="todakReportSection" class="tab-section" style="display:none;"></div>
  <!-- ============================================== -->
  <!-- SECTION: COMMISSION TRACKER (SALES PAGE 2) -->
  <!-- ============================================== -->
@@ -13294,7 +13302,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1149"></script>
+ <script src="app.js?v=1150"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

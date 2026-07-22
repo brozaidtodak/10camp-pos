@@ -46981,3 +46981,208 @@ window.__pdbRefresh = async function(btn){
   } catch(e){ console.warn('stDelete', e); if(window.showToast) showToast('Gagal padam.', 'error'); }
  };
 })();
+
+// ==============================================
+// p1_1181 — LAPORAN JUALAN BULANAN UTK FINANCE TODAK (kerja Aliff)
+// Replicate format report Shopify lama ("Sales Report | 10 Camp By Todak"):
+// satu baris per order — Day, Order name, Gross, Shipping, Discount, Net,
+// Payment gateway, Actual Gateway, Remarks (recon marketplace SHORT/EXTRA
+// dari settlement_recon p1_681). Aliff: pilih bulan → semak → CSV / cetak PDF.
+// ==============================================
+(function(){
+ function tdEsc(s){ return escapeHtml(s); }
+ function tdMoney(n){ return (Math.round(n*100)/100).toFixed(2); }
+ // Fetch berhalaman — PostgREST cap 1000/panggilan (rujuk gotcha lama), loop range.
+ async function tdFetchSales(startIso, endIso){
+  let out = [], from = 0;
+  for(let i=0; i<25; i++){
+   const { data, error } = await db.from('sales_history')
+    .select('id,created_at,channel,status,payment_method,payment_method_detail,total_amount,metadata,is_test')
+    .gte('created_at', startIso).lt('created_at', endIso)
+    .order('created_at', {ascending:true})
+    .range(from, from+999);
+   if(error) throw error;
+   out = out.concat(data || []);
+   if(!data || data.length < 1000) break;
+   from += 1000;
+  }
+  return out;
+ }
+ async function tdFetchRecon(startDate, endDate){
+  let out = [], from = 0;
+  for(let i=0; i<15; i++){
+   const { data, error } = await db.from('settlement_recon')
+    .select('order_sn,channel,pos_gross,net_payout')
+    .gte('order_date', startDate).lte('order_date', endDate)
+    .range(from, from+999);
+   if(error) { console.warn('recon fetch', error); break; }
+   out = out.concat(data || []);
+   if(!data || data.length < 1000) break;
+   from += 1000;
+  }
+  const map = {};
+  out.forEach(r => { if(r.order_sn) map[String(r.order_sn)] = r; });
+  return map;
+ }
+ function tdOrderSn(s){
+  const m = s.metadata || {};
+  return m.shopee_order_sn || m.tiktok_order_sn || m.order_sn || m.tiktok_order_id || m.order_id || null;
+ }
+ function tdBuildRows(sales, reconMap){
+  const rows = [];
+  let totGross = 0, totNet = 0, nBelumSettle = 0;
+  sales.forEach(s => {
+   if(s.is_test) return;
+   const st = String(s.status || '').toLowerCase();
+   if(st === 'pending') return; // belum sah bayar
+   const isCancel = st === 'cancelled' || st === 'voided';
+   const isRefund = st === 'refunded';
+   const total = Number(s.total_amount) || 0;
+   const meta = s.metadata || {};
+   const d = new Date(s.created_at);
+   const day = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+   const isMkt = s.channel === 'TikTok Shop' || s.channel === 'Shopee';
+   const sn = isMkt ? tdOrderSn(s) : null;
+   const orderName = sn ? String(sn) : ('#POS' + s.id);
+   const disc = Number(meta.custom_discount_amount) || 0;
+   let gateway, actual, remarks = '';
+   if(isMkt){
+    gateway = 'manual';
+    actual = s.channel === 'TikTok Shop' ? 'Tiktok' : 'Shopee';
+    const rec = sn ? reconMap[String(sn)] : null;
+    if(isCancel || isRefund){ remarks = isRefund ? 'ORDER REFUND' : 'ORDER CANCEL'; }
+    else if(rec && rec.net_payout != null){
+     const payout = Number(rec.net_payout) || 0;
+     const diff = Math.round((payout - total) * 100) / 100;
+     remarks = actual + ' RM ' + tdMoney(payout) + (diff < 0 ? ', SHORT RM ' + tdMoney(-diff) : (diff > 0 ? ', EXTRA RM ' + tdMoney(diff) : ', PADAN'));
+    } else { remarks = 'BELUM SETTLE'; nBelumSettle++; }
+   } else {
+    gateway = s.payment_method || '?';
+    actual = s.payment_method_detail || s.payment_method || '?';
+    if(isCancel) remarks = 'ORDER CANCEL / VOID';
+    if(isRefund) remarks = 'ORDER REFUND';
+    if(disc > 0) remarks = (remarks ? remarks + ' · ' : '') + 'Diskaun oleh ' + (meta.custom_discount_by || 'staf');
+   }
+   const gross = (isCancel || isRefund) ? total : total;
+   const net = (isCancel || isRefund) ? -total : total;
+   if(!isCancel && !isRefund){ totGross += gross; totNet += net; } else { totNet += net; }
+   rows.push({ day, sortTs: d.getTime(), orderName, gross, disc, net, gateway, actual, remarks, neg: (isCancel || isRefund) });
+  });
+  rows.sort((a,b) => a.sortTs - b.sortTs);
+  return { rows, totGross, totNet, nBelumSettle };
+ }
+ window.__tdData = null;
+ window.renderTodakReport = function(){
+  const el = document.getElementById('todakReportSection');
+  if(!el) return;
+  // Default bulan = bulan LEPAS (report dihantar awal bulan utk bulan sebelumnya)
+  const now = new Date(Date.now() + 8*3600e3);
+  const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-1, 1));
+  const defVal = prev.toISOString().slice(0,7);
+  el.innerHTML = '<div style="max-width:1080px; margin:0 auto; padding:14px 14px 40px;">'
+   + '<div style="font-weight:900; font-size:20px; color:#141414;">Laporan Jualan — Finance TODAK</div>'
+   + '<div style="font-size:12.5px; color:#6E6A5E; margin:2px 0 14px;">Format sama macam report Shopify lama. Pilih bulan → Jana → semak → muat turun & hantar ke finance macam biasa.</div>'
+   + '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">'
+   + '<input type="month" id="tdMonth" value="' + defVal + '" style="padding:9px 10px; border:1px solid var(--border-color, #B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:13.5px;">'
+   + '<button onclick="window.__tdGenerate()" style="border:3px solid #141414; background:var(--primary, #FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:13px; padding:9px 20px; border-radius:4px; cursor:pointer; box-shadow:4px 4px 0 #141414;">Jana Laporan</button>'
+   + '<button onclick="window.__tdCsv()" id="tdBtnCsv" disabled style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:9px 16px; border-radius:4px; cursor:pointer; opacity:.4;">Muat Turun CSV</button>'
+   + '<button onclick="window.__tdPrint()" id="tdBtnPrint" disabled style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:9px 16px; border-radius:4px; cursor:pointer; opacity:.4;">Cetak / Simpan PDF</button>'
+   + '</div>'
+   + '<div id="tdBody" style="font-size:13px; color:#6E6A5E;">Pilih bulan dan tekan Jana Laporan.</div>'
+   + '</div>';
+ };
+ window.__tdGenerate = async function(){
+  const mv = (document.getElementById('tdMonth')||{}).value;
+  const body = document.getElementById('tdBody');
+  if(!mv || !body) return;
+  body.innerHTML = 'Memuatkan data jualan ' + mv + '… (boleh ambil beberapa saat)';
+  try {
+   const start = new Date(mv + '-01T00:00:00+08:00');
+   const endMyt = new Date(mv + '-01T00:00:00+08:00'); endMyt.setUTCMonth(endMyt.getUTCMonth()+1); // 1hb bulan depan 00:00 MYT
+   const sales = await tdFetchSales(start.toISOString(), endMyt.toISOString());
+   const lastDay = new Date(endMyt.getTime() - 24*3600e3).toISOString().slice(0,10);
+   const reconMap = await tdFetchRecon(mv + '-01', lastDay);
+   const d = tdBuildRows(sales, reconMap);
+   window.__tdData = { month: mv, rows: d.rows, totGross: d.totGross, totNet: d.totNet };
+   const monthName = start.toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Kuala_Lumpur' }).toUpperCase();
+   window.__tdData.periodLabel = 'END_' + monthName + '_' + start.getUTCFullYear();
+   let html = '<div style="font-size:12px; color:#6E6A5E; margin-bottom:8px;">' + d.rows.length + ' baris · Gross RM ' + tdMoney(d.totGross) + ' · Net RM ' + tdMoney(d.totNet)
+    + (d.nBelumSettle ? ' · <b style="color:#B8860B;">' + d.nBelumSettle + ' order marketplace BELUM SETTLE (remarks kosong lagi — jana semula beberapa hari lagi)</b>' : '') + '</div>'
+    + '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; background:#fff;">'
+    + '<thead><tr style="background:#141414; color:#F4F2EC;">'
+    + ['Day','Order name','Gross','Shipping','Discount','Net','Payment gateway','Actual Gateway','Remarks'].map(h => '<th style="padding:7px 9px; text-align:left; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;">' + h + '</th>').join('')
+    + '</tr></thead><tbody>';
+   d.rows.forEach(r => {
+    html += '<tr style="border-bottom:1px solid #EEE;' + (r.neg ? ' color:#C62828;' : '') + '">'
+     + '<td style="padding:6px 9px; white-space:nowrap;">' + r.day + '</td>'
+     + '<td style="padding:6px 9px; font-family:var(--font-mono, monospace); font-size:11.5px;">' + tdEsc(r.orderName) + '</td>'
+     + '<td style="padding:6px 9px; text-align:right;">' + tdMoney(r.gross) + '</td>'
+     + '<td style="padding:6px 9px; text-align:right;">0</td>'
+     + '<td style="padding:6px 9px; text-align:right;">' + tdMoney(r.disc) + '</td>'
+     + '<td style="padding:6px 9px; text-align:right; font-weight:700;">' + tdMoney(r.net) + '</td>'
+     + '<td style="padding:6px 9px;">' + tdEsc(r.gateway) + '</td>'
+     + '<td style="padding:6px 9px;">' + tdEsc(r.actual) + '</td>'
+     + '<td style="padding:6px 9px; font-size:11px; color:#6E6A5E;">' + tdEsc(r.remarks) + '</td>'
+     + '</tr>';
+   });
+   html += '<tr style="background:#F4F2EC; font-weight:800;"><td colspan="2" style="padding:8px 9px;">JUMLAH</td>'
+    + '<td style="padding:8px 9px; text-align:right;">' + tdMoney(d.totGross) + '</td><td></td><td></td>'
+    + '<td style="padding:8px 9px; text-align:right;">' + tdMoney(d.totNet) + '</td><td colspan="3"></td></tr>';
+   html += '</tbody></table></div>';
+   body.innerHTML = html;
+   ['tdBtnCsv','tdBtnPrint'].forEach(id => { const b = document.getElementById(id); if(b){ b.disabled = false; b.style.opacity = '1'; } });
+  } catch(e){
+   console.warn('tdGenerate', e);
+   body.innerHTML = '<span style="color:#C62828;">Gagal jana laporan: ' + tdEsc(e.message || String(e)) + '</span>';
+  }
+ };
+ window.__tdCsv = function(){
+  const d = window.__tdData; if(!d) return;
+  const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const lines = [
+   ['COMPANY','10CAMP ENTERPRISE'].map(esc).join(','),
+   ['REPORT','MONTHLY SALES POS'].map(esc).join(','),
+   ['PERIOD', d.periodLabel].map(esc).join(','),
+   '',
+   ['Day','Order name','Gross payments','Shipping Fees','Order Discount','Net payments','Payment gateway','Actual Gateway','Remarks'].map(esc).join(',')
+  ];
+  d.rows.forEach(r => lines.push([r.day, r.orderName, tdMoney(r.gross), '0', tdMoney(r.disc), tdMoney(r.net), r.gateway, r.actual, r.remarks].map(esc).join(',')));
+  lines.push(['','JUMLAH', tdMoney(d.totGross), '', '', tdMoney(d.totNet), '', '', ''].map(esc).join(','));
+  const blob = new Blob(["﻿" + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Sales Report 10 Camp By Todak - ' + d.month + '.csv';
+  a.click();
+ };
+ window.__tdPrint = function(){
+  const d = window.__tdData; if(!d) return;
+  let rowsHtml = '';
+  d.rows.forEach(r => {
+   rowsHtml += '<tr' + (r.neg ? ' class="neg"' : '') + '><td>' + r.day + '</td><td>' + tdEsc(r.orderName) + '</td>'
+    + '<td class="r">' + tdMoney(r.gross) + '</td><td class="r">0</td><td class="r">' + tdMoney(r.disc) + '</td>'
+    + '<td class="r"><b>' + tdMoney(r.net) + '</b></td><td>' + tdEsc(r.gateway) + '</td><td>' + tdEsc(r.actual) + '</td>'
+    + '<td class="rm">' + tdEsc(r.remarks) + '</td></tr>';
+  });
+  const w = window.open('', '_blank');
+  if(!w){ if(typeof showToast === 'function') showToast('Popup disekat — benarkan popup utk site ni.', 'warn'); return; }
+  w.document.write('<html><head><title>Sales Report 10 Camp By Todak - ' + d.month + '</title><style>'
+   + 'body{font-family:Arial,sans-serif; font-size:10px; margin:24px; color:#111;}'
+   + 'h2{font-size:14px; margin:0 0 2px;} .hdr{font-size:11px; margin-bottom:2px;}'
+   + 'table{width:100%; border-collapse:collapse; margin-top:10px;}'
+   + 'th{background:#eee; border:1px solid #999; padding:4px 6px; text-align:left; font-size:9px;}'
+   + 'td{border:1px solid #bbb; padding:3px 6px;} td.r{text-align:right;} td.rm{font-size:9px;}'
+   + 'tr.neg td{color:#C00;} tr.tot td{background:#eee; font-weight:bold;}'
+   + '@media print{ body{margin:8mm;} }'
+   + '</style></head><body>'
+   + '<h2>Sales Report 2026 | 10 Camp By Todak</h2>'
+   + '<div class="hdr">COMPANY : 10CAMP ENTERPRISE</div>'
+   + '<div class="hdr">REPORT : MONTHLY SALES POS</div>'
+   + '<div class="hdr">PERIOD : ' + d.periodLabel + '</div>'
+   + '<table><thead><tr><th>Day</th><th>Order name</th><th>Gross payments</th><th>Shipping Fees</th><th>Order Discount</th><th>Net payments</th><th>Payment gateway</th><th>Actual Gateway</th><th>Remarks</th></tr></thead>'
+   + '<tbody>' + rowsHtml
+   + '<tr class="tot"><td colspan="2">JUMLAH</td><td class="r">' + tdMoney(d.totGross) + '</td><td></td><td></td><td class="r">' + tdMoney(d.totNet) + '</td><td colspan="3"></td></tr>'
+   + '</tbody></table></body></html>');
+  w.document.close();
+  setTimeout(function(){ try { w.print(); } catch(e){} }, 400);
+ };
+})();

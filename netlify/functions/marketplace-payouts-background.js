@@ -7,7 +7,10 @@
  *            loop tetingkap 15 hari)
  * Upsert ke marketplace_payouts (order_sn PK) — Laporan TODAK guna utk remarks
  * "Tiktok RM <payout>, SHORT/EXTRA RM <beza>" tanpa Aliff kira manual.
- * Cron harian 02:45 UTC (10:45 MYT). ?days=N (7-90, default 21) · ?dry=1 preview.
+ * BACKGROUND function (suffix -background = had 15 minit; sync function timeout
+ * pada 90 hari — Shopee escrow per-order lambat; HTTP invoke pulang 202 serta-merta,
+ * verify hasil via count marketplace_payouts). Cron harian 02:45 UTC (10:45 MYT).
+ * ?days=N (7-90, default 21) · ?dry=1 preview (berguna hanya utk invoke terus).
  */
 const { requireAuth, internalHeaders } = require('./_auth');
 

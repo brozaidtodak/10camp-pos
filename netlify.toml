@@ -234,7 +234,7 @@
   schedule = "30 0 * * *"
 
 # p1_1182 — Lejar payout per-order marketplace (Fasa 2 Laporan TODAK), daily 02:45 UTC = 10:45 MYT.
-[functions."marketplace-payouts-cron"]
+[functions."marketplace-payouts-background"]
   schedule = "45 2 * * *"
 
 # p1_681 (#8) — Settlement reconciliation: POS marketplace orders vs Shopee escrow + TikTok

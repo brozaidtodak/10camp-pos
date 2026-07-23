@@ -1324,7 +1324,7 @@ html[lang="en"] .lp-pdp__discount::before { content: 'Save '; }
 .lp-newsletter__input:focus { border-color: var(--lp-accent, #CD7C32); }
 .lp-newsletter__hint { color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 14px; }
 
-.lp-footer { background: #0F172A; color: rgba(255,255,255,0.85); padding: 56px 24px 32px; }
+.lp-footer { background: #141414; color: rgba(255,255,255,0.85); padding: 56px 24px 32px; } /* audit: navy #0F172A -> ink #141414 selaras base gelap jenama */
 .lp-footer__inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
 @media (max-width: 768px) { .lp-footer__inner { grid-template-columns: 1fr 1fr; gap: 28px; } .lp-footer__col--brand { grid-column: 1/-1; } }
 .lp-footer h4 { color: #FFF; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 14px; }
@@ -3333,6 +3333,11 @@ a:focus-visible {
 #saWidget { position: fixed; right: 20px; bottom: 20px; z-index: 2900; } /* p1_861 — bawah modal/overlay (login-overlay 3000+, cart drawer 5001, product detail 4500) supaya FAB Tanya AI tak tembus atas modal */
 #saFab { width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer; background: linear-gradient(135deg,var(--primary-500,#CD7C32),var(--primary-700,#A05F22)); color: #fff; box-shadow: 0 8px 22px rgba(16,16,16,.28); display: flex; align-items: center; justify-content: center; transition: transform .12s; }
 #saFab:hover { transform: scale(1.06); }
+/* audit disiplin warna: FAB Tanya AI (customer-facing) guna --primary bronze POS -> clash dgn landing oren.
+   Scope ke public landing SAHAJA (bukan pos-app-scoped) -> oren jenama #FF4D00. POS app kekal tema bronze. */
+body:not(.pos-app-scoped) #caFab,
+body:not(.pos-app-scoped) #saFab { background: linear-gradient(135deg, #FF4D00, #C43D00); }
+body:not(.pos-app-scoped) .sa-head { background: linear-gradient(135deg, #FF4D00, #C43D00); }
 #saPanel { position: absolute; right: 0; bottom: 64px; width: 360px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 110px); background: #fff; border: 1px solid var(--neutral-200,#E4E4E7); border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.28); display: flex; flex-direction: column; overflow: hidden; }
 #saPanel[hidden] { display: none; }
 .sa-head { background: linear-gradient(135deg,var(--primary-500,#CD7C32),var(--primary-700,#A05F22)); color: #fff; padding: 13px 15px; display: flex; align-items: center; justify-content: space-between; }
@@ -3760,7 +3765,7 @@ body:has(.cart-section.drawer-open) #saWidget { display: none !important; }
  position: absolute;
  top: 8px;
  left: 8px;
- background: #B23A2E;
+ background: #141414; /* audit: brick-red #B23A2E (off-brand + pudar) -> ink neutral, kontras tinggi, 'habis stok' tak menarik perhatian berlebihan */
  color: #fff;
  font-size: 9px;
  font-weight: 900;

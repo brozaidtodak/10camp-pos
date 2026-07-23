@@ -1932,7 +1932,11 @@
  <i data-lucide="calendar-clock" style="width:18px; height:18px;"></i> <span>Jadual Tugas</span>
  <span id="rosterSidebarBadge" title="Permohonan cuti/tukar syif menunggu kelulusan" style="display:none; margin-left:auto; background:#CE9420; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
- <!-- p1_1188 — papan Bos Tugasan Staf DIPINDAH ke 10cc back office (/dashboard/staff-tasks). Staf kekal nampak tugasan sendiri via tab Task dlm app (renderStaffTasks). -->
+ <!-- p1_1176 — Tugasan Staf: papan Bos SAHAJA (isBoss). Gate via body.is-boss-user + CSS #navStaffTasksBoss (style.css) — BUKAN inline display (setActiveRail clear inline display item tanpa data-group). Staf nampak tugasan sendiri via tab Task dlm app. -->
+ <div class="menu-item" id="navStaffTasksBoss" data-tab="nav_stafftasks" onclick="switchHub(['staffTasksSection'], 'Tugasan Staf', this); if(typeof renderStaffTasks==='function') renderStaffTasks();" style="align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ <i data-lucide="list-todo" style="width:18px; height:18px;"></i> <span>Tugasan Staf</span>
+ <span id="staffTasksBossBadge" title="Tugasan tengah dibuat sekarang" style="display:none; margin-left:auto; background:var(--primary, #FF4D00); color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
+ </div>
  <div class="nav-section-label">Jual</div>
  <!-- p1_371 — Cashier jadi group collapsible (Zaid: "boleh tutup dan buka" + tambah Commission). Parent buka register + expand; tekan lagi tutup (corak Orders/openOrdersHub). -->
  <div class="menu-item nav-parent" data-nav-parent="cashier" onclick="window.openCashierHub(event)">
@@ -13298,7 +13302,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1159"></script>
+ <script src="app.js?v=1160"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

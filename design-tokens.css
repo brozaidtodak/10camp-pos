@@ -829,13 +829,14 @@
 /* p1 — latar VIDEO event (ganti shader oren). Poster fallback + mobile/reduced-motion = poster sahaja (JS). */
 .lp-hero__video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; filter: brightness(0.82) saturate(1.05); }
 /* p1_1213 — /shop = page produk sendiri. Homepage sorok grid shop; /shop tunjuk shop SAHAJA. */
-/* homepage: shop + walk-in promo PINDAH ke /shop (tak lagi di homepage) */
-html:not(.shop-page) .lp-shop, html:not(.shop-page) .lp-walkin-promo { display: none !important; }
-html.shop-page .lp-hero, html.shop-page .lp-trust,
-html.shop-page .lp-soldout, html.shop-page .lp-brands, html.shop-page .lp-collections,
+/* homepage: shop + walk-in + collections + bukti-laku + FAQ + polisi PINDAH ke /shop */
+html:not(.shop-page) .lp-shop, html:not(.shop-page) .lp-walkin-promo,
+html:not(.shop-page) .lp-collections, html:not(.shop-page) .lp-soldout,
+html:not(.shop-page) .lp-faq, html:not(.shop-page) .lp-policies { display: none !important; }
+/* /shop: sorok section marketing/jenama sahaja (yang kekal di homepage) */
+html.shop-page .lp-hero, html.shop-page .lp-trust, html.shop-page .lp-brands,
 html.shop-page .lp-about, html.shop-page .lp-gallery, html.shop-page .lp-reviews,
-html.shop-page .lp-faq, html.shop-page .lp-policies, html.shop-page .lp-location,
-html.shop-page .lp-newsletter { display: none !important; }
+html.shop-page .lp-location, html.shop-page .lp-newsletter { display: none !important; }
 html.shop-page .lp-walkin-promo { padding-top: 40px; }
 html.shop-page .lp-shop { padding-top: 8px; }
 /* filter row Jenama / Kategori di /shop */

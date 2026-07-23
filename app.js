@@ -46910,8 +46910,10 @@ window.__pdbRefresh = async function(btn){
   let html = '<div style="max-width:680px; margin:0 auto; padding:14px 14px 40px;">'
    + '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">'
    + '<div style="font-weight:900; font-size:19px; color:#141414;">Tugasan Aku</div>'
+   + '<div style="display:flex; gap:6px;">'
+   + '<button onclick="switchHub([\'taskHistorySection\'],\'Sejarah Tugasan\'); window.renderTaskHistory();" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:11.5px; padding:7px 13px; border-radius:999px; cursor:pointer;"><i data-lucide="history" style="width:12px;height:12px;vertical-align:-2px;pointer-events:none;"></i> Sejarah</button>'
    + '<button onclick="window.__ttOpen(window.currentUser.staff_id, window.currentUser.name)" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:11.5px; padding:7px 13px; border-radius:999px; cursor:pointer;"><i data-lucide="calendar-cog" style="width:12px;height:12px;vertical-align:-2px;pointer-events:none;"></i> Jadual Saya</button>'
-   + '</div>'
+   + '</div></div>'
    + '<div style="font-size:12px; color:#6E6A5E; margin-bottom:10px;">Tekan <b>Mula Buat</b> bila mula, <b>Tanda Siap</b> bila habis — Bos nampak status terus.</div>';
   // p1_1193 #5 — progress hari ini: X/Y siap (tugasan hari ini sahaja)
   (function(){
@@ -47093,7 +47095,9 @@ window.__pdbRefresh = async function(btn){
    + '<button onclick="window.__stAdd()" style="border:3px solid #141414; background:var(--primary, #FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:13px; padding:9px 20px; border-radius:4px; cursor:pointer; box-shadow:4px 4px 0 #141414;">Hantar Tugasan</button>'
    + '</div></div>'
    // p1_1184 — toggle paparan: Hari Ini (grid sekali pandang) / Senarai Penuh (detail + padam)
-   + '<div style="display:flex; gap:8px; margin-bottom:14px;">' + pill('today', 'Hari Ini') + pill('full', 'Senarai Penuh') + '</div>';
+   + '<div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">' + pill('today', 'Hari Ini') + pill('full', 'Senarai Penuh')
+   + '<button onclick="switchHub([\'taskHistorySection\'],\'Sejarah Tugasan\'); window.renderTaskHistory();" style="padding:7px 16px; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; font-family:var(--font-main,inherit); border:2px solid var(--border-color, #B9B4A6); background:#fff; color:#6E6A5E;"><i data-lucide="history" style="width:12px;height:12px;vertical-align:-2px;pointer-events:none;"></i> Sejarah</button>'
+   + '</div>';
 
   if(view === 'today'){
    html += stRenderBossToday(tasks);
@@ -47878,4 +47882,109 @@ window.__pdbRefresh = async function(btn){
  setInterval(function(){ try { if(!document.hidden) window.__stTabBadgeRefresh(); } catch(e){} }, 300000);
  setTimeout(function(){ try { window.__stTabBadgeRefresh(); } catch(e){} }, 7000);
  setTimeout(function(){ try { window.__stTabBadgeRefresh(); } catch(e){} }, 25000);
+})();
+
+// ==============================================
+// p1_1196 — SEJARAH TUGASAN (halaman berasingan, cadangan Zaid): rujuk semula
+// (1) TUGASAN SIAP — arkib apa yang dibuat, bila, berapa lama (kekal dlm DB;
+//     paparan harian 14-hari sahaja — halaman ni buka SEMUA ikut bulan);
+// (2) EDIT JADUAL — audit task_template_history (siapa ubah slot apa, sebelum→selepas).
+// Staf = sejarah SENDIRI sahaja; Bos = semua + pemilih staf.
+// ==============================================
+(function(){
+ function thEsc(s){ return escapeHtml(s); }
+ function thBoss(){ return typeof window.isBoss === 'function' && window.isBoss(window.currentUser); }
+ window.__thTab = 'siap';
+ window.__thStaff = '';   // '' = semua (Bos) / diri sendiri (staf)
+ window.__thMonth = '';
+ window.renderTaskHistory = function(){
+  const el = document.getElementById('taskHistorySection'); if(!el || !window.currentUser) return;
+  const boss = thBoss();
+  if(!window.__thMonth) window.__thMonth = new Date(Date.now() + 8*3600e3).toISOString().slice(0,7);
+  const staffOpts = boss ? '<option value="">Semua staf</option>' + (typeof authUsers !== 'undefined' ? authUsers : []).filter(u=>u.staff_id!=='TST001'&&u.staff_id!=='REV001').map(u=>'<option value="'+u.staff_id+'"'+(window.__thStaff===u.staff_id?' selected':'')+'>'+thEsc(u.name)+'</option>').join('') : '';
+  const pill = function(key, label){
+   const on = window.__thTab === key;
+   return '<button onclick="window.__thTab=\''+key+'\'; window.renderTaskHistory();" style="padding:7px 16px; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; font-family:var(--font-main,inherit); border:2px solid #141414; background:'+(on?'#141414':'#fff')+'; color:'+(on?'#F4F2EC':'#141414')+';">'+label+'</button>';
+  };
+  el.innerHTML = '<div style="max-width:860px; margin:0 auto; padding:14px 14px 40px;">'
+   + '<div style="font-weight:900; font-size:20px; color:#141414;">Sejarah Tugasan</div>'
+   + '<div style="font-size:12px; color:#6E6A5E; margin:2px 0 12px;">' + (boss ? 'Arkib penuh semua staf — tugasan siap & audit edit jadual.' : 'Arkib tugasan kau — rujuk semula apa yang dah dibuat.') + '</div>'
+   + '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">'
+   + pill('siap','Tugasan Siap') + pill('edit','Edit Jadual')
+   + '<input type="month" value="'+window.__thMonth+'" onchange="window.__thMonth=this.value; window.renderTaskHistory();" style="padding:7px 10px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12px;">'
+   + (boss ? '<select onchange="window.__thStaff=this.value; window.renderTaskHistory();" style="padding:7px 10px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12px; background:#fff;">'+staffOpts+'</select>' : '')
+   + '</div>'
+   + '<div id="thBody" style="font-size:13px; color:#6E6A5E;">Memuatkan…</div></div>';
+  if(window.__thTab === 'siap') window.__thLoadSiap(); else window.__thLoadEdits();
+ };
+ window.__thLoadSiap = async function(){
+  const body = document.getElementById('thBody'); if(!body) return;
+  const boss = thBoss();
+  const sid = boss ? window.__thStaff : window.currentUser.staff_id;
+  const mv = window.__thMonth;
+  try {
+   const start = new Date(mv + '-01T00:00:00+08:00').toISOString();
+   const y = parseInt(mv.slice(0,4),10), m = parseInt(mv.slice(5,7),10);
+   const end = new Date((m===12?y+1:y) + '-' + String(m===12?1:m+1).padStart(2,'0') + '-01T00:00:00+08:00').toISOString();
+   let q = db.from('staff_tasks').select('*').eq('status','siap').gte('done_at', start).lt('done_at', end).order('done_at', {ascending:false}).limit(400);
+   if(sid) q = q.eq('assigned_to', sid);
+   const { data, error } = await q;
+   if(error) throw error;
+   const rows = data || [];
+   if(!rows.length){ body.innerHTML = 'Tiada tugasan siap bulan ni.'; return; }
+   // kumpul ikut tarikh (MYT)
+   const byDay = {};
+   rows.forEach(t => { const d = new Date(new Date(t.done_at).getTime() + 8*3600e3).toISOString().slice(0,10); (byDay[d] = byDay[d] || []).push(t); });
+   let html = '<div style="font-size:11.5px; color:#6E6A5E; margin-bottom:8px;">' + rows.length + ' tugasan siap</div>';
+   Object.keys(byDay).sort().reverse().forEach(d => {
+    const dt = new Date(d + 'T00:00:00+08:00');
+    html += '<div style="font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#141414; margin:14px 0 6px;">' + dt.toLocaleDateString('ms-MY', {weekday:'long', day:'numeric', month:'short', timeZone:'Asia/Kuala_Lumpur'}) + '</div>';
+    byDay[d].forEach(t => {
+     const tm = function(iso){ return iso ? new Date(iso).toLocaleTimeString('ms-MY',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}) : '—'; };
+     let dur = '';
+     if(t.started_at && t.done_at){ const mnt = Math.round((new Date(t.done_at) - new Date(t.started_at))/60000); if(mnt > 0 && mnt < 720) dur = mnt + ' min'; }
+     html += '<div style="display:flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--border-color,#B9B4A6); border-left:4px solid #168C50; border-radius:8px; padding:9px 12px; margin-bottom:5px;">'
+      + '<div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:700; color:#141414;">' + thEsc(t.title) + '</div>'
+      + '<div style="font-size:10.5px; color:#9CA3AF; font-family:var(--font-mono,monospace);">' + (boss && !sid ? thEsc(t.assigned_to_name||'') + ' · ' : '') + 'siap ' + tm(t.done_at) + (dur ? ' · ' + dur : '') + '</div></div>'
+      + '</div>';
+    });
+   });
+   body.innerHTML = html;
+  } catch(e){ body.innerHTML = '<span style="color:#C62828;">Gagal muat: ' + thEsc(e.message||e) + '</span>'; }
+ };
+ window.__thLoadEdits = async function(){
+  const body = document.getElementById('thBody'); if(!body) return;
+  const boss = thBoss();
+  const sid = boss ? window.__thStaff : window.currentUser.staff_id;
+  try {
+   let q = db.from('task_template_history').select('*').order('changed_at', {ascending:false}).limit(200);
+   if(sid) q = q.eq('staff_id', sid);
+   const { data, error } = await q;
+   if(error) throw error;
+   const rows = data || [];
+   if(!rows.length){ body.innerHTML = 'Belum ada edit jadual direkodkan.'; return; }
+   const nameOf = function(sid2){ const u = (typeof authUsers !== 'undefined' ? authUsers : []).find(x=>x.staff_id===sid2); return u ? u.name : sid2; };
+   const ACT = { INSERT: ['Tambah slot','#168C50'], UPDATE: ['Ubah slot','#B8860B'], DELETE: ['Padam slot','#C62828'] };
+   let html = '<div style="font-size:11.5px; color:#6E6A5E; margin-bottom:8px;">' + rows.length + ' perubahan terkini (semua masa)</div>';
+   rows.forEach(r => {
+    const a = ACT[r.action] || [r.action, '#6E6A5E'];
+    const oldT = r.old_row ? (r.old_row.title || '') : '';
+    const newT = r.new_row ? (r.new_row.title || '') : '';
+    // UPDATE dgn active:true→false = padam lembut (dari UI Jadual Saya)
+    const softDel = r.action === 'UPDATE' && r.old_row && r.new_row && r.old_row.active === true && r.new_row.active === false;
+    const lbl = softDel ? ACT.DELETE : a;
+    let detail = '';
+    if(r.action === 'INSERT') detail = thEsc(newT);
+    else if(softDel) detail = thEsc(oldT);
+    else if(r.action === 'UPDATE') detail = (oldT !== newT) ? thEsc(oldT) + ' → ' + thEsc(newT) : thEsc(newT) + ' <span style="color:#9CA3AF;">(nota/masa/hari diubah)</span>';
+    else detail = thEsc(oldT);
+    html += '<div style="display:flex; align-items:flex-start; gap:9px; background:#fff; border:1px solid var(--border-color,#B9B4A6); border-left:4px solid ' + lbl[1] + '; border-radius:8px; padding:9px 12px; margin-bottom:5px;">'
+     + '<div style="flex:1; min-width:0;">'
+     + '<div style="font-size:12.5px; color:#141414;"><b style="color:' + lbl[1] + ';">' + lbl[0] + '</b> — ' + detail + '</div>'
+     + '<div style="font-size:10.5px; color:#9CA3AF; font-family:var(--font-mono,monospace);">' + thEsc(nameOf(r.staff_id)) + ' · oleh ' + thEsc(r.changed_by || '?') + ' · ' + new Date(r.changed_at).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) + '</div>'
+     + '</div></div>';
+   });
+   body.innerHTML = html;
+  } catch(e){ body.innerHTML = '<span style="color:#C62828;">Gagal muat: ' + thEsc(e.message||e) + '</span>'; }
+ };
 })();

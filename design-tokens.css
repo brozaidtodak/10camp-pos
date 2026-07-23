@@ -829,13 +829,19 @@
 /* p1 — latar VIDEO event (ganti shader oren). Poster fallback + mobile/reduced-motion = poster sahaja (JS). */
 .lp-hero__video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; filter: brightness(0.82) saturate(1.05); }
 /* p1_1213 — /shop = page produk sendiri. Homepage sorok grid shop; /shop tunjuk shop SAHAJA. */
-html:not(.shop-page) .lp-shop { display: none !important; }
-html.shop-page .lp-hero, html.shop-page .lp-trust, html.shop-page .lp-walkin-promo,
+/* homepage: shop + walk-in promo PINDAH ke /shop (tak lagi di homepage) */
+html:not(.shop-page) .lp-shop, html:not(.shop-page) .lp-walkin-promo { display: none !important; }
+html.shop-page .lp-hero, html.shop-page .lp-trust,
 html.shop-page .lp-soldout, html.shop-page .lp-brands, html.shop-page .lp-collections,
 html.shop-page .lp-about, html.shop-page .lp-gallery, html.shop-page .lp-reviews,
 html.shop-page .lp-faq, html.shop-page .lp-policies, html.shop-page .lp-location,
 html.shop-page .lp-newsletter { display: none !important; }
-html.shop-page .lp-shop { padding-top: 44px; }
+html.shop-page .lp-walkin-promo { padding-top: 40px; }
+html.shop-page .lp-shop { padding-top: 8px; }
+/* filter row Jenama / Kategori di /shop */
+.lp-shop__filterrow { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.lp-shop__filterlabel { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--lp-muted, #57534A); min-width: 66px; padding-top: 6px; }
+.lp-shop__filterrow .lp-shop__filters { flex: 1; }
 /* p1_1163 — legibiliti: gelapkan kiri (di mana teks) + bawah; oren glow kekal di kanan */
 .lp-hero__overlay { position: absolute; inset: 0; z-index: 1; background:
     radial-gradient(120% 100% at 74% 46%, rgba(255,77,0,0.26) 0%, transparent 52%),

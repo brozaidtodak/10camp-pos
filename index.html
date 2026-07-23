@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=180">
+ <link rel="stylesheet" href="design-tokens.css?v=181">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -1152,14 +1152,7 @@
  <img src="assets/brand/logo/10camp-logo-color.png" alt="10 CAMP by TODAK" class="lp-brand__logo">
  </a>
  <nav class="lp-nav" aria-label="Main navigation">
- <span class="nav-drop">
- <a href="/shop" class="lp-nav__link nav-drop__trigger" data-i18n="lp_nav_shop">Shop</a><span class="nav-drop__caret" aria-hidden="true">▾</span>
- <span class="nav-drop__menu" role="menu">
- <a href="#brands" role="menuitem" data-i18n="lp_nav_brands">Brands</a>
- <a href="/shop" role="menuitem" data-i18n="lp_nav_category">Category</a>
- <a href="#promo" role="menuitem" data-i18n="lp_nav_promo">Walk-in Promo</a>
- </span>
- </span>
+ <a href="/shop" class="lp-nav__link" data-i18n="lp_nav_shop">Shop</a>
  <a href="/blog/" class="lp-nav__link" data-i18n="lp_nav_panduan">Blog</a>
  <a href="/acara.html" class="lp-nav__link" data-i18n="lp_nav_acara">Events</a>
  <a href="#about" class="lp-nav__link" data-i18n="lp_nav_about">About</a>
@@ -1304,8 +1297,14 @@
  <input type="text" id="lpSearchInput" class="lp-shop__search" placeholder="Search by product name or brand…" data-i18n-placeholder="lp_search_placeholder" oninput="window.lpHandleSearch(this.value)">
  </div>
  </div>
- <div class="lp-shop__filters" id="lpCategoryPills">
- <!-- Category pills injected by JS -->
+ <!-- p1_1214 — filter JENAMA (brand) + KATEGORI di page /shop -->
+ <div class="lp-shop__filterrow">
+ <span class="lp-shop__filterlabel" data-i18n="lp_filter_brand">Jenama</span>
+ <div class="lp-shop__filters" id="lpBrandPills"><!-- Brand pills injected by JS --></div>
+ </div>
+ <div class="lp-shop__filterrow">
+ <span class="lp-shop__filterlabel" data-i18n="lp_filter_category">Kategori</span>
+ <div class="lp-shop__filters" id="lpCategoryPills"><!-- Category pills injected by JS --></div>
  </div>
  <div id="publicProductsList" class="products-grid lp-products-grid">
  <!-- Skeletons inserted by JS until products load -->
@@ -13383,7 +13382,7 @@
   </div>
  </div>
  <!-- JS Core -->
-<script src="app.js?v=1173"></script>
+<script src="app.js?v=1174"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

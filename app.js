@@ -18044,6 +18044,25 @@ window.lpRenderCategoryPills = function() {
         html += `<button class="lp-pill" style="border-color:var(--primary-500); color:var(--primary-700);" onclick="window.lpFilterByActivity('')">× Clear ${activity.label}</button>`;
     }
     wrap.innerHTML = html;
+    if(window.lpRenderBrandPills) window.lpRenderBrandPills();
+};
+
+// p1_1214 — brand filter pills (page /shop) — selaras corak category pills
+window.lpRenderBrandPills = function() {
+    const wrap = document.getElementById('lpBrandPills');
+    if(!wrap || typeof masterProducts === 'undefined') return;
+    const brands = {};
+    masterProducts.filter(p => isPublished && isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p)).forEach(p => {
+        const b = (p.brand || '').trim();
+        if(b) brands[b] = (brands[b] || 0) + 1;
+    });
+    const sorted = Object.entries(brands).sort((a,b) => b[1] - a[1]);
+    let html = `<button class="lp-pill ${!window.lpActiveBrand ? 'lp-pill--active' : ''}" onclick="window.lpFilterBrand('')">${window.t ? window.t('lp_brand_all') : 'Semua Jenama'}</button>`;
+    sorted.forEach(([b, n]) => {
+        const active = window.lpActiveBrand === b ? 'lp-pill--active' : '';
+        html += `<button class="lp-pill ${active}" onclick="window.lpFilterBrand('${b.replace(/'/g, "\\'")}')">${b} (${n})</button>`;
+    });
+    wrap.innerHTML = html;
 };
 
 window.lpRenderSkeletons = function() {
@@ -39586,6 +39605,9 @@ window.I18N = {
  lp_nav_shop: { bm: 'Kedai', en: 'Shop' },
  lp_nav_brands: { bm: 'Jenama', en: 'Brands' },
  lp_nav_category: { bm: 'Kategori', en: 'Category' },
+ lp_filter_brand: { bm: 'Jenama', en: 'Brand' },
+ lp_filter_category: { bm: 'Kategori', en: 'Category' },
+ lp_brand_all: { bm: 'Semua Jenama', en: 'All Brands' },
  lp_nav_promo: { bm: 'Promo Walk-in', en: 'Walk-in Promo' },
  lp_nav_panduan: { bm: 'Blog', en: 'Blog' },
  lp_nav_acara: { bm: 'Acara', en: 'Events' },

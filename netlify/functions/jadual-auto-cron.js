@@ -1,20 +1,18 @@
 /**
- * jadual-auto-cron.js — AUTO-TUGASAN ikut jadual kerja (p1_1178).
- * Zaid: Aliff & Farhan "timetable-driven" — jadual harian/mingguan/bulanan diorang
- * auto-masuk ke staff_tasks tiap pagi (08:00 MYT, lihat netlify.toml) → muncul dlm
- * tab Task app + papan Tugasan Staf Bos.
+ * jadual-auto-cron.js — AUTO-TUGASAN ikut jadual kerja (p1_1178/1183/1191/1192).
+ * Tiap 08:00 MYT: baca TEMPLATE dari table `task_templates` (p1_1192 — dipindah dari
+ * const dlm kod supaya staf boleh edit jadual SENDIRI via "Jadual Saya" dlm app;
+ * Bos boleh edit jadual sesiapa dari papan) → insert staff_tasks → tab Task + papan Bos.
  *
  * Peraturan:
- *  - Baca roster_schedules hari ini: shift OFF/AL/MC/EL/PH → SKIP staf tu (tiada
- *    tugasan hari cuti). Tiada baris roster → anggap KERJA (fail-open; roster pernah
- *    mati 21 Jun - 22 Jul, jangan senyapkan jadual sebab roster tak diupdate).
- *  - Anti-duplicate: staff_tasks.auto_key unik (harian/mingguan ikut tarikh, bulanan
- *    ikut bulan) + POST on_conflict=ignore — selamat run berkali-kali.
- *  - Bulanan: cuba pada 1-5hb, cipta sekali sahaja pada hari pertama staf bekerja.
- *  - Cleanup: tugasan HARIAN semalam yang masih 'baru' (tak disentuh) dipadam supaya
- *    senarai tak bertimbun; mingguan/bulanan kekal sampai siap.
- *  - Push notification ke staf berkenaan sahaja (sendToStaff) bila ada tugasan baru.
- *  - ?dry=1 (perlu staff JWT) = kira & pulang apa AKAN dicipta tanpa tulis apa-apa.
+ *  - Roster hari tu: shift OFF/AL/MC/EL/PH = SKIP staf (tiada tugasan hari cuti);
+ *    tiada baris roster = anggap KERJA (fail-open). Syif B (masuk 2ptg): slot < 14 skip.
+ *  - freq: 'daily' | 'weekly' (dow jsonb [0=Ahad..6=Sabtu]) | 'monthly' (cipta 1-5hb,
+ *    sekali sebulan pada hari pertama staf bekerja).
+ *  - Anti-dup: auto_key `<staff>:<d|w|m>-<tplId>:<tarikh|bulan>` + unique index penuh
+ *    (p1_1189: index partial TAK serasi PostgREST on_conflict) + on_conflict ignore.
+ *  - Cleanup: tugasan HARIAN (auto_key '*:d-*') semalam yang masih 'baru' dipadam.
+ *  - Push per-staf (sendToStaff) bila ada tugasan baru. ?dry=1 = preview tanpa tulis.
  */
 const { requireAuth } = require('./_auth');
 const { sendToStaff } = require('./_pushcore');
@@ -24,93 +22,18 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 const OFF_CODES = ['OFF', 'AL', 'MC', 'EL', 'PH'];
 
-// Jadual dipersetujui Zaid 22 Jul 2026; diperluas ke SEMUA staf + CEO 23 Jul (p1_1183).
-// freq: 'daily' | {dow:[0=Ahad..6=Sabtu]} | 'monthly' (1-5hb). Hari OFF/cuti auto-skip ikut roster
-// (Zaid tiada dlm roster → fail-open, tugasan tiap hari — CEO boleh abaikan bila cuti).
-const JADUAL = [
-    {
-        staff_id: 'CMP001', name: 'Zaid', roster_name: 'Zaid',
-        tasks: [
-            { key: 'd-pagi', freq: 'daily', title: 'Semak Laporan Pagi + papan Tugasan Staf', notes: '10 minit — angka semalam (WhatsApp 7:30), siapa tengah buat apa, ada blocker?' },
-            { key: 'w-kelulusan', freq: { dow: [1, 4] }, title: 'Clear kelulusan tertunggak', notes: 'Claim, cuti, PO draf, cadangan harga — jangan biar staf tunggu keputusan.' },
-            { key: 'w-target', freq: { dow: [1] }, title: 'Set target minggu dengan Farhan', notes: '15 minit ~12:30 — slot sama dgn tugasan Farhan. Bawa fokus bulan.' },
-            { key: 'w-review', freq: { dow: [5] }, title: 'Review penutup minggu', notes: 'Laporan Aliff (komisen+admin) + pipeline Farhan + jualan vs Sasaran bulan. 20 minit.' },
-            { key: 'm-payroll', freq: 'monthly', title: 'Semak & lulus payroll + komisen', notes: 'Angka komisen dah auto dlm sistem — semak, lulus, hantar approval ke HR sebelum kitaran gaji.' },
-            { key: 'm-pnl', freq: 'monthly', title: 'Tutup bulan: semak P&L 10cc', notes: 'Buka 10cc Command Centre — untung/rugi bulan lepas, margin, ada anomali? Nota utk mesyuarat.' }
-        ]
-    },
-    {
-        staff_id: 'CMP005', name: 'Zack', roster_name: 'Zack',
-        tasks: [
-            { key: 'd-amaran', freq: 'daily', title: 'Semak Pusat Amaran + Audit Alerts', notes: '11:30 — isu data/sistem: produk tiada kos, stok pelik, jualan tak ditag. Betulkan atau panjangkan.' },
-            { key: 'w-stockcheck', freq: { dow: [1] }, title: 'Semak & approve stock check sessions', notes: 'Queue semakan stok yang staf hantar — review & approve/reject.' },
-            { key: 'w-health', freq: { dow: [4] }, title: 'System health: backup & integrasi', notes: 'Backup harian jalan? Sync Shopee/TikTok sihat? Token tak expired? 15 minit.' }
-        ]
-    },
-    {
-        staff_id: 'CMP006', name: 'Ariff', roster_name: 'Ariff',
-        tasks: [
-            { key: 'd-pack', freq: 'daily', title: 'Pack & ship order marketplace', notes: '11:30 pagi — clear semua order Perlu Pack sebelum kutipan kurier.' },
-            { key: 'd-live', freq: 'daily', title: 'Rekod sesi LIVE hari ini', notes: 'Lepas habis live TERUS rekod dlm tab LIVE — komisen ikut rekod ni. Tiada live hari ni? Tanda siap je.' },
-            { key: 'w-fokus', freq: { dow: [5] }, title: 'Senarai produk fokus live minggu depan', notes: '5 produk — rujuk stok & margin, selaraskan dgn kempen Farhan.' }
-        ]
-    },
-    {
-        staff_id: 'CMP003', name: 'Irfan', roster_name: 'Irfan',
-        tasks: [
-            { key: 'd-pack', freq: 'daily', title: 'Pack & ship order marketplace', notes: '11:30 pagi — kongsi dgn Ariff: clear order Perlu Pack sebelum kutipan kurier.' },
-            { key: 'w-display', freq: { dow: [3] }, title: 'Kemas ruang display kedai', notes: 'Rabu masuk 2ptg — susun display, tanda harga betul, produk fokus depan.' }
-        ]
-    },
-    {
-        staff_id: 'CMP009', name: 'Fahmi', roster_name: 'Fahmi',
-        tasks: [
-            { key: 'd-stok', freq: 'daily', title: 'Terima barang masuk + update stok', notes: 'Ada shipment? Rekod terimaan hari sama. Tiada? Semak stok rendah & restock rak.' },
-            { key: 'w-cycle', freq: { dow: [2] }, title: 'Cycle count satu seksyen', notes: 'Kira fizikal satu seksyen/rak, rekod dlm Stock Take — pusing seksyen lain minggu depan.' }
-        ]
-    },
-    {
-        staff_id: 'CMP011', name: 'Tarmizi Kael', roster_name: 'Tarmizi',
-        tasks: [
-            { key: 'd-picking', freq: 'daily', title: 'Picking & susun stok gudang', notes: 'Picking order + pastikan lokasi bin betul (products_master.location_bin).' },
-            { key: 'w-defect', freq: { dow: [4] }, title: 'Semak barang R&R / Defect', notes: 'Update senarai damaged (R&R + Defect sahaja) — asingkan dari stok boleh jual.' }
-        ]
-    },
-    // p1_1191 — Aliff+Farhan minta TIMETABLE penuh 11:00 (masuk) → 20:00 (balik):
-    // tajuk berprefix masa "HH:MM ·" (tersusun ikut jam dlm tab Task), medan `slot` (jam) —
-    // hari syif B (masuk 2ptg, cth Rabu) slot < 14 auto-skip.
-    {
-        staff_id: 'CMP008', name: 'Aliff', roster_name: 'Aliff',
-        tasks: [
-            { key: 'd-1100-pettycash', freq: 'daily', slot: 11, title: '11:00 · Rekod petty cash & resit semalam', notes: 'Masukkan semua belanja & resit semalam ke sistem. Target: sifar tunggakan.' },
-            { key: 'd-1200-supplier', freq: 'daily', slot: 12, title: '12:00 · Follow-up invois & bayaran supplier', notes: 'Invois masuk, bayaran perlu proses, PO tertunggak — clear satu-satu.' },
-            { key: 'd-1500-dokumen', freq: 'daily', slot: 15, title: '15:00 · Kemaskini rekod & failing dokumen', notes: 'Failkan resit/invois hari ini, kemas rekod admin tertunggak.' },
-            { key: 'd-1930-tutup', freq: 'daily', slot: 19, title: '19:30 · Tutup hari admin', notes: 'Semak semua dokumen hari ini difailkan + senarai follow-up untuk esok.' },
-            { key: 'w-claim', freq: { dow: [1] }, slot: 11, title: '11:30 · Triage claim & cuti staf', notes: 'Semak claim/permohonan cuti yang masuk. Yang lengkap hantar ke Bos untuk lulus.' },
-            { key: 'w-recon', freq: { dow: [3] }, slot: 14, title: '14:30 · Recon petty cash vs fizikal', notes: 'Kira duit fizikal, padankan dengan sistem ke sen. Lari? Lapor terus.' },
-            { key: 'w-komisen', freq: { dow: [5] }, slot: 18, title: '18:00 · Kira komisen minggu + laporan ke Bos', notes: 'WhatsApp ringkas ke Bos: komisen, claim, isu admin.' },
-            { key: 'w-roster', freq: { dow: [5] }, slot: 19, title: '19:00 · Kemaskini roster minggu depan', notes: 'Masukkan jadual minggu depan dalam Jadual Tugas back office.' },
-            { key: 'm-komisenfinal', freq: 'monthly', title: 'Komisen bulan lepas FINAL + data payroll', notes: 'Siapkan sebelum 5hb — kiraan komisen muktamad & data cuti/claim/OT untuk gaji bulan+1.' },
-            { key: 'm-todakreport', freq: 'monthly', title: 'Hantar Sales Report ke Finance TODAK', notes: 'Back office → Reports → Laporan TODAK → pilih bulan lepas → Jana → semak (order BELUM SETTLE? tunggu 2-3 hari jana semula) → Cetak/CSV → hantar macam biasa.' }
-        ]
-    },
-    {
-        staff_id: 'CMP010', name: 'Farhan Moyy', roster_name: 'Farhan Moyy',
-        tasks: [
-            { key: 'd-1100-scoreboard', freq: 'daily', slot: 11, title: '11:00 · Scoreboard semalam', notes: 'POS / Shopee / TikTok — 1 mesej ke group: angka semalam + 1 tindakan hari ini.' },
-            { key: 'd-1130-chat', freq: 'daily', slot: 11, title: '11:30 · Chat inbox & follow-up customer', notes: 'Shopee inbox sifar tertunggak. Follow-up customer yang tanya tapi belum beli.' },
-            { key: 'd-1400-kempen', freq: 'daily', slot: 14, title: '14:00 · Kerja kempen / kandungan', notes: 'Teruskan kempen aktif — posting, kreatif, semak prestasi. Selaraskan dgn jadual marketing.' },
-            { key: 'd-1500-prospek', freq: 'daily', slot: 15, title: '15:00 · Cari 3 prospek B2B baru', notes: 'Syarikat / sekolah / kelab outdoor / corporate gift. Rekod dalam senarai pipeline.' },
-            { key: 'd-1700-pipeline', freq: 'daily', slot: 17, title: '17:00 · Update pipeline & follow-up prospek', notes: 'Status setiap prospek terbuka — siapa perlu di-follow-up, bila.' },
-            { key: 'd-1930-tutup', freq: 'daily', slot: 19, title: '19:30 · Ringkasan hari + rancang esok', notes: '10 minit — apa jadi hari ini, apa fokus esok.' },
-            { key: 'w-target', freq: { dow: [1] }, slot: 12, title: '12:30 · Set target minggu bersama Bos', notes: '15 minit dengan Bos — bawa nota weekend (apa customer cari tapi kita takde).' },
-            { key: 'w-harga', freq: { dow: [3] }, slot: 14, title: '14:30 · Semak harga vs competitor', notes: 'Senarai cadangan ubah harga. Ingat: marketplace tinggi, POS terendah.' },
-            { key: 'w-kempen', freq: { dow: [4] }, slot: 16, title: '16:00 · Rancang 1 kempen / bundle', notes: 'Guna cadangan Ejen Dead Stock + event SKU. Satu idea sedia lancar.' },
-            { key: 'w-pipeline', freq: { dow: [5] }, slot: 18, title: '18:00 · Laporan pipeline B2B ke Bos', notes: 'Siapa, nilai, status — hantar sebelum balik.' },
-            { key: 'w-floor', freq: { dow: [6, 0] }, slot: 16, title: '16:00 · Fokus floor: catat permintaan customer', notes: 'Weekend ramai walk-in — layan customer, catat apa orang cari tapi kita takde. Bawa ke meeting Isnin.' }
-        ]
-    }
-];
+// Meta staf (nama papar + nama dlm roster_schedules). Template datang dari DB;
+// staf baru = tambah sini + baris template dlm task_templates.
+const STAFF_META = {
+    CMP001: { name: 'Zaid', roster: 'Zaid' },
+    CMP005: { name: 'Zack', roster: 'Zack' },
+    CMP006: { name: 'Ariff', roster: 'Ariff' },
+    CMP003: { name: 'Irfan', roster: 'Irfan' },
+    CMP009: { name: 'Fahmi', roster: 'Fahmi' },
+    CMP011: { name: 'Tarmizi Kael', roster: 'Tarmizi' },
+    CMP008: { name: 'Aliff', roster: 'Aliff' },
+    CMP010: { name: 'Farhan Moyy', roster: 'Farhan Moyy' }
+};
 
 async function sb(method, path, body, extraHeaders) {
     const r = await fetch(SUPABASE_URL + '/rest/v1' + path, {
@@ -140,40 +63,51 @@ exports.handler = async (event) => {
     const summary = { date: ymd, dow, dry, staff: {}, cleaned: 0 };
 
     try {
-        // 1) Roster hari ini utk staf berjadual
-        const names = JADUAL.map(s => '"' + s.roster_name + '"').join(',');
+        // 1) Template aktif dari DB (p1_1192)
+        const tpls = await sb('GET', '/task_templates?select=id,staff_id,freq,dow,slot,title,notes&active=is.true&order=slot.asc.nullslast,id.asc') || [];
+        const byStaff = {};
+        tpls.forEach(t => { (byStaff[t.staff_id] = byStaff[t.staff_id] || []).push(t); });
+        summary.templates = tpls.length;
+
+        // 2) Roster hari ini
+        const names = Object.values(STAFF_META).map(m => '"' + m.roster + '"').join(',');
         const roster = await sb('GET', '/roster_schedules?select=staff_name,shift&date=eq.' + ymd + '&staff_name=in.(' + names + ')');
         const shiftOf = {};
         (roster || []).forEach(r => { shiftOf[r.staff_name] = String(r.shift || '').toUpperCase(); });
 
-        // 2) Bina tugasan hari ini
+        // 3) Bina tugasan hari ini
         const inserts = [];
-        for (const s of JADUAL) {
-            const shift = shiftOf[s.roster_name] || null;
-            const working = !shift || OFF_CODES.indexOf(shift) === -1; // tiada baris roster = anggap kerja
-            summary.staff[s.name] = { shift: shift || '(tiada roster — anggap kerja)', working, created: [] };
+        for (const sid of Object.keys(STAFF_META)) {
+            const meta = STAFF_META[sid];
+            const shift = shiftOf[meta.roster] || null;
+            const working = !shift || OFF_CODES.indexOf(shift) === -1;
+            summary.staff[meta.name] = { shift: shift || '(tiada roster — anggap kerja)', working, created: [] };
             if (!working) continue;
-            for (const t of s.tasks) {
-                let due = false, keyDate = ymd;
+            for (const t of (byStaff[sid] || [])) {
+                let due = false, keyDate = ymd, fl = 'd';
                 if (t.freq === 'daily') due = true;
-                else if (t.freq === 'monthly') { due = dom >= 1 && dom <= 5; keyDate = ym; }
-                else if (t.freq && Array.isArray(t.freq.dow)) due = t.freq.dow.indexOf(dow) !== -1;
+                else if (t.freq === 'monthly') { due = dom >= 1 && dom <= 5; keyDate = ym; fl = 'm'; }
+                else if (t.freq === 'weekly') {
+                    fl = 'w';
+                    let dws = t.dow; if (typeof dws === 'string') { try { dws = JSON.parse(dws); } catch (e) { dws = []; } }
+                    due = Array.isArray(dws) && dws.indexOf(dow) !== -1;
+                }
                 if (!due) continue;
-                // p1_1191 — syif B masuk 2ptg (cth Rabu): slot pagi (< jam 14) auto-skip
-                if (t.slot && shift === 'B' && t.slot < 14) continue;
+                // Syif B masuk 2ptg (cth Rabu): slot pagi (< 14) auto-skip
+                if (t.slot != null && shift === 'B' && Number(t.slot) < 14) continue;
                 inserts.push({
-                    title: t.title, notes: t.notes,
-                    assigned_to: s.staff_id, assigned_to_name: s.name,
+                    title: t.title, notes: t.notes || '',
+                    assigned_to: sid, assigned_to_name: meta.name,
                     assigned_by: 'Jadual Auto',
-                    auto_key: s.staff_id + ':' + t.key + ':' + keyDate
+                    auto_key: sid + ':' + fl + '-' + t.id + ':' + keyDate
                 });
-                summary.staff[s.name].created.push(t.key);
+                summary.staff[meta.name].created.push(fl + '-' + t.id + ' ' + String(t.title).slice(0, 30));
             }
         }
 
         if (dry) return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(summary) };
 
-        // 3) Insert (on_conflict auto_key ignore = idempotent)
+        // 4) Insert (idempotent)
         let inserted = [];
         if (inserts.length) {
             inserted = await sb('POST', '/staff_tasks?on_conflict=auto_key', inserts,
@@ -181,7 +115,7 @@ exports.handler = async (event) => {
         }
         summary.inserted = inserted.length;
 
-        // 4) Cleanup: tugasan HARIAN lepas yang tak disentuh (masih 'baru') — padam supaya tak bertimbun
+        // 5) Cleanup: harian lepas yang tak disentuh (masih 'baru')
         try {
             const todayStartUtc = new Date(ymd + 'T00:00:00+08:00').toISOString();
             const gone = await sb('DELETE', '/staff_tasks?status=eq.baru&assigned_by=eq.Jadual%20Auto&auto_key=like.*%3Ad-*&created_at=lt.' + encodeURIComponent(todayStartUtc), null,
@@ -189,20 +123,19 @@ exports.handler = async (event) => {
             summary.cleaned = (gone || []).length;
         } catch (e) { summary.clean_err = String(e.message || e).slice(0, 120); }
 
-        // 5) Push ke staf yang dapat tugasan BARU hari ini (iOS live; Android tunggu build FCM)
-        const byStaff = {};
-        inserted.forEach(r => { byStaff[r.assigned_to] = (byStaff[r.assigned_to] || 0) + 1; });
-        for (const s of JADUAL) {
-            const n = byStaff[s.staff_id] || 0;
-            if (!n) continue;
+        // 6) Push ke staf yang dapat tugasan baru
+        const nBy = {};
+        inserted.forEach(r => { nBy[r.assigned_to] = (nBy[r.assigned_to] || 0) + 1; });
+        for (const sid of Object.keys(nBy)) {
+            const meta = STAFF_META[sid]; if (!meta) continue;
             try {
-                const p = await sendToStaff(s.staff_id, {
+                const p = await sendToStaff(sid, {
                     title: 'Jadual hari ini dah sedia',
-                    body: n + ' tugasan untuk ' + s.name.split(' ')[0] + ' — buka tab Task untuk mula.',
+                    body: nBy[sid] + ' tugasan untuk ' + meta.name.split(' ')[0] + ' — buka tab Task untuk mula.',
                     data: { kind: 'jadual_auto' }
                 });
-                summary.staff[s.name].push = p;
-            } catch (e) { summary.staff[s.name].push = { err: String(e.message || e).slice(0, 100) }; }
+                summary.staff[meta.name].push = p;
+            } catch (e) { summary.staff[meta.name].push = { err: String(e.message || e).slice(0, 100) }; }
         }
 
         return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(summary) };

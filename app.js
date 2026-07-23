@@ -46876,7 +46876,10 @@ window.__pdbRefresh = async function(btn){
   const cutoff = Date.now() - 14*24*3600*1000;
   const siap = mine.filter(t => t.status === 'siap' && new Date(t.done_at || t.updated_at || t.created_at).getTime() > cutoff);
   let html = '<div style="max-width:680px; margin:0 auto; padding:14px 14px 40px;">'
-   + '<div style="font-weight:900; font-size:19px; color:#141414; margin-bottom:2px;">Tugasan Aku</div>'
+   + '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">'
+   + '<div style="font-weight:900; font-size:19px; color:#141414;">Tugasan Aku</div>'
+   + '<button onclick="window.__ttOpen(window.currentUser.staff_id, window.currentUser.name)" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:11.5px; padding:7px 13px; border-radius:999px; cursor:pointer;"><i data-lucide="calendar-cog" style="width:12px;height:12px;vertical-align:-2px;pointer-events:none;"></i> Jadual Saya</button>'
+   + '</div>'
    + '<div style="font-size:12px; color:#6E6A5E; margin-bottom:14px;">Tekan <b>Mula Buat</b> bila mula, <b>Tanda Siap</b> bila habis — Bos nampak status terus.</div>';
   if(!mine.length){
    html += '<div style="text-align:center; padding:44px 16px; color:#6E6A5E;"><i data-lucide="clipboard-check" style="width:34px;height:34px;opacity:.5;"></i><div style="margin-top:10px; font-size:13.5px;">Tiada tugasan buat masa ni. Steady!</div></div>';
@@ -46937,6 +46940,7 @@ window.__pdbRefresh = async function(btn){
     + '<div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">'
     + '<span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#141414; color:#F4F2EC; font-weight:800; font-size:11px; flex:0 0 auto;">' + escapeHtml((u.name||'?').charAt(0).toUpperCase()) + '</span>'
     + '<b style="font-size:13px; color:#141414; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(u.name) + '</b>'
+    + '<button onclick="window.__ttOpen(\'' + u.staff_id + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')" title="Edit jadual ' + escapeHtml(u.name) + '" style="flex:0 0 auto; width:24px; height:24px; border:1px solid var(--border-color,#B9B4A6); border-radius:6px; background:#fff; cursor:pointer; color:#6E6A5E; padding:0;"><i data-lucide="calendar-cog" style="width:12px;height:12px;pointer-events:none;"></i></button>'
     + (shift ? '<span style="font-size:9px; font-weight:800; letter-spacing:.5px; padding:1px 7px; border-radius:999px; background:' + (isOff ? '#B23A2E' : '#141414') + '; color:#F4F2EC; flex:0 0 auto;">' + escapeHtml(shift) + '</span>' : '')
     + '</div>'
     + (list.length ? '<div style="display:flex; align-items:center; gap:7px; margin-bottom:7px;">'
@@ -47585,4 +47589,136 @@ window.__pdbRefresh = async function(btn){
   const __op = window.renderPOS;
   window.renderPOS = function(){ const r = __op.apply(this, arguments); try { window.__posCardStepRefresh(); } catch(e){} return r; };
  }
+})();
+
+// ==============================================
+// p1_1192 — "JADUAL SAYA": staf edit TEMPLATE jadual auto sendiri (task_templates DB;
+// cron 8 pagi baca dari situ). Zaid pilih "edit sendiri penuh" — staf urus slot sendiri,
+// Bos boleh buka jadual mana-mana staf dari papan. Setiap ubahan cop updated_by.
+// ==============================================
+(function(){
+ const FREQ_LABEL = { daily:'Harian', weekly:'Mingguan', monthly:'Awal bulan (1-5hb)' };
+ const DOW_NAMES = ['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'];
+ function ttEsc(s){ return escapeHtml(s); }
+ function slotToTime(slot){
+  if(slot == null || slot === '') return '';
+  const h = Math.floor(Number(slot)), m = Math.round((Number(slot) - h) * 60);
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+ }
+ function timeToSlot(t){
+  if(!t) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t).trim()); if(!m) return null;
+  return parseInt(m[1],10) + parseInt(m[2],10)/60;
+ }
+ // Tajuk sentiasa selaras dgn masa: buang prefix "HH:MM · " lama, prepend baru kalau ada slot
+ function ttTitle(raw, slot){
+  let t = String(raw||'').replace(/^\d{1,2}:\d{2}\s*·\s*/, '').trim();
+  const tm = slotToTime(slot);
+  return tm ? (tm + ' · ' + t) : t;
+ }
+ window.__ttCtx = null; // { staffId, staffName, rows, editId }
+ window.__ttOpen = async function(staffId, staffName){
+  window.__ttCtx = { staffId: staffId, staffName: staffName, rows: [], editId: null };
+  await window.__ttRender();
+ };
+ window.__ttRender = async function(){
+  const c = window.__ttCtx; if(!c) return;
+  try {
+   const { data, error } = await db.from('task_templates').select('*').eq('staff_id', c.staffId).eq('active', true).order('freq').order('slot', {ascending:true, nullsFirst:false}).order('id');
+   if(error) throw error;
+   c.rows = data || [];
+  } catch(e){ if(typeof showToast==='function') showToast('Gagal muat jadual: '+(e.message||e), 'error'); return; }
+  let ov = document.getElementById('ttSheet');
+  if(!ov){
+   ov = document.createElement('div');
+   ov.id = 'ttSheet';
+   ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:6050; display:flex; align-items:flex-end; justify-content:center;';
+   ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+   document.body.appendChild(ov);
+  }
+  const groups = { daily:[], weekly:[], monthly:[] };
+  c.rows.forEach(r => (groups[r.freq] = groups[r.freq] || []).push(r));
+  let listHtml = '';
+  ['daily','weekly','monthly'].forEach(fq => {
+   if(!groups[fq] || !groups[fq].length) return;
+   listHtml += '<div style="font-size:10.5px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#6E6A5E; margin:12px 0 5px;">' + FREQ_LABEL[fq] + '</div>';
+   groups[fq].forEach(r => {
+    let dws = r.dow; if(typeof dws === 'string'){ try{ dws = JSON.parse(dws); }catch(e){ dws = []; } }
+    const dayTxt = fq === 'weekly' && Array.isArray(dws) ? dws.map(d => DOW_NAMES[d]||d).join(', ') : '';
+    listHtml += '<div style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border-color,#B9B4A6); border-radius:8px; padding:9px 11px; margin-bottom:6px;">'
+     + '<div style="flex:1; min-width:0;"><div style="font-size:12.5px; font-weight:700; color:#141414;">' + ttEsc(r.title) + '</div>'
+     + (dayTxt ? '<div style="font-size:10.5px; color:#6E6A5E;">' + dayTxt + '</div>' : '')
+     + (r.notes ? '<div style="font-size:10.5px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + ttEsc(r.notes) + '</div>' : '')
+     + '</div>'
+     + '<button onclick="window.__ttEdit(' + r.id + ')" title="Edit" style="flex:0 0 auto; width:30px; height:30px; border:1px solid var(--border-color,#B9B4A6); border-radius:6px; background:#fff; cursor:pointer; color:#141414;"><i data-lucide="pencil" style="width:13px;height:13px;pointer-events:none;"></i></button>'
+     + '<button onclick="window.__ttDelete(' + r.id + ')" title="Padam" style="flex:0 0 auto; width:30px; height:30px; border:1px solid #EADFD0; border-radius:6px; background:#fff; cursor:pointer; color:#B23A2E;"><i data-lucide="trash-2" style="width:13px;height:13px;pointer-events:none;"></i></button>'
+     + '</div>';
+   });
+  });
+  if(!listHtml) listHtml = '<div style="text-align:center; color:#6E6A5E; font-size:12.5px; padding:18px;">Tiada template lagi — tambah yang pertama kat bawah.</div>';
+  const ed = c.editId ? c.rows.find(r => r.id === c.editId) : null;
+  let edDows = ed ? ed.dow : []; if(typeof edDows === 'string'){ try{ edDows = JSON.parse(edDows); }catch(e){ edDows = []; } }
+  const dowChecks = DOW_NAMES.map((n, i) =>
+   '<label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:#141414; margin-right:7px;"><input type="checkbox" class="ttDow" value="' + i + '"' + (Array.isArray(edDows) && edDows.indexOf(i) !== -1 ? ' checked' : '') + '> ' + n + '</label>').join('');
+  ov.innerHTML = '<div style="background:#F4F2EC; width:100%; max-width:600px; border-radius:16px 16px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); font-family:var(--font-main,inherit); max-height:88vh; overflow-y:auto;">'
+   + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">'
+   + '<h3 style="margin:0; font-size:16px; color:#141414;">Jadual ' + ttEsc(c.staffName) + '</h3>'
+   + '<button onclick="document.getElementById(\'ttSheet\').remove()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#6E6A5E; padding:4px 8px;">×</button></div>'
+   + '<div style="font-size:11px; color:#6E6A5E; margin-bottom:8px;">Perubahan berkuatkuasa ESOK pagi 8:00 (auto-jadual). Hari OFF/cuti tetap auto-skip.</div>'
+   + listHtml
+   + '<div style="background:#FFFDF6; border:2px solid #141414; border-radius:8px; padding:12px; margin-top:14px;">'
+   + '<div style="font-size:10.5px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#141414; margin-bottom:8px;">' + (ed ? 'Edit Slot' : 'Tambah Slot') + '</div>'
+   + '<div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:7px;">'
+   + '<input id="ttTime" type="time" value="' + (ed ? slotToTime(ed.slot) : '') + '" style="flex:0 0 110px; padding:8px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12.5px;" title="Masa (opsional)">'
+   + '<input id="ttTitle" type="text" maxlength="120" placeholder="Tugasan apa?" value="' + (ed ? ttEsc(String(ed.title).replace(/^\d{1,2}:\d{2}\s*·\s*/, '')) : '') + '" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12.5px;">'
+   + '</div>'
+   + '<input id="ttNotes" type="text" maxlength="250" placeholder="Nota (opsional)" value="' + (ed ? ttEsc(ed.notes||'') : '') + '" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12.5px; margin-bottom:7px;">'
+   + '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">'
+   + '<select id="ttFreq" onchange="document.getElementById(\'ttDowWrap\').style.display = this.value===\'weekly\' ? \'block\' : \'none\';" style="padding:8px; border:1px solid var(--border-color,#B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:12.5px; background:#fff;">'
+   + '<option value="daily"' + (!ed || ed.freq==='daily' ? ' selected' : '') + '>Harian</option>'
+   + '<option value="weekly"' + (ed && ed.freq==='weekly' ? ' selected' : '') + '>Mingguan</option>'
+   + '<option value="monthly"' + (ed && ed.freq==='monthly' ? ' selected' : '') + '>Awal bulan</option>'
+   + '</select>'
+   + '<div id="ttDowWrap" style="display:' + (ed && ed.freq==='weekly' ? 'block' : 'none') + ';">' + dowChecks + '</div>'
+   + '</div>'
+   + '<div style="display:flex; gap:8px;">'
+   + '<button onclick="window.__ttSave()" style="border:3px solid #141414; background:var(--primary,#FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:9px 18px; border-radius:4px; cursor:pointer; box-shadow:3px 3px 0 #141414;">' + (ed ? 'Simpan' : 'Tambah') + '</button>'
+   + (ed ? '<button onclick="window.__ttCtx.editId=null; window.__ttRender();" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:9px 14px; border-radius:4px; cursor:pointer;">Batal</button>' : '')
+   + '</div></div></div>';
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+ window.__ttEdit = function(id){ if(window.__ttCtx){ window.__ttCtx.editId = id; window.__ttRender(); } };
+ window.__ttSave = async function(){
+  const c = window.__ttCtx; if(!c) return;
+  const slot = timeToSlot((document.getElementById('ttTime')||{}).value);
+  const rawTitle = ((document.getElementById('ttTitle')||{}).value || '').trim();
+  if(!rawTitle){ if(typeof showToast==='function') showToast('Tulis tugasan dulu.', 'warn'); return; }
+  const freq = (document.getElementById('ttFreq')||{}).value || 'daily';
+  const dows = Array.from(document.querySelectorAll('.ttDow:checked')).map(x => parseInt(x.value,10));
+  if(freq === 'weekly' && !dows.length){ if(typeof showToast==='function') showToast('Pilih sekurang-kurangnya satu hari.', 'warn'); return; }
+  const row = {
+   staff_id: c.staffId, freq: freq, dow: freq === 'weekly' ? dows : [],
+   slot: slot, title: ttTitle(rawTitle, slot),
+   notes: ((document.getElementById('ttNotes')||{}).value || '').trim(),
+   updated_by: (window.currentUser||{}).name || '?', updated_at: new Date().toISOString()
+  };
+  try {
+   let r;
+   if(c.editId) r = await db.from('task_templates').update(row).eq('id', c.editId);
+   else r = await db.from('task_templates').insert([row]);
+   if(r.error) throw r.error;
+   if(typeof showToast==='function') showToast(c.editId ? 'Slot dikemaskini — mula esok pagi.' : 'Slot ditambah — mula esok pagi.', 'success');
+   c.editId = null;
+   window.__ttRender();
+  } catch(e){ if(typeof showToast==='function') showToast('Gagal simpan: '+(e.message||e), 'error'); }
+ };
+ window.__ttDelete = async function(id){
+  if(!confirm('Padam slot ni dari jadual? (Tugasan hari ini tak terjejas)')) return;
+  try {
+   const r = await db.from('task_templates').update({ active: false, updated_by: (window.currentUser||{}).name || '?', updated_at: new Date().toISOString() }).eq('id', id);
+   if(r.error) throw r.error;
+   if(typeof showToast==='function') showToast('Slot dipadam dari jadual.', 'success');
+   window.__ttRender();
+  } catch(e){ if(typeof showToast==='function') showToast('Gagal padam: '+(e.message||e), 'error'); }
+ };
 })();

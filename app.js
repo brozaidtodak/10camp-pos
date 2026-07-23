@@ -47018,8 +47018,8 @@ window.__pdbRefresh = async function(btn){
    // p1_1194 #7 — slot SEMASA: tugasan berjam terakhir yang masanya dah bermula = ini yang
    // patut sedang dibuat sekarang. Highlight supaya Bos nampak jangkaan vs realiti.
    const nowM2 = stNowMin();
-   let curId = null;
-   list.forEach(t => { const sm = stSlotMin(t.title); if(sm != null && sm <= nowM2) curId = t.id; });
+   let curId = null, curSlot = -1;
+   list.forEach(t => { const sm = stSlotMin(t.title); if(sm != null && sm <= nowM2 && sm > curSlot){ curSlot = sm; curId = t.id; } });
    list.slice(0, 7).forEach(t => {
     const dot = t.status === 'siap' ? '#168C50' : (t.status === 'buat' ? 'var(--primary, #FF4D00)' : (stIsLate(t) ? '#C62828' : '#B9B4A6'));
     const isCur = t.id === curId && t.status !== 'siap';

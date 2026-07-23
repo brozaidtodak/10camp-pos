@@ -36,7 +36,7 @@
  <link rel="apple-touch-icon" href="assets/brand/logo/10camp-logo-color.png">
  <link rel="shortcut icon" href="assets/brand/logo/10camp-logo-color.png">
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Poppins:wght@400;600;700;800;900&amp;family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&amp;family=Rubik:wght@400;500;600;700;800;900&amp;family=Manrope:wght@400;500;600;700;800&amp;family=Nunito:wght@400;600;700;800;900&amp;family=Karla:wght@400;500;600;700;800&amp;family=Archivo:wght@400;500;600;700&amp;family=Archivo+Black&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
- <link rel="stylesheet" href="style.css?v=80">
+ <link rel="stylesheet" href="style.css?v=81">
  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
  <link rel="dns-prefetch" href="https://images.weserv.nl">
  <!-- p1_1026 preconnect: warm TLS awal untuk DATA+IMEJ storage (Supabase) + FONT — boot lebih laju di mobile -->
@@ -1937,14 +1937,9 @@
  <i data-lucide="list-todo" style="width:18px; height:18px;"></i> <span>Tugasan Staf</span>
  <span id="staffTasksBossBadge" title="Tugasan tengah dibuat sekarang" style="display:none; margin-left:auto; background:var(--primary, #FF4D00); color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
- <!-- p1_1188 — Papan Kerja (aliran kerja 10 CAMP) dipindah dari 10cc ke sini. Bos SAHAJA — gate body.is-boss-user + CSS #navWorkBoardBoss (corak sama Tugasan Staf). -->
- <div class="menu-item" id="navWorkBoardBoss" data-tab="nav_workboard" onclick="switchHub(['workBoardSection'], 'Papan Kerja', this); if(typeof renderWorkBoard==='function') renderWorkBoard();" style="align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="kanban-square" style="width:18px; height:18px;"></i> <span>Papan Kerja</span>
- </div>
- <!-- p1_1188 — Roadmap diwujudkan semula sebagai entri jelas back office Bos (Zaid: "wujudkan kembali roadmap di POS back office"). Entri lama dlm group Analisis>Reports kekal; ini pintu terus. -->
- <div class="menu-item" id="navRoadmapBoss" data-tab="nav_roadmap_boss" onclick="switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
- <i data-lucide="target" style="width:18px; height:18px;"></i> <span>Roadmap &amp; Progress</span>
- </div>
+ <!-- p1_1198 — Papan Kerja & Roadmap DIPINDAH dari atas ke Analisis > Reports (Zaid:
+      "tinggalkan home, duty roster dan tugasan staff je" — atas utk kerja harian sahaja).
+      Entri Roadmap Bos duplicate DIBUANG (Reports dah ada nav_roadmap + badge %). -->
  <div class="nav-section-label">Jual</div>
  <!-- p1_371 — Cashier jadi group collapsible (Zaid: "boleh tutup dan buka" + tambah Commission). Parent buka register + expand; tekan lagi tutup (corak Orders/openOrdersHub). -->
  <div class="menu-item nav-parent" data-nav-parent="cashier" onclick="window.openCashierHub(event)">
@@ -2210,6 +2205,10 @@
  <!-- p1_1181 — Laporan Jualan bulanan utk Finance TODAK (kerja Aliff; replicate format Shopify lama) -->
  <div class="menu-item mgmt-only" data-tab="nav_todak_report" onclick="event.stopPropagation(); switchHub(['todakReportSection'], 'Laporan TODAK', this); if(typeof renderTodakReport==='function') renderTodakReport();" style="display:flex; align-items:center; gap:10px;">
  <i data-lucide="file-spreadsheet" style="width:15px; height:15px;"></i> <span>Laporan TODAK</span>
+ </div>
+ <!-- p1_1198 — Papan Kerja dipindah ke sini dari atas sidebar (Bos sahaja — CSS #navWorkBoardBoss kekal) -->
+ <div class="menu-item" id="navWorkBoardBoss" data-tab="nav_workboard" onclick="event.stopPropagation(); switchHub(['workBoardSection'], 'Papan Kerja', this); if(typeof renderWorkBoard==='function') renderWorkBoard();" style="align-items:center; gap:10px;">
+ <i data-lucide="kanban-square" style="width:15px; height:15px;"></i> <span>Papan Kerja</span>
  </div>
  <!-- p1_398 — Roadmap dalam group Reports yang VISIBLE (.menu-list), bukan wrapper legacy tersorok. -->
  <div class="menu-item" data-tab="nav_roadmap" onclick="event.stopPropagation(); switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="display:flex; align-items:center; gap:10px;">

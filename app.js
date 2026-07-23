@@ -46837,7 +46837,9 @@ window.__pdbRefresh = async function(btn){
 
  // Kad satu tugasan (dikongsi view Bos + staf). forBoss=true tambah butang padam.
  function stCard(t, forBoss){
-  const canAct = !forBoss && window.currentUser && t.assigned_to === window.currentUser.staff_id;
+  // p1_1190 — Bos pun boleh Mula/Siap tugasan SENDIRI (dulu !forBoss = papan Bos takde
+  // butang action utk tugasan CEO dia; Zaid tanya "macam mana nak update dah buat?").
+  const canAct = window.currentUser && t.assigned_to === window.currentUser.staff_id;
   let actions = '';
   if(canAct && t.status === 'baru')
    actions = '<button onclick="window.__stSetStatus('+t.id+',\'buat\')" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:8px 16px; border-radius:4px; cursor:pointer;"><i data-lucide="play" style="width:13px;height:13px;vertical-align:-2px;"></i> Mula Buat</button>';

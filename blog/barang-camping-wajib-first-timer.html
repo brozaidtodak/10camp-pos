@@ -77,6 +77,14 @@
   .xt-back{color:#141414;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
   .xt-back:hover{color:#C43D00}
   @media(max-width:768px){.xt-nav{display:none}}
+  .nav-drop{position:relative;display:inline-flex;align-items:center;gap:3px}
+  .nav-drop__caret{font-size:10px;color:#57534A;transition:transform .2s,color .15s}
+  .nav-drop:hover .nav-drop__caret{transform:rotate(180deg);color:#C43D00}
+  .nav-drop::after{content:'';position:absolute;top:100%;left:0;right:0;height:12px}
+  .nav-drop__menu{position:absolute;top:100%;left:50%;transform:translate(-50%,6px);min-width:190px;background:#fff;border:1px solid #E7E3DA;border-radius:12px;box-shadow:0 12px 30px rgba(20,20,20,.12);padding:8px;opacity:0;visibility:hidden;transition:opacity .18s,transform .18s;z-index:200}
+  .nav-drop:hover .nav-drop__menu{opacity:1;visibility:visible;transform:translate(-50%,8px)}
+  .nav-drop__menu a{display:block;padding:9px 13px;border-radius:8px;font-size:14px;font-weight:500;color:#57534A;text-decoration:none;white-space:nowrap;border-bottom:none!important}
+  .nav-drop__menu a:hover{background:#FAF6EF;color:#C43D00}
 </style>
   <script defer data-site="pos" src="https://analytics.10camp.com/track.js"></script>
 </head>
@@ -84,9 +92,14 @@
 <header class="xt-bar"><div class="xt-inner">
   <a class="xt-brand" href="/" aria-label="10 CAMP home"><img src="/assets/brand/logo/10camp-logo-color.png" alt="10 CAMP by TODAK"></a>
   <nav class="xt-nav" aria-label="Main navigation">
-    <a href="/#shop">Kedai</a><a href="/#brands">Jenama</a><a href="/#promo">Promo</a>
-    <a href="/blog/" class="on">Panduan</a><a href="/acara.html">Acara</a>
-    <a href="/#about">Tentang</a><a href="/#contact">Hubungi</a>
+    <span class="nav-drop">
+      <a href="/#shop">Kedai</a><span class="nav-drop__caret" aria-hidden="true">▾</span>
+      <span class="nav-drop__menu">
+        <a href="/#brands">Jenama</a><a href="/#shop">Kategori</a><a href="/#promo">Promo Walk-in</a>
+      </span>
+    </span>
+    <a href="/blog/" class="on">Blog</a><a href="/acara.html">Acara</a>
+    <a href="/#about">Tentang</a>
   </nav>
   <a class="xt-back" href="/">← Kedai</a>
 </div></header>

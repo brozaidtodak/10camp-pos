@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=177">
+ <link rel="stylesheet" href="design-tokens.css?v=178">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -1150,13 +1150,17 @@
  <img src="assets/brand/logo/10camp-logo-color.png" alt="10 CAMP by TODAK" class="lp-brand__logo">
  </a>
  <nav class="lp-nav" aria-label="Main navigation">
- <a href="#shop" class="lp-nav__link" data-i18n="lp_nav_shop">Shop</a>
- <a href="#brands" class="lp-nav__link" data-i18n="lp_nav_brands">Brands</a>
- <a href="#promo" class="lp-nav__link" data-i18n="lp_nav_promo">Promo</a>
- <a href="/blog/" class="lp-nav__link" data-i18n="lp_nav_panduan">Panduan</a>
- <a href="/acara.html" class="lp-nav__link" data-i18n="lp_nav_acara">Acara</a>
+ <span class="nav-drop">
+ <a href="#shop" class="lp-nav__link nav-drop__trigger" data-i18n="lp_nav_shop">Shop</a><span class="nav-drop__caret" aria-hidden="true">▾</span>
+ <span class="nav-drop__menu" role="menu">
+ <a href="#brands" role="menuitem" data-i18n="lp_nav_brands">Brands</a>
+ <a href="#shop" role="menuitem" data-i18n="lp_nav_category">Category</a>
+ <a href="#promo" role="menuitem" data-i18n="lp_nav_promo">Walk-in Promo</a>
+ </span>
+ </span>
+ <a href="/blog/" class="lp-nav__link" data-i18n="lp_nav_panduan">Blog</a>
+ <a href="/acara.html" class="lp-nav__link" data-i18n="lp_nav_acara">Events</a>
  <a href="#about" class="lp-nav__link" data-i18n="lp_nav_about">About</a>
- <a href="#contact" class="lp-nav__link" data-i18n="lp_nav_contact">Contact</a>
  </nav>
  <div class="lp-header__actions">
  <button class="lp-lang-btn" onclick="window.toggleLang()" data-i18n-aria="lp_aria_lang" aria-label="Switch language" title="BM / EN">
@@ -13379,7 +13383,7 @@
   </div>
  </div>
  <!-- JS Core -->
-<script src="app.js?v=1172"></script>
+<script src="app.js?v=1173"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

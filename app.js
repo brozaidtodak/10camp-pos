@@ -39585,8 +39585,9 @@ window.I18N = {
  // p1_50 — Public storefront (lp_*)
  lp_nav_shop: { bm: 'Kedai', en: 'Shop' },
  lp_nav_brands: { bm: 'Jenama', en: 'Brands' },
- lp_nav_promo: { bm: 'Promo', en: 'Promo' },
- lp_nav_panduan: { bm: 'Panduan', en: 'Guides' },
+ lp_nav_category: { bm: 'Kategori', en: 'Category' },
+ lp_nav_promo: { bm: 'Promo Walk-in', en: 'Walk-in Promo' },
+ lp_nav_panduan: { bm: 'Blog', en: 'Blog' },
  lp_nav_acara: { bm: 'Acara', en: 'Events' },
  lp_nav_about: { bm: 'Tentang', en: 'About' },
  lp_nav_contact: { bm: 'Hubungi', en: 'Contact' },

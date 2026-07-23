@@ -801,6 +801,15 @@
 .lp-nav { display: flex; gap: 24px; flex: 1; justify-content: center; }
 .lp-nav__link { color: var(--lp-muted, #4B5563); text-decoration: none; font-weight: 600; font-size: 14px; transition: color 0.15s; padding: 4px 0; border-bottom: 2px solid transparent; }
 .lp-nav__link:hover { color: var(--lp-accent-2, #A05F22); border-bottom-color: var(--lp-accent, #CD7C32); }
+/* Dropdown nav "Shop" (Brand/Category/Promo Walk-in) — guna di .lp-nav homepage + .xt-nav sub-page */
+.nav-drop { position: relative; display: inline-flex; align-items: center; gap: 3px; }
+.nav-drop__caret { font-size: 10px; color: var(--lp-muted, #57534A); transition: transform .2s, color .15s; }
+.nav-drop:hover .nav-drop__caret { transform: rotate(180deg); color: #C43D00; }
+.nav-drop::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 12px; }
+.nav-drop__menu { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 6px); min-width: 190px; background: #fff; border: 1px solid var(--lp-line, #E7E3DA); border-radius: 12px; box-shadow: 0 12px 30px rgba(20,20,20,.12); padding: 8px; opacity: 0; visibility: hidden; transition: opacity .18s, transform .18s; z-index: 200; }
+.nav-drop:hover .nav-drop__menu, .nav-drop:focus-within .nav-drop__menu { opacity: 1; visibility: visible; transform: translate(-50%, 8px); }
+.nav-drop__menu a { display: block; padding: 9px 13px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--lp-muted, #57534A) !important; text-decoration: none; white-space: nowrap; border-bottom: none !important; }
+.nav-drop__menu a:hover { background: var(--lp-bg, #FAF6EF); color: #C43D00 !important; }
 .lp-header__actions { display: flex; align-items: center; gap: 8px; }
 .lp-icon-btn { background: transparent; border: 1px solid transparent; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--lp-muted, #4B5563); transition: 0.15s; position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .lp-icon-btn:hover { background: #F3F4F6; color: var(--lp-accent-2, #A05F22); }

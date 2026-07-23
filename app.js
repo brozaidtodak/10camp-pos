@@ -46868,8 +46868,11 @@ window.__pdbRefresh = async function(btn){
  function stRenderMine(el, tasks){
   const u = window.currentUser || {};
   const mine = tasks.filter(t => t.assigned_to === u.staff_id);
-  const buat = mine.filter(t => t.status === 'buat');
-  const baru = mine.filter(t => t.status === 'baru');
+  // p1_1191 — susun ikut prefix masa "HH:MM ·" (timetable Aliff/Farhan); tajuk tanpa masa
+  // jatuh selepas (digit < huruf dlm localeCompare asas).
+  const byTime = function(a, b){ return String(a.title).localeCompare(String(b.title)); };
+  const buat = mine.filter(t => t.status === 'buat').sort(byTime);
+  const baru = mine.filter(t => t.status === 'baru').sort(byTime);
   const cutoff = Date.now() - 14*24*3600*1000;
   const siap = mine.filter(t => t.status === 'siap' && new Date(t.done_at || t.updated_at || t.created_at).getTime() > cutoff);
   let html = '<div style="max-width:680px; margin:0 auto; padding:14px 14px 40px;">'
@@ -46914,7 +46917,7 @@ window.__pdbRefresh = async function(btn){
   const OFF_CODES = ['OFF','AL','MC','EL','PH'];
   let cards = '';
   team.forEach(u => {
-   const list = (byId[u.staff_id] || []).sort((a,b) => ({buat:0, baru:1, siap:2}[a.status] - {buat:0, baru:1, siap:2}[b.status]));
+   const list = (byId[u.staff_id] || []).sort((a,b) => (({buat:0, baru:1, siap:2}[a.status] - {buat:0, baru:1, siap:2}[b.status]) || String(a.title).localeCompare(String(b.title))));
    const nSiap = list.filter(t=>t.status==='siap').length;
    const nBuat = list.filter(t=>t.status==='buat').length;
    const shift = stShiftToday(u.name);

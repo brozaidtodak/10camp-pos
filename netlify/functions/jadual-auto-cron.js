@@ -76,15 +76,20 @@ const JADUAL = [
             { key: 'w-defect', freq: { dow: [4] }, title: 'Semak barang R&R / Defect', notes: 'Update senarai damaged (R&R + Defect sahaja) — asingkan dari stok boleh jual.' }
         ]
     },
+    // p1_1191 — Aliff+Farhan minta TIMETABLE penuh 11:00 (masuk) → 20:00 (balik):
+    // tajuk berprefix masa "HH:MM ·" (tersusun ikut jam dlm tab Task), medan `slot` (jam) —
+    // hari syif B (masuk 2ptg, cth Rabu) slot < 14 auto-skip.
     {
         staff_id: 'CMP008', name: 'Aliff', roster_name: 'Aliff',
         tasks: [
-            { key: 'd-pettycash', freq: 'daily', title: 'Rekod petty cash & resit semalam', notes: '11:15 pagi — masukkan semua belanja & resit semalam ke sistem. Target: sifar tunggakan.' },
-            { key: 'd-invois', freq: 'daily', title: 'Failkan invois/resit supplier hari ini', notes: '7:30 malam sebelum tutup — failkan semua dokumen hari ini.' },
-            { key: 'w-claim', freq: { dow: [1] }, title: 'Triage claim & cuti staf', notes: 'Semak claim/permohonan cuti yang masuk. Yang lengkap hantar ke Bos untuk lulus.' },
-            { key: 'w-recon', freq: { dow: [3] }, title: 'Recon petty cash vs fizikal', notes: '2:30 petang — kira duit fizikal, padankan dengan sistem ke sen. Lari? Lapor terus.' },
-            { key: 'w-komisen', freq: { dow: [5] }, title: 'Kira komisen minggu + laporan admin ke Bos', notes: '6:00 petang — WhatsApp ringkas ke Bos: komisen, claim, isu admin.' },
-            { key: 'w-roster', freq: { dow: [5] }, title: 'Kemaskini roster minggu depan ke sistem', notes: '7:00 malam — masukkan jadual minggu depan dalam Jadual Tugas back office.' },
+            { key: 'd-1100-pettycash', freq: 'daily', slot: 11, title: '11:00 · Rekod petty cash & resit semalam', notes: 'Masukkan semua belanja & resit semalam ke sistem. Target: sifar tunggakan.' },
+            { key: 'd-1200-supplier', freq: 'daily', slot: 12, title: '12:00 · Follow-up invois & bayaran supplier', notes: 'Invois masuk, bayaran perlu proses, PO tertunggak — clear satu-satu.' },
+            { key: 'd-1500-dokumen', freq: 'daily', slot: 15, title: '15:00 · Kemaskini rekod & failing dokumen', notes: 'Failkan resit/invois hari ini, kemas rekod admin tertunggak.' },
+            { key: 'd-1930-tutup', freq: 'daily', slot: 19, title: '19:30 · Tutup hari admin', notes: 'Semak semua dokumen hari ini difailkan + senarai follow-up untuk esok.' },
+            { key: 'w-claim', freq: { dow: [1] }, slot: 11, title: '11:30 · Triage claim & cuti staf', notes: 'Semak claim/permohonan cuti yang masuk. Yang lengkap hantar ke Bos untuk lulus.' },
+            { key: 'w-recon', freq: { dow: [3] }, slot: 14, title: '14:30 · Recon petty cash vs fizikal', notes: 'Kira duit fizikal, padankan dengan sistem ke sen. Lari? Lapor terus.' },
+            { key: 'w-komisen', freq: { dow: [5] }, slot: 18, title: '18:00 · Kira komisen minggu + laporan ke Bos', notes: 'WhatsApp ringkas ke Bos: komisen, claim, isu admin.' },
+            { key: 'w-roster', freq: { dow: [5] }, slot: 19, title: '19:00 · Kemaskini roster minggu depan', notes: 'Masukkan jadual minggu depan dalam Jadual Tugas back office.' },
             { key: 'm-komisenfinal', freq: 'monthly', title: 'Komisen bulan lepas FINAL + data payroll', notes: 'Siapkan sebelum 5hb — kiraan komisen muktamad & data cuti/claim/OT untuk gaji bulan+1.' },
             { key: 'm-todakreport', freq: 'monthly', title: 'Hantar Sales Report ke Finance TODAK', notes: 'Back office → Reports → Laporan TODAK → pilih bulan lepas → Jana → semak (order BELUM SETTLE? tunggu 2-3 hari jana semula) → Cetak/CSV → hantar macam biasa.' }
         ]
@@ -92,14 +97,17 @@ const JADUAL = [
     {
         staff_id: 'CMP010', name: 'Farhan Moyy', roster_name: 'Farhan Moyy',
         tasks: [
-            { key: 'd-scoreboard', freq: 'daily', title: 'Scoreboard semalam: POS / Shopee / TikTok', notes: '11:15 pagi — 1 mesej ke group: angka semalam + 1 tindakan hari ini.' },
-            { key: 'd-chat', freq: 'daily', title: 'Balas chat inbox Shopee + follow-up customer', notes: '11:30 pagi — chat sifar tertunggak. Follow-up customer yang tanya tapi belum beli.' },
-            { key: 'd-prospek', freq: 'daily', title: 'Cari 3 prospek B2B baru', notes: '3:00 petang — syarikat / sekolah / kelab outdoor / corporate gift. Rekod dalam senarai pipeline.' },
-            { key: 'w-target', freq: { dow: [1] }, title: 'Set target minggu bersama Bos', notes: '15 minit dengan Bos — bawa nota weekend (apa customer cari tapi kita takde).' },
-            { key: 'w-harga', freq: { dow: [3] }, title: 'Semak harga vs competitor marketplace', notes: '2:30 petang — senarai cadangan ubah harga. Ingat: marketplace tinggi, POS terendah.' },
-            { key: 'w-kempen', freq: { dow: [4] }, title: 'Rancang 1 kempen / bundle', notes: 'Guna cadangan Ejen Dead Stock + event SKU. Satu idea sedia lancar.' },
-            { key: 'w-pipeline', freq: { dow: [5] }, title: 'Laporan pipeline B2B ke Bos', notes: 'Siapa, nilai, status — hantar sebelum balik.' },
-            { key: 'w-floor', freq: { dow: [6, 0] }, title: 'Fokus floor: catat permintaan customer', notes: 'Weekend ramai walk-in — layan customer, catat apa orang cari tapi kita takde. Bawa ke meeting Isnin.' }
+            { key: 'd-1100-scoreboard', freq: 'daily', slot: 11, title: '11:00 · Scoreboard semalam', notes: 'POS / Shopee / TikTok — 1 mesej ke group: angka semalam + 1 tindakan hari ini.' },
+            { key: 'd-1130-chat', freq: 'daily', slot: 11, title: '11:30 · Chat inbox & follow-up customer', notes: 'Shopee inbox sifar tertunggak. Follow-up customer yang tanya tapi belum beli.' },
+            { key: 'd-1400-kempen', freq: 'daily', slot: 14, title: '14:00 · Kerja kempen / kandungan', notes: 'Teruskan kempen aktif — posting, kreatif, semak prestasi. Selaraskan dgn jadual marketing.' },
+            { key: 'd-1500-prospek', freq: 'daily', slot: 15, title: '15:00 · Cari 3 prospek B2B baru', notes: 'Syarikat / sekolah / kelab outdoor / corporate gift. Rekod dalam senarai pipeline.' },
+            { key: 'd-1700-pipeline', freq: 'daily', slot: 17, title: '17:00 · Update pipeline & follow-up prospek', notes: 'Status setiap prospek terbuka — siapa perlu di-follow-up, bila.' },
+            { key: 'd-1930-tutup', freq: 'daily', slot: 19, title: '19:30 · Ringkasan hari + rancang esok', notes: '10 minit — apa jadi hari ini, apa fokus esok.' },
+            { key: 'w-target', freq: { dow: [1] }, slot: 12, title: '12:30 · Set target minggu bersama Bos', notes: '15 minit dengan Bos — bawa nota weekend (apa customer cari tapi kita takde).' },
+            { key: 'w-harga', freq: { dow: [3] }, slot: 14, title: '14:30 · Semak harga vs competitor', notes: 'Senarai cadangan ubah harga. Ingat: marketplace tinggi, POS terendah.' },
+            { key: 'w-kempen', freq: { dow: [4] }, slot: 16, title: '16:00 · Rancang 1 kempen / bundle', notes: 'Guna cadangan Ejen Dead Stock + event SKU. Satu idea sedia lancar.' },
+            { key: 'w-pipeline', freq: { dow: [5] }, slot: 18, title: '18:00 · Laporan pipeline B2B ke Bos', notes: 'Siapa, nilai, status — hantar sebelum balik.' },
+            { key: 'w-floor', freq: { dow: [6, 0] }, slot: 16, title: '16:00 · Fokus floor: catat permintaan customer', notes: 'Weekend ramai walk-in — layan customer, catat apa orang cari tapi kita takde. Bawa ke meeting Isnin.' }
         ]
     }
 ];
@@ -151,6 +159,8 @@ exports.handler = async (event) => {
                 else if (t.freq === 'monthly') { due = dom >= 1 && dom <= 5; keyDate = ym; }
                 else if (t.freq && Array.isArray(t.freq.dow)) due = t.freq.dow.indexOf(dow) !== -1;
                 if (!due) continue;
+                // p1_1191 — syif B masuk 2ptg (cth Rabu): slot pagi (< jam 14) auto-skip
+                if (t.slot && shift === 'B' && t.slot < 14) continue;
                 inserts.push({
                     title: t.title, notes: t.notes,
                     assigned_to: s.staff_id, assigned_to_name: s.name,

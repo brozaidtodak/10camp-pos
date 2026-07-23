@@ -1,0 +1,6 @@
+-- 2026-07-23 — Sejarah edit template jadual (p1_1195). Rujuk migration
+-- task_template_history_trigger dlm Supabase (dah dijalankan). Trigger tangkap
+-- SETIAP insert/update/delete task_templates → bahan kajian corak kerja staf
+-- (arahan tetap Zaid: "study task2 yang diorang bakal edit").
+-- Struktur: task_template_history (template_id, staff_id, action, old_row jsonb,
+-- new_row jsonb, changed_by, changed_at) + trigger trg_task_template_history.

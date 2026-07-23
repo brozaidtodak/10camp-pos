@@ -584,5 +584,5 @@ body:has(#pinLoginOverlay[style*="flex"]) #mobileCartFloatingBar { display:none 
 /* p1_1176 — Tugasan Staf: sidebar papan Bos SAHAJA. Gate via body class (loginAs
    toggle is-boss-user) sebab inline display kena clear oleh setActiveRail (app.js
    ~1994: item tanpa data-group → style.display=''). CSS class kalis reset tu. */
-#navStaffTasksBoss { display: none; }
-body.is-boss-user #navStaffTasksBoss { display: flex; }
+/* p1_1188 — #navStaffTasksBoss dibuang: papan Bos Tugasan pindah ke 10cc back office.
+   Corak gate body.is-boss-user (toggle dlm loginAs) kekal utk item owner-only akan datang. */

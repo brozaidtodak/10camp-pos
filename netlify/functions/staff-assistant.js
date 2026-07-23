@@ -126,9 +126,11 @@ async function runTool(name, args, caller) {
             const batches = await sb('GET', `/inventory_batches?select=qty_remaining&sku=eq.${esc(p.sku)}`);
             const stock = (batches || []).reduce((s, b) => s + (Number(b.qty_remaining) || 0), 0);
             const since = new Date(Date.now() - 90 * 24 * 3600e3).toISOString();
+            // items = JSONB — ilike TAK boleh (op jsonb ~~* tak wujud); guna containment cs.[{"sku":...}]
+            const csFilter = encodeURIComponent(JSON.stringify([{ sku: p.sku }]));
             let sales = [];
             for (let off = 0; off < 4000; off += 1000) {
-                const page = await sb('GET', `/sales_history?select=created_at,channel,status,is_test,items&created_at=gte.${since}&items=ilike.*${encodeURIComponent(p.sku)}*&order=created_at.desc&limit=1000&offset=${off}`);
+                const page = await sb('GET', `/sales_history?select=created_at,channel,status,is_test,items&created_at=gte.${since}&items=cs.${csFilter}&order=created_at.desc&limit=1000&offset=${off}`);
                 sales = sales.concat(page || []);
                 if (!page || page.length < 1000) break;
             }

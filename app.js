@@ -18074,6 +18074,19 @@ window.lpRefreshPromoBanner = function() {
 // "LF025-026 | LFO COOKWARE UTENSIL SET | LF025 | LF026 — LF025 KETTLE SET"
 //   → { title: "LFO COOKWARE UTENSIL SET", variantName: "KETTLE SET" }
 window.lpParseProductName = function(p) {
+    // p1_1200 — landing pakai nama SEO (BM+EN) bila ada; back office & POS kekal nama asal (SKU depan).
+    // seo_name sudah bersih — cuma pisahkan bahagian varian selepas ' – ' utk chip/label.
+    const seo = String((p && p.seo_name) || '').trim();
+    if (seo) {
+        let vn = String((p && (p.variant_color || p.variant_size)) || '').trim();
+        let t = seo;
+        const di = t.lastIndexOf(' – ');
+        if (di > 0) {
+            if (!vn) vn = t.slice(di + 3).trim();
+            t = t.slice(0, di).trim();
+        }
+        return { title: t || seo, variantName: vn };
+    }
     let raw = String((p && p.name) || '').trim();
     let variantName = String((p && (p.variant_color || p.variant_size)) || '').trim();
     const dashIdx = raw.lastIndexOf(' — ');
@@ -18517,7 +18530,7 @@ function renderPublicStorefront() {
     let filtered = masterProducts.filter(p => isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p));  // p1_963 — sorok discontinued dari landing
     if(window.lpSearchTerm) {
         const q = window.lpSearchTerm;
-        filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
+        filtered = filtered.filter(p => (p.name||'').toLowerCase().includes(q) || (p.seo_name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));  // p1_1200 — cari ikut nama SEO jugak
     }
     // p1_47: activity filter (broader bucket) applies first so category pill stays scoped
     // p1_48: filters use lpRealCategory so brand-named cats remap to real ones

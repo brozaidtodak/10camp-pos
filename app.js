@@ -17895,20 +17895,29 @@ window.lpRealCategory = function(p) {
     return '';
 };
 
-// p1_47: Activity Grid — group raw categories into 10 activity buckets for primary navigation
+// p1_47 / p1_1216: Kumpulan induk — petakan kategori DB SEBENAR ke 9 baldi navigasi.
+// p1_1216: taksonomi lama guna nama ringkas (Tent, Tables) yang TAK padan DB sebenar
+// (Auto Tent, IGT Tables Accessories) → liputan bocor. Sekarang senarai kategori penuh.
 window.LP_ACTIVITY_GROUPS = {
-    shelter:   { label: 'Khemah & Shelter',  icon: 'tent',             cats: ['Tent','Dome','Canopy','Tent Pole','Pegs','Ground Sheet','Flysheet','Hammock'] },
-    furniture: { label: 'Furniture Outdoor', icon: 'armchair',         cats: ['Tables','Chairs','Stool','Mini Table','Rack','Shelf','Tablecloth'] },
-    cooking:   { label: 'Memasak & Makan',   icon: 'utensils-crossed', cats: ['Pots','Stove','Kettle','Grills','Cups','Plate','Utensils','Charcoal','Seasoning Bottles','Pot Hanging Tripod'] },
-    sleeping:  { label: 'Tidur & Rehat',     icon: 'bed',              cats: ['Sleeping','Sleeping Bags','SLEEPING GEAR','Air Mattress','Mat','Pillow','Blankets','Camping Cots','Inflatable Sofa'] },
-    lighting:  { label: 'Lighting',          icon: 'lamp',             cats: ['Hanging Lamp','Universal Lamp','Ground Lamp','String Light','Lanterns','LIGHTING','Light Standing Pole','Warning Light','Lights with Mosquito Repellent'] },
-    storage:   { label: 'Storage',           icon: 'package',          cats: ['Boxes','Bags','Bucket','Storage','STORAGE','Basket'] },
-    cooling:   { label: 'Cooling & Fan',     icon: 'fan',              cats: ['Portable Fan','Fan','FAN','Fan Accessories'] },
-    tools:     { label: 'Tools & Aksesori',  icon: 'wrench',           cats: ['Hammer','Hooks','Rope','Velco Strap','Survival Tools','Universal Tactical Screws','Carabiner','Pole Cap','Wind Shield','Portable Hanger','Accessories'] },
-    apparel:   { label: 'Apparel',           icon: 'shirt',            cats: ['Apparel','Towel'] },
-    lifestyle: { label: 'Outdoor Lifestyle', icon: 'mountain',         cats: ['Wagons','Flags','Rubbish Frame','Bundle'] }
+    shelter:   { label: 'Khemah & Shelter',  icon: 'tent',             cats: ['Auto Tent','Manual Tent','Auto Dome','Manual Dome','Semi Dome','Air tent','Changing Tent','Tent Pole','Pegs','Pegs Accessories','Pegs Bags','Dome Connector','Ground Sheet for Tent','Ground Sheet for Dome','Flysheet Hexagon (6)','Flysheet Twin Peak','Flysheet Octagon (8)','Flysheet Rectangle','Dome-Room Extender','Dome-Flysheet Extender','Outter Tent Only','Inner Tent Only','Door Curtain','Door Mesh','Wind Rope with Regulator','Ground Sheet','Flysheet','Tent','Dome','Canopy','Hammock'] },
+    furniture: { label: 'Meja & Kerusi',     icon: 'armchair',         cats: ['IGT Tables Accessories','IGT Tables','Egg Roll Table','Wagon Tabletop','Mesh Folding table','Tactical Table','Portable Light-Weight Table','Table Sets','Steel table','Steel table Board','Mini Table','Kitchen Table','Tablecloths','High-Back Chair','Moon Chair','Folding Stool','Recliner Chair','Kermit Folding Chair','Basic Chair','Light-Weight Chair','Rocking Chair','Double Folding Chair','Rack','Rack Accessories','Shelf','Tables','Chairs','Stool'] },
+    cooking:   { label: 'Memasak & Makan',   icon: 'utensils-crossed', cats: ['Single Stove','Double Stove','Multifunction Stove','Stove Bag','Kettle','Pot Sets','Single Pot','Grill','Single Cup','Cup Sets','Seasoning Bottles','Gas Adapter','Butane Gas','Utensil','Plate','Cutting Board','Pot Hanging Tripod','Pots','Stove','Grills','Cups','Utensils'] },
+    sleeping:  { label: 'Tidur & Rehat',     icon: 'bed',              cats: ['Queen Air Mattress','Single Air Mattress','King Air Mattress','Pump','Floor Mats','Sleeping Bags','Pillows','Camping Cots','Blankets','Inflatable Sofa','Mat','Sleeping','Air Mattress','Pillow'] },
+    lighting:  { label: 'Lampu',             icon: 'lamp',             cats: ['Hanging Lamp','Lantern','Warning Light','String Light','Hand Lamp','Ground Lamp','Head Lamp','Light Standing pole','Light Standing Pole','Lights with Mosquito Repellent','Lamp Accessories','Lanterns','Universal Lamp'] },
+    storage:   { label: 'Beg & Simpanan',    icon: 'package',          cats: ['Multifunction Bags','Hiking Bag','Tissue Bags','Toiletery Bags','Tote Bage','Bags','Folding Boxes','Cooler Boxes','Tactical Boxes','Tactical Boxes Accessories','Boxes','Water Bucket','Basket','Storage','Bucket'] },
+    cooling:   { label: 'Kipas',             icon: 'fan',              cats: ['Portable Fan','Stand Fan','Hand Held Fan','Hanging Fan','Fan Accessories','Fan'] },
+    tools:     { label: 'Alatan & Aksesori', icon: 'wrench',           cats: ['Universal Tactical Screws','Magnetic Buckles','Hanging rope','Hammer','Rope Buckle','Carabiner','Basic Hooks','Portable Hanger','Velco Strap','Clip','Wind Shield','Fireproof Cloth','First Aid','Sets Survival Tools','Pole Cap','Hooks','Rope','Survival Tools'] },
+    lifestyle: { label: 'Gaya Hidup Luar',   icon: 'mountain',         cats: ['Folding Wagon','Flags','Rubbish Frame','Towel','Door Mats','Wagons','Apparel','Bundle'] }
 };
 window.lpActiveActivity = '';
+window.lpSortMode = ''; // p1_1216 — '' relevan | price-asc | price-desc | name-asc | newest
+
+// p1_1216 — susun ikut (sort). Set mode, reset ke page 1, render semula.
+window.lpSetSort = function(mode) {
+    window.lpSortMode = mode || '';
+    publicCurrentPage = 1;
+    renderPublicStorefront();
+};
 
 window.lpHandleSearch = function(val) {
     window.lpSearchTerm = (val || '').toLowerCase().trim();
@@ -18044,7 +18053,75 @@ window.lpRenderCategoryPills = function() {
         html += `<button class="lp-pill" style="border-color:var(--primary-500); color:var(--primary-700);" onclick="window.lpFilterByActivity('')">× Clear ${activity.label}</button>`;
     }
     wrap.innerHTML = html;
+    // p1_1216 — progressive disclosure: baris Kategori muncul HANYA bila satu Kumpulan aktif.
+    // Bila tiada kumpulan, pill Kumpulan (10 baldi bersih) jadi navigasi utama — kurang bersepah.
+    const catRow = document.getElementById('lpCatRow');
+    if(catRow) catRow.style.display = activity ? '' : 'none';
+    if(window.lpRenderGroupPills) window.lpRenderGroupPills();
     if(window.lpRenderBrandPills) window.lpRenderBrandPills();
+};
+
+// p1_1216 — KUMPULAN pills (parent groups) — navigasi utama, guna semula LP_ACTIVITY_GROUPS
+window.lpRenderGroupPills = function() {
+    const wrap = document.getElementById('lpGroupPills');
+    if(!wrap || typeof masterProducts === 'undefined' || !window.LP_ACTIVITY_GROUPS) return;
+    const products = masterProducts.filter(p => isPublished && isPublished(p) && !window.__isDiscontinued(p) && !window.lpIsEventSku(p));
+    const allLabel = window.t ? window.t('lp_group_all') : 'Semua Kumpulan';
+    let html = `<button class="lp-pill ${!window.lpActiveActivity ? 'lp-pill--active' : ''}" onclick="window.lpFilterByActivity('')">${allLabel}</button>`;
+    Object.entries(window.LP_ACTIVITY_GROUPS).forEach(([key, g]) => {
+        const count = products.filter(p => g.cats.includes(window.lpRealCategory(p))).length;
+        if(count === 0) return; // jangan papar kumpulan kosong
+        const active = window.lpActiveActivity === key ? 'lp-pill--active' : '';
+        html += `<button class="lp-pill ${active}" onclick="window.lpFilterByActivity('${key}')"><i data-lucide="${g.icon}" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;"></i>${g.label} (${count})</button>`;
+    });
+    wrap.innerHTML = html;
+    if(window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+// p1_1216 — bar ringkasan: kiraan produk + chip tapisan aktif (boleh buang satu-satu) + kosongkan semua
+window.lpRenderFilterSummary = function(count) {
+    const wrap = document.getElementById('lpFilterSummary');
+    if(!wrap) return;
+    const showing = window.t ? window.t('lp_showing_n') : 'Menunjukkan';
+    const unit = window.t ? window.t('lp_unit_produk') : 'produk';
+    const clearAll = window.t ? window.t('lp_clear_all') : 'Kosongkan semua';
+    let chips = '';
+    const chip = (label, onclick) => `<button type="button" class="lp-fchip" onclick="${onclick}">${label} <span class="lp-fchip__x">×</span></button>`;
+    if(window.lpActiveActivity && window.LP_ACTIVITY_GROUPS[window.lpActiveActivity]) {
+        chips += chip(window.LP_ACTIVITY_GROUPS[window.lpActiveActivity].label, "window.lpFilterByActivity('')");
+    }
+    if(window.lpActiveBrand) chips += chip(window.lpActiveBrand, "window.lpFilterBrand('')");
+    if(window.lpActiveCategory && window.lpActiveCategory !== 'SALE') chips += chip(window.lpActiveCategory, "window.lpFilterCategory('')");
+    if(window.lpActiveCategory === 'SALE') chips += chip('Sale', "window.lpFilterCategory('')");
+    if(window.lpSearchTerm) chips += chip('"' + window.lpSearchTerm + '"', "window.lpClearSearch()");
+    const hasFilter = !!chips;
+    wrap.innerHTML =
+        `<span class="lp-shop__count"><strong>${count}</strong> ${unit}</span>` +
+        (hasFilter ? `<span class="lp-fchips">${chips}<button type="button" class="lp-fchip lp-fchip--clear" onclick="window.lpClearAllFilters()">${clearAll}</button></span>` : '');
+};
+
+// p1_1216 — kosongkan carian sahaja (chip carian)
+window.lpClearSearch = function() {
+    window.lpSearchTerm = '';
+    const inp = document.getElementById('lpSearchInput');
+    if(inp) inp.value = '';
+    publicCurrentPage = 1;
+    renderPublicStorefront();
+    window.lpUpdateShopHeading();
+};
+
+// p1_1216 — kosongkan SEMUA tapisan (butang "Kosongkan semua")
+window.lpClearAllFilters = function() {
+    window.lpSearchTerm = '';
+    window.lpActiveActivity = '';
+    window.lpActiveBrand = '';
+    window.lpActiveCategory = '';
+    const inp = document.getElementById('lpSearchInput');
+    if(inp) inp.value = '';
+    publicCurrentPage = 1;
+    renderPublicStorefront();
+    window.lpUpdateShopHeading();
+    window.lpRenderCategoryPills();
 };
 
 // p1_1214 — brand filter pills (page /shop) — selaras corak category pills
@@ -18661,6 +18738,30 @@ function renderPublicStorefront() {
             })
             .filter(variants => __stockFor(variants[0].sku) > 0);
     }
+
+    // p1_1216 — SUSUN IKUT (sort). Kunci = harga yang DIPAPAR pada kad supaya grid nampak
+    // tersusun betul: kad sale papar harga lead (diskaun); selainnya "Mulai dari" min variant.
+    // (variants[0] = lead stok-tertinggi selepas blok sold-out di atas.)
+    const __dispPrice = (variants) => {
+        const lead = variants[0];
+        const lp = parseFloat(lead.price || 0);
+        const comp = parseFloat(lead.compare_at_price || 0);
+        if(comp > lp && lp > 0) return lp; // onSale → harga lead (yang dipapar)
+        const ps = variants.map(v => parseFloat(v.price || 0)).filter(p => p > 0);
+        return ps.length ? Math.min(...ps) : Infinity; // else "Mulai dari" min; RM0 "semak harga" tenggelam
+    };
+    const __groupName = (variants) => ((window.lpParseProductName ? window.lpParseProductName(variants[0]).title : variants[0].name) || '').toLowerCase();
+    const __groupNew = (variants) => {
+        const t = variants[0] && (variants[0].created_at || variants[0].createdAt);
+        return t ? new Date(t).getTime() : 0;
+    };
+    if(window.lpSortMode === 'price-asc') groups.sort((a,b) => __dispPrice(a) - __dispPrice(b));
+    else if(window.lpSortMode === 'price-desc') groups.sort((a,b) => (__dispPrice(b) === Infinity ? -1 : __dispPrice(b)) - (__dispPrice(a) === Infinity ? -1 : __dispPrice(a)));
+    else if(window.lpSortMode === 'name-asc') groups.sort((a,b) => __groupName(a).localeCompare(__groupName(b)));
+    else if(window.lpSortMode === 'newest') groups.sort((a,b) => __groupNew(b) - __groupNew(a));
+
+    // p1_1216 — kiraan hasil + bar ringkasan tapisan (sebelum semakan kosong supaya sentiasa dikemas kini)
+    if(window.lpRenderFilterSummary) window.lpRenderFilterSummary(groups.length);
 
     const itemsPerPg = (typeof itemsPerPage === 'number' ? itemsPerPage : 20);
     const totalPages = Math.ceil(groups.length / itemsPerPg) || 1;
@@ -39608,6 +39709,17 @@ window.I18N = {
  lp_filter_brand: { bm: 'Jenama', en: 'Brand' },
  lp_filter_category: { bm: 'Kategori', en: 'Category' },
  lp_brand_all: { bm: 'Semua Jenama', en: 'All Brands' },
+ lp_filter_group: { bm: 'Kumpulan', en: 'Collection' },
+ lp_group_all: { bm: 'Semua Kumpulan', en: 'All Collections' },
+ lp_sort_label: { bm: 'Susun ikut', en: 'Sort by' },
+ lp_sort_relevan: { bm: 'Relevan', en: 'Relevance' },
+ lp_sort_price_asc: { bm: 'Harga: rendah dulu', en: 'Price: low to high' },
+ lp_sort_price_desc: { bm: 'Harga: tinggi dulu', en: 'Price: high to low' },
+ lp_sort_name: { bm: 'Nama: A → Z', en: 'Name: A → Z' },
+ lp_sort_newest: { bm: 'Terbaru', en: 'Newest' },
+ lp_showing_n: { bm: 'Menunjukkan', en: 'Showing' },
+ lp_clear_all: { bm: 'Kosongkan semua', en: 'Clear all' },
+ lp_pick_group_hint: { bm: 'Pilih kumpulan di atas untuk tapis lebih halus', en: 'Pick a collection above to narrow down' },
  lp_nav_promo: { bm: 'Promo Walk-in', en: 'Walk-in Promo' },
  lp_nav_panduan: { bm: 'Blog', en: 'Blog' },
  lp_nav_acara: { bm: 'Acara', en: 'Events' },

@@ -1937,6 +1937,14 @@
  <i data-lucide="list-todo" style="width:18px; height:18px;"></i> <span>Tugasan Staf</span>
  <span id="staffTasksBossBadge" title="Tugasan tengah dibuat sekarang" style="display:none; margin-left:auto; background:var(--primary, #FF4D00); color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
  </div>
+ <!-- p1_1188 — Papan Kerja (aliran kerja 10 CAMP) dipindah dari 10cc ke sini. Bos SAHAJA — gate body.is-boss-user + CSS #navWorkBoardBoss (corak sama Tugasan Staf). -->
+ <div class="menu-item" id="navWorkBoardBoss" data-tab="nav_workboard" onclick="switchHub(['workBoardSection'], 'Papan Kerja', this); if(typeof renderWorkBoard==='function') renderWorkBoard();" style="align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ <i data-lucide="kanban-square" style="width:18px; height:18px;"></i> <span>Papan Kerja</span>
+ </div>
+ <!-- p1_1188 — Roadmap diwujudkan semula sebagai entri jelas back office Bos (Zaid: "wujudkan kembali roadmap di POS back office"). Entri lama dlm group Analisis>Reports kekal; ini pintu terus. -->
+ <div class="menu-item" id="navRoadmapBoss" data-tab="nav_roadmap_boss" onclick="switchHub(['roadmapSection'], 'Roadmap &amp; Progress', this); if(typeof renderRoadmap==='function') renderRoadmap();" style="align-items:center; gap:10px; padding:10px 12px; margin-bottom:2px;">
+ <i data-lucide="target" style="width:18px; height:18px;"></i> <span>Roadmap &amp; Progress</span>
+ </div>
  <div class="nav-section-label">Jual</div>
  <!-- p1_371 — Cashier jadi group collapsible (Zaid: "boleh tutup dan buka" + tambah Commission). Parent buka register + expand; tekan lagi tutup (corak Orders/openOrdersHub). -->
  <div class="menu-item nav-parent" data-nav-parent="cashier" onclick="window.openCashierHub(event)">
@@ -6682,6 +6690,8 @@
  <!-- SECTION: TUGASAN STAF (p1_1176) — app tab Task (staf) + papan Bos (back office) -->
  <!-- ============================================== -->
  <div id="staffTasksSection" class="tab-section" style="display:none;"></div>
+ <!-- p1_1188 — Papan Kerja (dipindah dari 10cc). Render oleh renderWorkBoard (app.js). -->
+ <div id="workBoardSection" class="tab-section" style="display:none;"></div>
  <!-- ============================================== -->
  <!-- SECTION: LAPORAN JUALAN TODAK (p1_1181) — bulanan, kerja Aliff -->
  <!-- ============================================== -->
@@ -13302,7 +13312,7 @@
   </div>
  </div>
  <!-- JS Core -->
- <script src="app.js?v=1160"></script>
+ <script src="app.js?v=1161"></script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

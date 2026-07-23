@@ -586,3 +586,6 @@ body:has(#pinLoginOverlay[style*="flex"]) #mobileCartFloatingBar { display:none 
    ~1994: item tanpa data-group → style.display=''). CSS class kalis reset tu. */
 #navStaffTasksBoss { display: none; }
 body.is-boss-user #navStaffTasksBoss { display: flex; }
+/* p1_1188 — Papan Kerja (pindah dari 10cc) + Roadmap pintu terus: Bos sahaja, corak gate sama */
+#navWorkBoardBoss, #navRoadmapBoss { display: none; }
+body.is-boss-user #navWorkBoardBoss, body.is-boss-user #navRoadmapBoss { display: flex; }

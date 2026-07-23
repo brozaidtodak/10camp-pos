@@ -47059,6 +47059,232 @@ window.__pdbRefresh = async function(btn){
 })();
 
 // ==============================================
+// p1_1188 — PAPAN KERJA (aliran kerja 10 CAMP) — dipindah dari 10cc back office.
+// Peta operasi end-to-end: 7 stage main flow (kitaran sourcing->analytics) + 3
+// backbone (finance/hr/it). Table: public.work_tasks (data disalin dari tencc).
+// Papan Bos SAHAJA — sidebar #navWorkBoardBoss gate body.is-boss-user (mcm Tugasan Staf).
+// ==============================================
+(function(){
+ const WB_MAIN = [
+  { key:'sourcing', label:'Sourcing', sub:'Research · Supplier · Order', who:['Zaid','Ariff','Irfan'], desc:'Cari produk yang nak dijual, banding supplier, negotiate harga, buat purchase order.' },
+  { key:'receiving', label:'Receiving & Listing', sub:'Terima · QC · SKU', who:['Tarmizi','Fahmi','Zack'], desc:'Terima stok, audit kualiti, daftar SKU dalam POS, susun gudang.' },
+  { key:'marketing', label:'Marketing', sub:'Shopee · TikTok · Website', who:['Ariff','Zack'], desc:'Listing, live session, paid ads, content media sosial merentas channel digital.' },
+  { key:'sales', label:'Sales', sub:'Walk-in · Online', who:['Farhan'], desc:'Convert pelanggan ke jualan — kedai fizikal, chat online, upsell, capai target.' },
+  { key:'fulfilment', label:'Fulfilment', sub:'Pack · Ship · Restock', who:['Tarmizi'], desc:'Pick & pack order online, hantar courier, update tracking, restock rak kedai.' },
+  { key:'customer_service', label:'Customer Service', sub:'After-sale · Return · Complaint', who:['Irfan','Ariff'], desc:'Follow-up, reply review, proses return / refund, handle complaint & replacement.' },
+  { key:'analytics', label:'Analytics & Decide', sub:'Measure · Iterate', who:['Zaid','Aliff'], desc:'Semak prestasi jualan & margin, identify slow-mover, decide re-order / discontinue. Loop balik ke Sourcing.' }
+ ];
+ const WB_BACK = [
+  { key:'finance', label:'Finance', sub:'Banking · e-Invoice · Payroll', who:['Zaid','Aliff'], desc:'Reconcile bank, gaji, EPF/SOCSO, LHDN MyInvois, jurnal accounting dalam 10cc.' },
+  { key:'hr', label:'HR & People', sub:'Hiring · Training · Cuti', who:['Zaid','Aliff'], desc:'Approve cuti, performance review, hiring, training, jadual shift.' },
+  { key:'it', label:'IT / Systems', sub:'POS · Marketplace · 10cc', who:['Zack'], desc:'Selenggara sistem, backup data, sync platforms, sokong teknikal pasukan.' }
+ ];
+ const WB_ASSIGNEES = ['Zaid','Aliff','Farhan','Zack','Ariff','Irfan','Tarmizi','Fahmi'];
+ const WB_CATS = [
+  ['production','Production'], ['marketing','Marketing'], ['business_dev','Business Dev'], ['admin','Admin'],
+  ['hr','HR'], ['finance','Finance'], ['sales','Sales'], ['inventory','Inventory'], ['logistic','Logistic'],
+  ['customer_service','Customer Service'], ['return','Return']
+ ];
+ const WB_CAT_LABEL = {}; WB_CATS.forEach(function(c){ WB_CAT_LABEL[c[0]] = c[1]; });
+ let wbTasks = [];
+
+ async function wbFetch(){
+  try {
+   const { data, error } = await db.from('work_tasks').select('*').order('created_at', { ascending:false });
+   if(error) throw error;
+   wbTasks = data || [];
+  } catch(e){ console.warn('wbFetch', e); if(window.showToast) showToast('Gagal muat Papan Kerja.', 'error'); wbTasks = []; }
+ }
+
+ function wbChip(text, oren){
+  const st = oren
+   ? 'color:var(--primary, #FF4D00); border:1px solid rgba(var(--primary-rgb,255,77,0),.4); background:rgba(var(--primary-rgb,255,77,0),.08);'
+   : 'color:#6E6A5E; border:1px solid #B9B4A6; background:#fff;';
+  return '<span style="font-family:var(--font-mono, monospace); font-size:9px; text-transform:uppercase; letter-spacing:1px; border-radius:4px; padding:1px 6px; '+st+'">'+escapeHtml(text)+'</span>';
+ }
+
+ function wbCard(t, canMove, si, total){
+  const isHigh = t.priority === 'high';
+  const flagColor = isHigh ? 'var(--primary, #FF4D00)' : '#B9B4A6';
+  let chips = '';
+  if(t.assignee) chips += wbChip(t.assignee, true);
+  if(t.category) chips += ' ' + wbChip(WB_CAT_LABEL[t.category] || t.category, false);
+  const dt = t.created_at ? new Date(t.created_at).toLocaleDateString('en-MY', { day:'2-digit', month:'short' }) : '';
+  let footer = '';
+  if(canMove){
+   footer = '<div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; margin-left:20px;">'
+    + '<button onclick="window.__wbMove('+t.id+',-1)" '+(si===0?'disabled style="opacity:0; pointer-events:none;"':'style="border:none; background:none; cursor:pointer; color:#6E6A5E; padding:2px;"')+' title="Undur stage"><i data-lucide="chevron-left" style="width:15px;height:15px;"></i></button>'
+    + '<span style="font-family:var(--font-mono, monospace); font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#B9B4A6;">'+dt+'</span>'
+    + '<button onclick="window.__wbMove('+t.id+',1)" '+(si===total-1?'disabled style="opacity:0; pointer-events:none;"':'style="border:none; background:none; cursor:pointer; color:#6E6A5E; padding:2px;"')+' title="Mara stage"><i data-lucide="chevron-right" style="width:15px;height:15px;"></i></button>'
+    + '</div>';
+  }
+  return '<div style="background:#fff; border:1px solid var(--border-color, #B9B4A6); border-radius:8px; padding:10px 12px; margin-bottom:8px;">'
+   + '<div style="display:flex; align-items:flex-start; gap:8px;">'
+   + '<button onclick="window.__wbFlag('+t.id+')" title="Tanda penting" style="border:none; background:none; cursor:pointer; padding:1px; margin-top:1px; flex:0 0 auto; color:'+flagColor+';"><i data-lucide="flag" style="width:13px;height:13px;'+(isHigh?'fill:currentColor;':'')+'"></i></button>'
+   + '<span style="flex:1; font-size:13px; line-height:1.4; color:#141414;">'+escapeHtml(t.title)+'</span>'
+   + '<button onclick="window.__wbEdit('+t.id+')" title="Edit" style="border:none; background:none; cursor:pointer; padding:1px; color:#B9B4A6; flex:0 0 auto;"><i data-lucide="pencil" style="width:13px;height:13px;"></i></button>'
+   + '<button onclick="window.__wbDelete('+t.id+')" title="Padam" style="border:none; background:none; cursor:pointer; padding:1px; color:#B9B4A6; flex:0 0 auto;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>'
+   + '</div>'
+   + (t.notes ? '<div style="font-size:11.5px; color:#6E6A5E; margin:3px 0 0 20px; white-space:pre-wrap;">'+escapeHtml(t.notes)+'</div>' : '')
+   + (chips ? '<div style="display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 0 20px;">'+chips+'</div>' : '')
+   + footer
+   + '</div>';
+ }
+
+ function wbColumn(stage, canMove, si, total){
+  const list = wbTasks.filter(function(t){ return t.status === stage.key; });
+  const whoChips = stage.who.map(function(w){
+   return '<span style="font-family:var(--font-mono, monospace); font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--primary, #FF4D00); border:1px solid rgba(var(--primary-rgb,255,77,0),.35); border-radius:4px; padding:1px 6px;">'+escapeHtml(w)+'</span>';
+  }).join('');
+  let cards = list.map(function(t){ return wbCard(t, canMove, si, total); }).join('');
+  if(!list.length) cards = '<div style="border:1px dashed #B9B4A6; border-radius:8px; padding:16px; text-align:center; color:#B9B4A6; font-size:11px;">— kosong —</div>';
+  return '<div style="display:flex; flex-direction:column; min-width:200px; flex:1;">'
+   + '<div style="background:#FFFDF6; border:2px solid #141414; border-radius:8px; padding:10px 12px; margin-bottom:10px;">'
+   + '<div style="display:flex; align-items:baseline; justify-content:space-between;"><b style="font-family:var(--font-main,inherit); font-size:14.5px; color:#141414;">'+escapeHtml(stage.label)+'</b><span style="font-family:var(--font-mono, monospace); font-size:10px; color:#6E6A5E;">'+list.length+'</span></div>'
+   + '<div style="font-family:var(--font-mono, monospace); font-size:9px; text-transform:uppercase; letter-spacing:1.2px; color:#6E6A5E; margin-top:2px;">'+escapeHtml(stage.sub)+'</div>'
+   + '<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:7px;">'+whoChips+'</div>'
+   + '<div style="font-size:11px; color:#6E6A5E; margin-top:7px; line-height:1.45;">'+escapeHtml(stage.desc)+'</div>'
+   + '</div>'
+   + '<div style="min-height:50px;">'+cards+'</div>'
+   + '</div>';
+ }
+
+ window.renderWorkBoard = async function(){
+  const el = document.getElementById('workBoardSection');
+  if(!el || !window.currentUser) return;
+  if(!el.innerHTML) el.innerHTML = '<div style="padding:30px; text-align:center; color:#6E6A5E; font-size:13px;">Memuatkan Papan Kerja…</div>';
+  await wbFetch();
+
+  const stageOpts = '<optgroup label="Main flow">' + WB_MAIN.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+   + '</optgroup><optgroup label="Backbone">' + WB_BACK.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('') + '</optgroup>';
+
+  let mainCols = '';
+  WB_MAIN.forEach(function(s, i){
+   mainCols += wbColumn(s, true, i, WB_MAIN.length);
+   if(i < WB_MAIN.length - 1)
+    mainCols += '<div style="display:flex; align-items:flex-start; padding-top:44px; color:var(--primary, #FF4D00); flex:0 0 auto;"><i data-lucide="chevron-right" style="width:20px;height:20px;"></i></div>';
+  });
+
+  el.innerHTML = '<div style="max-width:1500px; margin:0 auto; padding:14px 14px 50px;">'
+   + '<div style="font-weight:900; font-size:20px; color:#141414;">Papan Kerja</div>'
+   + '<div style="font-size:12.5px; color:#6E6A5E; margin:2px 0 14px;">Peta operasi 10 CAMP end-to-end — 7 stage utama (kitaran) + 3 sokongan merentas. Papan ni Bos sahaja nampak.</div>'
+   // Borang tambah
+   + '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">'
+   + '<input id="wbAddTitle" type="text" maxlength="160" placeholder="Tambah kerja baru… cth: Follow up supplier khemah" style="flex:2; min-width:220px; padding:9px 10px; border:1px solid var(--border-color, #B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:13px;">'
+   + '<select id="wbAddStage" style="flex:1; min-width:160px; padding:9px 10px; border:1px solid var(--border-color, #B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:13px; background:#fff;">'+stageOpts+'</select>'
+   + '<button onclick="window.__wbAdd()" style="border:3px solid #141414; background:var(--primary, #FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:13px; padding:9px 20px; border-radius:4px; cursor:pointer; box-shadow:4px 4px 0 #141414;">Tambah</button>'
+   + '</div>'
+   // Main flow
+   + '<div style="font-family:var(--font-mono, monospace); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--primary, #FF4D00); margin-bottom:8px;">Main flow (kitaran)</div>'
+   + '<div style="overflow-x:auto; padding-bottom:6px;"><div style="display:flex; gap:6px; min-width:1250px; align-items:stretch;">'+mainCols+'</div></div>'
+   + '<div style="display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:6px; color:#6E6A5E;"><i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i><span style="font-family:var(--font-mono, monospace); font-size:9.5px; text-transform:uppercase; letter-spacing:1.2px;">Analytics → Sourcing — kitaran berterusan</span></div>'
+   // Backbone
+   + '<div style="font-family:var(--font-mono, monospace); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--primary, #FF4D00); margin:22px 0 8px;">Sokongan operasi (merentas semua stage)</div>'
+   + '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px;">'
+   + WB_BACK.map(function(s){ return wbColumn(s, false, 0, 0); }).join('')
+   + '</div>'
+   + '<div style="font-size:11.5px; color:#6E6A5E; margin-top:20px;">Klik <b>bendera</b> tanda penting · <b>pensel</b> edit · anak panah ← → gerak antara main stages.</div>'
+   + '</div>'
+   // Modal edit (kosong, diisi __wbEdit)
+   + '<div id="wbEditOverlay" style="display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,.55); align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) window.__wbCloseEdit()"></div>';
+  if(window.lucide && lucide.createIcons) try { lucide.createIcons(); } catch(e){}
+ };
+
+ window.__wbAdd = async function(){
+  const title = ((document.getElementById('wbAddTitle')||{}).value || '').trim();
+  const stage = (document.getElementById('wbAddStage')||{}).value || 'sourcing';
+  if(!title){ if(window.showToast) showToast('Tulis kerja dulu.', 'warn'); return; }
+  try {
+   const { error } = await db.from('work_tasks').insert([{ title: title, status: stage }]);
+   if(error) throw error;
+   window.renderWorkBoard();
+  } catch(e){ console.warn('wbAdd', e); if(window.showToast) showToast('Gagal tambah.', 'error'); }
+ };
+
+ window.__wbMove = async function(id, dir){
+  const t = wbTasks.find(function(x){ return x.id === id; }); if(!t) return;
+  const i = WB_MAIN.findIndex(function(s){ return s.key === t.status; });
+  if(i === -1) return;
+  const next = WB_MAIN[i + dir]; if(!next) return;
+  try {
+   const { error } = await db.from('work_tasks').update({ status: next.key, updated_at: new Date().toISOString() }).eq('id', id);
+   if(error) throw error;
+   window.renderWorkBoard();
+  } catch(e){ console.warn('wbMove', e); if(window.showToast) showToast('Gagal gerak.', 'error'); }
+ };
+
+ window.__wbFlag = async function(id){
+  const t = wbTasks.find(function(x){ return x.id === id; }); if(!t) return;
+  const np = t.priority === 'high' ? 'normal' : 'high';
+  try {
+   const { error } = await db.from('work_tasks').update({ priority: np, updated_at: new Date().toISOString() }).eq('id', id);
+   if(error) throw error;
+   window.renderWorkBoard();
+  } catch(e){ console.warn('wbFlag', e); }
+ };
+
+ window.__wbDelete = async function(id){
+  if(!confirm('Padam kerja ni?')) return;
+  try {
+   const { error } = await db.from('work_tasks').delete().eq('id', id);
+   if(error) throw error;
+   window.renderWorkBoard();
+  } catch(e){ console.warn('wbDelete', e); if(window.showToast) showToast('Gagal padam.', 'error'); }
+ };
+
+ window.__wbEdit = function(id){
+  const t = wbTasks.find(function(x){ return x.id === id; }); if(!t) return;
+  const ov = document.getElementById('wbEditOverlay'); if(!ov) return;
+  const stageOpts = '<optgroup label="Main flow">' + WB_MAIN.map(function(s){ return '<option value="'+s.key+'"'+(t.status===s.key?' selected':'')+'>'+s.label+'</option>'; }).join('')
+   + '</optgroup><optgroup label="Backbone">' + WB_BACK.map(function(s){ return '<option value="'+s.key+'"'+(t.status===s.key?' selected':'')+'>'+s.label+'</option>'; }).join('') + '</optgroup>';
+  const whoOpts = '<option value="">— tiada —</option>' + WB_ASSIGNEES.map(function(a){ return '<option value="'+a+'"'+(t.assignee===a?' selected':'')+'>'+a+'</option>'; }).join('');
+  const catOpts = '<option value="">— tiada —</option>' + WB_CATS.map(function(c){ return '<option value="'+c[0]+'"'+(t.category===c[0]?' selected':'')+'>'+c[1]+'</option>'; }).join('');
+  const inp = 'width:100%; padding:8px 10px; border:1px solid var(--border-color, #B9B4A6); border-radius:4px; font-family:var(--font-main,inherit); font-size:13px; background:#fff;';
+  const lbl = 'display:block; font-family:var(--font-mono, monospace); font-size:9.5px; text-transform:uppercase; letter-spacing:1.2px; color:#6E6A5E; margin:10px 0 4px;';
+  ov.innerHTML = '<div style="background:#FFFDF6; border:2px solid #141414; border-radius:8px; padding:18px; max-width:440px; width:100%;" onclick="event.stopPropagation()">'
+   + '<div style="font-weight:900; font-size:16px; color:#141414;">Edit kerja</div>'
+   + '<span style="'+lbl+'">Tajuk</span><input id="wbEdTitle" type="text" maxlength="160" value="'+escapeHtml(t.title).replace(/"/g,'&quot;')+'" style="'+inp+'">'
+   + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 10px;">'
+   + '<div><span style="'+lbl+'">Stage</span><select id="wbEdStage" style="'+inp+'">'+stageOpts+'</select></div>'
+   + '<div><span style="'+lbl+'">Ditugaskan</span><select id="wbEdWho" style="'+inp+'">'+whoOpts+'</select></div>'
+   + '<div><span style="'+lbl+'">Kategori</span><select id="wbEdCat" style="'+inp+'">'+catOpts+'</select></div>'
+   + '<div><span style="'+lbl+'">Keutamaan</span><select id="wbEdPri" style="'+inp+'"><option value="normal"'+(t.priority!=='high'?' selected':'')+'>Biasa</option><option value="high"'+(t.priority==='high'?' selected':'')+'>Penting</option></select></div>'
+   + '</div>'
+   + '<span style="'+lbl+'">Nota</span><textarea id="wbEdNotes" rows="3" style="'+inp+' resize:none;">'+escapeHtml(t.notes||'')+'</textarea>'
+   + '<div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">'
+   + '<button onclick="window.__wbCloseEdit()" style="border:2px solid #141414; background:#fff; color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:8px 16px; border-radius:4px; cursor:pointer;">Batal</button>'
+   + '<button onclick="window.__wbSaveEdit('+t.id+')" style="border:3px solid #141414; background:var(--primary, #FF4D00); color:#141414; font-family:var(--font-main,inherit); font-weight:800; font-size:12.5px; padding:8px 18px; border-radius:4px; cursor:pointer; box-shadow:3px 3px 0 #141414;">Simpan</button>'
+   + '</div></div>';
+  ov.style.display = 'flex';
+ };
+
+ window.__wbCloseEdit = function(){
+  const ov = document.getElementById('wbEditOverlay');
+  if(ov){ ov.style.display = 'none'; ov.innerHTML = ''; }
+ };
+
+ window.__wbSaveEdit = async function(id){
+  const title = ((document.getElementById('wbEdTitle')||{}).value || '').trim();
+  if(!title){ if(window.showToast) showToast('Tajuk kosong.', 'warn'); return; }
+  const patch = {
+   title: title,
+   status: (document.getElementById('wbEdStage')||{}).value || 'sourcing',
+   assignee: (document.getElementById('wbEdWho')||{}).value || null,
+   category: (document.getElementById('wbEdCat')||{}).value || null,
+   priority: (document.getElementById('wbEdPri')||{}).value || 'normal',
+   notes: ((document.getElementById('wbEdNotes')||{}).value || '').trim() || null,
+   updated_at: new Date().toISOString()
+  };
+  try {
+   const { error } = await db.from('work_tasks').update(patch).eq('id', id);
+   if(error) throw error;
+   window.__wbCloseEdit();
+   window.renderWorkBoard();
+  } catch(e){ console.warn('wbSaveEdit', e); if(window.showToast) showToast('Gagal simpan.', 'error'); }
+ };
+})();
+
+// ==============================================
 // p1_1181 — LAPORAN JUALAN BULANAN UTK FINANCE TODAK (kerja Aliff)
 // Replicate format report Shopify lama ("Sales Report | 10 Camp By Todak"):
 // satu baris per order — Day, Order name, Gross, Shipping, Discount, Net,

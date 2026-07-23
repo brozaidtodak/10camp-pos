@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/style.css?v=61">
 <link rel="stylesheet" href="/design-tokens.css?v=120">
 <style>
+  :root{ --primary:#FF4D00; --primary-600:#C43D00; --primary-700:#A83400; } /* audit warna: bronze POS -> oren jenama Ekspedisi Peta */
   body { background: var(--bg-color, #FAF6EF); color: var(--text-main, #101010); font-family: 'Poppins', sans-serif; }
   .art-top { max-width: 920px; margin: 0 auto; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; }
   .art-top a.brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px; color: #101010; text-decoration: none; letter-spacing: -0.3px; }
@@ -33,6 +34,8 @@
   .post h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 22px; line-height: 1.15; letter-spacing: -0.3px; margin: 8px 0 8px; color: #101010; }
   .post p { font-size: 14px; color: var(--text-muted, #6F6F6F); line-height: 1.55; margin: 0; }
   .post .more { display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 700; color: var(--primary, #CD7C32); }
+  /* audit kontras: teks aksen kecil -> oren gelap lulus AA */
+  .art-top .back, .post .more, .meta-foot a { color: #C43D00 !important; }
 </style>
   <script defer data-site="pos" src="https://analytics.10camp.com/track.js"></script>
 </head>

@@ -46873,7 +46873,7 @@ window.__pdbRefresh = async function(btn){
   if(forBoss)
    actions += '<button onclick="window.__stDelete('+t.id+')" title="Padam tugasan" style="border:1px solid #B9B4A6; background:#fff; color:#6E6A5E; font-size:11.5px; padding:6px 10px; border-radius:4px; cursor:pointer; margin-left:6px;"><i data-lucide="trash-2" style="width:12px;height:12px;vertical-align:-2px;"></i></button>';
   const doneStyle = t.status === 'siap' ? 'opacity:.62;' : '';
-  const late = stIsLate(t);
+  const late = t.__late === true || stIsLate(t);
   const activeStyle = t.status === 'buat' ? 'border-left:4px solid var(--primary, #FF4D00);' : (late ? 'border-left:4px solid #C62828;' : 'border-left:4px solid transparent;');
   // p1_1193 #4 — baris masa kemas: tugasan AUTO tak perlu "Diberi" (semua pagi sama);
   // manual kekal "Diberi" (relevan). Masa ringkas jam sahaja utk hari sama.
@@ -46927,12 +46927,55 @@ window.__pdbRefresh = async function(btn){
   if(!mine.length){
    html += '<div style="text-align:center; padding:44px 16px; color:#6E6A5E;"><i data-lucide="clipboard-check" style="width:34px;height:34px;opacity:.5;"></i><div style="margin-top:10px; font-size:13.5px;">Tiada tugasan buat masa ni. Steady!</div></div>';
   } else {
-   if(buat.length) html += '<div style="font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--primary, #FF4D00); margin:10px 0 6px;">Tengah Buat</div>' + buat.map(t=>stCard(t,false)).join('');
-   if(baru.length) html += '<div style="font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#6E6A5E; margin:14px 0 6px;">Belum Mula</div>' + baru.map(t=>stCard(t,false)).join('');
-   if(siap.length) html += '<div style="font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#168C50; margin:14px 0 6px;">Siap (14 hari)</div>' + siap.map(t=>stCard(t,false)).join('');
+   // p1_1194 (Pakej 2 #1) — TIMELINE MENEGAK utk tugasan berjam + penanda SEKARANG.
+   // Tugasan hari ini dgn prefix masa disusun atas garis masa; tanpa masa = seksyen bawah.
+   const todayStartTl = new Date(new Date(Date.now() + 8*3600e3).toISOString().slice(0,10) + 'T00:00:00+08:00').getTime();
+   const isToday = function(t){ return new Date(t.created_at).getTime() >= todayStartTl || (t.done_at && new Date(t.done_at).getTime() >= todayStartTl); };
+   const active = buat.concat(baru);
+   const siapToday = siap.filter(isToday);
+   const timed = active.concat(siapToday).filter(t => stSlotMin(t.title) != null).sort((a,b) => stSlotMin(a.title) - stSlotMin(b.title) || String(a.title).localeCompare(String(b.title)));
+   const untimed = active.filter(t => stSlotMin(t.title) == null);
+   const siapUntimedToday = siapToday.filter(t => stSlotMin(t.title) == null);
+   const siapLama = siap.filter(t => !isToday(t));
+   if(timed.length){
+    const nowM = stNowMin();
+    const nowLbl = (function(){ const d = new Date(Date.now() + 8*3600e3); return String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0'); })();
+    let nowDrawn = false;
+    const nowRow = '<div style="display:flex; align-items:center; gap:8px; margin:2px 0 10px;">'
+     + '<div style="flex:0 0 52px; text-align:right; font-size:10px; font-weight:800; color:var(--primary, #FF4D00); font-family:var(--font-mono, monospace);">' + nowLbl + '</div>'
+     + '<div style="flex:0 0 10px; display:flex; justify-content:center;"><span style="width:10px; height:10px; border-radius:50%; background:var(--primary, #FF4D00); box-shadow:0 0 0 3px rgba(255,77,0,.25);"></span></div>'
+     + '<div style="flex:1; height:2px; background:var(--primary, #FF4D00); border-radius:2px; opacity:.75;"></div>'
+     + '<span style="flex:0 0 auto; font-size:9px; font-weight:800; letter-spacing:1px; color:var(--primary, #FF4D00);">SEKARANG</span></div>';
+    html += '<div style="position:relative;">'
+     + '<div style="position:absolute; left:' + (52 + 8 + 4) + 'px; top:8px; bottom:8px; width:2px; background:#E4E0D2; border-radius:2px;"></div>';
+    timed.forEach(function(t){
+     const sm = stSlotMin(t.title);
+     if(!nowDrawn && sm > nowM){ html += nowRow; nowDrawn = true; }
+     const tm = /^(\d{1,2}:\d{2})/.exec(t.title);
+     const dot = t.status === 'siap' ? '#168C50' : (t.status === 'buat' ? 'var(--primary, #FF4D00)' : (stIsLate(t) ? '#C62828' : '#B9B4A6'));
+     html += '<div style="display:flex; align-items:flex-start; gap:8px; position:relative;">'
+      + '<div style="flex:0 0 52px; text-align:right; font-size:11px; font-weight:800; color:' + (t.status==='siap' ? '#9CA3AF' : '#141414') + '; font-family:var(--font-mono, monospace); padding-top:14px;">' + (tm ? tm[1] : '') + '</div>'
+      + '<div style="flex:0 0 10px; display:flex; justify-content:center; padding-top:16px;"><span style="width:10px; height:10px; border-radius:50%; background:' + dot + '; border:2px solid #F4F2EC;' + (t.status==='buat' ? ' box-shadow:0 0 0 3px rgba(255,77,0,.2);' : '') + '"></span></div>'
+      + '<div style="flex:1; min-width:0;">' + stCardNoTime(t) + '</div>'
+      + '</div>';
+    });
+    if(!nowDrawn) html += nowRow;
+    html += '</div>';
+   }
+   if(untimed.length || siapUntimedToday.length){
+    html += '<div style="font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#6E6A5E; margin:14px 0 6px;">Lain-lain</div>'
+     + untimed.concat(siapUntimedToday).map(t=>stCard(t,false)).join('');
+   }
+   if(siapLama.length) html += '<div style="font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:#168C50; margin:14px 0 6px;">Siap (14 hari)</div>' + siapLama.map(t=>stCard(t,false)).join('');
   }
   html += '</div>';
   el.innerHTML = html;
+ }
+ // p1_1194 — kad utk baris timeline: masa dah ada kat rail kiri, buang prefix dari tajuk.
+ // stIsLate baca prefix tajuk, jadi flag dikira ATAS tugasan asal lalu diwariskan via __late.
+ function stCardNoTime(t){
+  const clone = Object.assign({}, t, { title: String(t.title).replace(/^\d{1,2}:\d{2}\s*·\s*/, ''), __late: stIsLate(t) });
+  return stCard(clone, false);
  }
 
  // ---------- VIEW BOS (back office): borang beri + papan semua staf ----------
@@ -46972,14 +47015,27 @@ window.__pdbRefresh = async function(btn){
    const ring = list.length ? Math.round(nSiap / list.length * 100) : 0;
    const border = nBuat ? 'var(--primary, #FF4D00)' : (isOff ? '#B9B4A6' : '#141414');
    let items = '';
+   // p1_1194 #7 — slot SEMASA: tugasan berjam terakhir yang masanya dah bermula = ini yang
+   // patut sedang dibuat sekarang. Highlight supaya Bos nampak jangkaan vs realiti.
+   const nowM2 = stNowMin();
+   let curId = null;
+   list.forEach(t => { const sm = stSlotMin(t.title); if(sm != null && sm <= nowM2) curId = t.id; });
    list.slice(0, 7).forEach(t => {
-    const dot = t.status === 'siap' ? '#168C50' : (t.status === 'buat' ? 'var(--primary, #FF4D00)' : '#B9B4A6');
-    items += '<div style="display:flex; align-items:flex-start; gap:6px; padding:3px 0; font-size:11.5px; color:' + (t.status==='siap' ? '#9CA3AF' : '#141414') + ';' + (t.status==='siap' ? ' text-decoration:line-through;' : '') + '">'
+    const dot = t.status === 'siap' ? '#168C50' : (t.status === 'buat' ? 'var(--primary, #FF4D00)' : (stIsLate(t) ? '#C62828' : '#B9B4A6'));
+    const isCur = t.id === curId && t.status !== 'siap';
+    items += '<div style="display:flex; align-items:flex-start; gap:6px; padding:3px ' + (isCur ? '5px' : '0') + '; font-size:11.5px; color:' + (t.status==='siap' ? '#9CA3AF' : '#141414') + ';' + (t.status==='siap' ? ' text-decoration:line-through;' : '') + (isCur ? ' background:rgba(255,77,0,.08); border-radius:6px; margin:1px -5px;' : '') + '">'
      + '<span style="flex:0 0 auto; width:8px; height:8px; border-radius:50%; background:' + dot + '; margin-top:4px;' + (t.status==='buat' ? ' box-shadow:0 0 0 3px rgba(255,77,0,.18);' : '') + '"></span>'
-     + '<span style="flex:1; line-height:1.35;">' + escapeHtml(t.title) + '</span></div>';
+     + '<span style="flex:1; line-height:1.35;">' + escapeHtml(t.title) + (isCur ? ' <span style="font-size:8.5px; font-weight:800; letter-spacing:.5px; color:var(--primary, #FF4D00);">← SEKARANG</span>' : '') + '</span></div>';
    });
    if(list.length > 7) items += '<div style="font-size:10.5px; color:#9CA3AF; padding-left:14px;">+' + (list.length - 7) + ' lagi…</div>';
    if(!list.length) items = '<div style="font-size:11.5px; color:#9CA3AF; padding:6px 0;">' + (isOff ? 'Cuti hari ini' : 'Tiada tugasan hari ini') + '</div>';
+   // p1_1194 #10 — prestasi 7 hari: % tugasan auto siap (rekod dlm fetch 500 terkini)
+   const wk = tasks.filter(t => t.assigned_to === u.staff_id && t.assigned_by === 'Jadual Auto' && new Date(t.created_at).getTime() > Date.now() - 7*24*3600e3);
+   if(wk.length >= 3){
+    const wkPct = Math.round(wk.filter(t=>t.status==='siap').length / wk.length * 100);
+    const wkCol = wkPct >= 80 ? '#168C50' : (wkPct >= 50 ? '#B8860B' : '#C62828');
+    items += '<div style="font-size:9.5px; font-weight:800; color:#9CA3AF; margin-top:6px; letter-spacing:.5px;">7 HARI: <span style="color:' + wkCol + ';">' + wkPct + '% SIAP</span></div>';
+   }
    cards += '<div style="background:' + (isOff ? '#F4F2EC' : '#fff') + '; border:1px solid var(--border-color, #B9B4A6); border-top:3px solid ' + border + '; border-radius:8px; padding:11px 13px;' + (isOff ? ' opacity:.65;' : '') + '">'
     + '<div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">'
     + '<span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#141414; color:#F4F2EC; font-weight:800; font-size:11px; flex:0 0 auto;">' + escapeHtml((u.name||'?').charAt(0).toUpperCase()) + '</span>'

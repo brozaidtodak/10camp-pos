@@ -17645,7 +17645,7 @@ window.__loadWalkinPromoItems = async function() {
  const skus = promoRows.map(r => r.sku);
  const { data: prodRows, error: prodErr } = await db
   .from('public_products')
-  .select('sku, seo_name, name, brand, images, price, compare_at_price')
+  .select('sku, seo_name, name, brand, images, price')
   .in('sku', skus);
  if (prodErr) return [];
 
@@ -17657,7 +17657,7 @@ window.__loadWalkinPromoItems = async function() {
    return {
     sku: r.sku,
     promoPrice: r.promo_price,
-    wasPrice: p.compare_at_price || p.price || null,
+    wasPrice: p.price || null,
     name: p.seo_name || p.name || r.sku,
     brand: p.brand || '',
     image: (p.images && p.images[0]) || '',

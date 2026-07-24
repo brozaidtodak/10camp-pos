@@ -17677,12 +17677,26 @@ window.__renderWalkinPromoManifest = function(filterText) {
   el.innerHTML = `<p class="lp-walkin-promo__empty">${(window.__walkinPromoCache || []).length ? 'Tiada item sepadan.' : 'Belum ada promo walk-in buat masa ini.'}</p>`;
   return;
  }
- el.innerHTML = items.map((it, i) => `
-  <div class="lp-walkin-promo__row">
-   <span class="lp-walkin-promo__row-name">${String(i + 1).padStart(2, '0')} — ${it.name}${it.brand ? ' / ' + it.brand.toUpperCase() : ''}</span>
-   <span class="lp-walkin-promo__row-price"><em>RM${Number(it.promoPrice).toFixed(2)}</em>${it.wasPrice ? `<s>RM${Number(it.wasPrice).toFixed(2)}</s>` : ''}</span>
-  </div>
- `).join('');
+ el.innerHTML = `<div class="lp-walkin-promo__grid">${items.map(it => {
+  const pct = it.wasPrice && it.wasPrice > it.promoPrice ? Math.round((1 - it.promoPrice / it.wasPrice) * 100) : null;
+  const nameEsc = String(it.name).replace(/"/g, '&quot;');
+  return `
+   <div class="lp-walkin-promo__card">
+    <div class="lp-walkin-promo__card-imgwrap">
+     ${pct != null ? `<span class="lp-walkin-promo__card-badge">-${pct}%</span>` : ''}
+     ${it.image
+      ? `<img src="${it.image}" alt="${nameEsc}" loading="lazy">`
+      : `<span class="lp-walkin-promo__card-noimg"><i data-lucide="image-off" style="width:22px;height:22px;"></i></span>`}
+    </div>
+    <div class="lp-walkin-promo__card-body">
+     <span class="lp-walkin-promo__card-name">${it.name}</span>
+     ${it.brand ? `<span class="lp-walkin-promo__card-brand">${it.brand.toUpperCase()}</span>` : ''}
+     <span class="lp-walkin-promo__card-price"><em>RM${Number(it.promoPrice).toFixed(2)}</em>${it.wasPrice ? `<s>RM${Number(it.wasPrice).toFixed(2)}</s>` : ''}</span>
+    </div>
+   </div>
+  `;
+ }).join('')}</div>`;
+ if (window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
 window.__openWalkinPromoModal = async function() {

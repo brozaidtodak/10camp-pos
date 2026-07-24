@@ -961,25 +961,35 @@ html.shop-page .lp-shop { padding-top: 8px; }
 .lp-collections__grid { max-width: 1280px; margin: 0 auto; padding: 0 24px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
 .lp-collections__grid--2col { grid-template-columns: 2fr 1fr; }
 
-/* p1_1201 — WALK-IN PROMO — misi panel + manifest bernombor (first real use of this DESIGN.md component) */
+/* p1_1201 — WALK-IN PROMO — misi panel (first real use of this DESIGN.md component) */
+/* p1_1202 — manifest bernombor swapped for a card grid in this one popup (Zack's UX call, image+price+discount per item) */
 .lp-walkin-promo { padding: 0 24px 56px; }
 .lp-walkin-promo__box { max-width: 1232px; margin: 0 auto; background: var(--lp-surface, #FFF); border: 3px solid var(--lp-ink, #141414); box-shadow: 6px 6px 0 var(--lp-ink, #141414); border-radius: var(--lp-radius-card, 10px); padding: 28px 32px; cursor: pointer; transition: 0.16s ease-out; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; }
 .lp-walkin-promo__box:hover { transform: translate(2px, 2px); box-shadow: 4px 4px 0 var(--lp-ink, #141414); }
 .lp-walkin-promo__cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-family: var(--lp-font-mono, monospace); font-size: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--lp-accent, #FF4D00); }
 
-.lp-walkin-promo__panel { background: var(--lp-surface, #FFF); border: 3px solid var(--lp-ink, #141414); box-shadow: 8px 8px 0 var(--lp-ink, #141414); border-radius: var(--lp-radius-card, 10px); max-width: 640px; width: 92%; max-height: 84vh; padding: 28px; text-align: left; position: relative; display: flex; flex-direction: column; }
+.lp-walkin-promo__panel { background: var(--lp-surface, #FFF); border: 3px solid var(--lp-ink, #141414); box-shadow: 8px 8px 0 var(--lp-ink, #141414); border-radius: var(--lp-radius-card, 10px); max-width: 860px; width: 94%; max-height: 84vh; padding: 28px; text-align: left; position: relative; display: flex; flex-direction: column; }
 .lp-walkin-promo__close { position: absolute; top: 16px; right: 16px; border: none; background: none; font-size: 26px; line-height: 1; cursor: pointer; color: var(--lp-muted, #6E6A5E); }
 .lp-walkin-promo__close:hover { color: var(--lp-ink, #141414); }
 .lp-walkin-promo__search-wrap { position: relative; margin: 16px 0; color: var(--lp-muted, #6E6A5E); }
 .lp-walkin-promo__search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
 .lp-walkin-promo__search-wrap input { width: 100%; padding: 11px 14px 11px 36px; border: 1px solid var(--lp-line, #B9B4A6); border-radius: 4px; font-size: 14px; background: var(--lp-bg-warm, #FFFDF6); outline: none; font-family: var(--lp-font-body, inherit); }
 .lp-walkin-promo__search-wrap input:focus { border-color: var(--lp-accent, #FF4D00); }
-.lp-walkin-promo__manifest { overflow-y: auto; border-top: 1.5px solid var(--lp-ink, #141414); }
-.lp-walkin-promo__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 2px; border-bottom: 1px dashed var(--lp-line, #B9B4A6); font-family: var(--lp-font-mono, monospace); font-size: 12.5px; color: var(--lp-ink, #141414); }
-.lp-walkin-promo__row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-walkin-promo__row-price { white-space: nowrap; font-weight: 600; }
-.lp-walkin-promo__row-price em { font-style: normal; color: var(--lp-accent, #FF4D00); }
-.lp-walkin-promo__row-price s { color: var(--lp-muted-2, #8A8577); font-weight: 400; margin-left: 6px; }
+.lp-walkin-promo__manifest { overflow-y: auto; border-top: 1.5px solid var(--lp-ink, #141414); padding-top: 14px; }
+.lp-walkin-promo__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 720px) { .lp-walkin-promo__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 440px) { .lp-walkin-promo__grid { grid-template-columns: 1fr; } }
+.lp-walkin-promo__card { position: relative; display: flex; flex-direction: column; border: 2px solid var(--lp-ink, #141414); border-radius: var(--lp-radius-card, 10px); box-shadow: 3px 3px 0 var(--lp-ink, #141414); background: var(--lp-surface, #FFF); overflow: hidden; }
+.lp-walkin-promo__card-imgwrap { position: relative; aspect-ratio: 1 / 1; background: var(--lp-bg-warm, #FFFDF6); }
+.lp-walkin-promo__card-imgwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lp-walkin-promo__card-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--lp-muted-2, #8A8577); }
+.lp-walkin-promo__card-badge { position: absolute; top: 6px; left: 6px; background: var(--lp-accent, #FF4D00); color: #FFF; font-family: var(--lp-font-mono, monospace); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.4px; }
+.lp-walkin-promo__card-body { padding: 9px 10px 11px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.lp-walkin-promo__card-name { font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--lp-ink, #141414); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lp-walkin-promo__card-brand { font-family: var(--lp-font-mono, monospace); font-size: 10px; color: var(--lp-muted, #6E6A5E); text-transform: uppercase; }
+.lp-walkin-promo__card-price { margin-top: auto; padding-top: 4px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-family: var(--lp-font-mono, monospace); }
+.lp-walkin-promo__card-price em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--lp-accent, #FF4D00); }
+.lp-walkin-promo__card-price s { font-size: 11px; color: var(--lp-muted-2, #8A8577); font-weight: 400; }
 .lp-walkin-promo__empty { text-align: center; color: var(--lp-muted, #6E6A5E); font-family: var(--lp-font-mono, monospace); font-size: 12.5px; padding: 32px 8px; }
 @media (max-width: 900px) { .lp-collections__grid, .lp-collections__grid--2col { grid-template-columns: 1fr; } }
 .lp-collection { position: relative; height: 320px; border-radius: 16px; overflow: hidden; text-decoration: none; color: #FFF; display: block; transition: 0.2s; }

@@ -17700,12 +17700,43 @@ window.__renderWalkinPromoManifest = function(filterText) {
  if (window.lucide && lucide.createIcons) lucide.createIcons();
 };
 
+// p1_1220 — Combo tab (public landing): Coming Soon — menunggu Zaid sediakan schema DB
+// (walkin_promo_combos). Bila schema siap, gantikan dgn render kad macam Solo (join public_products).
+window.__renderWalkinPromoCombo = function() {
+ const el = document.getElementById('walkinPromoManifest');
+ if (!el) return;
+ el.innerHTML = '<p class="lp-walkin-promo__empty">Combo tak lama lagi — buat masa ini cuma Solo yang tersedia.</p>';
+};
+
+window.__walkinPromoActiveTab = 'solo';
+
+window.__wpPublicSwitchTab = function(tab) {
+ window.__walkinPromoActiveTab = tab;
+ const btnSolo = document.getElementById('wpPublicTabSolo');
+ const btnCombo = document.getElementById('wpPublicTabCombo');
+ const isCombo = tab === 'combo';
+ if (btnSolo) btnSolo.classList.toggle('is-active', !isCombo);
+ if (btnCombo) btnCombo.classList.toggle('is-active', isCombo);
+ const search = document.getElementById('walkinPromoSearch');
+ window.__wpPublicSearch(search ? search.value : '');
+};
+
+window.__wpPublicSearch = function(value) {
+ if (window.__walkinPromoActiveTab === 'combo') window.__renderWalkinPromoCombo(value);
+ else window.__renderWalkinPromoManifest(value);
+};
+
 window.__openWalkinPromoModal = async function() {
  const overlay = document.getElementById('walkinPromoOverlay');
  if (!overlay) return;
  overlay.style.display = 'flex';
  const search = document.getElementById('walkinPromoSearch');
  if (search) search.value = '';
+ window.__walkinPromoActiveTab = 'solo';
+ const btnSolo = document.getElementById('wpPublicTabSolo');
+ const btnCombo = document.getElementById('wpPublicTabCombo');
+ if (btnSolo) btnSolo.classList.add('is-active');
+ if (btnCombo) btnCombo.classList.remove('is-active');
  const manifest = document.getElementById('walkinPromoManifest');
  if (manifest) manifest.innerHTML = '<p class="lp-walkin-promo__empty">Memuatkan…</p>';
  window.__walkinPromoCache = await window.__loadWalkinPromoItems();
@@ -35832,6 +35863,22 @@ window.renderPromotions = window.renderPromotionsV2;
 // directly to walkin_promo_items (RLS grants full CRUD to `authenticated`, no service key needed).
 // Display lookups use masterProducts (already loaded client-side for staff) — name/brand/price
 // ONLY, never cost_price/margin, per Zaid's rule.
+// p1_1220 — Solo/Combo tab switcher (Marketing > Walk-in Promo)
+window.__wpAdminSwitchTab = function(tab) {
+ const solo = document.getElementById('wpSoloPanel');
+ const combo = document.getElementById('wpComboPanel');
+ const btnSolo = document.getElementById('wpTabBtnSolo');
+ const btnCombo = document.getElementById('wpTabBtnCombo');
+ if (!solo || !combo || !btnSolo || !btnCombo) return;
+ const isCombo = tab === 'combo';
+ solo.style.display = isCombo ? 'none' : '';
+ combo.style.display = isCombo ? '' : 'none';
+ btnSolo.style.borderBottomColor = isCombo ? 'transparent' : 'var(--primary,#CD7C32)';
+ btnSolo.style.color = isCombo ? '#9CA3AF' : '';
+ btnCombo.style.borderBottomColor = isCombo ? 'var(--primary,#CD7C32)' : 'transparent';
+ btnCombo.style.color = isCombo ? '' : '#9CA3AF';
+};
+
 window.renderWalkinPromoAdmin = async function() {
  const skuListEl = document.getElementById('wpiSkuList');
  if (skuListEl && Array.isArray(masterProducts)) {
@@ -35911,6 +35958,7 @@ window.__walkinPromoRemove = async function(id) {
   await window.renderWalkinPromoAdmin();
  } catch (e) { showToast('Ralat: ' + e.message, 'error'); }
 };
+
 
 // =============================================================
 // SPRINT C — CLOSE THE LOOP

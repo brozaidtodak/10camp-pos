@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=186">
+ <link rel="stylesheet" href="design-tokens.css?v=187">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -1295,13 +1295,15 @@
  <span class="lp-eyebrow">In-Store Only</span>
  <h2 class="lp-h2">Walk-in Promo</h2>
  <p class="lp-section__sub">Diskaun khas untuk customer yang datang terus ke kedai — tak boleh redeem online.</p>
+ <div class="lp-walkin-promo__toolbar">
  <div class="lp-walkin-promo__tabs">
  <button id="wpPublicTabSolo" class="lp-walkin-promo__tab is-active" onclick="window.__wpPublicSwitchTab('solo')">Solo</button>
  <button id="wpPublicTabCombo" class="lp-walkin-promo__tab" onclick="window.__wpPublicSwitchTab('combo')">Combo</button>
  </div>
- <div class="lp-walkin-promo__search-wrap">
- <i data-lucide="search" style="width:15px;height:15px;"></i>
+ <div class="lp-walkin-promo__search-wrap" id="wpSearchBox">
  <input type="text" id="walkinPromoSearch" placeholder="Cari produk atau jenama…" oninput="window.__wpPublicSearch(this.value)">
+ <button class="lp-walkin-promo__search-toggle" onclick="window.__wpToggleSearch()" aria-label="Cari"><i data-lucide="search" style="width:16px;height:16px;"></i></button>
+ </div>
  </div>
  <div id="walkinPromoManifest" class="lp-walkin-promo__manifest"></div>
  </div>
@@ -13447,7 +13449,7 @@
   </div>
  </div>
  <!-- JS Core -->
-<script src="app.js?v=1180"></script>
+<script src="app.js?v=1181"></script>
  <!-- p1_12xx — Intro montage: replay bila tekan logo + pembersihan kelas + reduced-motion. -->
  <script>
  (function(){

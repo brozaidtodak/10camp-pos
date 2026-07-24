@@ -17726,12 +17726,29 @@ window.__wpPublicSearch = function(value) {
  else window.__renderWalkinPromoManifest(value);
 };
 
+// p1_1221 — search collapses to a lens button; toggle expands/collapses it
+window.__wpToggleSearch = function() {
+ const box = document.getElementById('wpSearchBox');
+ const input = document.getElementById('walkinPromoSearch');
+ if (!box || !input) return;
+ const opening = !box.classList.contains('is-open');
+ box.classList.toggle('is-open', opening);
+ if (opening) {
+  input.focus();
+ } else if (input.value) {
+  input.value = '';
+  window.__wpPublicSearch('');
+ }
+};
+
 window.__openWalkinPromoModal = async function() {
  const overlay = document.getElementById('walkinPromoOverlay');
  if (!overlay) return;
  overlay.style.display = 'flex';
  const search = document.getElementById('walkinPromoSearch');
  if (search) search.value = '';
+ const searchBox = document.getElementById('wpSearchBox');
+ if (searchBox) searchBox.classList.remove('is-open');
  window.__walkinPromoActiveTab = 'solo';
  const btnSolo = document.getElementById('wpPublicTabSolo');
  const btnCombo = document.getElementById('wpPublicTabCombo');

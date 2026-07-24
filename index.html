@@ -44,7 +44,7 @@
  <link rel="dns-prefetch" href="https://asehjdnfzoypbwfeazra.supabase.co">
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link rel="stylesheet" href="design-tokens.css?v=185">
+ <link rel="stylesheet" href="design-tokens.css?v=186">
  <script src="landing-theme.js?v=2"></script>
  <!-- Supabase Core — p1_976: vendored (self-host) supaya tak bergantung CDN luar +
       di-cache oleh Service Worker. Elak "Auth tidak tersedia" bila CDN jsdelivr lambat/blocked.
@@ -63,7 +63,9 @@
  <!-- qrcode.min.js DIBUANG 2026-07-04: 0 guna dalam kod (dead weight boot). Re-add (lazy) bila bina DuitNow QR. -->
   <script defer data-site="pos" src="https://analytics.10camp.com/track.js"></script>
   <!-- p1_1213 — /shop = page produk sendiri. Set kelas SEBELUM render (elak flash homepage). -->
-  <script>if(location.pathname.replace(/\/+$/,'')==='/shop')document.documentElement.classList.add('shop-page');</script>
+  <!-- p1_12xx — intro montage HANYA di homepage (pathname '/'); set kelas SEBELUM render supaya
+       overlay tutup skrin serta-merta (elak flash kandungan sebelum animasi). -->
+  <script>(function(){var p=location.pathname.replace(/\/+$/,'');if(p==='/shop'){document.documentElement.classList.add('shop-page');}else if(p===''||p==='/index.html'){document.documentElement.classList.add('intro-on');}})();</script>
 </head>
 <body>
  <!-- p1_1012 — Boot splash (kaunter iPad): tutup landing customer dari saat pertama sampai app tentukan POS/skrin-kunci. Skrip inline sinkron tanda <html> sebelum landing sempat paint. -->
@@ -1146,6 +1148,22 @@
  </div>
 
  <!-- Modern Header -->
+ <!-- p1_12xx — INTRO MONTAGE LOGO (homepage only; main via html.intro-on). Auto-main masa masuk,
+      replay bila tekan logo. CSS-driven (robust tanpa JS); JS cuma utk replay + reduced-motion. -->
+ <div id="lpIntro" class="lp-intro" aria-hidden="true">
+ <div class="lp-intro__frames">
+ <div class="lp-intro__frame" style="background-image:url('assets/intro/frame-1.jpg?v=1')"></div>
+ <div class="lp-intro__frame" style="background-image:url('assets/intro/frame-2.jpg?v=1')"></div>
+ <div class="lp-intro__frame" style="background-image:url('assets/intro/frame-3.jpg?v=1')"></div>
+ <div class="lp-intro__frame" style="background-image:url('assets/intro/frame-4.jpg?v=1')"></div>
+ </div>
+ <div class="lp-intro__scrim"></div>
+ <div class="lp-intro__glow"></div>
+ <div class="lp-intro__stage">
+ <div class="lp-intro__logo"><img src="assets/brand/logo/10camp-logo-white.png" alt="10 CAMP by TODAK"></div>
+ <div class="lp-intro__tag">Datang. Angkat. Gerak.</div>
+ </div>
+ </div>
  <header class="lp-header">
  <div class="lp-header__inner">
  <a href="/" class="lp-brand" aria-label="10 CAMP home">
@@ -13430,6 +13448,25 @@
  </div>
  <!-- JS Core -->
 <script src="app.js?v=1180"></script>
+ <!-- p1_12xx — Intro montage: replay bila tekan logo + pembersihan kelas + reduced-motion. -->
+ <script>
+ (function(){
+   var html = document.documentElement, intro = document.getElementById('lpIntro');
+   if(!intro) return;
+   var DUR = 2800; // selaras animasi lpIntroWrap (2.7s) + buffer
+   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+   function isHome(){ var p = location.pathname.replace(/\/+$/,''); return (p === '' || p === '/index.html') && !html.classList.contains('shop-page'); }
+   function endSoon(){ clearTimeout(intro._t); intro._t = setTimeout(function(){ html.classList.remove('intro-on'); }, DUR); }
+   function play(){
+     if(reduce){ html.classList.remove('intro-on'); return; }
+     html.classList.remove('intro-on'); void intro.offsetWidth; html.classList.add('intro-on'); endSoon();
+   }
+   window.lpPlayIntro = play;
+   if(html.classList.contains('intro-on')){ reduce ? html.classList.remove('intro-on') : endSoon(); }
+   var brand = document.querySelector('.lp-brand');
+   if(brand){ brand.addEventListener('click', function(e){ if(isHome()){ e.preventDefault(); play(); } }); }
+ })();
+ </script>
  <!-- p1_975 — daftar Service Worker untuk OFFLINE PENUH. HTML network-first (sentiasa fresh
       bila online) + cache fallback bila offline. Lihat sw.js untuk strategi elak kod basi. -->
  <script>

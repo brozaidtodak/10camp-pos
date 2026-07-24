@@ -4729,3 +4729,97 @@ body:has(#saPanel:not([hidden])) #mobileCartFloatingBar { display: none !importa
 }
 .lp-root { font-family: var(--lp-font-body, inherit); }
 .lp-root h1, .lp-root h2, .lp-root h3, .lp-root .lp-h { font-family: var(--lp-font-display, inherit); }
+
+/* ============================================================
+   p1_12xx — INTRO MONTAGE LOGO (homepage). Sinematik gelap + bara oren.
+   Dipacu CSS penuh (auto-main + auto-keluar); JS cuma replay + reduced-motion.
+   ============================================================ */
+.lp-intro { display: none; }
+html.intro-on .lp-intro {
+  display: block; position: fixed; inset: 0; z-index: 99999;
+  background: #0B0B0C; overflow: hidden; pointer-events: none;
+  animation: lpIntroWrap 2.7s ease forwards;
+}
+@keyframes lpIntroWrap {
+  0%, 78% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+/* montage frames — cross-fade + ken burns */
+.lp-intro__frames { position: absolute; inset: 0; }
+.lp-intro__frame {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; will-change: opacity, transform; transform: scale(1.08);
+}
+html.intro-on .lp-intro__frame { animation: lpFrameKen 1.7s ease forwards; }
+html.intro-on .lp-intro__frame:nth-child(1) { animation-delay: 0s; }
+html.intro-on .lp-intro__frame:nth-child(2) { animation-delay: .42s; }
+html.intro-on .lp-intro__frame:nth-child(3) { animation-delay: .84s; }
+html.intro-on .lp-intro__frame:nth-child(4) { animation-delay: 1.26s; }
+@keyframes lpFrameKen {
+  0% { opacity: 0; transform: scale(1.08); }
+  14% { opacity: .85; }
+  55% { opacity: .85; transform: scale(1.15); }
+  80% { opacity: 0; }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+/* scrim gelap + vignette supaya logo putih menonjol */
+.lp-intro__scrim {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 46%, rgba(11,11,12,.30) 0%, rgba(11,11,12,.72) 62%, rgba(11,11,12,.92) 100%),
+    linear-gradient(180deg, rgba(11,11,12,.55) 0%, rgba(11,11,12,.35) 40%, rgba(11,11,12,.75) 100%);
+}
+/* bara oren memancar di belakang logo */
+.lp-intro__glow {
+  position: absolute; left: 50%; top: 47%; width: 62vmin; height: 62vmin;
+  transform: translate(-50%, -50%) scale(.6); opacity: 0;
+  background: radial-gradient(circle, rgba(255,77,0,.55) 0%, rgba(255,77,0,.18) 34%, transparent 66%);
+  filter: blur(6px); will-change: opacity, transform;
+}
+html.intro-on .lp-intro__glow { animation: lpIntroGlow 2.7s ease forwards; }
+@keyframes lpIntroGlow {
+  0%, 26% { opacity: 0; transform: translate(-50%, -50%) scale(.55); }
+  52% { opacity: .95; transform: translate(-50%, -50%) scale(1); }
+  74% { opacity: .7; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.12); }
+}
+/* logo + tagline */
+.lp-intro__stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; }
+.lp-intro__logo { width: min(52vw, 340px); opacity: 0; will-change: opacity, transform; }
+.lp-intro__logo img { width: 100%; height: auto; display: block; filter: drop-shadow(0 0 34px rgba(255,77,0,.45)); }
+html.intro-on .lp-intro__logo { animation: lpIntroLogo 1.6s cubic-bezier(.16,.84,.24,1) .82s forwards; }
+@keyframes lpIntroLogo {
+  0% { opacity: 0; transform: scale(.72) translateY(10px); filter: blur(7px); }
+  46% { opacity: 1; transform: scale(1.045); filter: blur(0); }
+  62% { transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.lp-intro__tag {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; font-size: clamp(11px, 2.4vw, 14px);
+  font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: #FF4D00; opacity: 0;
+  white-space: nowrap; will-change: opacity, transform;
+}
+html.intro-on .lp-intro__tag { animation: lpIntroTag 2.7s ease 1.3s forwards; }
+@keyframes lpIntroTag {
+  0% { opacity: 0; letter-spacing: 10px; transform: translateY(6px); }
+  22% { opacity: 1; letter-spacing: 4px; transform: translateY(0); }
+  62% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* garis bara menyapu bawah logo */
+.lp-intro__stage::after {
+  content: ''; position: absolute; left: 50%; bottom: calc(50% - 8vmin); width: 0; height: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, #FF4D00, transparent); opacity: 0;
+}
+html.intro-on .lp-intro__stage::after { animation: lpIntroLine 1.8s ease 1.1s forwards; }
+@keyframes lpIntroLine {
+  0% { width: 0; opacity: 0; }
+  40% { width: min(46vw, 300px); opacity: 1; }
+  70% { width: min(46vw, 300px); opacity: 1; }
+  100% { width: min(46vw, 300px); opacity: 0; }
+}
+/* hormati reduced-motion — langkau splash terus */
+@media (prefers-reduced-motion: reduce) {
+  html.intro-on .lp-intro { display: none !important; }
+}

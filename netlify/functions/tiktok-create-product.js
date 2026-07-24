@@ -117,31 +117,67 @@ exports.handler = async (event) => {
 // BACKGROUND function (tiktok-create-product-background.js) so slow creates never hit the
 // ~10s sync cap — the background fn runs runCreate to completion + writeback, client polls DB.
 async function runCreate(body) {
-    const { sku, title: titleOverride, category_id: catOverride, dry = false, force = false,
+    const { sku, bundle_id = null,            // p1_1229 — bundle_id → cipta PAKEJ (product_bundles) di TikTok
+            title: titleOverride, category_id: catOverride, dry = false, force = false,
             publish = false, product_id: publishProductId = null, save_mode = 'AS_DRAFT',
             requirements = false,                 // mode=requirements → pulang field wajib kategori + prefill POS
             description: descOverride = null, brand_id: brandIdOverride = null,
             attributes: attrOverride = null,      // [{id, name, values:[{id?, name}]}] dari borang prefill
             weight_kg: wOverride = null, length_cm: lOverride = null,
             width_cm: wdOverride = null, height_cm: hOverride = null } = body;
-    if (!sku) return { statusCode: 400, body: 'sku required' };
+    if (!sku && !bundle_id) return { statusCode: 400, body: 'sku or bundle_id required' };
 
     const errors = [];
+    const isBundle = !!bundle_id;         // p1_1229
+    let bundleStock = null;               // stok TikTok pakej = set boleh dibuat (dari stok anak)
     try {
-        // 1) Pull the listing rows (parent + variants share parent_sku == this sku, OR this single sku)
-        const esc = (s) => encodeURIComponent('"' + String(s).toUpperCase().replace(/"/g, '\\"') + '"');
-        let rows = await tt.sb('GET', `/products_master?or=(sku.eq.${encodeURIComponent(sku)},parent_sku.eq.${encodeURIComponent(sku)})&select=*`);
-        if (!rows || !rows.length) return { statusCode: 404, body: 'product not found' };
-        // variant children = rows whose own sku != listing sku; lead = the listing sku row (or first)
-        const lead = rows.find(r => r.sku === sku) || rows[0];
-        let skuRows = rows.filter(r => r.sku && r.sku !== sku);
-        const hasVariants = skuRows.length > 0;
-        if (!hasVariants) skuRows = [lead];
+        let lead, skuRows, hasVariants;
+        if (isBundle) {
+            // p1_1229 — PAKEJ: assemble "lead" sintetik + 1 SKU (tiada varian) dari product_bundles + anak.
+            const brows = await tt.sb('GET', `/product_bundles?id=eq.${encodeURIComponent(bundle_id)}&select=*`);
+            if (!brows || !brows.length) return { statusCode: 404, body: 'bundle not found' };
+            const b = brows[0];
+            const items = Array.isArray(b.items) ? b.items : [];
+            if (!items.length) return { statusCode: 400, body: 'bundle empty' };
+            const childSkus = items.map(it => String(it.sku || '').toUpperCase()).filter(Boolean);
+            const escIn = childSkus.map(s => encodeURIComponent('"' + s.replace(/"/g, '\\"') + '"')).join(',');
+            const children = childSkus.length ? (await tt.sb('GET', `/products_master?sku=in.(${escIn})&select=*`) || []) : [];
+            const childBy = {}; children.forEach(c => { childBy[String(c.sku || '').toUpperCase()] = c; });
+            const cstock = await tt.getPosStock(childSkus);
+            // stok pakej = min(floor(stok_anak/qty))
+            let sets = Infinity;
+            items.forEach(it => { const q = Number(it.qty) || 1; const st = cstock[String(it.sku || '').toUpperCase()] || 0; if (q > 0) sets = Math.min(sets, Math.floor(st / q)); });
+            bundleStock = (sets === Infinity) ? 0 : sets;
+            // gambar: gambar pertama tiap anak (sehingga 9)
+            let imgs = [];
+            items.forEach(it => { const c = childBy[String(it.sku || '').toUpperCase()]; const ci = c ? pickImages(c) : []; if (ci[0]) imgs.push(ci[0]); });
+            imgs = imgs.filter(Boolean).slice(0, 9);
+            const contentLines = items.map(it => { const c = childBy[String(it.sku || '').toUpperCase()]; return (it.qty || 1) + 'x ' + ((c && c.name) ? cleanTitle(c.name, c.brand) : it.sku); });
+            const domCat = (children[0] && children[0].category) || '';
+            lead = {
+                sku: b.bundle_sku || ('BDL' + b.id),
+                name: b.name, brand: '10 Camp', category: domCat,
+                description: `<p>Pakej: ${b.name}</p><p>Termasuk:</p><ul>${contentLines.map(l => `<li>${l}</li>`).join('')}</ul>`,
+                price: b.price, images: imgs, metadata: b.metadata || {},
+                weight_kg: 2, length_cm: 30, width_cm: 25, height_cm: 15   // default; borang prefill boleh override
+            };
+            skuRows = [lead]; hasVariants = false;
+        } else {
+            // 1) Pull the listing rows (parent + variants share parent_sku == this sku, OR this single sku)
+            const esc = (s) => encodeURIComponent('"' + String(s).toUpperCase().replace(/"/g, '\\"') + '"');
+            let rows = await tt.sb('GET', `/products_master?or=(sku.eq.${encodeURIComponent(sku)},parent_sku.eq.${encodeURIComponent(sku)})&select=*`);
+            if (!rows || !rows.length) return { statusCode: 404, body: 'product not found' };
+            // variant children = rows whose own sku != listing sku; lead = the listing sku row (or first)
+            lead = rows.find(r => r.sku === sku) || rows[0];
+            skuRows = rows.filter(r => r.sku && r.sku !== sku);
+            hasVariants = skuRows.length > 0;
+            if (!hasVariants) skuRows = [lead];
+        }
         if (lead.metadata && lead.metadata.tiktok_product_id && !dry && !force && !publish && !requirements)
             return { statusCode: 200, body: JSON.stringify({ ok: false, already: true, product_id: lead.metadata.tiktok_product_id }) };
 
         // 2) Title + category + description (borang prefill boleh override)
-        const title = titleOverride || cleanTitle(lead.name, lead.brand);
+        const title = titleOverride || (isBundle ? lead.name : cleanTitle(lead.name, lead.brand)); // p1_1229 — nama pakej dah bersih
         const category_id = catOverride || resolveCategory(lead.category);
         const descRaw = descOverride != null ? descOverride : (lead.description || '');
         const desc = (descRaw && descRaw.length > 20)
@@ -157,8 +193,10 @@ async function runCreate(body) {
             unit: 'CENTIMETER'
         };
 
-        // 4) Stock per sku
-        const stockMap = await tt.getPosStock(skuRows.map(r => r.sku));
+        // 4) Stock per sku (pakej: stok = set boleh dibuat dari anak)
+        const stockMap = isBundle
+            ? { [String(lead.sku).toUpperCase()]: (bundleStock || 0) }
+            : await tt.getPosStock(skuRows.map(r => r.sku));
 
         // 5) Build SKUs
         const skus = skuRows.map(r => {
@@ -202,7 +240,7 @@ async function runCreate(body) {
                 values: (a.values || []).map(v => ({ id: String(v.id), name: v.name }))
             }));
             return { statusCode: 200, headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ ok: true, requirements: true, listing_sku: sku, category_id,
+                body: JSON.stringify({ ok: true, requirements: true, listing_sku: (sku || (lead && lead.sku)), category_id,
                     has_variants: hasVariants,
                     prefill: {
                         title, description: (lead.description || ''), brand: lead.brand || '',
@@ -219,7 +257,7 @@ async function runCreate(body) {
         if (dry) {
             return { statusCode: 200, headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ ok: true, dry: true, title, category_id,
-                    listing_sku: sku, has_variants: hasVariants, image_count: imgUrls.length,
+                    listing_sku: (sku || (lead && lead.sku)), has_variants: hasVariants, image_count: imgUrls.length,
                     package: { weight_kg: w, dim }, skus, errors }, null, 2) };
         }
 
@@ -297,8 +335,14 @@ async function runCreate(body) {
                 tiktok_product_id: productId,
                 tiktok_sku_id: skuIdBySeller[r.sku] || null,
                 tiktok_created_at: new Date().toISOString(),
-                tiktok_created_via: 'cara_b'
+                tiktok_created_via: isBundle ? 'cara_b_bundle' : 'cara_b'   // p1_1229
             });
+            // p1_1229 — pakej: tulis balik ke product_bundles (ikut id), bukan products_master (ikut sku)
+            if (isBundle) {
+                return tt.sb('PATCH', `/product_bundles?id=eq.${encodeURIComponent(bundle_id)}`,
+                    { metadata: meta }, { Prefer: 'return=minimal' })
+                    .catch(e => { errors.push('writeback bundle ' + bundle_id + ': ' + e.message); });
+            }
             return tt.sb('PATCH', `/products_master?sku=eq.${encodeURIComponent(r.sku)}`,
                 { metadata: meta }, { Prefer: 'return=minimal' })
                 .catch(e => { errors.push('writeback ' + r.sku + ': ' + e.message); });

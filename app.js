@@ -44530,6 +44530,35 @@ window.__bundleToggleActive = async function(id){
 
 window.__bundleResetForm = function(){ window.__bundleEditId=null; window.__bundleDraft=[]; window.renderBundles(); };
 
+// ===== p1_1229 — DEPLOY PAKEJ KE MARKETPLACE =====
+// TikTok: cipta DRAF via API (tiktok-create-product mode bundle_id). Shopee: buka Seller Centre (daftar manual).
+window.__bundleDeployTiktok = async function(id){
+ const b=(window.__bundles||[]).find(x=>String(x.id)===String(id)); if(!b){ if(window.showToast) showToast('Pakej tak dijumpai.','warn'); return; }
+ if(!confirm('Cipta DRAF pakej "'+(b.name||'')+'" di TikTok Seller Centre?\n\n• Jadi draf (BUKAN live) — kau semak & terbit sendiri di TikTok.\n• Gambar guna gambar anak pertama tiap barang.\n• Harga = harga pakej (RM'+(Number(b.price)||0).toFixed(2)+').')) return;
+ if(window.showToast) showToast('Menghantar pakej ke TikTok…','info');
+ try {
+  const res = await fetch('/api/tiktok-create-product', { method:'POST',
+   headers: window.__authHeaderSync({'Content-Type':'application/json'}),
+   body: JSON.stringify({ bundle_id: b.id }) });
+  const j = await res.json().catch(()=>({ok:false,error:'respons tak sah'}));
+  if(j.ok && j.product_id){
+   if(window.showToast) showToast('Draf pakej dicipta di TikTok ✓ — semak & terbit di Seller Centre.','success');
+   try { window.__bundles=null; await window.__bundleLoad(); window.renderBundles(); }catch(e){}
+   try { window.open('https://seller-my.tiktok.com/product/edit/'+j.product_id+'?shop_region=MY','_blank'); }catch(e){}
+  } else if(j.already){
+   if(window.showToast) showToast('Pakej ni dah ada di TikTok — buka untuk edit.','info');
+   try { window.open('https://seller-my.tiktok.com/product/edit/'+j.product_id+'?shop_region=MY','_blank'); }catch(e){}
+  } else {
+   const msg=j.tiktok_msg||j.error||(j.errors&&j.errors[0])||'tak diketahui';
+   if(window.showToast) showToast('TikTok gagal: '+msg,'warn');
+  }
+ } catch(e){ if(window.showToast) showToast('TikTok ralat: '+(e.message||e),'warn'); }
+};
+window.__bundleShopeeSC = function(){
+ if(window.showToast) showToast('Shopee tiada auto-cipta — daftar pakej manual di Seller Centre (rujuk maklumat pakej di sini).','info');
+ try { window.open('https://seller.shopee.com.my/portal/product/new','_blank'); }catch(e){}
+};
+
 window.renderBundles = async function(){
  const sec=document.getElementById('bundlesSection'); if(!sec) return;
  if(window.__bundles===null) await window.__bundleLoad();
@@ -44556,6 +44585,11 @@ window.renderBundles = async function(){
    +'<td style="padding:8px 10px; font-weight:800; color:'+bmCol+';">'+bmTxt+'</td>'
    +'<td style="padding:8px 10px; font-weight:700; color:'+(avail>0?'#4E7C4A':'#B23A2E')+';">'+avail+' set</td>'
    +'<td style="padding:8px 10px; white-space:nowrap;">'
+     // p1_1229 — deploy marketplace: TikTok (draf via API) + Shopee (buka Seller Centre manual)
+     +((b.metadata && b.metadata.tiktok_product_id)
+        ? '<a href="https://seller-my.tiktok.com/product/edit/'+b.metadata.tiktok_product_id+'?shop_region=MY" target="_blank" title="Dah di TikTok — buka draf" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#2F5A2C;background:#EEF6EE;border:1px solid #CFE3CE;border-radius:7px;padding:4px 8px;margin-right:6px;text-decoration:none;">TikTok ✓</a>'
+        : '<button onclick="window.__bundleDeployTiktok('+b.id+')" title="Cipta draf di TikTok" style="font-size:11px;font-weight:700;color:#101010;background:#fff;border:1px solid #D1D5DB;border-radius:7px;padding:4px 8px;margin-right:6px;cursor:pointer;"><i data-lucide="send" style="width:12px;height:12px;vertical-align:-2px;"></i> TikTok</button>')
+     +'<button onclick="window.__bundleShopeeSC()" title="Buka Shopee Seller Centre (daftar manual)" style="font-size:11px;font-weight:700;color:#EE4D2D;background:#fff;border:1px solid #F5C6B8;border-radius:7px;padding:4px 8px;margin-right:10px;cursor:pointer;"><i data-lucide="external-link" style="width:12px;height:12px;vertical-align:-2px;"></i> Shopee</button>'
      +'<button onclick="window.__bundleEdit('+b.id+')" title="Edit" style="background:none;border:0;cursor:pointer;color:var(--primary,var(--primary-500,#CD7C32)); margin-right:6px;"><i data-lucide="pencil" style="width:15px;height:15px;"></i></button>'
      +'<button onclick="window.__bundleToggleActive('+b.id+')" title="On/Off" style="background:none;border:0;cursor:pointer;color:#6B7280; margin-right:6px;"><i data-lucide="power" style="width:15px;height:15px;"></i></button>'
      +'<button onclick="window.__bundleDelete('+b.id+')" title="Padam" style="background:none;border:0;cursor:pointer;color:#B23A2E;"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>'
